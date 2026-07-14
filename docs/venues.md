@@ -43,7 +43,7 @@ interface Venue {
   smallBlind, bigBlind: number
   seats: number         // total incl. the human
   prize: number         // winner-take-all, added to Roll on a win
-  ai: AiProfile         // { tightness, aggression, bluff, iterations }
+  ai: AiProfile         // { tightness, aggression, bluff, iterations, skill? }
   accent: string        // hex; the tier chip colour
 }
 ```

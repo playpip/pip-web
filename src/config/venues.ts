@@ -173,7 +173,10 @@ export const KITCHEN_TABLE: Venue = {
   freeroll: true,
   escalation: false,
   accent: '#64B98C',
-  ai: { tightness: 0.12, aggression: 0.22, bluff: 0.04, iterations: 250 },
+  // Low skill is what makes this beatable: heads-up, a sound equity bot is
+  // brutal however "loose" it is. This one misreads its hand and folds under
+  // pressure — simulated ~75% win rate for a competent-casual player.
+  ai: { tightness: 0.55, aggression: 0.15, bluff: 0.03, iterations: 80, skill: 0.3 },
 }
 
 /** The freeroll opens only while the player can't afford the ladder's bottom rung. */

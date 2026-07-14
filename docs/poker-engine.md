@@ -65,7 +65,9 @@ Monte-Carlo equity — how often a hand wins at showdown vs N random opponents.
 ### `ai/policy.ts`
 There is **no drop-in poker bot library** worth using in JS, so the AI is ours:
 equity + pot odds + a personality.
-- `AiProfile { tightness, aggression, bluff, iterations }`.
+- `AiProfile { tightness, aggression, bluff, iterations, skill? }` — `skill` (default 1)
+  degrades play quality with genuine mistakes: noisy self-equity reads and folding
+  under pressure. Used by the Kitchen Table freeroll so it stays beatable heads-up.
 - `decideAction(state, profile, rng?): Action` — always returns a **legal** action.
   Logic: estimate equity vs live opponents → compare to pot odds (tightness raises the
   bar) → value-bet/raise strong hands, check/call medium, fold weak, occasionally bluff.

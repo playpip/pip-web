@@ -21,6 +21,12 @@ export interface AiProfile {
   bluff: number
   /** Monte-Carlo sims per decision. More = sharper estimate = smarter. */
   iterations: number
+  /**
+   * Play quality, 1 (its best game) → 0 (blundery). Below 1 the AI misreads
+   * its own hand strength and gives up too easily under pressure — genuine,
+   * exploitable mistakes rather than a personality shift. Defaults to 1.
+   */
+  skill?: number
 }
 
 const clamp = (n: number, lo: number, hi: number): number =>
@@ -69,13 +75,20 @@ export function decideAction(
     return legal.canCheck ? { type: 'check' } : { type: 'call' }
   }
 
-  const { equity } = estimateEquity({
+  const { equity: trueEquity } = estimateEquity({
     hole: player.hole,
     community: state.community,
     opponents,
     iterations: profile.iterations,
     rng,
   })
+
+  // Unskilled players misread their hand strength. The noisy estimate feeds
+  // every decision below, so mistakes compound naturally: missed value bets,
+  // bad calls, folded winners.
+  const skill = clamp(profile.skill ?? 1, 0, 1)
+  const misread = (rng() - 0.5) * (1 - skill) * 0.6
+  const equity = clamp(trueEquity + misread, 0.02, 0.98)
 
   const toCall = legal.callAmount
   const pot = potSize(state)
@@ -97,6 +110,12 @@ export function decideAction(
   }
 
   // --- facing a bet ------------------------------------------------------
+  // Unskilled players also just give up under pressure — the exploitable
+  // tell a casual human can actually find and use.
+  if (skill < 1 && rng() < (1 - skill) * 0.35) {
+    return { type: 'fold' }
+  }
+
   // Tightness demands more equity than the raw pot odds before continuing.
   const continueThreshold = potOdds + profile.tightness * 0.15
 

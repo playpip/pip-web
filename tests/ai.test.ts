@@ -79,3 +79,25 @@ test('tighter AI folds more than a looser one facing the same spots', (t) => {
 
   t.true(countFolds(nit) > countFolds(maniac))
 })
+
+test('low-skill AI folds to pressure more than its full-skill self', (t) => {
+  const base: AiProfile = { tightness: 0.4, aggression: 0.3, bluff: 0, iterations: 100 }
+  const blundery: AiProfile = { ...base, skill: 0.2 }
+
+  const countFolds = (profile: AiProfile): number => {
+    let folds = 0
+    for (let seed = 0; seed < 30; seed++) {
+      const rng = mulberry32(seed + 77)
+      let s = startHand({ seats: makeSeats(4), buttonIndex: 0, smallBlind: 5, bigBlind: 10, rng })
+      let guard = 0
+      while (!isHandComplete(s) && guard++ < 1000) {
+        const action = decideAction(s, profile, rng)
+        if (action.type === 'fold') folds++
+        s = applyAction(s, action)
+      }
+    }
+    return folds
+  }
+
+  t.true(countFolds(blundery) > countFolds(base))
+})
