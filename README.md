@@ -78,3 +78,17 @@ Full documentation lives in [`docs/`](docs/README.md):
 
 Agents working in this repo should start with [`CLAUDE.md`](CLAUDE.md) /
 [`AGENTS.md`](AGENTS.md).
+
+## About
+
+Pip is built by [playpip](https://github.com/playpip) and is under active
+development. It's a pure front-end app: no backend, no accounts, no tracking —
+everything runs in the browser and persists locally. The engine is deterministic
+and fully unit-tested, and the product docs in [`docs/`](docs/README.md) are the
+source of truth for everything from the [brand](docs/brand.md) to the
+[economy](docs/game-flow.md).
+
+Play money only, forever — chips are never a currency, and nothing is for sale.
+
+*Keywords: poker · texas hold'em · sit-and-go · tournament · play money ·
+single player · card game · next.js · react · typescript*
