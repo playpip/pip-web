@@ -14,12 +14,44 @@ export interface LifetimeStats {
   handsPlayed: number
   handsWon: number
   biggestPot: number
+  /** Hands won at a showdown. */
+  showdownsWon: number
+  tournamentsEntered: number
+  tournamentsWon: number
 }
 
 const emptyStats = (): LifetimeStats => ({
   handsPlayed: 0,
   handsWon: 0,
   biggestPot: 0,
+  showdownsWon: 0,
+  tournamentsEntered: 0,
+  tournamentsWon: 0,
+})
+
+/** One point on the Roll-over-time graph. */
+export interface RollPoint {
+  t: number
+  roll: number
+}
+
+/** Kept to a sane size — old points age out of the front. */
+const ROLL_HISTORY_CAP = 300
+
+export interface VenueRecord {
+  entered: number
+  won: number
+  /** Best finishing position (1 = won it). */
+  bestFinish: number | null
+  /** Fewest hands a win took. */
+  fastestWinHands: number | null
+}
+
+const emptyVenueRecord = (): VenueRecord => ({
+  entered: 0,
+  won: 0,
+  bestFinish: null,
+  fastestWinHands: null,
 })
 
 export interface ProfileState {
@@ -32,6 +64,10 @@ export interface ProfileState {
   /** Highest Roll ever reached — drives your rank/title. */
   peakRoll: number
   stats: LifetimeStats
+  /** The Roll sampled at tournament results and cash-outs (drives the stats graph). */
+  rollHistory: RollPoint[]
+  /** Per-venue records: entries, wins, best finish, fastest win. */
+  venueRecords: Record<string, VenueRecord>
   /** Chosen face-down card design. */
   cardBack: CardBackDesign
   /** Earned award chips: id → epoch ms earned (see lib/awards). */
@@ -49,10 +85,14 @@ export interface ProfileState {
   grantAwards: (ids: string[]) => void
   setCameFromFreeroll: (value: boolean) => void
   mergeStats: (partial: Partial<LifetimeStats>) => void
+  /** Sample the current Roll onto the history graph. */
+  recordRollPoint: () => void
+  recordVenueEntry: (venueId: string) => void
+  recordVenueResult: (venueId: string, finish: number, hands: number) => void
   reset: () => void
 }
 
-const PERSIST_VERSION = 6
+export const PERSIST_VERSION = 7
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -64,16 +104,19 @@ export const useProfile = create<ProfileState>()(
       roll: STARTING_ROLL,
       peakRoll: STARTING_ROLL,
       stats: emptyStats(),
+      rollHistory: [],
+      venueRecords: {},
       cardBack: DEFAULT_CARD_BACK,
       awards: {},
       cameFromFreeroll: false,
 
       createProfile: (name, avatar) =>
-        set({
+        set((s) => ({
           created: true,
           name: name.trim() || 'Player',
           avatar,
-        }),
+          rollHistory: [{ t: Date.now(), roll: s.roll }],
+        })),
       setName: (name) => set({ name: name.trim() || 'Player' }),
       setAvatar: (avatar) => set({ avatar }),
       setCardBack: (cardBack) => set({ cardBack }),
@@ -99,6 +142,35 @@ export const useProfile = create<ProfileState>()(
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
       mergeStats: (partial) =>
         set((s) => ({ stats: { ...s.stats, ...mergeStatValues(s.stats, partial) } })),
+      recordRollPoint: () =>
+        set((s) => ({
+          rollHistory: [...s.rollHistory, { t: Date.now(), roll: s.roll }].slice(-ROLL_HISTORY_CAP),
+        })),
+      recordVenueEntry: (venueId) =>
+        set((s) => {
+          const rec = s.venueRecords[venueId] ?? emptyVenueRecord()
+          return { venueRecords: { ...s.venueRecords, [venueId]: { ...rec, entered: rec.entered + 1 } } }
+        }),
+      recordVenueResult: (venueId, finish, hands) =>
+        set((s) => {
+          const rec = s.venueRecords[venueId] ?? emptyVenueRecord()
+          const won = finish === 1
+          return {
+            venueRecords: {
+              ...s.venueRecords,
+              [venueId]: {
+                ...rec,
+                won: rec.won + (won ? 1 : 0),
+                bestFinish: rec.bestFinish === null ? finish : Math.min(rec.bestFinish, finish),
+                fastestWinHands: won
+                  ? rec.fastestWinHands === null
+                    ? hands
+                    : Math.min(rec.fastestWinHands, hands)
+                  : rec.fastestWinHands,
+              },
+            },
+          }
+        }),
       reset: () =>
         set({
           created: false,
@@ -107,6 +179,8 @@ export const useProfile = create<ProfileState>()(
           roll: STARTING_ROLL,
           peakRoll: STARTING_ROLL,
           stats: emptyStats(),
+          rollHistory: [],
+          venueRecords: {},
           cardBack: DEFAULT_CARD_BACK,
           awards: {},
           cameFromFreeroll: false,
@@ -133,6 +207,12 @@ export const useProfile = create<ProfileState>()(
           s.awards = {}
           s.cameFromFreeroll = false
         }
+        // v6 → v7: stats history (roll graph, venue records, richer counters).
+        if (fromVersion < 7) {
+          s.rollHistory = []
+          s.venueRecords = {}
+          s.stats = { ...emptyStats(), ...s.stats }
+        }
         return s
       },
     },
@@ -146,6 +226,10 @@ function mergeStatValues(
   const next: Partial<LifetimeStats> = {}
   if (partial.handsPlayed) next.handsPlayed = current.handsPlayed + partial.handsPlayed
   if (partial.handsWon) next.handsWon = current.handsWon + partial.handsWon
+  if (partial.showdownsWon) next.showdownsWon = current.showdownsWon + partial.showdownsWon
+  if (partial.tournamentsEntered)
+    next.tournamentsEntered = current.tournamentsEntered + partial.tournamentsEntered
+  if (partial.tournamentsWon) next.tournamentsWon = current.tournamentsWon + partial.tournamentsWon
   if (partial.biggestPot !== undefined)
     next.biggestPot = Math.max(current.biggestPot, partial.biggestPot)
   return next

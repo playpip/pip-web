@@ -301,6 +301,7 @@ export const useGame = create<GameState>((set, get) => {
       handsPlayed: 1,
       handsWon: heroWon ? 1 : 0,
       biggestPot: heroWon ? pot : 0,
+      showdownsWon: heroWon && result?.showdown ? 1 : 0,
     })
 
     if (result) sound.play(heroWon ? 'win' : result.showdown ? 'lose' : 'tap')
@@ -320,16 +321,22 @@ export const useGame = create<GameState>((set, get) => {
     // Tournament outcomes.
     if (!humanAlive) {
       clearTableSnapshot()
+      const place = survivors.length + 1
+      profile.recordVenueResult(venue.id, place, get().handIndex)
+      profile.recordRollPoint()
       // Busting back below the ladder resets the freeroll comeback story.
       if (profile.cameFromFreeroll && freerollOpen(profile.roll)) {
         profile.setCameFromFreeroll(false)
       }
-      set({ seats: nextSeats, hand, status: 'busted', place: survivors.length + 1, aiThinkingId: null, message: null })
+      set({ seats: nextSeats, hand, status: 'busted', place, aiThinkingId: null, message: null })
       return
     }
     if (tournamentWon) {
       clearTableSnapshot()
       profile.adjustRoll(venue.prize)
+      profile.mergeStats({ tournamentsWon: 1 })
+      profile.recordVenueResult(venue.id, 1, get().handIndex)
+      profile.recordRollPoint()
       if (venue.freeroll) profile.setCameFromFreeroll(true)
       const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut)
       set({ seats: nextSeats, hand, status: 'won', place: 1, aiThinkingId: null, message: null, newAwards })
@@ -440,7 +447,10 @@ export const useGame = create<GameState>((set, get) => {
       const seats = [...aiSeats]
       seats.splice(Math.floor(aiSeats.length / 2), 0, humanSeat)
 
-      useProfile.getState().adjustRoll(-venue.buyIn) // pay the buy-in
+      const profile = useProfile.getState()
+      profile.adjustRoll(-venue.buyIn) // pay the buy-in
+      profile.mergeStats({ tournamentsEntered: 1 })
+      profile.recordVenueEntry(venue.id)
 
       set({
         venue,

@@ -85,6 +85,7 @@ export function Table() {
     // Freeroll stacks are the house's chips — only the winner's prize pays out,
     // so you can't enter the Kitchen Table just to walk off with the stack.
     if (hero && !venue.freeroll) adjustRoll(hero.stack)
+    useProfile.getState().recordRollPoint()
     goHome()
   }
   const selectSeat = (id: string) => {

@@ -15,14 +15,25 @@ enough to afford higher buy-ins.
 ## Stores
 
 ### `profile` (persisted — localStorage)
-Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **6**) with a `migrate` hook.
+Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **7**) with a `migrate` hook.
 - `created`, `name`, `avatar`, `roll` (bankroll), **`peakRoll`** (drives rank title),
-  `stats`, `cardBack`, **`awards`** (earned chip ids → epoch ms), **`cameFromFreeroll`**
+  `stats` (hands, showdowns, tournaments, biggest pot), **`rollHistory`** (Roll
+  sampled at tournament results/cash-outs, capped ring buffer — feeds the stats
+  graph), **`venueRecords`** (per-venue entries/wins/best finish/fastest win),
+  `cardBack`, **`awards`** (earned chip ids → epoch ms), **`cameFromFreeroll`**
   (the comeback flag — see docs/awards.md).
 - Actions: `createProfile(name, avatar)`, `setName`, `setAvatar`, `setCardBack`,
   `adjustRoll`, `setRoll` (both also bump `peakRoll`), `grantAwards`,
-  `setCameFromFreeroll`, `mergeStats`, `reset`.
+  `setCameFromFreeroll`, `mergeStats`, `recordRollPoint`, `recordVenueEntry`,
+  `recordVenueResult`, `reset`.
 - `STARTING_ROLL` (in `config/venues.ts`) = 100 (one Garage buy-in).
+- **Backup**: Settings offers export/restore of the whole profile as
+  `pip-profile.json` (`src/lib/backup.ts`) — validated, never partially applied,
+  restores run through the same `migrate` path.
+- **Durability**: the app is an installable PWA (`src/app/manifest.ts`, offline
+  service worker in `public/sw.js`, registered by `AppBoot`), and
+  `navigator.storage.persist()` is requested on boot. Installing exempts iOS
+  users from Safari's 7-day script-storage eviction.
 
 ### `game` (transient — not persisted)
 Holds the live `HandState`, `seats` (human + AI meta), `venue`, `status`
