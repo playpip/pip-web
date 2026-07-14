@@ -12,7 +12,8 @@ import { sound } from '@/lib/sound'
 import { pickNames } from '@/config/names'
 import { pickBio, styleFor, randomBankroll } from '@/config/opponents'
 import { blindsAt } from '@/config/blinds'
-import type { Venue } from '@/config/venues'
+import { freerollOpen, type Venue } from '@/config/venues'
+import { detectAwards, type AwardDef } from '@/lib/awards'
 import {
   startHand,
   applyAction,
@@ -101,8 +102,12 @@ interface GameState {
   handIndex: number
   /** Timeline of the previous completed hand (for the history dialog). */
   lastHand: HandRecord | null
+  /** Award chips earned on the just-finished hand (for the quiet earn line). */
+  newAwards: AwardDef[]
 
   sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec }) => void
+  /** Rebuild an interrupted table from its snapshot (no buy-in taken). */
+  resumeTable: (venue: Venue, snapshot: TableSnapshot) => void
   act: (action: Action) => void
   nextHand: () => void
   leave: () => void
@@ -115,8 +120,53 @@ function clearTimers() {
   turnTimer = null
 }
 
+// --- table snapshot ----------------------------------------------------------
+// The game store is transient, but a hard refresh mid-tournament must not eat
+// the buy-in. The live table (stacks, button, hand number) is snapshotted to
+// localStorage at every deal and hand end; the play page resumes from it
+// instead of buying in again. Cleared on every legitimate exit (leave, bust,
+// win) and overwritten when a new table starts.
+
+const TABLE_KEY = 'pip.table'
+
+export interface TableSnapshot {
+  venueId: string
+  /** Stacks as of the coming (re-)deal. */
+  seats: SeatMeta[]
+  /** Button to use for the (re-)deal on resume. */
+  buttonSeatId: string
+  handIndex: number
+  heroLow: number
+}
+
+function saveTableSnapshot(snap: TableSnapshot) {
+  try {
+    localStorage.setItem(TABLE_KEY, JSON.stringify(snap))
+  } catch {
+    /* storage unavailable — refresh-resume simply won't work */
+  }
+}
+
+function clearTableSnapshot() {
+  try {
+    localStorage.removeItem(TABLE_KEY)
+  } catch {}
+}
+
+export function loadTableSnapshot(): TableSnapshot | null {
+  try {
+    const raw = localStorage.getItem(TABLE_KEY)
+    return raw ? (JSON.parse(raw) as TableSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
 /** Events of the hand currently being played (moved into `lastHand` when it ends). */
 let currentEvents: HandEvent[] = []
+
+/** Hero's lowest between-hands stack this tournament (drives The Comeback chip). */
+let heroLowTide = Infinity
 
 /** Record one action (and any board cards it dealt) into the running timeline. */
 function recordStep(prev: HandState, action: Action, next: HandState) {
@@ -178,11 +228,20 @@ export const useGame = create<GameState>((set, get) => {
     set({
       hand,
       status: 'playing',
+      newAwards: [],
       buttonSeatId: configs[buttonIndex].id,
       smallBlind: blinds.smallBlind,
       bigBlind: blinds.bigBlind,
       blindLevel: blinds.level,
       handIndex: handIndex + 1,
+    })
+    // A refresh mid-hand resumes by re-dealing this hand from its start.
+    saveTableSnapshot({
+      venueId: venue!.id,
+      seats: get().seats,
+      buttonSeatId: configs[buttonIndex].id,
+      handIndex,
+      heroLow: heroLowTide,
     })
     progress()
   }
@@ -248,20 +307,85 @@ export const useGame = create<GameState>((set, get) => {
 
     const survivors = nextSeats.filter((s) => s.stack > 0)
     const humanAlive = (stackById.get(HUMAN_ID) ?? 0) > 0
+    const tournamentWon = humanAlive && survivors.length === 1
+
+    // The Bouncer: an opponent busted this hand and every pot went to the hero.
+    const opponentBusted = seats.some(
+      (s) => s.id !== HUMAN_ID && s.stack > 0 && (stackById.get(s.id) ?? 0) === 0,
+    )
+    const heroTookAll =
+      !!result && Object.entries(result.payouts).every(([id, amt]) => id === HUMAN_ID || amt === 0)
+    const knockedOut = heroWon && opponentBusted && heroTookAll
 
     // Tournament outcomes.
     if (!humanAlive) {
+      clearTableSnapshot()
+      // Busting back below the ladder resets the freeroll comeback story.
+      if (profile.cameFromFreeroll && freerollOpen(profile.roll)) {
+        profile.setCameFromFreeroll(false)
+      }
       set({ seats: nextSeats, hand, status: 'busted', place: survivors.length + 1, aiThinkingId: null, message: null })
       return
     }
-    if (survivors.length === 1) {
+    if (tournamentWon) {
+      clearTableSnapshot()
       profile.adjustRoll(venue.prize)
-      set({ seats: nextSeats, hand, status: 'won', place: 1, aiThinkingId: null, message: null })
+      if (venue.freeroll) profile.setCameFromFreeroll(true)
+      const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut)
+      set({ seats: nextSeats, hand, status: 'won', place: 1, aiThinkingId: null, message: null, newAwards })
       return
     }
 
     // Otherwise: pause on the result until the player taps "Next hand".
-    set({ seats: nextSeats, hand, status: 'handover', aiThinkingId: null, message: describeResult(hand) })
+    const newAwards = grantEarnedAwards(hand, venue, heroWon, false, knockedOut)
+    heroLowTide = Math.min(heroLowTide, stackById.get(HUMAN_ID) ?? 0)
+    // A refresh during the handover resumes with the next hand, chips intact.
+    saveTableSnapshot({
+      venueId: venue.id,
+      seats: nextSeats,
+      buttonSeatId: nextButtonSeatId(nextSeats, get().buttonSeatId, nextSeats.filter((s) => s.stack > 0)),
+      handIndex: get().handIndex,
+      heroLow: heroLowTide,
+    })
+    set({
+      seats: nextSeats,
+      hand,
+      status: 'handover',
+      aiThinkingId: null,
+      message: describeResult(hand),
+      newAwards,
+    })
+  }
+
+  /** Detect + persist chips earned on this hand; returns them for the UI. */
+  function grantEarnedAwards(
+    hand: HandState,
+    venue: Venue,
+    heroWon: boolean,
+    tournamentWon: boolean,
+    knockedOut: boolean,
+  ): AwardDef[] {
+    const profile = useProfile.getState() // re-read: the prize may have just landed
+    const earned = detectAwards(
+      {
+        venue,
+        heroWon,
+        showdown: hand.result?.showdown === true,
+        heroHand: hand.result?.evaluations?.[HUMAN_ID],
+        heroHole: hand.players.find((p) => p.id === HUMAN_ID)?.hole,
+        knockedOut,
+        lowestStack: heroLowTide,
+        startingStack: venue.startingStack ?? venue.buyIn,
+        tournamentWon,
+        cameFromFreeroll: profile.cameFromFreeroll,
+        peakRoll: profile.peakRoll,
+      },
+      profile.awards,
+    )
+    if (earned.length > 0) profile.grantAwards(earned.map((a) => a.id))
+    // The comeback chip consumes the flag: the story is complete.
+    if (earned.some((a) => a.id === 'journey-kitchen')) profile.setCameFromFreeroll(false)
+    return earned
   }
 
   function dealNextHand() {
@@ -287,10 +411,12 @@ export const useGame = create<GameState>((set, get) => {
     blindLevel: 0,
     handIndex: 0,
     lastHand: null,
+    newAwards: [],
 
     sitDown: (venue, human) => {
       clearTimers()
       const stack = venue.startingStack ?? venue.buyIn
+      heroLowTide = stack
       const aiCount = venue.seats - 1
       const names = pickNames(aiCount)
       const aiSeats: SeatMeta[] = names.map((name, i) => ({
@@ -329,8 +455,30 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        newAwards: [],
       })
       dealHand(seats[0].id)
+    },
+
+    resumeTable: (venue, snapshot) => {
+      clearTimers()
+      heroLowTide = snapshot.heroLow
+      set({
+        venue,
+        seats: snapshot.seats,
+        status: 'playing',
+        place: null,
+        message: null,
+        heroEquity: null,
+        aiThinkingId: null,
+        smallBlind: venue.smallBlind,
+        bigBlind: venue.bigBlind,
+        blindLevel: 0,
+        handIndex: snapshot.handIndex,
+        lastHand: null,
+        newAwards: [],
+      })
+      dealHand(snapshot.buttonSeatId)
     },
 
     act: (action) => {
@@ -349,6 +497,7 @@ export const useGame = create<GameState>((set, get) => {
 
     leave: () => {
       clearTimers()
+      clearTableSnapshot()
       set({
         venue: null,
         seats: [],
@@ -364,6 +513,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        newAwards: [],
       })
     },
   }

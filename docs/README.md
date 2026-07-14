@@ -15,7 +15,7 @@ account-free, fully local, and free (no real money — chips are play money).
 | [poker-engine.md](./poker-engine.md) | The pure, tested poker engine (cards, hand eval, pots, betting, equity, AI) |
 | [game-flow.md](./game-flow.md) | Runtime orchestration: the game store, the tournament loop, the economy, ranks, the freeroll |
 | [brand.md](./brand.md) | The Pip brand — name, voice, positioning |
-| [awards.md](./awards.md) | **Plan**: collectible "special chips" awards (not built yet) |
+| [awards.md](./awards.md) | Collectible "special chips" awards — the set, triggers, visuals |
 | [design.md](./design.md) | Design system: theme tokens, colour, typography, motion, sound, components |
 | [venues.md](./venues.md) | The venue ladder, adding venues, and the AI-image workflow |
 | [development.md](./development.md) | Setup, scripts, testing (AVA), conventions, gotchas |

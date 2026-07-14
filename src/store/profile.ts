@@ -34,6 +34,10 @@ export interface ProfileState {
   stats: LifetimeStats
   /** Chosen face-down card design. */
   cardBack: CardBackDesign
+  /** Earned award chips: id → epoch ms earned (see lib/awards). */
+  awards: Record<string, number>
+  /** Comeback flag: the current run started with a Kitchen Table win. */
+  cameFromFreeroll: boolean
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -41,11 +45,14 @@ export interface ProfileState {
   setCardBack: (cardBack: CardBackDesign) => void
   adjustRoll: (delta: number) => void
   setRoll: (roll: number) => void
+  /** Record newly earned award chips (already-owned ids are left untouched). */
+  grantAwards: (ids: string[]) => void
+  setCameFromFreeroll: (value: boolean) => void
   mergeStats: (partial: Partial<LifetimeStats>) => void
   reset: () => void
 }
 
-const PERSIST_VERSION = 5
+const PERSIST_VERSION = 6
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -58,6 +65,8 @@ export const useProfile = create<ProfileState>()(
       peakRoll: STARTING_ROLL,
       stats: emptyStats(),
       cardBack: DEFAULT_CARD_BACK,
+      awards: {},
+      cameFromFreeroll: false,
 
       createProfile: (name, avatar) =>
         set({
@@ -78,6 +87,16 @@ export const useProfile = create<ProfileState>()(
           const next = Math.max(0, Math.round(roll))
           return { roll: next, peakRoll: Math.max(s.peakRoll, next) }
         }),
+      grantAwards: (ids) =>
+        set((s) => {
+          const fresh = ids.filter((id) => s.awards[id] === undefined)
+          if (fresh.length === 0) return s
+          const now = Date.now()
+          const awards = { ...s.awards }
+          for (const id of fresh) awards[id] = now
+          return { awards }
+        }),
+      setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
       mergeStats: (partial) =>
         set((s) => ({ stats: { ...s.stats, ...mergeStatValues(s.stats, partial) } })),
       reset: () =>
@@ -89,6 +108,8 @@ export const useProfile = create<ProfileState>()(
           peakRoll: STARTING_ROLL,
           stats: emptyStats(),
           cardBack: DEFAULT_CARD_BACK,
+          awards: {},
+          cameFromFreeroll: false,
         }),
     }),
     {
@@ -106,6 +127,11 @@ export const useProfile = create<ProfileState>()(
         // v4 → v5: currency removed again — balances are always chips.
         if (fromVersion < 5) {
           delete (s as ProfileState & { currency?: string }).currency
+        }
+        // v5 → v6: award chips + the freeroll comeback flag.
+        if (fromVersion < 6) {
+          s.awards = {}
+          s.cameFromFreeroll = false
         }
         return s
       },

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, HelpCircle, History, Volume2, VolumeX } from 'lucide-react'
+import { AwardChip } from '@/components/AwardChip'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { DealtCard, PlayingCard, type CardSize } from '@/components/PlayingCard'
 import { CardBack } from '@/components/CardBack'
@@ -45,7 +46,7 @@ type Point = { left: string; top: string }
 
 export function Table() {
   const router = useRouter()
-  const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, nextHand, leave } = useGame()
+  const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, newAwards, nextHand, leave } = useGame()
   const cardBack = useProfile((s) => s.cardBack)
   const roll = useProfile((s) => s.roll)
   const adjustRoll = useProfile((s) => s.adjustRoll)
@@ -324,7 +325,17 @@ export function Table() {
 
       {/* overlays */}
       <AnimatePresence>
-        {status === 'handover' && message && <Banner key="ho">{message}</Banner>}
+        {status === 'handover' && message && (
+          <Banner key="ho">
+            <span>{message}</span>
+            {newAwards.map((a) => (
+              <span key={a.id} className="flex items-center gap-1.5 text-xs font-medium opacity-95">
+                <AwardChip award={a} earned size={18} />
+                New chip — {a.name}
+              </span>
+            ))}
+          </Banner>
+        )}
         {status === 'busted' && (
           <EndOverlay
             key="bust"
@@ -335,9 +346,17 @@ export function Table() {
             onPrimary={
               freerollOpen(roll)
                 ? () => {
-                    leave()
                     sound.play('call')
-                    router.push(`/play/${KITCHEN_TABLE.id}`)
+                    if (venue.freeroll && heroMeta) {
+                      // Already on the freeroll route — navigation would no-op
+                      // and blank the table. Re-seat in place instead.
+                      useGame
+                        .getState()
+                        .sitDown(KITCHEN_TABLE, { name: heroMeta.name, avatar: heroMeta.avatar })
+                    } else {
+                      leave()
+                      router.push(`/play/${KITCHEN_TABLE.id}`)
+                    }
                   }
                 : undefined
             }
@@ -348,6 +367,18 @@ export function Table() {
             key="won"
             title="Champion"
             subtitle={`You took it down — +${money(venue.prize)} to your Roll`}
+            detail={
+              newAwards.length > 0 && (
+                <div className="mt-4 flex flex-col items-center gap-2">
+                  {newAwards.map((a) => (
+                    <span key={a.id} className="flex items-center gap-2 text-sm text-white/80">
+                      <AwardChip award={a} earned size={22} />
+                      New chip — {a.name}
+                    </span>
+                  ))}
+                </div>
+              )
+            }
             onHome={goHome}
             celebrate
           />
@@ -647,7 +678,7 @@ function Banner({ children }: { children: React.ReactNode }) {
       exit={{ opacity: 0, y: 20 }}
       className="pointer-events-none absolute inset-x-0 top-1/3 z-30 flex justify-center"
     >
-      <span className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-2xl">
+      <span className="flex flex-col items-center gap-0.5 rounded-3xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-2xl">
         {children}
       </span>
     </motion.div>
@@ -657,6 +688,7 @@ function Banner({ children }: { children: React.ReactNode }) {
 function EndOverlay({
   title,
   subtitle,
+  detail,
   onHome,
   celebrate = false,
   primaryLabel,
@@ -664,6 +696,7 @@ function EndOverlay({
 }: {
   title: string
   subtitle: string
+  detail?: React.ReactNode
   onHome: () => void
   celebrate?: boolean
   primaryLabel?: string
@@ -687,6 +720,7 @@ function EndOverlay({
           {title}
         </h2>
         <p className="mt-3 text-white/60">{subtitle}</p>
+        {detail}
       </motion.div>
       <div className="flex flex-col items-center gap-3">
         {primaryLabel && onPrimary && (

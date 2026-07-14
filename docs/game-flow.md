@@ -15,11 +15,13 @@ enough to afford higher buy-ins.
 ## Stores
 
 ### `profile` (persisted — localStorage)
-Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **5**) with a `migrate` hook.
+Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **6**) with a `migrate` hook.
 - `created`, `name`, `avatar`, `roll` (bankroll), **`peakRoll`** (drives rank title),
-  `stats`, `cardBack`.
+  `stats`, `cardBack`, **`awards`** (earned chip ids → epoch ms), **`cameFromFreeroll`**
+  (the comeback flag — see docs/awards.md).
 - Actions: `createProfile(name, avatar)`, `setName`, `setAvatar`, `setCardBack`,
-  `adjustRoll`, `setRoll` (both also bump `peakRoll`), `mergeStats`, `reset`.
+  `adjustRoll`, `setRoll` (both also bump `peakRoll`), `grantAwards`,
+  `setCameFromFreeroll`, `mergeStats`, `reset`.
 - `STARTING_ROLL` (in `config/venues.ts`) = 100 (one Garage buy-in).
 
 ### `game` (transient — not persisted)
@@ -45,7 +47,7 @@ progress()
 finishHand()
   ├─ sync stacks; players at 0 chips are eliminated (dropped from live seats)
   ├─ profile.mergeStats(...)
-  ├─ human busted?        → status 'busted', place = survivors + 1  (Top up / leave)
+  ├─ human busted?        → status 'busted', place = survivors + 1  (freeroll / leave)
   ├─ one survivor (human) → status 'won', profile.adjustRoll(+venue.prize)
   └─ else → status 'handover' (show result; wait for nextHand())
 
@@ -65,6 +67,11 @@ bar shows the level (`· L2`) once blinds have risen.
 (`HandRecord`) when a hand completes; the History button on the table opens
 `HandHistoryDialog` with the timeline, showdown reveals, and the result.
 
+**Refresh-proofing**: the live table is snapshotted to localStorage (`pip.table`)
+at every deal and hand end; the play page resumes an interrupted table instead of
+buying in again (a mid-hand refresh re-deals that hand from its start). The
+snapshot is cleared on leave, bust, and win.
+
 ## The economy & progression
 
 - **Roll** = bankroll (play money). Always displayed as **chips** — never a fiat
@@ -74,6 +81,9 @@ bar shows the level (`· L2`) once blinds have risen.
   (buy-in 100) is the entry rung. Higher venues = higher buy-ins, blinds and prizes.
 - **Ranks** (`RANKS` in `config/ranks.ts`) are a title derived from `peakRoll`:
   Amateur → Regular → Shark → Pro → Legend (shown under your name).
+- **Award chips** — collectible "special chips" earned at milestones (venue wins,
+  showdown hand highs, comebacks, ranks). Detection runs in `finishHand()` via the
+  pure `detectAwards` helper; see [awards.md](./awards.md).
 - **The freeroll** — there is **no free top-up**. When you can't afford the Garage
   (`freerollOpen(roll)`), **The Kitchen Table** opens: a free **heads-up** game vs the
   softest AI with a nominal 100 stack, flat blinds (`escalation: false`), and a 150

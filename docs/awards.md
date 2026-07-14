@@ -1,7 +1,10 @@
-# Awards — "Special Chips" (plan)
+# Awards — "Special Chips"
 
-> **Status: planned, not built.** This is the design doc for Pip's collectible awards.
-> Nothing here is implemented yet.
+> **Status: built (v1).** Detection lives in `src/lib/awards.ts` (pure, unit-tested);
+> earned chips persist in the profile (`awards`, `PERSIST_VERSION` 6); the chip
+> visual is `src/components/AwardChip.tsx`; the collection opens from the profile
+> dialog's **Chips** button (`ChipsDialog`); the quiet earn line shows on the
+> handover banner and the Champion overlay.
 
 ## Concept
 
@@ -31,7 +34,7 @@ Unearned chips show as hollow outlines (the hatch pattern used for face-down car
 so the shelf reads as a collection with visible gaps — the pull is seeing what's
 missing, not a nag.
 
-## The set (v1 — 18 chips)
+## The set (26 chips)
 
 ### Venue chips — one per rung, earned by **winning** the venue (10)
 
@@ -42,53 +45,66 @@ missing, not a nag.
 Winning, not entering — unlocking a venue is already its own reward (you can afford
 it); the chip marks conquering it.
 
-### Hand chips — first time you **win a pot** with the hand (5)
+### Hand chips — first time the hand **wins a showdown** (7)
 
 | id | Chip | Earned by |
 |----|------|-----------|
+| `hand-straight` | "Straight" | Win a showdown with a straight |
+| `hand-flush` | "Flush" | Win a showdown with a flush |
 | `hand-fullhouse` | "Full House" | Win a showdown with a full house |
 | `hand-quads` | "Quads" | Win a showdown with four of a kind |
 | `hand-straightflush` | "Straight Flush" | Win a showdown with a straight flush |
-| `hand-royal` | "The Royal" | Win a showdown with a royal flush |
-| `hand-wheel` | "The Wheel" | Win a showdown with the A-2-3-4-5 straight |
+| `hand-royal` | "The Royal" (gold) | Win a showdown with a royal flush (also earns Straight Flush) |
+| `hand-wheel` | "The Wheel" | Win a showdown with the A-2-3-4-5 straight (also earns Straight) |
 
 Must be **won at showdown** (the engine's `result.evaluations` names the hand), so the
 chip certifies a real moment, not a folded-out technicality.
 
-### Journey chips — the story of the grind (3)
+### Moment chips — plays that make a story (3)
 
 | id | Chip | Earned by |
 |----|------|-----------|
+| `moment-sevendeuce` | "The Seven Deuce" | Win a pot holding 7-2 (the classic) |
+| `moment-knockout` | "The Bouncer" | Take **every** chip in a hand that busts an opponent |
+| `moment-comeback` | "The Comeback" | Win a ladder venue after falling to ≤10% of your starting stack |
+
+### Journey chips — the story of the grind (6)
+
+| id | Chip | Earned by |
+|----|------|-----------|
+| `journey-first` | "First Pot" | Win your first pot |
 | `journey-kitchen` | "Back From Broke" | Win the Kitchen Table freeroll, then **win any ladder venue** before going broke again |
-| `journey-shark` / `journey-legend` | Rank chips | Reach the Shark / Legend rank (`peakRoll`) |
+| `journey-regular` / `journey-shark` / `journey-pro` / `journey-legend` | Rank chips | Reach that rank (`peakRoll`) |
 
 "Back From Broke" is the flagship — it makes the freeroll loop a badge of honour
-instead of a walk of shame.
+instead of a walk of shame; "First Pot" gives every new player their first chip within
+minutes.
 
 ## Detection & data
 
 All triggers are observable at two seams — no engine changes:
 
 - **`finishHand()`** in `store/game.ts` already knows: winners, `result.evaluations`
-  (hand names), payouts, survivors, and the venue → hand chips + venue chips.
-- **`rankFor(peakRoll)`** transitions in the profile → rank chips.
-- "Back From Broke" needs one persisted flag (`cameFromFreeroll`) set on a Kitchen
-  Table win and cleared when the roll next hits 0.
+  (hand names), payouts, survivors, and the venue → hand chips + venue chips + rank
+  chips (from the just-updated `peakRoll`).
+- "Back From Broke" uses one persisted flag (`cameFromFreeroll`): set on a Kitchen
+  Table win, consumed when the comeback chip is earned, and cleared if you bust back
+  below the Garage buy-in first.
 
 Persistence: `profile.awards: Record<string, number>` (id → epoch ms earned), plus the
-flag above. **Bump `PERSIST_VERSION` (→ 6) with a migrate branch** per the repo rule.
-Detection lives in a pure helper (`src/lib/awards.ts`, unit-tested): given
-(hand result, venue, profile before), return newly earned award ids — the game store
-just applies them.
+flag above (`PERSIST_VERSION` 6, with a migrate branch per the repo rule). Detection
+is a pure helper (`detectAwards` in `src/lib/awards.ts`, unit-tested): given the hand
+outcome and what's owned, it returns newly earned chips — the game store just applies
+them and exposes `newAwards` for the UI.
 
 ## Surfacing (calm, in this order)
 
 1. **Earn moment** — a single quiet line on the handover/result screen ("★ New chip —
    Quads"), same visual weight as the result message. No modal, no confetti, no sound
    beyond the existing win sound.
-2. **The shelf** — a grid in the profile dialog: earned chips in colour, unearned as
-   outlines with their "how" copy hidden until earned ("???" taglines invite curiosity;
-   venue and rank chips can show their requirement since those are self-evident).
+2. **The shelf** — its own dialog (the **Chips** button in the profile dialog opens `ChipsDialog`), grouped by kind: earned chips in colour, unearned as
+   hollow outlines. Tap any chip to see its name and requirement — every chip shows
+   how it's earned up front, so the shelf doubles as a quiet goal list.
 3. **Nothing else.** No badges on the home screen, no red dots, no "3/18 collected!"
    banners. The collection is there when you go looking.
 
@@ -99,8 +115,11 @@ just applies them.
   stats, not honours).
 - No award ever gates gameplay — chips are memories, not keys.
 
-## Build order (when picked up)
+## Where to make changes
 
-1. `lib/awards.ts` (pure detection + tests) and the profile field + migration.
-2. `AwardChip` SVG component + the shelf in the profile dialog.
-3. The earn line on the handover screen.
+| Want to change… | Edit |
+|-----------------|------|
+| Add/rename a chip, tune triggers | `src/lib/awards.ts` (+ `tests/awards.test.ts`) |
+| The chip visual | `src/components/AwardChip.tsx` |
+| The shelf | `src/components/profile/ChipsDialog.tsx` |
+| The earn moment | `Banner` / `EndOverlay` in `src/components/table/Table.tsx` |

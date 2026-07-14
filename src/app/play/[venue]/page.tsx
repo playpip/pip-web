@@ -4,7 +4,7 @@ import { use, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Table } from '@/components/table/Table'
 import { useProfile } from '@/store/profile'
-import { useGame } from '@/store/game'
+import { useGame, loadTableSnapshot } from '@/store/game'
 import { venueById, canAfford, freerollOpen } from '@/config/venues'
 
 export default function PlayPage({ params }: { params: Promise<{ venue: string }> }) {
@@ -23,7 +23,19 @@ export default function PlayPage({ params }: { params: Promise<{ venue: string }
     const venue = venueById(venueId)
     const profile = useProfile.getState()
 
-    if (!venue || !profile.created || !profile.avatar || !canAfford(venue, profile.roll)) {
+    if (!venue || !profile.created || !profile.avatar) {
+      router.replace('/')
+      return
+    }
+
+    // An interrupted table (hard refresh) resumes — the buy-in was already paid.
+    const snapshot = loadTableSnapshot()
+    if (snapshot && snapshot.venueId === venueId) {
+      useGame.getState().resumeTable(venue, snapshot)
+      return
+    }
+
+    if (!canAfford(venue, profile.roll)) {
       router.replace('/')
       return
     }
