@@ -10,8 +10,7 @@ literacy: exactly the register of the clean, calm UI. One soft syllable, easy to
 and spell, and it names a *thing you can draw* — the identity (favicon, wordmark,
 motifs) falls out of it naturally.
 
-(Previously named **Shove** — a real poker action, but insider slang that casual
-players didn't get. GitHub repo: [`playpip/pip-web`](https://github.com/playpip/pip-web).)
+(GitHub repo: [`playpip/pip-web`](https://github.com/playpip/pip-web).)
 
 ## Positioning
 

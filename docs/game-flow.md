@@ -15,7 +15,7 @@ enough to afford higher buy-ins.
 ## Stores
 
 ### `profile` (persisted — localStorage)
-Key: `pip.profile` (auto-migrated from the legacy `shove.profile`), versioned (`PERSIST_VERSION`, currently **5**) with a `migrate` hook.
+Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **5**) with a `migrate` hook.
 - `created`, `name`, `avatar`, `roll` (bankroll), **`peakRoll`** (drives rank title),
   `stats`, `cardBack`.
 - Actions: `createProfile(name, avatar)`, `setName`, `setAvatar`, `setCardBack`,

@@ -48,13 +48,6 @@ export interface ProfileState {
 const PERSIST_VERSION = 5
 const PERSIST_KEY = 'pip.profile'
 
-// One-time carry-over from the pre-rebrand storage key (the app was briefly
-// named Shove). Runs before the persist middleware first reads the store.
-if (typeof window !== 'undefined' && localStorage.getItem(PERSIST_KEY) === null) {
-  const legacy = localStorage.getItem('shove.profile')
-  if (legacy !== null) localStorage.setItem(PERSIST_KEY, legacy)
-}
-
 export const useProfile = create<ProfileState>()(
   persist(
     (set) => ({

@@ -25,22 +25,12 @@ Personal project for now; may ship if it turns out cool.
 - **No assumed versions** — always install latest and let pnpm resolve. Nothing pinned from memory.
 - **Tests: [AVA](https://github.com/avajs/ava), not Vitest.** Engine gets a real AVA suite.
 
-## Name — **Shove**
+## Name — **Pip**
 
-> **Update (July 2026): renamed to Pip** — a pip is the suit symbol printed on a card.
-> Shove turned out to be insider slang that casual players didn't get. See
-> [docs/brand.md](./docs/brand.md).
-
-Going with **Shove** (lowercase wordmark: `shove`).
-
-Why it works: it's a real poker action (going all-in), one punchy syllable, reads as a
-verb like the modern one-word brands it'll sit next to (Ramp, Cash, Robinhood). It also
-*means* the game loop — you shove your stack, take the risk, and climb the venue ladder.
-Calm, minimal UI + a bold short name is a good contrast. Lowercase wordmark, one accent
-color, memoji-ish mascot.
-
-Backups if you veto: **Muck**, **Rounder**, **Case**. (Repo can stay `clean-poker`;
-the product brand is Shove.)
+**Pip** (lowercase wordmark: `pip`) — the small suit symbol printed on every playing
+card. Charming, minimal, instantly card-flavored without needing poker literacy, and
+it names a thing you can draw, so the identity (favicon, wordmark, motifs) falls out
+of it naturally. Full rationale in [docs/brand.md](./docs/brand.md).
 
 ---
 
@@ -310,7 +300,7 @@ pay-to-win chip sales. If money ever enters Pip, it enters here or via cosmetics
 
 ## 8. Open questions — status
 
-- ✅ **Name** → **Shove** (§Name); later renamed to **Pip** (see update note in §Name).
+- ✅ **Name** → **Pip** (§Name).
 - ✅ **Cash vs tournament / bankroll fail state** → resolved in §2.5: each venue is a
   **sit-and-go** with a buy-in; the **Roll** is your homescreen hero; **re-enter while
   funds allow**; the **free Garage freeroll** is the permanent never-stuck safety net.
