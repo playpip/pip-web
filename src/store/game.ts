@@ -163,7 +163,10 @@ export const useGame = create<GameState>((set, get) => {
     const configs = liveSeatConfigs()
     const buttonIndex = Math.max(0, configs.findIndex((c) => c.id === buttonSeatId))
     const { venue, handIndex } = get()
-    const blinds = blindsAt(venue!, handIndex)
+    const blinds =
+      venue!.escalation === false
+        ? { smallBlind: venue!.smallBlind, bigBlind: venue!.bigBlind, level: 0 }
+        : blindsAt(venue!, handIndex)
     const hand = startHand({
       seats: configs,
       buttonIndex,

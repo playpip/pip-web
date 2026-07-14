@@ -75,11 +75,12 @@ bar shows the level (`· L2`) once blinds have risen.
 - **Ranks** (`RANKS` in `config/ranks.ts`) are a title derived from `peakRoll`:
   Amateur → Regular → Shark → Pro → Legend (shown under your name).
 - **The freeroll** — there is **no free top-up**. When you can't afford the Garage
-  (`freerollOpen(roll)`), **The Kitchen Table** opens: a free 4-seat sit-and-go with a
-  nominal 100 stack and a 150 winner's stake. You win your way back onto the ladder.
-  The stack is the house's — leaving a freeroll cashes out **zero** (no farming the
-  starting stack). Entry points: the home screen (under the Roll) and the knocked-out
-  overlay.
+  (`freerollOpen(roll)`), **The Kitchen Table** opens: a free **heads-up** game vs the
+  softest AI with a nominal 100 stack, flat blinds (`escalation: false`), and a 150
+  winner's stake. You win your way back onto the ladder — it's a speed bump, not a
+  wall. The stack is the house's — leaving a freeroll cashes out **zero** (no farming
+  the starting stack). Entry points: the home screen (under the Roll) and the
+  knocked-out overlay.
 
 ## Where to make changes
 

@@ -23,10 +23,12 @@ The **buy-in is your starting stack** (everyone sits equal); it's deducted from 
 and a venue is playable when `roll >= buyIn`. Prizes are winner-take-all (≈ buy-in × seats).
 
 Off the ladder sits **The Kitchen Table** (`kitchen`) — a **freeroll** that opens only
-while you can't afford the Garage (`freerollOpen(roll)`): no buy-in, a nominal 100 stack
-(`startingStack`), easy AI, and a 150 prize so the winner buys back into the ladder.
-It's the broke-player safety net; there is no free top-up. The table stack is the
-house's — **leaving a freeroll cashes out nothing**; only the winner's prize pays.
+while you can't afford the Garage (`freerollOpen(roll)`): no buy-in, **heads-up** vs the
+softest AI, a nominal 100 stack (`startingStack`), **no blind escalation**
+(`escalation: false`), and a 150 prize so the winner buys back into the ladder. It's
+deliberately a speed bump, not a wall — a decent player wins it more often than not.
+There is no free top-up, and the table stack is the house's — **leaving a freeroll
+cashes out nothing**; only the winner's prize pays.
 
 See [game-flow.md](./game-flow.md) for the economy, ranks, and blind escalation.
 

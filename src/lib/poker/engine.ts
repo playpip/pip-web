@@ -167,6 +167,21 @@ export function startHand(opts: StartHandOptions): HandState {
     ? sbIndex
     : nextSeatWith(players, bbIndex, ['active'])
 
+  // Posting a blind can put a player all-in. If the designated first actor
+  // can no longer act, pass the action on. And when no further betting is
+  // possible — at most one player can act, and they already have the top
+  // commitment (their lone opponent is all-in for less) — real rooms deal
+  // the board out with no action at all: straight to showdown.
+  const first = players[state.toActIndex]
+  if (!first || !canAct(first)) {
+    const actors = players.filter(canAct)
+    const noBettingPossible =
+      actors.length === 0 ||
+      (actors.length === 1 && actors[0].committedThisStreet >= state.currentBet)
+    if (noBettingPossible) return advanceStreet(state)
+    return advance(state)
+  }
+
   return state
 }
 

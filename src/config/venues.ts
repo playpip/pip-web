@@ -24,6 +24,8 @@ export interface Venue {
   freeroll?: boolean
   /** Table stack when it isn't bought (freerolls). Defaults to `buyIn`. */
   startingStack?: number
+  /** Set false to keep blinds flat all game (see config/blinds). Defaults to true. */
+  escalation?: boolean
 }
 
 export const VENUES: readonly Venue[] = [
@@ -155,7 +157,9 @@ export const STARTING_ROLL = 100
 // afford the Garage. No buy-in, everyone gets a nominal stack, and the winner
 // takes home enough to buy back into the ladder. You win your way back in —
 // there is no free top-up. The table stack is never yours: leaving a freeroll
-// cashes out nothing (only the winner's prize pays). (See docs/game-flow.md.)
+// cashes out nothing (only the winner's prize pays). Deliberately a speed bump,
+// not a wall: heads-up vs the softest AI, blinds never escalate, so a decent
+// player wins it more often than not. (See docs/game-flow.md.)
 export const KITCHEN_TABLE: Venue = {
   id: 'kitchen',
   name: 'The Kitchen Table',
@@ -164,9 +168,10 @@ export const KITCHEN_TABLE: Venue = {
   startingStack: 100,
   smallBlind: 1,
   bigBlind: 2,
-  seats: 4,
+  seats: 2,
   prize: 150,
   freeroll: true,
+  escalation: false,
   accent: '#64B98C',
   ai: { tightness: 0.12, aggression: 0.22, bluff: 0.04, iterations: 250 },
 }
