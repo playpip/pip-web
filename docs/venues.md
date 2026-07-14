@@ -1,0 +1,91 @@
+# Venues
+
+The venue ladder is the progression spine of Pip: 10 **sit-and-go tournaments** from a
+100-buy-in garage up to the 1,000,000 Main Event, each with tougher AI. Defined in
+`src/config/venues.ts`.
+
+## The ladder
+
+| # | id | Name | Buy-in | Blinds | Prize | AI feel |
+|---|----|------|-------:|-------:|------:|---------|
+| 1 | `garage` | Friends' Garage | 100 | 1/2 | 400 | loosest, forgiving |
+| 2 | `pub` | The Pub | 300 | 3/6 | 1,500 | Friday-night amateurs |
+| 3 | `poolhall` | The Pool Hall | 750 | 5/10 | 3,750 | hustlers, semi-loose |
+| 4 | `cardroom` | The Card Room | 2,000 | 15/30 | 12,000 | tight, positional |
+| 5 | `casino` | Downtown Casino | 5,000 | 25/50 | 30,000 | aggressive, bluff-aware |
+| 6 | `riverboat` | The Riverboat | 15,000 | 75/150 | 90,000 | float & barrel |
+| 7 | `penthouse` | The Penthouse | 40,000 | 200/400 | 240,000 | patient killers |
+| 8 | `montecarlo` | Monte Carlo | 100,000 | 500/1000 | 600,000 | balanced pros |
+| 9 | `vegas` | Vegas Championship | 300,000 | 1500/3000 | 1,800,000 | elite |
+| 10 | `mainevent` | The Main Event | 1,000,000 | 5000/10000 | 6,000,000 | near-optimal |
+
+The **buy-in is your starting stack** (everyone sits equal); it's deducted from your Roll
+and a venue is playable when `roll >= buyIn`. Prizes are winner-take-all (≈ buy-in × seats).
+
+Off the ladder sits **The Kitchen Table** (`kitchen`) — a **freeroll** that opens only
+while you can't afford the Garage (`freerollOpen(roll)`): no buy-in, a nominal 100 stack
+(`startingStack`), easy AI, and a 150 prize so the winner buys back into the ladder.
+It's the broke-player safety net; there is no free top-up. The table stack is the
+house's — **leaving a freeroll cashes out nothing**; only the winner's prize pays.
+
+See [game-flow.md](./game-flow.md) for the economy, ranks, and blind escalation.
+
+## The `Venue` shape
+
+```ts
+interface Venue {
+  id: string            // stable; used for routes and image mapping
+  name: string
+  tagline: string
+  buyIn: number         // entry cost (from Roll) AND your starting stack
+  smallBlind, bigBlind: number
+  seats: number         // total incl. the human
+  prize: number         // winner-take-all, added to Roll on a win
+  ai: AiProfile         // { tightness, aggression, bluff, iterations }
+  accent: string        // hex; the tier chip colour
+}
+```
+
+`AiProfile` scales up the ladder — higher `tightness`/`aggression`/`bluff` and more
+equity `iterations` (smarter reads) at higher venues. See `docs/poker-engine.md`.
+
+## Adding / editing a venue
+
+1. Add an entry to `VENUES` in `config/venues.ts` (keep the array ordered low→high).
+   Pick a unique `id`; set `buyIn` (~50–100× the big blind reads well) and a `prize`
+   (≈ `buyIn × seats`).
+2. Give it an `accent` and an `AiProfile` that fits its position on the ladder.
+3. Add art (below). Until an image exists it falls back to a geometric SVG scene.
+4. No other code changes needed — the home slider, routing, unlock logic, and economy
+   are all data-driven from `VENUES`.
+
+> Changing an existing `id` orphans its image mapping — prefer adding over renaming.
+
+## Venue art
+
+Art is **flat, geometric, dark-background** illustration, one per venue, tinted to fit.
+We use **AI-generated square images** with a hand-coded SVG scene as automatic fallback.
+
+- **Files:** `public/venues/<id>.jpg` (e.g. `garage.jpg`).
+- **Registration:** add `"<id>": "/venues/<id>.jpg"` to `VENUE_IMAGES` in
+  `components/menu/VenueArt.tsx`. Missing/failed images fall back to the SVG scene in
+  the same file (`SCENES[id]`).
+- **Rendering:** `VenueArt` renders the SVG underneath and the image on top
+  (`object-cover`), inside a `#0A0A0A` frame. Tier chip + champion/lock badges are
+  overlaid by the tile, not by `VenueArt`.
+
+### Generating new art
+
+Prompts live in the repo root [`VENUE_PROMPTS.md`](../VENUE_PROMPTS.md) — one ready-to-paste
+block per venue with the subject + accent filled in, plus a shared negative prompt.
+
+Guidelines that keep the set coherent:
+- **Square (1:1)**, ≥1024px. Same negative prompt + a fixed seed/style reference for all.
+- Flat minimalist vector, dark near-black background, one dominant accent colour.
+- No text, no logos, no people. Keep the subject centred (the desktop banner crops to
+  the centre; the mobile thumb shows the whole square).
+- Recraft (exports SVG, consistent style) or Midjourney (`--style raw` + shared `--sref`)
+  work well.
+
+Don't universally add poker imagery to the prompts — the venues should read as *places*;
+the app already supplies the poker context.
