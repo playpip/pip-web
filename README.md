@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<img src="src/app/icon.svg" width="72" alt="pip logo" />
 
-## Getting Started
+# pip
 
-First, run the development server:
+**Casual poker, redesigned.** Pip is a clean, single-player Texas Hold'em web app —
+play money, no accounts, no pop-ups, no fake felt.
+
+Free poker apps tend to look and feel like a scam: neon, leather textures, coin
+jingles, and more time spent closing offers than playing cards. Pip is the opposite —
+a flat, calm, black-first table where the poker is the whole product.
+
+## How it plays
+
+- **The venue ladder** — ten winner-take-all sit-and-go tournaments, from the
+  100-chip *Friends' Garage* to the 1,000,000-chip *Main Event*. The buy-in is your
+  starting stack; win the table, take the prize, climb.
+- **Blinds escalate** — levels rise every few hands, so tournaments always end.
+- **Real opponents (almost)** — AI players with per-venue difficulty, personalities,
+  and bios. Higher venues play tighter, more aggressive, and more bluff-aware.
+- **Broke? Win your way back** — there's no free top-up. *The Kitchen Table* freeroll
+  opens when you can't afford the Garage: beat one soft opponent heads-up and the
+  winner's stake buys you back onto the ladder.
+- **Ambient help** — live win-% equity, hand strength, and a reviewable last-hand
+  history. Informative, never nagging.
+- **Yours, locally** — your profile, Roll (bankroll), rank, and card-back live in
+  localStorage. No login, no server, no tracking.
+- Light and dark themes, quiet tactile sound, desktop and mobile layouts.
+
+Play money only: balances are **chips**, never a currency, and nothing is for sale.
+
+## Quick start
+
+Requires [Node.js](https://nodejs.org) and [pnpm](https://pnpm.io).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev        # → http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Commands
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | What it does |
+|---------|--------------|
+| `pnpm dev` | Dev server at `localhost:3000` |
+| `pnpm test` | AVA suite for the poker engine |
+| `pnpm lint` | ESLint (must be 0 errors) |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm build` | Production build |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+A change is done when **typecheck + lint + test pass** (and `build` for structural
+work). The UI isn't unit-tested — verify it by running the app.
 
-## Learn More
+## Architecture
 
-To learn more about Next.js, take a look at the following resources:
+Three layers with hard boundaries (Next.js App Router, React 19, Tailwind v4,
+Zustand, Framer Motion):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Engine** — [`src/lib/poker/`](src/lib/poker). Pure, deterministic, React-free
+   Texas Hold'em: dealing, betting, side pots, hand evaluation, Monte-Carlo equity,
+   and the AI policy. Every rule lives here, and ships with tests.
+2. **Orchestration** — [`src/store/`](src/store). `game.ts` runs the tournament over
+   time (turn pacing, AI timers, blind escalation, hand history, the economy);
+   `profile.ts` is the persisted player (versioned, with migrations).
+3. **Presentation** — [`src/components/`](src/components), [`src/app/`](src/app).
+   Reads the stores; look & feel only.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Full documentation lives in [`docs/`](docs/README.md):
 
-## Deploy on Vercel
+| Doc | What's in it |
+|-----|--------------|
+| [architecture.md](docs/architecture.md) | Stack, layout, data flow, design decisions |
+| [poker-engine.md](docs/poker-engine.md) | The pure engine: rules, evaluation, equity, AI |
+| [game-flow.md](docs/game-flow.md) | The tournament loop, economy, ranks, the freeroll |
+| [venues.md](docs/venues.md) | The venue ladder and venue art |
+| [design.md](docs/design.md) | Theme tokens, typography, motion, sound |
+| [brand.md](docs/brand.md) | The name, the voice, the anti-casino principles |
+| [development.md](docs/development.md) | Setup, testing, conventions, gotchas |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Agents working in this repo should start with [`CLAUDE.md`](CLAUDE.md) /
+[`AGENTS.md`](AGENTS.md).
