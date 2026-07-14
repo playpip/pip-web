@@ -67,25 +67,25 @@ export function RollGraph({ points, className }: { points: RollPoint[]; classNam
           <stop offset="100%" stopColor="var(--color-pip)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <motion.path
-        d={area}
-        fill={`url(#${gradientId})`}
-        initial={reduced ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.7, delay: 0.35 }}
-      />
-      <motion.path
-        d={line}
-        fill="none"
-        stroke="var(--color-pip)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-        initial={reduced ? false : { pathLength: 0 }}
-        animate={{ pathLength: 1 }}
-        transition={{ duration: 0.9, ease: 'easeOut' }}
-      />
+      {/* NOTE: no pathLength draw animation here — Framer's dasharray trick
+          fights vector-effect:non-scaling-stroke under non-uniform scaling
+          (preserveAspectRatio="none") and leaves the line visibly dashed. */}
+      <motion.g
+        initial={reduced ? false : { opacity: 0, y: 3 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
+        <path d={area} fill={`url(#${gradientId})`} />
+        <path
+          d={line}
+          fill="none"
+          stroke="var(--color-pip)"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </motion.g>
       <motion.circle
         cx={last.x}
         cy={last.y}
@@ -93,7 +93,7 @@ export function RollGraph({ points, className }: { points: RollPoint[]; classNam
         fill="var(--color-pip)"
         initial={reduced ? false : { opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: reduced ? 0 : 0.8, type: 'spring', stiffness: 400, damping: 20 }}
+        transition={{ delay: reduced ? 0 : 0.45, type: 'spring', stiffness: 400, damping: 20 }}
       />
     </svg>
   )
