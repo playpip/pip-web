@@ -1,4 +1,4 @@
-<img src="src/app/icon.svg" width="72" alt="pip logo" />
+<img src="docs/assets/pip-logo.png" width="72" alt="pip logo" />
 
 # pip
 
