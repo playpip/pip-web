@@ -31,7 +31,7 @@ export function StatsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Stats</DialogTitle>
           <DialogDescription>The story of your grind.</DialogDescription>
@@ -46,14 +46,14 @@ export function StatsDialog({
             </div>
             {rollHistory.length >= 2 ? (
               <div className="mt-2">
-                <RollGraph points={rollHistory} className="h-32 w-full" />
+                <RollGraph points={rollHistory} className="h-40 w-full" />
                 <div className="mt-1 flex justify-between text-[11px] tabular-nums text-muted-foreground/70">
                   <span>low {money(min!)}</span>
                   <span>high {money(max!)}</span>
                 </div>
               </div>
             ) : (
-              <div className="mt-2 flex h-32 items-center justify-center rounded-2xl bg-foreground/[0.03]">
+              <div className="mt-2 flex h-40 items-center justify-center rounded-2xl bg-foreground/[0.03]">
                 <p className="text-sm text-muted-foreground">
                   Play a few games and your story starts here.
                 </p>
