@@ -11,7 +11,7 @@ and spell, and it names a *thing you can draw* — the identity (favicon, wordma
 motifs) falls out of it naturally.
 
 (Previously named **Shove** — a real poker action, but insider slang that casual
-players didn't get. The git repo is named `clean-poker`; the product brand is **Pip**.)
+players didn't get. GitHub repo: [`playpip/pip-web`](https://github.com/playpip/pip-web).)
 
 ## Positioning
 

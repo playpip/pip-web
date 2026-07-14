@@ -6,8 +6,8 @@ Hold'em web app). This mirrors [`CLAUDE.md`](./CLAUDE.md); full docs are in
 
 ## Orientation
 
-- **What it is:** play-money, account-free, desktop-first Hold'em vs AI. Repo dir is
-  `clean-poker`; the brand is **Pip**.
+- **What it is:** play-money, account-free, desktop-first Hold'em vs AI. GitHub repo:
+  [`playpip/pip-web`](https://github.com/playpip/pip-web).
 - **Three layers** (don't cross the boundaries):
   1. `src/lib/poker/` — pure, deterministic, unit-tested engine (the rules).
   2. `src/store/` — `game.ts` (pacing/AI/economy), `profile.ts` (persisted).
