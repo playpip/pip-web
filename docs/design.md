@@ -82,10 +82,13 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 ## Components inventory
 
 - Menu: `Home`, `VenueArt` (image with SVG fallback).
-- Onboarding/profile: `Onboarding`, `AvatarEditor` (shared), `ProfileDialog`.
-- Settings: `SettingsDialog` (card-back colour + scrollable pattern picker).
-- Table: `Table`, `ActionBar` (fold / check·call / bet·raise + sizer with ½·¾·Pot·Max).
-- Primitives: `PlayerAvatar`, `PlayingCard`, `CardBack`, `CountUp`, `ThemeToggle`,
+- Onboarding/profile: `Onboarding`, `AvatarEditor` (shared), `ProfileDialog`,
+  `ChipsDialog` (award collection), `StatsDialog` (lifetime stats + the Roll graph).
+- Settings: `SettingsDialog` (card-back picker + profile backup/restore).
+- Table: `Table`, `ActionBar` (fold / check·call / bet·raise + sizer with ½·¾·Pot·Max),
+  `HandHistoryDialog` (last-hand timeline).
+- Primitives: `PlayerAvatar`, `PlayingCard`, `CardBack`, `CountUp`, `AwardChip`,
+  `RollGraph` (hand-rolled smoothed SVG area chart), `ThemeToggle`,
   shadcn `ui/button`, `ui/dialog`.
 
 ## Adding UI — checklist

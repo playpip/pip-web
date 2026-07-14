@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { AvatarEditor } from './AvatarEditor'
 import { ChipsDialog } from './ChipsDialog'
+import { StatsDialog } from './StatsDialog'
 import { AWARDS } from '@/lib/awards'
 import { useProfile } from '@/store/profile'
 import { sound } from '@/lib/sound'
@@ -44,6 +45,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   )
   const [name, setLocalName] = useState(savedName)
   const [chipsOpen, setChipsOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
   const earnedCount = AWARDS.filter((a) => awards[a.id] !== undefined).length
 
   const save = () => {
@@ -64,15 +66,26 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
         onSubmit={save}
         avatarSize={112}
       />
-      <button
-        onClick={() => {
-          sound.play('tap')
-          setChipsOpen(true)
-        }}
-        className="mt-5 w-full rounded-2xl bg-foreground/[0.06] py-3 font-medium transition hover:bg-foreground/[0.12]"
-      >
-        Chips · {earnedCount} of {AWARDS.length}
-      </button>
+      <div className="mt-5 flex gap-2">
+        <button
+          onClick={() => {
+            sound.play('tap')
+            setChipsOpen(true)
+          }}
+          className="flex-1 rounded-2xl bg-foreground/[0.06] py-3 font-medium transition hover:bg-foreground/[0.12]"
+        >
+          Chips · {earnedCount}/{AWARDS.length}
+        </button>
+        <button
+          onClick={() => {
+            sound.play('tap')
+            setStatsOpen(true)
+          }}
+          className="flex-1 rounded-2xl bg-foreground/[0.06] py-3 font-medium transition hover:bg-foreground/[0.12]"
+        >
+          Stats
+        </button>
+      </div>
       <button
         onClick={save}
         disabled={!name.trim()}
@@ -81,6 +94,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
         Save
       </button>
       <ChipsDialog open={chipsOpen} onOpenChange={setChipsOpen} />
+      <StatsDialog open={statsOpen} onOpenChange={setStatsOpen} />
     </div>
   )
 }
