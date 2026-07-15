@@ -14,6 +14,7 @@ import { pickBio, styleFor, randomBankroll } from '@/config/opponents'
 import { blindsAt } from '@/config/blinds'
 import { freerollOpen, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
+import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import {
   startHand,
   applyAction,
@@ -106,6 +107,8 @@ interface GameState {
   newAwards: AwardDef[]
   /** Bounty chips collected on the just-finished hand (bounty tables). */
   lastBounty: number
+  /** Observed tendencies per seat this tournament (feeds the reads in the player dialog). */
+  seatStats: Record<string, SeatStats>
 
   sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec }) => void
   /** Rebuild an interrupted table from its snapshot (no buy-in taken). */
@@ -170,6 +173,13 @@ let currentEvents: HandEvent[] = []
 /** Hero's lowest between-hands stack this tournament (drives The Comeback chip). */
 let heroLowTide = Infinity
 
+/** Live tendency counters (mirrored into state at hand boundaries). */
+let seatStatsLive: Record<string, SeatStats> = {}
+/** Who has voluntarily put chips in this hand already (VPIP counts once per hand). */
+let vpipThisHand = new Set<string>()
+
+const statsFor = (id: string): SeatStats => (seatStatsLive[id] ??= emptySeatStats())
+
 /** Record one action (and any board cards it dealt) into the running timeline. */
 function recordStep(prev: HandState, action: Action, next: HandState) {
   const actor = prev.players[prev.toActIndex]
@@ -188,6 +198,21 @@ function recordStep(prev: HandState, action: Action, next: HandState) {
       type: action.type,
       amount,
     })
+
+    // Tendencies (feeds the reads in the player dialog).
+    const stats = statsFor(actor.id)
+    const facingBet = (legal?.callAmount ?? 0) > 0
+    if (facingBet) stats.betsFaced++
+    if (action.type === 'fold' && facingBet) stats.foldsToBet++
+    if (action.type === 'call') stats.calls++
+    if (action.type === 'bet' || action.type === 'raise') stats.raises++
+    const voluntary =
+      prev.street === 'preflop' &&
+      (action.type === 'bet' || action.type === 'raise' || (action.type === 'call' && facingBet))
+    if (voluntary && !vpipThisHand.has(actor.id)) {
+      vpipThisHand.add(actor.id)
+      stats.vpipHands++
+    }
   }
   const dealt = next.community.length - prev.community.length
   if (dealt > 0) {
@@ -227,11 +252,14 @@ export const useGame = create<GameState>((set, get) => {
     })
     sound.play('deal')
     currentEvents = []
+    vpipThisHand = new Set()
+    for (const c of configs) statsFor(c.id).handsDealt++
     set({
       hand,
       status: 'playing',
       newAwards: [],
       lastBounty: 0,
+      seatStats: { ...seatStatsLive },
       buttonSeatId: configs[buttonIndex].id,
       smallBlind: blinds.smallBlind,
       bigBlind: blinds.bigBlind,
@@ -295,7 +323,12 @@ export const useGame = create<GameState>((set, get) => {
     const nextSeats = seats.map((s) => ({ ...s, stack: stackById.get(s.id) ?? s.stack }))
 
     const result = hand.result
-    set({ lastHand: buildHandRecord(hand, get()) })
+    if (result?.showdown) {
+      for (const p of hand.players) {
+        if (p.status !== 'folded' && p.status !== 'out') statsFor(p.id).showdowns++
+      }
+    }
+    set({ lastHand: buildHandRecord(hand, get()), seatStats: { ...seatStatsLive } })
     const heroWon = !!result && (result.payouts[HUMAN_ID] ?? 0) > 0
     const pot = potSize(hand)
 
@@ -428,11 +461,13 @@ export const useGame = create<GameState>((set, get) => {
     lastHand: null,
     newAwards: [],
     lastBounty: 0,
+    seatStats: {},
 
     sitDown: (venue, human) => {
       clearTimers()
       const stack = venue.startingStack ?? venue.buyIn
       heroLowTide = stack
+      seatStatsLive = {}
       const aiCount = venue.seats - 1
       const names = pickNames(aiCount)
       const aiSeats: SeatMeta[] = names.map((name, i) => ({
@@ -476,6 +511,7 @@ export const useGame = create<GameState>((set, get) => {
         lastHand: null,
         newAwards: [],
         lastBounty: 0,
+        seatStats: {},
       })
       dealHand(seats[0].id)
     },
@@ -483,6 +519,7 @@ export const useGame = create<GameState>((set, get) => {
     resumeTable: (venue, snapshot) => {
       clearTimers()
       heroLowTide = snapshot.heroLow
+      seatStatsLive = {}
       set({
         venue,
         seats: snapshot.seats,
@@ -536,6 +573,7 @@ export const useGame = create<GameState>((set, get) => {
         lastHand: null,
         newAwards: [],
         lastBounty: 0,
+        seatStats: {},
       })
     },
   }

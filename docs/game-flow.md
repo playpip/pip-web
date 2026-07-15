@@ -39,8 +39,10 @@ Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **8**) with a `migra
 Holds the live `HandState`, `seats` (human + AI meta), `venue`, `status`
 (`idle | playing | handover | busted | won`), `heroEquity`, `aiThinkingId`, handover
 `message`, the human's finishing `place`, the current `smallBlind`/`bigBlind` +
-`blindLevel`/`handIndex` (escalation), and `lastHand` (the previous hand's timeline
-for the history dialog).
+`blindLevel`/`handIndex` (escalation), `lastHand` (the previous hand's timeline
+for the history dialog), `lastBounty`, and `seatStats` — observed per-opponent
+tendencies (VPIP, aggression, folds to pressure) that become the plain-English
+**reads** in the player dialog after ~8 hands (`src/lib/reads.ts`, unit-tested).
 
 ## The turn loop
 

@@ -47,7 +47,7 @@ type Point = { left: string; top: string }
 
 export function Table() {
   const router = useRouter()
-  const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, newAwards, lastBounty, nextHand, leave } = useGame()
+  const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, newAwards, lastBounty, seatStats, nextHand, leave } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
   const adjustRoll = useProfile((s) => s.adjustRoll)
@@ -323,6 +323,7 @@ export function Table() {
         onOpenChange={(o) => !o && setViewId(null)}
         seat={viewId ? (metaById.get(viewId) ?? null) : null}
         stack={hand.players.find((p) => p.id === viewId)?.stack ?? 0}
+        stats={viewId ? seatStats[viewId] : undefined}
       />
 
       {/* overlays */}

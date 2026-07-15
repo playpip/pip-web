@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import type { SeatMeta } from '@/store/game'
+import { deriveReads, READS_MIN_HANDS, type SeatStats } from '@/lib/reads'
 import { useMoney } from '@/lib/useMoney'
 
 /** A little "about this player" card shown when you tap an opponent. */
@@ -17,14 +18,18 @@ export function PlayerDialog({
   onOpenChange,
   seat,
   stack,
+  stats,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   seat: SeatMeta | null
   stack: number
+  stats?: SeatStats
 }) {
   const money = useMoney()
   if (!seat) return null
+
+  const reads = deriveReads(stats)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,6 +48,34 @@ export function PlayerDialog({
           <Stat label="At the table" value={money(stack)} />
           <Stat label="Bankroll" value={money(seat.bankroll ?? 0)} />
         </div>
+
+        {/* what you've noticed about them this game */}
+        {!seat.isHuman && (
+          <div className="mt-1">
+            <p className="mb-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+              Your reads
+            </p>
+            {reads ? (
+              <div className="flex flex-col gap-2">
+                {reads.map((read) => (
+                  <div key={read.label} className="flex items-center justify-between gap-3">
+                    <span className="text-sm">{read.label}</span>
+                    <span className="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-foreground/10">
+                      <span
+                        className="block h-full rounded-full bg-foreground/50"
+                        style={{ width: `${Math.round(read.strength * 100)}%` }}
+                      />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Too early to tell — keep watching. Reads appear after {READS_MIN_HANDS} hands.
+              </p>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

@@ -177,6 +177,10 @@ const VENUE_IMAGES: Record<string, string> = {
   montecarlo: '/venues/montecarlo.jpg',
   vegas: '/venues/vegas.jpg',
   mainevent: '/venues/mainevent.jpg',
+  redeye: '/venues/redeye.jpg',
+  study: '/venues/study.jpg',
+  duel: '/venues/duel.jpg',
+  docks: '/venues/docks.jpg',
 }
 
 function VenueScene({ id, accent, className }: { id: string; accent: string; className?: string }) {
