@@ -55,6 +55,8 @@ function formatNote(venue: Venue): string | null {
   switch (venue.format) {
     case 'turbo':
       return `Turbo — blinds rise every ${venue.handsPerLevel} hands instead of ${HANDS_PER_LEVEL}. Short stacks arrive fast; patience is a liability.`
+    case 'hyper':
+      return `Hyper — shallow stacks and blinds rising every ${venue.handsPerLevel} hands. Every decision arrives at speed; shove-or-fold poker.`
     case 'deep':
       return `Deep stack — everyone starts with double the usual chips and blinds climb slowly. Post-flop poker, rewarded.`
     case 'duel':

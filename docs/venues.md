@@ -33,6 +33,9 @@ all pure venue config, no engine changes:
 | `study` | The Study | Deep | 1,000 | `startingStack: 2000` + `handsPerLevel: 9` |
 | `duel` | The Duel | Heads-up | 750 | `seats: 2`, winner-take-all |
 | `docks` | The Docks | Bounty | 2,000 | `bounty: 500` paid instantly per knockout |
+| `allnighter` | The All-Nighter | Hyper | 1,500 | shallow `startingStack: 900` + `handsPerLevel: 2` |
+| `chopshop` | The Chop Shop | Bounty | 5,000 | `bounty: 1500` + `handsPerLevel: 3` — turbo bounty |
+| `vault` | The Vault | Heads-up | 25,000 | `seats: 2`, sharp AI (skill 0.82) — the side-table boss |
 
 The `format` field is a display tag (`FORMAT_LABELS`); mechanics come from the
 overrides (`handsPerLevel`, `startingStack`, `seats`, `bounty`). Bounties are paid
@@ -68,7 +71,7 @@ interface Venue {
 
 `AiProfile` scales up the ladder on two axes. **Personality** — higher
 `tightness`/`aggression`/`bluff` and more equity `iterations` (sharper reads) at
-higher venues. **Soundness** — `skill` climbs from 0.4 at the Garage (players who
+higher venues. **Soundness** — `skill` climbs from 0.35 at the Garage (players who
 just learned: misread hands, fold under pressure) through 0.97 at Vegas to 1.0 at
 the Main Event (plays its best game, no manufactured mistakes). The Kitchen Table
 freeroll sits below the ladder at 0.3. See `docs/poker-engine.md`.

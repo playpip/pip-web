@@ -6,10 +6,11 @@
 import type { AiProfile } from '@/lib/poker/ai/policy'
 
 /** Format tag shown on the venue card (side tables). */
-export type VenueFormat = 'turbo' | 'deep' | 'duel' | 'bounty'
+export type VenueFormat = 'turbo' | 'hyper' | 'deep' | 'duel' | 'bounty'
 
 export const FORMAT_LABELS: Record<VenueFormat, string> = {
   turbo: 'Turbo',
+  hyper: 'Hyper',
   deep: 'Deep',
   duel: 'Heads-up',
   bounty: 'Bounty',
@@ -226,6 +227,49 @@ export const SIDE_TABLES: readonly Venue[] = [
     bounty: 500,
     accent: '#C9873D',
     ai: { tightness: 0.35, aggression: 0.5, bluff: 0.1, iterations: 700, skill: 0.62 },
+  },
+  {
+    id: 'allnighter',
+    name: 'The All-Nighter',
+    tagline: 'Hyper. Shallow stacks, blinds every two hands.',
+    buyIn: 1_500,
+    startingStack: 900,
+    smallBlind: 10,
+    bigBlind: 20,
+    seats: 5,
+    prize: 7_500,
+    format: 'hyper',
+    handsPerLevel: 2,
+    accent: '#8F6FE8',
+    ai: { tightness: 0.3, aggression: 0.55, bluff: 0.09, iterations: 550, skill: 0.58 },
+  },
+  {
+    id: 'chopshop',
+    name: 'The Chop Shop',
+    tagline: 'Turbo bounty. Fast blinds, heads on the block.',
+    buyIn: 5_000,
+    smallBlind: 30,
+    bigBlind: 60,
+    seats: 6,
+    prize: 22_500,
+    format: 'bounty',
+    bounty: 1_500,
+    handsPerLevel: 3,
+    accent: '#D95F43',
+    ai: { tightness: 0.38, aggression: 0.55, bluff: 0.11, iterations: 800, skill: 0.68 },
+  },
+  {
+    id: 'vault',
+    name: 'The Vault',
+    tagline: 'High-stakes heads-up. Bring your whole game.',
+    buyIn: 25_000,
+    smallBlind: 150,
+    bigBlind: 300,
+    seats: 2,
+    prize: 50_000,
+    format: 'duel',
+    accent: '#93A5B8',
+    ai: { tightness: 0.48, aggression: 0.6, bluff: 0.14, iterations: 1_100, skill: 0.82 },
   },
 ] as const
 
