@@ -175,6 +175,8 @@ let heroLowTide = Infinity
 
 /** Live tendency counters (mirrored into state at hand boundaries). */
 let seatStatsLive: Record<string, SeatStats> = {}
+/** Hero tendencies already pushed to the lifetime profile — the flush baseline. */
+let heroTendencyFlushed: SeatStats = emptySeatStats()
 /** Who has voluntarily put chips in this hand already (VPIP counts once per hand). */
 let vpipThisHand = new Set<string>()
 
@@ -340,6 +342,22 @@ export const useGame = create<GameState>((set, get) => {
       showdownsWon: heroWon && result?.showdown ? 1 : 0,
     })
 
+    // Flush the hero's tendencies for this hand — the session counter is
+    // cumulative, so push only the delta since the last flush.
+    const heroLive = seatStatsLive[HUMAN_ID]
+    if (heroLive) {
+      profile.mergeTendencies({
+        handsDealt: heroLive.handsDealt - heroTendencyFlushed.handsDealt,
+        vpipHands: heroLive.vpipHands - heroTendencyFlushed.vpipHands,
+        raises: heroLive.raises - heroTendencyFlushed.raises,
+        calls: heroLive.calls - heroTendencyFlushed.calls,
+        betsFaced: heroLive.betsFaced - heroTendencyFlushed.betsFaced,
+        foldsToBet: heroLive.foldsToBet - heroTendencyFlushed.foldsToBet,
+        showdowns: heroLive.showdowns - heroTendencyFlushed.showdowns,
+      })
+      heroTendencyFlushed = { ...heroLive }
+    }
+
     if (result) sound.play(heroWon ? 'win' : result.showdown ? 'lose' : 'tap')
 
     const survivors = nextSeats.filter((s) => s.stack > 0)
@@ -468,6 +486,7 @@ export const useGame = create<GameState>((set, get) => {
       const stack = venue.startingStack ?? venue.buyIn
       heroLowTide = stack
       seatStatsLive = {}
+      heroTendencyFlushed = emptySeatStats()
       const aiCount = venue.seats - 1
       const names = pickNames(aiCount)
       const aiSeats: SeatMeta[] = names.map((name, i) => ({
@@ -520,6 +539,7 @@ export const useGame = create<GameState>((set, get) => {
       clearTimers()
       heroLowTide = snapshot.heroLow
       seatStatsLive = {}
+      heroTendencyFlushed = emptySeatStats()
       set({
         venue,
         seats: snapshot.seats,

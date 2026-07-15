@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,6 @@ import {
 } from '@/components/ui/dialog'
 import { AvatarEditor } from './AvatarEditor'
 import { ChipsDialog } from './ChipsDialog'
-import { StatsDialog } from './StatsDialog'
 import { AWARDS } from '@/lib/awards'
 import { useProfile } from '@/store/profile'
 import { sound } from '@/lib/sound'
@@ -38,6 +38,7 @@ export function ProfileDialog({
 }
 
 function ProfileForm({ onDone }: { onDone: () => void }) {
+  const router = useRouter()
   const { name: savedName, avatar: savedAvatar, awards, setName, setAvatar } = useProfile()
 
   const [spec, setSpec] = useState<AvatarSpec>(
@@ -45,7 +46,6 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   )
   const [name, setLocalName] = useState(savedName)
   const [chipsOpen, setChipsOpen] = useState(false)
-  const [statsOpen, setStatsOpen] = useState(false)
   const earnedCount = AWARDS.filter((a) => awards[a.id] !== undefined).length
 
   const save = () => {
@@ -79,7 +79,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
         <button
           onClick={() => {
             sound.play('tap')
-            setStatsOpen(true)
+            router.push('/stats')
           }}
           className="flex-1 rounded-2xl bg-foreground/[0.06] py-3 font-medium transition hover:bg-foreground/[0.12]"
         >
@@ -94,7 +94,6 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
         Save
       </button>
       <ChipsDialog open={chipsOpen} onOpenChange={setChipsOpen} />
-      <StatsDialog open={statsOpen} onOpenChange={setStatsOpen} />
     </div>
   )
 }

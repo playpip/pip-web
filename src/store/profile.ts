@@ -7,6 +7,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AvatarSpec } from '@/lib/avatar'
+import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
 
@@ -68,6 +69,8 @@ export interface ProfileState {
   rollHistory: RollPoint[]
   /** Per-venue records: entries, wins, best finish, fastest win. */
   venueRecords: Record<string, VenueRecord>
+  /** Lifetime tendencies of the hero — feeds the play-style chart on /stats. */
+  tendencies: SeatStats
   /** Chosen face-down card design (a curated id — see config/cardBacks). */
   cardBack: string
   /** Earned award chips: id → epoch ms earned (see lib/awards). */
@@ -85,6 +88,8 @@ export interface ProfileState {
   grantAwards: (ids: string[]) => void
   setCameFromFreeroll: (value: boolean) => void
   mergeStats: (partial: Partial<LifetimeStats>) => void
+  /** Add a hand's worth of hero tendencies onto the lifetime totals. */
+  mergeTendencies: (delta: Partial<SeatStats>) => void
   /** Sample the current Roll onto the history graph. */
   recordRollPoint: () => void
   recordVenueEntry: (venueId: string) => void
@@ -92,7 +97,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 8
+export const PERSIST_VERSION = 9
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -106,6 +111,7 @@ export const useProfile = create<ProfileState>()(
       stats: emptyStats(),
       rollHistory: [],
       venueRecords: {},
+      tendencies: emptySeatStats(),
       cardBack: DEFAULT_CARD_BACK.id,
       awards: {},
       cameFromFreeroll: false,
@@ -142,6 +148,8 @@ export const useProfile = create<ProfileState>()(
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
       mergeStats: (partial) =>
         set((s) => ({ stats: { ...s.stats, ...mergeStatValues(s.stats, partial) } })),
+      mergeTendencies: (delta) =>
+        set((s) => ({ tendencies: addTendencies(s.tendencies, delta) })),
       recordRollPoint: () =>
         set((s) => ({
           rollHistory: [...s.rollHistory, { t: Date.now(), roll: s.roll }].slice(-ROLL_HISTORY_CAP),
@@ -181,6 +189,7 @@ export const useProfile = create<ProfileState>()(
           stats: emptyStats(),
           rollHistory: [],
           venueRecords: {},
+          tendencies: emptySeatStats(),
           cardBack: DEFAULT_CARD_BACK.id,
           awards: {},
           cameFromFreeroll: false,
@@ -220,6 +229,8 @@ export const useProfile = create<ProfileState>()(
           s.cardBack =
             typeof legacy === 'string' ? legacy : nearestCardBack(legacy?.color).id
         }
+        // v8 → v9: lifetime hero tendencies (play-style chart).
+        if (fromVersion < 9) s.tendencies = emptySeatStats()
         return s
       },
     },
@@ -240,4 +251,16 @@ function mergeStatValues(
   if (partial.biggestPot !== undefined)
     next.biggestPot = Math.max(current.biggestPot, partial.biggestPot)
   return next
+}
+
+function addTendencies(current: SeatStats, delta: Partial<SeatStats>): SeatStats {
+  return {
+    handsDealt: current.handsDealt + (delta.handsDealt ?? 0),
+    vpipHands: current.vpipHands + (delta.vpipHands ?? 0),
+    raises: current.raises + (delta.raises ?? 0),
+    calls: current.calls + (delta.calls ?? 0),
+    betsFaced: current.betsFaced + (delta.betsFaced ?? 0),
+    foldsToBet: current.foldsToBet + (delta.foldsToBet ?? 0),
+    showdowns: current.showdowns + (delta.showdowns ?? 0),
+  }
 }
