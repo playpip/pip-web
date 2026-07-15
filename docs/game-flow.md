@@ -73,8 +73,11 @@ no auto-advance.
 
 **Blind escalation** (`config/blinds.ts`, unit-tested): blinds rise every
 `HANDS_PER_LEVEL` (6) hands through `LEVEL_MULTIPLIERS` (×1, ×2, ×3, ×5, ×8, … ×60,
-then capped), scaling each venue's base blinds — so tournaments always end. The top
-bar shows the level (`· L2`) once blinds have risen.
+then capped), scaling each venue's base blinds — so tournaments always end. Venues
+override the pace with `handsPerLevel`: the low ladder rungs escalate gently
+(Garage 10 → Card Room 7, so new players play poker rather than shove-or-fold),
+turbo/hyper side tables escalate fast (3/2), and the freeroll never escalates. The
+top bar shows the level (`· L2`) once blinds have risen.
 
 **Hand history**: every action (and dealt street) is recorded into `lastHand`
 (`HandRecord`) when a hand completes; the History button on the table opens
@@ -110,7 +113,7 @@ snapshot is cleared on leave, bust, and win.
 | Want to change… | Edit |
 |-----------------|------|
 | The rules of poker | `lib/poker/` (+ tests) |
-| AI difficulty / behaviour | `lib/poker/ai/policy.ts` and per-venue `AiProfile` in `config/venues.ts` |
+| AI difficulty / behaviour | `lib/poker/ai/policy.ts` and per-venue `AiProfile` in `config/venues.ts` — validate with `pnpm sim <venue>` (`scripts/sim.ts`) |
 | Pacing (AI think time) | constants in `store/game.ts` |
 | Venue buy-ins / blinds / prizes / AI | `config/venues.ts` |
 | Blind escalation speed / curve | `config/blinds.ts` (+ tests) |

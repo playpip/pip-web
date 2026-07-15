@@ -18,10 +18,30 @@ pnpm start       # serve the production build
 pnpm lint        # eslint (must be clean — 0 errors)
 pnpm typecheck   # tsc --noEmit
 pnpm test        # AVA — the engine test suite
+pnpm sim         # difficulty simulation (scripts/sim.ts) — see below
 ```
 
 Before considering a change done: **`pnpm typecheck`, `pnpm lint`, and `pnpm test`
 should all pass**, and for anything structural, `pnpm build`.
+
+### The difficulty simulator
+
+`pnpm sim` plays full sit-and-go tournaments with a proxy human against each
+venue's real AI (real engine, blinds, escalation) and reports win rates — the
+tool for tuning any `AiProfile` or pacing knob in `config/venues.ts`. Change a
+knob, re-run, compare against the "fair" column (1/seats). Deterministic per seed.
+
+```bash
+pnpm sim                       # kitchen + the ladder (competent hero, n=200)
+pnpm sim garage pub            # specific venues; also: ladder | side | all
+pnpm sim garage --n 500        # more tournaments = tighter estimate (slower)
+pnpm sim --hero casual         # beginner | casual | competent | best
+pnpm sim garage --skill 0.4    # trial an AI skill without editing config
+```
+
+It's Monte-Carlo-heavy — a venue takes ~2–4 minutes at n=50; high venues
+(more `iterations`) take longer. n=50 has roughly a ±7pp margin; use n≥200
+for numbers you'll quote.
 
 ## Testing (AVA)
 
