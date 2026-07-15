@@ -17,8 +17,18 @@ const CORNERS: { key: StyleKey; label: string; pos: string; align: string }[] = 
 const inset = (v: number) => Math.max(0.06, Math.min(0.94, v))
 
 /** The quadrant itself — tight↔loose vertical, passive↔aggressive horizontal. */
-export function PlayStyleChart({ style, className }: { style: PlayStyle; className?: string }) {
+export function PlayStyleChart({
+  style,
+  className,
+  accent = 'var(--color-pip)',
+}: {
+  style: PlayStyle
+  className?: string
+  /** Glow, dot and lit-quadrant colour. Defaults to the pip accent. */
+  accent?: string
+}) {
   const reduced = useReducedMotion()
+  const tint = (pct: number) => `color-mix(in srgb, ${accent} ${pct}%, transparent)`
 
   // x: passive → aggressive. y: loose (top) → tight (bottom). Looseness is
   // scaled against a realistic VPIP ceiling (~0.8) so the dot uses the space.
@@ -37,19 +47,23 @@ export function PlayStyleChart({ style, className }: { style: PlayStyle; classNa
       <div className="absolute inset-y-0 left-1/2 border-l border-dashed border-foreground/10" />
 
       {/* corner archetypes — the player's own quadrant is lit in the accent */}
-      {CORNERS.map((c) => (
-        <span
-          key={c.key}
-          className={cn(
-            'absolute text-xs font-semibold uppercase tracking-[0.14em] transition-colors',
-            c.pos,
-            c.align,
-            style.ready && style.key === c.key ? 'text-pip' : 'text-muted-foreground/40',
-          )}
-        >
-          {c.label}
-        </span>
-      ))}
+      {CORNERS.map((c) => {
+        const lit = style.ready && style.key === c.key
+        return (
+          <span
+            key={c.key}
+            className={cn(
+              'absolute text-xs font-semibold uppercase tracking-[0.14em] transition-colors',
+              c.pos,
+              c.align,
+              !lit && 'text-muted-foreground/40',
+            )}
+            style={lit ? { color: accent } : undefined}
+          >
+            {c.label}
+          </span>
+        )
+      })}
 
       {/* axis captions */}
       <span className="absolute left-1/2 top-2 -translate-x-1/2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/45">
@@ -71,15 +85,15 @@ export function PlayStyleChart({ style, className }: { style: PlayStyle; classNa
         <>
           {/* soft glow anchoring the dot to its quadrant */}
           <motion.div
-            className="pointer-events-none absolute size-32 rounded-full bg-pip/20 blur-2xl"
-            style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
+            className="pointer-events-none absolute size-32 rounded-full blur-2xl"
+            style={{ left: `${x * 100}%`, top: `${y * 100}%`, backgroundColor: tint(20) }}
             initial={reduced ? false : { opacity: 0 }}
             animate={{ opacity: 1, x: '-50%', y: '-50%' }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
           />
           <motion.div
-            className="absolute size-4 rounded-full bg-pip ring-4 ring-pip/25"
-            style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
+            className="absolute size-4 rounded-full"
+            style={{ left: `${x * 100}%`, top: `${y * 100}%`, backgroundColor: accent, boxShadow: `0 0 0 4px ${tint(25)}` }}
             initial={reduced ? false : { scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 22, delay: reduced ? 0 : 0.15 }}

@@ -11,6 +11,7 @@ import { useProfile } from '@/store/profile'
 import { VENUES, SIDE_TABLES, KITCHEN_TABLE } from '@/config/venues'
 import { rankFor } from '@/config/ranks'
 import { derivePlayStyle } from '@/lib/playStyle'
+import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -25,6 +26,8 @@ export function StatsPage() {
 
   const style = derivePlayStyle(tendencies)
   const rank = rankFor(peakRoll)
+  // The charts glow in the player's own colour — a darker take on their avatar swatch.
+  const accent = avatar ? accentFromSwatch(avatar.backgroundColor) : 'var(--color-pip)'
 
   const winRate = stats.handsPlayed > 0 ? Math.round((stats.handsWon / stats.handsPlayed) * 100) : null
   const showdownRate =
@@ -95,11 +98,11 @@ export function StatsPage() {
         {/* play style — the centrepiece, full-height on the left */}
         <Card className="flex flex-col lg:col-span-1">
           <CardLabel>Your play style</CardLabel>
-          <PlayStyleChart style={style} className="mt-3" />
+          <PlayStyleChart style={style} className="mt-3" accent={accent} />
           {style.ready ? (
             <>
               <div className="mt-4 text-center">
-                <p className="text-xl font-semibold text-pip">{style.name}</p>
+                <p className="text-xl font-semibold" style={{ color: accent }}>{style.name}</p>
                 <p className="mx-auto mt-1 max-w-xs text-sm leading-snug text-muted-foreground">
                   {style.blurb}
                 </p>
@@ -126,7 +129,7 @@ export function StatsPage() {
             </div>
             {rollHistory.length >= 2 ? (
               <div className="mt-3">
-                <RollGraph points={rollHistory} format={money} className="h-40 w-full" />
+                <RollGraph points={rollHistory} format={money} className="h-40 w-full" accent={accent} />
                 <div className="mt-1 flex justify-between text-[11px] tabular-nums text-muted-foreground/70">
                   <span>low {money(min!)}</span>
                   <span>high {money(max!)}</span>

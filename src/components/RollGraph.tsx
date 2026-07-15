@@ -45,14 +45,18 @@ export function RollGraph({
   points,
   className,
   format = (n) => n.toLocaleString(),
+  accent = 'var(--color-pip)',
 }: {
   points: RollPoint[]
   className?: string
   format?: (n: number) => string
+  /** Line, fill glow and dot colour. Defaults to the pip accent. */
+  accent?: string
 }) {
   const gradientId = useId()
   const reduced = useReducedMotion()
   const [active, setActive] = useState<number | null>(null)
+  const tint = (pct: number) => `color-mix(in srgb, ${accent} ${pct}%, transparent)`
 
   const rolls = points.map((p) => p.roll)
   const min = Math.min(...rolls)
@@ -90,8 +94,8 @@ export function RollGraph({
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="size-full" aria-hidden>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-pip)" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="var(--color-pip)" stopOpacity="0" />
+            <stop offset="0%" stopColor={accent} stopOpacity="0.28" />
+            <stop offset="100%" stopColor={accent} stopOpacity="0" />
           </linearGradient>
         </defs>
         {/* NOTE: no pathLength draw animation here — Framer's dasharray trick
@@ -106,7 +110,7 @@ export function RollGraph({
           <path
             d={line}
             fill="none"
-            stroke="var(--color-pip)"
+            stroke={accent}
             strokeWidth="1.4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -120,16 +124,16 @@ export function RollGraph({
         i === lastIndex || i === active ? null : (
           <span
             key={i}
-            className="absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-pip/45"
-            style={{ left: `${p.x}%`, top: `${(p.y / H) * 100}%` }}
+            className="absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ left: `${p.x}%`, top: `${(p.y / H) * 100}%`, backgroundColor: tint(45) }}
           />
         ),
       )}
 
       {/* the "now" dot */}
       <motion.span
-        className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-pip ring-2 ring-background"
-        style={{ left: `${xy[lastIndex].x}%`, top: `${(xy[lastIndex].y / H) * 100}%` }}
+        className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background"
+        style={{ left: `${xy[lastIndex].x}%`, top: `${(xy[lastIndex].y / H) * 100}%`, backgroundColor: accent }}
         initial={reduced ? false : { opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: reduced ? 0 : 0.45, type: 'spring', stiffness: 400, damping: 20 }}
@@ -143,8 +147,8 @@ export function RollGraph({
             style={{ left: `${activeXY.x}%` }}
           />
           <span
-            className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-pip ring-2 ring-background"
-            style={{ left: `${activeXY.x}%`, top: `${(activeXY.y / H) * 100}%` }}
+            className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background"
+            style={{ left: `${activeXY.x}%`, top: `${(activeXY.y / H) * 100}%`, backgroundColor: accent }}
           />
           <div
             className="pointer-events-none absolute"
