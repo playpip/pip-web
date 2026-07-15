@@ -15,7 +15,7 @@ enough to afford higher buy-ins.
 ## Stores
 
 ### `profile` (persisted — localStorage)
-Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **7**) with a `migrate` hook.
+Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **8**) with a `migrate` hook.
 - `created`, `name`, `avatar`, `roll` (bankroll), **`peakRoll`** (drives rank title),
   `stats` (hands, showdowns, tournaments, biggest pot), **`rollHistory`** (Roll
   sampled at tournament results/cash-outs, capped ring buffer — feeds the stats
@@ -26,7 +26,7 @@ Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **7**) with a `migra
   `adjustRoll`, `setRoll` (both also bump `peakRoll`), `grantAwards`,
   `setCameFromFreeroll`, `mergeStats`, `recordRollPoint`, `recordVenueEntry`,
   `recordVenueResult`, `reset`.
-- `STARTING_ROLL` (in `config/venues.ts`) = 100 (one Garage buy-in).
+- `STARTING_ROLL` (in `config/venues.ts`) = 200 (two Garage buy-ins — one bad run doesn’t force the freeroll).
 - **Backup**: Settings offers export/restore of the whole profile as
   `pip-profile.json` (`src/lib/backup.ts`) — validated, never partially applied,
   restores run through the same `migrate` path.

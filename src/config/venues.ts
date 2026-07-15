@@ -151,7 +151,9 @@ export const VENUES: readonly Venue[] = [
   },
 ] as const
 
-export const STARTING_ROLL = 100
+// Two Garage buy-ins: losing your first tournament stings but doesn't send a
+// brand-new player straight to the freeroll.
+export const STARTING_ROLL = 200
 
 // The broke-player safety net: a free sit-and-go that opens only when you can't
 // afford the Garage. No buy-in, everyone gets a nominal stack, and the winner
