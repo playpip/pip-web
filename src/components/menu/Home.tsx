@@ -11,7 +11,7 @@ import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { VenueArt } from './VenueArt'
-import { VENUES, KITCHEN_TABLE, freerollOpen, type Venue } from '@/config/venues'
+import { VENUES, SIDE_TABLES, KITCHEN_TABLE, FORMAT_LABELS, freerollOpen, type Venue } from '@/config/venues'
 import { rankFor } from '@/config/ranks'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -20,6 +20,8 @@ import { cn } from '@/lib/utils'
 interface VenueVM {
   venue: Venue
   index: number
+  /** Ladder rung number; side tables have none. */
+  tier?: number
   playable: boolean
   onEnter: () => void
 }
@@ -28,25 +30,23 @@ export function Home() {
   const router = useRouter()
   const { name, avatar, roll, peakRoll, reset } = useProfile()
   const money = useMoney()
-  const scroller = useRef<HTMLDivElement>(null)
   const [editOpen, setEditOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const rank = rankFor(peakRoll)
   const broke = freerollOpen(roll)
 
-  const scrollBy = (dir: number) =>
-    scroller.current?.scrollBy({ left: dir * 320, behavior: 'smooth' })
-
-  const models: VenueVM[] = VENUES.map((venue, index) => ({
-    venue,
-    index,
-    playable: roll >= venue.buyIn,
-    onEnter: () => {
-      sound.play('call')
-      router.push(`/play/${venue.id}`)
-    },
-  }))
+  const modelsFor = (venues: readonly Venue[], tiered: boolean): VenueVM[] =>
+    venues.map((venue, index) => ({
+      venue,
+      index,
+      tier: tiered ? index + 1 : undefined,
+      playable: roll >= venue.buyIn,
+      onEnter: () => {
+        sound.play('call')
+        router.push(`/play/${venue.id}`)
+      },
+    }))
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-6 py-8 md:px-10">
@@ -119,43 +119,77 @@ export function Home() {
         )}
       </motion.div>
 
-      {/* venues — take the remaining space */}
-      <div className="flex flex-1 flex-col justify-center pb-2">
-        <div className="mb-3 flex items-center justify-between px-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Venues</p>
-          <div className="flex items-center gap-3">
-            <p className="hidden text-xs text-muted-foreground sm:block">
-              Broke? Win your way back at the Kitchen Table.
-            </p>
-            {/* desktop slider arrows */}
-            <div className="hidden gap-1.5 md:flex">
-              <ArrowButton dir="left" onClick={() => scrollBy(-1)} />
-              <ArrowButton dir="right" onClick={() => scrollBy(1)} />
-            </div>
-          </div>
-        </div>
-
-        {/* desktop: horizontal slider */}
-        <div
-          ref={scroller}
-          className="hidden gap-4 overflow-x-auto scroll-smooth pb-2 md:flex [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {models.map((m) => (
-            <VenueTile key={m.venue.id} model={m} />
-          ))}
-        </div>
-
-        {/* mobile: vertical list */}
-        <div className="flex flex-col gap-2.5 md:hidden">
-          {models.map((m) => (
-            <VenueRow key={m.venue.id} model={m} />
-          ))}
-        </div>
+      {/* the shelves */}
+      <div className="flex flex-1 flex-col justify-center gap-8 pb-2">
+        <VenueShelf
+          title="The Ladder"
+          hint="Broke? Win your way back at the Kitchen Table."
+          models={modelsFor(VENUES, true)}
+        />
+        <VenueShelf
+          title="Side Tables"
+          hint="Same game, different pressure."
+          models={modelsFor(SIDE_TABLES, false)}
+          delay={0.1}
+        />
       </div>
 
       <ProfileDialog open={editOpen} onOpenChange={setEditOpen} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
+  )
+}
+
+/** A titled, horizontally-snapping row of venues (vertical list on mobile). */
+function VenueShelf({
+  title,
+  hint,
+  models,
+  delay = 0,
+}: {
+  title: string
+  hint?: string
+  models: VenueVM[]
+  delay?: number
+}) {
+  const scroller = useRef<HTMLDivElement>(null)
+  const scrollBy = (dir: number) =>
+    scroller.current?.scrollBy({ left: dir * 320, behavior: 'smooth' })
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.4, ease: 'easeOut' }}
+    >
+      <div className="mb-3 flex items-center justify-between px-1">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{title}</p>
+        <div className="flex items-center gap-3">
+          {hint && <p className="hidden text-xs text-muted-foreground sm:block">{hint}</p>}
+          <div className="hidden gap-1.5 md:flex">
+            <ArrowButton dir="left" onClick={() => scrollBy(-1)} />
+            <ArrowButton dir="right" onClick={() => scrollBy(1)} />
+          </div>
+        </div>
+      </div>
+
+      {/* desktop: horizontal slider */}
+      <div
+        ref={scroller}
+        className="hidden gap-4 overflow-x-auto scroll-smooth pb-2 md:flex [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {models.map((m) => (
+          <VenueTile key={m.venue.id} model={m} />
+        ))}
+      </div>
+
+      {/* mobile: vertical list */}
+      <div className="flex flex-col gap-2.5 md:hidden">
+        {models.map((m) => (
+          <VenueRow key={m.venue.id} model={m} />
+        ))}
+      </div>
+    </motion.section>
   )
 }
 
@@ -172,13 +206,25 @@ function ArrowButton({ dir, onClick }: { dir: 'left' | 'right'; onClick: () => v
   )
 }
 
-function TierChip({ venue, index }: { venue: Venue; index: number }) {
+/** Corner badge: the ladder rung number, or the format tag on side tables. */
+function CornerTag({ venue, tier }: { venue: Venue; tier?: number }) {
+  if (tier !== undefined) {
+    return (
+      <span
+        className="flex size-7 items-center justify-center rounded-md bg-black/45 text-xs font-semibold backdrop-blur-sm"
+        style={{ color: venue.accent }}
+      >
+        {tier}
+      </span>
+    )
+  }
+  if (!venue.format) return null
   return (
     <span
-      className="flex size-7 items-center justify-center rounded-md bg-black/45 text-xs font-semibold backdrop-blur-sm"
+      className="rounded-md bg-black/45 px-2 py-1 text-[11px] font-semibold backdrop-blur-sm"
       style={{ color: venue.accent }}
     >
-      {index + 1}
+      {FORMAT_LABELS[venue.format]}
     </span>
   )
 }
@@ -212,7 +258,7 @@ function Stakes({ venue }: { venue: Venue }) {
 
 /** Desktop slider card — vertical tile, fixed width, snap target. */
 function VenueTile({ model }: { model: VenueVM }) {
-  const { venue, index, playable, onEnter } = model
+  const { venue, index, tier, playable, onEnter } = model
   return (
     <motion.button
       initial={{ opacity: 0, y: 10 }}
@@ -228,7 +274,7 @@ function VenueTile({ model }: { model: VenueVM }) {
       <div className="relative aspect-square overflow-hidden rounded-xl">
         <VenueArt id={venue.id} accent={venue.accent} className="size-full" />
         <div className="absolute left-2 top-2">
-          <TierChip venue={venue} index={index} />
+          <CornerTag venue={venue} tier={tier} />
         </div>
         {!playable && (
           <div className="absolute right-2 top-2 rounded-md bg-black/45 px-1.5 py-0.5 backdrop-blur-sm">
@@ -267,7 +313,17 @@ function VenueRow({ model }: { model: VenueVM }) {
     >
       <ArtThumb venue={venue} className="size-14" />
       <div className="min-w-0 flex-1">
-        <span className="font-medium">{venue.name}</span>
+        <span className="flex items-center gap-1.5 font-medium">
+          <span className="truncate">{venue.name}</span>
+          {venue.format && (
+            <span
+              className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{ color: venue.accent }}
+            >
+              {FORMAT_LABELS[venue.format]}
+            </span>
+          )}
+        </span>
         <p className="truncate text-sm text-muted-foreground">{venue.tagline}</p>
       </div>
       <div className="shrink-0 text-right">{playable ? <Stakes venue={venue} /> : <LockTag venue={venue} />}</div>

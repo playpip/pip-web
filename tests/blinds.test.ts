@@ -43,3 +43,11 @@ test('blinds stay integers for every venue-style base', (t) => {
     }
   }
 })
+
+test('per-venue handsPerLevel overrides the escalation pace', (t) => {
+  t.is(blindLevel(3, 3), 1) // turbo: level up every 3 hands
+  t.is(blindLevel(8, 3), 2)
+  t.is(blindLevel(8, 9), 0) // deep: still level 0 on hand 9's eve
+  const turbo = blindsAt({ smallBlind: 5, bigBlind: 10, handsPerLevel: 3 }, 3)
+  t.deepEqual(turbo, { smallBlind: 5 * LEVEL_MULTIPLIERS[1], bigBlind: 10 * LEVEL_MULTIPLIERS[1], level: 1 })
+})

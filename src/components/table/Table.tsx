@@ -47,7 +47,7 @@ type Point = { left: string; top: string }
 
 export function Table() {
   const router = useRouter()
-  const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, newAwards, nextHand, leave } = useGame()
+  const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, newAwards, lastBounty, nextHand, leave } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
   const adjustRoll = useProfile((s) => s.adjustRoll)
@@ -330,6 +330,9 @@ export function Table() {
         {status === 'handover' && message && (
           <Banner key="ho">
             <span>{message}</span>
+            {lastBounty > 0 && (
+              <span className="text-xs font-medium opacity-95">Bounty +{money(lastBounty)}</span>
+            )}
             {newAwards.map((a) => (
               <span key={a.id} className="flex items-center gap-1.5 text-xs font-medium opacity-95">
                 <AwardChip award={a} earned size={18} />
@@ -368,7 +371,7 @@ export function Table() {
           <EndOverlay
             key="won"
             title="Champion"
-            subtitle={`You took it down — +${money(venue.prize)} to your Roll`}
+            subtitle={`You took it down — +${money(venue.prize + lastBounty)} to your Roll`}
             detail={
               newAwards.length > 0 && (
                 <div className="mt-4 flex flex-col items-center gap-2">

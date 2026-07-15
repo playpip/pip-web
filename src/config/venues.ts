@@ -5,6 +5,16 @@
 
 import type { AiProfile } from '@/lib/poker/ai/policy'
 
+/** Format tag shown on the venue card (side tables). */
+export type VenueFormat = 'turbo' | 'deep' | 'duel' | 'bounty'
+
+export const FORMAT_LABELS: Record<VenueFormat, string> = {
+  turbo: 'Turbo',
+  deep: 'Deep',
+  duel: 'Heads-up',
+  bounty: 'Bounty',
+}
+
 export interface Venue {
   id: string
   name: string
@@ -20,12 +30,18 @@ export interface Venue {
   ai: AiProfile
   /** Accent used on the menu card. */
   accent: string
+  /** Format tag (side tables) — purely display; mechanics come from the overrides below. */
+  format?: VenueFormat
   /** Free to enter (the broke-player safety net); stacks come from `startingStack`. */
   freeroll?: boolean
-  /** Table stack when it isn't bought (freerolls). Defaults to `buyIn`. */
+  /** Table stack when it differs from the buy-in (freerolls, deep-stack tables). */
   startingStack?: number
   /** Set false to keep blinds flat all game (see config/blinds). Defaults to true. */
   escalation?: boolean
+  /** Blinds rise every N hands (defaults to HANDS_PER_LEVEL in config/blinds). */
+  handsPerLevel?: number
+  /** Chips paid instantly for each opponent the player busts. */
+  bounty?: number
 }
 
 export const VENUES: readonly Venue[] = [
@@ -151,6 +167,68 @@ export const VENUES: readonly Venue[] = [
   },
 ] as const
 
+// Side tables — format twists off the main ladder, at low-to-mid stakes so they
+// never gate progression. Same engine, different pressure: pacing, stack depth,
+// seat count and knockout bounties are all just venue config.
+export const SIDE_TABLES: readonly Venue[] = [
+  {
+    id: 'redeye',
+    name: 'The Red-Eye',
+    tagline: 'Turbo. Blinds up every three hands.',
+    buyIn: 500,
+    smallBlind: 5,
+    bigBlind: 10,
+    seats: 5,
+    prize: 2_500,
+    format: 'turbo',
+    handsPerLevel: 3,
+    accent: '#E06D8C',
+    ai: { tightness: 0.25, aggression: 0.45, bluff: 0.07, iterations: 450, skill: 0.55 },
+  },
+  {
+    id: 'study',
+    name: 'The Study',
+    tagline: 'Deep stacks, slow blinds. Patience poker.',
+    buyIn: 1_000,
+    startingStack: 2_000,
+    smallBlind: 5,
+    bigBlind: 10,
+    seats: 5,
+    prize: 5_000,
+    format: 'deep',
+    handsPerLevel: 9,
+    accent: '#6E8B9E',
+    ai: { tightness: 0.4, aggression: 0.35, bluff: 0.08, iterations: 550, skill: 0.65 },
+  },
+  {
+    id: 'duel',
+    name: 'The Duel',
+    tagline: 'Heads-up. Just you and them.',
+    buyIn: 750,
+    smallBlind: 5,
+    bigBlind: 10,
+    seats: 2,
+    prize: 1_500,
+    format: 'duel',
+    accent: '#9A7FD1',
+    ai: { tightness: 0.35, aggression: 0.5, bluff: 0.1, iterations: 550, skill: 0.65 },
+  },
+  {
+    id: 'docks',
+    name: 'The Docks',
+    tagline: 'Bounty table. Knockouts pay on the spot.',
+    buyIn: 2_000,
+    smallBlind: 15,
+    bigBlind: 30,
+    seats: 6,
+    prize: 9_500,
+    format: 'bounty',
+    bounty: 500,
+    accent: '#C9873D',
+    ai: { tightness: 0.35, aggression: 0.5, bluff: 0.1, iterations: 700, skill: 0.68 },
+  },
+] as const
+
 // Two Garage buy-ins: losing your first tournament stings but doesn't send a
 // brand-new player straight to the freeroll.
 export const STARTING_ROLL = 200
@@ -187,7 +265,7 @@ export function freerollOpen(roll: number): boolean {
 }
 
 export function venueById(id: string): Venue | undefined {
-  return [...VENUES, KITCHEN_TABLE].find((v) => v.id === id)
+  return [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE].find((v) => v.id === id)
 }
 
 /** Venues the player can currently buy into, given their Roll. */

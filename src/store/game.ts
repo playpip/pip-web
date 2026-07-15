@@ -104,6 +104,8 @@ interface GameState {
   lastHand: HandRecord | null
   /** Award chips earned on the just-finished hand (for the quiet earn line). */
   newAwards: AwardDef[]
+  /** Bounty chips collected on the just-finished hand (bounty tables). */
+  lastBounty: number
 
   sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec }) => void
   /** Rebuild an interrupted table from its snapshot (no buy-in taken). */
@@ -229,6 +231,7 @@ export const useGame = create<GameState>((set, get) => {
       hand,
       status: 'playing',
       newAwards: [],
+      lastBounty: 0,
       buttonSeatId: configs[buttonIndex].id,
       smallBlind: blinds.smallBlind,
       bigBlind: blinds.bigBlind,
@@ -310,13 +313,17 @@ export const useGame = create<GameState>((set, get) => {
     const humanAlive = (stackById.get(HUMAN_ID) ?? 0) > 0
     const tournamentWon = humanAlive && survivors.length === 1
 
-    // The Bouncer: an opponent busted this hand and every pot went to the hero.
-    const opponentBusted = seats.some(
+    // Knockouts: opponents busted this hand with every pot going to the hero.
+    const eliminatedCount = seats.filter(
       (s) => s.id !== HUMAN_ID && s.stack > 0 && (stackById.get(s.id) ?? 0) === 0,
-    )
+    ).length
     const heroTookAll =
       !!result && Object.entries(result.payouts).every(([id, amt]) => id === HUMAN_ID || amt === 0)
-    const knockedOut = heroWon && opponentBusted && heroTookAll
+    const knockedOut = heroWon && eliminatedCount > 0 && heroTookAll
+
+    // Bounty tables pay per knockout, on the spot.
+    const bountyWon = knockedOut && venue.bounty ? eliminatedCount * venue.bounty : 0
+    if (bountyWon > 0) profile.adjustRoll(bountyWon)
 
     // Tournament outcomes.
     if (!humanAlive) {
@@ -339,7 +346,7 @@ export const useGame = create<GameState>((set, get) => {
       profile.recordRollPoint()
       if (venue.freeroll) profile.setCameFromFreeroll(true)
       const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut)
-      set({ seats: nextSeats, hand, status: 'won', place: 1, aiThinkingId: null, message: null, newAwards })
+      set({ seats: nextSeats, hand, status: 'won', place: 1, aiThinkingId: null, message: null, newAwards, lastBounty: bountyWon })
       return
     }
 
@@ -361,6 +368,7 @@ export const useGame = create<GameState>((set, get) => {
       aiThinkingId: null,
       message: describeResult(hand),
       newAwards,
+      lastBounty: bountyWon,
     })
   }
 
@@ -419,6 +427,7 @@ export const useGame = create<GameState>((set, get) => {
     handIndex: 0,
     lastHand: null,
     newAwards: [],
+    lastBounty: 0,
 
     sitDown: (venue, human) => {
       clearTimers()
@@ -466,6 +475,7 @@ export const useGame = create<GameState>((set, get) => {
         handIndex: 0,
         lastHand: null,
         newAwards: [],
+        lastBounty: 0,
       })
       dealHand(seats[0].id)
     },
@@ -487,6 +497,7 @@ export const useGame = create<GameState>((set, get) => {
         handIndex: snapshot.handIndex,
         lastHand: null,
         newAwards: [],
+        lastBounty: 0,
       })
       dealHand(snapshot.buttonSeatId)
     },
@@ -524,6 +535,7 @@ export const useGame = create<GameState>((set, get) => {
         handIndex: 0,
         lastHand: null,
         newAwards: [],
+        lastBounty: 0,
       })
     },
   }

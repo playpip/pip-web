@@ -22,7 +22,25 @@ The venue ladder is the progression spine of Pip: 10 **sit-and-go tournaments** 
 The **buy-in is your starting stack** (everyone sits equal); it's deducted from your Roll
 and a venue is playable when `roll >= buyIn`. Prizes are winner-take-all (≈ buy-in × seats).
 
-Off the ladder sits **The Kitchen Table** (`kitchen`) — a **freeroll** that opens only
+## Side tables (formats)
+
+Off the ladder, **`SIDE_TABLES`** offers the same game under different pressure —
+all pure venue config, no engine changes:
+
+| id | Name | Format | Buy-in | Twist |
+|----|------|--------|-------:|-------|
+| `redeye` | The Red-Eye | Turbo | 500 | `handsPerLevel: 3` — blinds up every 3 hands |
+| `study` | The Study | Deep | 1,000 | `startingStack: 2000` + `handsPerLevel: 9` |
+| `duel` | The Duel | Heads-up | 750 | `seats: 2`, winner-take-all |
+| `docks` | The Docks | Bounty | 2,000 | `bounty: 500` paid instantly per knockout |
+
+The `format` field is a display tag (`FORMAT_LABELS`); mechanics come from the
+overrides (`handsPerLevel`, `startingStack`, `seats`, `bounty`). Bounties are paid
+the moment you take every chip in a hand that busts an opponent (the same seam as
+The Bouncer chip) and show on the handover banner. Side-table prizes are budgeted
+like the ladder (≈ buy-in × seats, minus the bounty pool on bounty tables).
+
+Off the ladder also sits **The Kitchen Table** (`kitchen`) — a **freeroll** that opens only
 while you can't afford the Garage (`freerollOpen(roll)`): no buy-in, **heads-up** vs the
 softest AI, a nominal 100 stack (`startingStack`), **no blind escalation**
 (`escalation: false`), and a 150 prize so the winner buys back into the ladder. It's
