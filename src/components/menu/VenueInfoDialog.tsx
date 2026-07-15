@@ -107,7 +107,9 @@ export function VenueInfoDialog({
           {/* difficulty */}
           <section>
             <div className="mb-1.5 flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">The players</p>
+              <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                The players
+              </p>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium">{difficulty.label}</span>
                 <span className="flex gap-1">
@@ -129,20 +131,21 @@ export function VenueInfoDialog({
           {/* format */}
           {note && (
             <section>
-              <p className="mb-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">The format</p>
+              <p className="mb-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                The format
+              </p>
               <p className="text-sm leading-relaxed text-muted-foreground">{note}</p>
             </section>
           )}
 
           {/* structure */}
           <section>
-            <p className="mb-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">The table</p>
+            <p className="mb-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+              The table
+            </p>
             <div className="flex flex-col">
               <InfoRow label="Buy-in" value={venue.freeroll ? 'Free' : money(venue.buyIn)} />
-              <InfoRow
-                label="Starting stack"
-                value={money(venue.startingStack ?? venue.buyIn)}
-              />
+              <InfoRow label="Starting stack" value={money(venue.startingStack ?? venue.buyIn)} />
               <InfoRow label="Seats" value={`${venue.seats} players`} />
               <InfoRow
                 label="Blinds"

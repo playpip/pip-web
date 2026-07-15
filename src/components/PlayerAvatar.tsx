@@ -18,7 +18,6 @@ export function PlayerAvatar({
   const src = useMemo(() => avatarDataUri(spec, size), [spec, size])
   return (
     // Data-URI SVG avatar — next/image adds no value for inline SVG.
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       width={size}

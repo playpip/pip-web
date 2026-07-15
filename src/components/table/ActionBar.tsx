@@ -2,12 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { legalActions, potSize, type HandState } from '@/lib/poker/engine'
 import { useGame } from '@/store/game'
 import { sound } from '@/lib/sound'
@@ -39,7 +34,9 @@ export function ActionBar({ hand }: { hand: HandState }) {
   }
   const preset = (fraction: number) => {
     sound.play('tap')
-    setRaiseTo(clamp(hand.currentBet + Math.round(pot * fraction), legal.minRaiseTo, legal.maxRaiseTo))
+    setRaiseTo(
+      clamp(hand.currentBet + Math.round(pot * fraction), legal.minRaiseTo, legal.maxRaiseTo),
+    )
   }
   const confirmRaise = () => {
     act({ type: legal.canBet ? 'bet' : 'raise', amount: raiseTo })
@@ -59,9 +56,7 @@ export function ActionBar({ hand }: { hand: HandState }) {
         {legal.canCheck ? (
           <Pill onClick={() => act({ type: 'check' })}>Check</Pill>
         ) : (
-          <Pill onClick={() => act({ type: 'call' })}>
-            Call {money(legal.callAmount)}
-          </Pill>
+          <Pill onClick={() => act({ type: 'call' })}>Call {money(legal.callAmount)}</Pill>
         )}
         {(legal.canBet || legal.canRaise) && (
           <Pill onClick={openSizer} tone="primary">

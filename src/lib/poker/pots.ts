@@ -24,9 +24,7 @@ export interface Pot<T> {
  */
 export function buildPots<T>(contributions: readonly Contribution<T>[]): Pot<T>[] {
   // Working copy of remaining chips to allocate per player.
-  const remaining = contributions
-    .filter((c) => c.committed > 0)
-    .map((c) => ({ ...c }))
+  const remaining = contributions.filter((c) => c.committed > 0).map((c) => ({ ...c }))
 
   const pots: Pot<T>[] = []
 

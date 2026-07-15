@@ -51,7 +51,8 @@ export function deriveReads(stats: SeatStats | undefined): Read[] | null {
   // How many hands do they play?
   const vpip = stats.vpipHands / stats.handsDealt
   reads.push({
-    label: vpip > 0.55 ? 'Plays most hands' : vpip >= 0.3 ? 'Picks their spots' : 'Waits for real hands',
+    label:
+      vpip > 0.55 ? 'Plays most hands' : vpip >= 0.3 ? 'Picks their spots' : 'Waits for real hands',
     strength: vpip,
   })
 

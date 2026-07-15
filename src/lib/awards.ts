@@ -38,27 +38,104 @@ const venueChips: AwardDef[] = VENUES.map((v, i) => ({
 
 /** Hand chips — first time the hand *wins a showdown* (a real moment, not a folded-out technicality). */
 const handChips: AwardDef[] = [
-  { id: 'hand-straight', kind: 'hand', name: 'Straight', how: 'Win a showdown with a straight', color: SUIT_RED, glyph: 'ST' },
-  { id: 'hand-flush', kind: 'hand', name: 'Flush', how: 'Win a showdown with a flush', color: SUIT_RED, glyph: 'FL' },
-  { id: 'hand-fullhouse', kind: 'hand', name: 'Full House', how: 'Win a showdown with a full house', color: SUIT_RED, glyph: 'FH' },
-  { id: 'hand-quads', kind: 'hand', name: 'Quads', how: 'Win a showdown with four of a kind', color: SUIT_RED, glyph: '4K' },
-  { id: 'hand-straightflush', kind: 'hand', name: 'Straight Flush', how: 'Win a showdown with a straight flush', color: SUIT_RED, glyph: 'SF' },
-  { id: 'hand-royal', kind: 'hand', name: 'The Royal', how: 'Win a showdown with a royal flush', color: GOLD, glyph: 'RF' },
-  { id: 'hand-wheel', kind: 'hand', name: 'The Wheel', how: 'Win a showdown with the A-2-3-4-5 straight', color: SUIT_RED, glyph: 'A5' },
+  {
+    id: 'hand-straight',
+    kind: 'hand',
+    name: 'Straight',
+    how: 'Win a showdown with a straight',
+    color: SUIT_RED,
+    glyph: 'ST',
+  },
+  {
+    id: 'hand-flush',
+    kind: 'hand',
+    name: 'Flush',
+    how: 'Win a showdown with a flush',
+    color: SUIT_RED,
+    glyph: 'FL',
+  },
+  {
+    id: 'hand-fullhouse',
+    kind: 'hand',
+    name: 'Full House',
+    how: 'Win a showdown with a full house',
+    color: SUIT_RED,
+    glyph: 'FH',
+  },
+  {
+    id: 'hand-quads',
+    kind: 'hand',
+    name: 'Quads',
+    how: 'Win a showdown with four of a kind',
+    color: SUIT_RED,
+    glyph: '4K',
+  },
+  {
+    id: 'hand-straightflush',
+    kind: 'hand',
+    name: 'Straight Flush',
+    how: 'Win a showdown with a straight flush',
+    color: SUIT_RED,
+    glyph: 'SF',
+  },
+  {
+    id: 'hand-royal',
+    kind: 'hand',
+    name: 'The Royal',
+    how: 'Win a showdown with a royal flush',
+    color: GOLD,
+    glyph: 'RF',
+  },
+  {
+    id: 'hand-wheel',
+    kind: 'hand',
+    name: 'The Wheel',
+    how: 'Win a showdown with the A-2-3-4-5 straight',
+    color: SUIT_RED,
+    glyph: 'A5',
+  },
 ]
 
 /** Moment chips — plays that make a story. */
 const momentChips: AwardDef[] = [
-  { id: 'moment-sevendeuce', kind: 'moment', name: 'The Seven Deuce', how: 'Win a pot holding 7-2', color: AMBER, glyph: '72' },
-  { id: 'moment-knockout', kind: 'moment', name: 'The Bouncer', how: 'Take every chip in a hand that busts an opponent', color: AMBER, glyph: 'KO' },
-  { id: 'moment-comeback', kind: 'moment', name: 'The Comeback', how: 'Win a venue after falling to a tenth of your starting stack', color: AMBER, glyph: '10%' },
+  {
+    id: 'moment-sevendeuce',
+    kind: 'moment',
+    name: 'The Seven Deuce',
+    how: 'Win a pot holding 7-2',
+    color: AMBER,
+    glyph: '72',
+  },
+  {
+    id: 'moment-knockout',
+    kind: 'moment',
+    name: 'The Bouncer',
+    how: 'Take every chip in a hand that busts an opponent',
+    color: AMBER,
+    glyph: 'KO',
+  },
+  {
+    id: 'moment-comeback',
+    kind: 'moment',
+    name: 'The Comeback',
+    how: 'Win a venue after falling to a tenth of your starting stack',
+    color: AMBER,
+    glyph: '10%',
+  },
 ]
 
 const rankMin = (name: string) => RANKS.find((r) => r.name === name)!.min
 
 /** Journey chips — the story of the grind. */
 const journeyChips: AwardDef[] = [
-  { id: 'journey-first', kind: 'journey', name: 'First Pot', how: 'Win your first pot', color: PIP, glyph: '★' },
+  {
+    id: 'journey-first',
+    kind: 'journey',
+    name: 'First Pot',
+    how: 'Win your first pot',
+    color: PIP,
+    glyph: '★',
+  },
   {
     id: 'journey-kitchen',
     kind: 'journey',
@@ -67,13 +144,46 @@ const journeyChips: AwardDef[] = [
     color: PIP,
     glyph: '↺',
   },
-  { id: 'journey-regular', kind: 'journey', name: 'Regular', how: 'Reach the Regular rank', color: PIP, glyph: '1K' },
-  { id: 'journey-shark', kind: 'journey', name: 'Shark', how: 'Reach the Shark rank', color: PIP, glyph: '10K' },
-  { id: 'journey-pro', kind: 'journey', name: 'Pro', how: 'Reach the Pro rank', color: PIP, glyph: '.1M' },
-  { id: 'journey-legend', kind: 'journey', name: 'Legend', how: 'Reach the Legend rank', color: PIP, glyph: '1M' },
+  {
+    id: 'journey-regular',
+    kind: 'journey',
+    name: 'Regular',
+    how: 'Reach the Regular rank',
+    color: PIP,
+    glyph: '1K',
+  },
+  {
+    id: 'journey-shark',
+    kind: 'journey',
+    name: 'Shark',
+    how: 'Reach the Shark rank',
+    color: PIP,
+    glyph: '10K',
+  },
+  {
+    id: 'journey-pro',
+    kind: 'journey',
+    name: 'Pro',
+    how: 'Reach the Pro rank',
+    color: PIP,
+    glyph: '.1M',
+  },
+  {
+    id: 'journey-legend',
+    kind: 'journey',
+    name: 'Legend',
+    how: 'Reach the Legend rank',
+    color: PIP,
+    glyph: '1M',
+  },
 ]
 
-export const AWARDS: readonly AwardDef[] = [...venueChips, ...handChips, ...momentChips, ...journeyChips]
+export const AWARDS: readonly AwardDef[] = [
+  ...venueChips,
+  ...handChips,
+  ...momentChips,
+  ...journeyChips,
+]
 
 const byId = new Map(AWARDS.map((a) => [a.id, a]))
 export const awardById = (id: string): AwardDef | undefined => byId.get(id)
@@ -104,7 +214,9 @@ export interface AwardContext {
 }
 
 const isSevenDeuce = (hole?: readonly Card[]): boolean =>
-  hole?.length === 2 && new Set(hole.map((c) => c.rank)).size === 2 && hole.every((c) => c.rank === '7' || c.rank === '2')
+  hole?.length === 2 &&
+  new Set(hole.map((c) => c.rank)).size === 2 &&
+  hole.every((c) => c.rank === '7' || c.rank === '2')
 
 /** Newly earned chips for a finished hand — never re-grants anything in `owned`. */
 export function detectAwards(ctx: AwardContext, owned: Record<string, number>): AwardDef[] {
@@ -131,7 +243,11 @@ export function detectAwards(ctx: AwardContext, owned: Record<string, number>): 
   // Moment chips.
   if (ctx.heroWon && isSevenDeuce(ctx.heroHole)) add('moment-sevendeuce')
   if (ctx.knockedOut) add('moment-knockout')
-  if (ctx.tournamentWon && ctx.venue.freeroll !== true && ctx.lowestStack <= ctx.startingStack / 10) {
+  if (
+    ctx.tournamentWon &&
+    ctx.venue.freeroll !== true &&
+    ctx.lowestStack <= ctx.startingStack / 10
+  ) {
     add('moment-comeback')
   }
 

@@ -2,9 +2,30 @@
 // Offsuit screenshots.
 
 export const AI_NAMES = [
-  'Sarah', 'Eli', 'Simon', 'Akash', 'Anna', 'Mia', 'Leo', 'Nadia',
-  'Kai', 'Priya', 'Marco', 'Zoe', 'Omar', 'Ivy', 'Dario', 'Nina',
-  'Theo', 'Lena', 'Ravi', 'Cleo', 'Hugo', 'Yara', 'Finn', 'Rosa',
+  'Sarah',
+  'Eli',
+  'Simon',
+  'Akash',
+  'Anna',
+  'Mia',
+  'Leo',
+  'Nadia',
+  'Kai',
+  'Priya',
+  'Marco',
+  'Zoe',
+  'Omar',
+  'Ivy',
+  'Dario',
+  'Nina',
+  'Theo',
+  'Lena',
+  'Ravi',
+  'Cleo',
+  'Hugo',
+  'Yara',
+  'Finn',
+  'Rosa',
 ] as const
 
 /** Pick `count` distinct names, shuffled. */

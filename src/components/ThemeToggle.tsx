@@ -24,7 +24,13 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {/* Render a stable icon until hydrated to avoid a mismatch. */}
-      {!hydrated ? <Sun className="size-4" /> : isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+      {!hydrated ? (
+        <Sun className="size-4" />
+      ) : isDark ? (
+        <Sun className="size-4" />
+      ) : (
+        <Moon className="size-4" />
+      )}
     </button>
   )
 }

@@ -71,13 +71,21 @@ export function accentFromSwatch(swatch: string): string {
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
   const m = L - c / 2
   const [rr, gg, bb] =
-    h < 60 ? [c, x, 0]
-    : h < 120 ? [x, c, 0]
-    : h < 180 ? [0, c, x]
-    : h < 240 ? [0, x, c]
-    : h < 300 ? [x, 0, c]
-    : [c, 0, x]
-  const to = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0')
+    h < 60
+      ? [c, x, 0]
+      : h < 120
+        ? [x, c, 0]
+        : h < 180
+          ? [0, c, x]
+          : h < 240
+            ? [0, x, c]
+            : h < 300
+              ? [x, 0, c]
+              : [c, 0, x]
+  const to = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0')
   return `#${to(rr)}${to(gg)}${to(bb)}`
 }
 
@@ -95,7 +103,6 @@ let counter = 0
 export function randomAvatar(entropy: string | number = ''): AvatarSpec {
   counter += 1
   const seed = `pip-${entropy}-${counter}-${Math.floor(Math.random() * 1e9)}`
-  const backgroundColor =
-    AVATAR_BG_SWATCHES[Math.floor(Math.random() * AVATAR_BG_SWATCHES.length)]
+  const backgroundColor = AVATAR_BG_SWATCHES[Math.floor(Math.random() * AVATAR_BG_SWATCHES.length)]
   return { seed, backgroundColor }
 }

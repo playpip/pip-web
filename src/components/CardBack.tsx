@@ -57,7 +57,10 @@ function PatternOverlay({ pattern, dark }: { pattern: CardPattern; dark: boolean
   const [tw, th] = TILE[pattern]
   return (
     <svg
-      className={cn('absolute inset-0 h-full w-full', dark ? 'text-black/[0.22]' : 'text-white/[0.16]')}
+      className={cn(
+        'absolute inset-0 h-full w-full',
+        dark ? 'text-black/[0.22]' : 'text-white/[0.16]',
+      )}
       aria-hidden
     >
       <defs>

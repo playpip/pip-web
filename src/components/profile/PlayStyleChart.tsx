@@ -93,7 +93,12 @@ export function PlayStyleChart({
           />
           <motion.div
             className="absolute size-4 rounded-full"
-            style={{ left: `${x * 100}%`, top: `${y * 100}%`, backgroundColor: accent, boxShadow: `0 0 0 4px ${tint(25)}` }}
+            style={{
+              left: `${x * 100}%`,
+              top: `${y * 100}%`,
+              backgroundColor: accent,
+              boxShadow: `0 0 0 4px ${tint(25)}`,
+            }}
             initial={reduced ? false : { scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 22, delay: reduced ? 0 : 0.15 }}

@@ -40,12 +40,30 @@ const SCENES: Record<string, Scene> = {
     <>
       <rect x="22" y="40" width="76" height="40" rx="8" fill={c} fillOpacity={0.75} />
       <rect x="30" y="47" width="60" height="26" rx="4" fill="#0a0a0b" fillOpacity={0.35} />
-      {([[30, 47], [90, 47], [30, 73], [90, 73], [60, 45], [60, 75]] as const).map(([x, y], i) => (
+      {(
+        [
+          [30, 47],
+          [90, 47],
+          [30, 73],
+          [90, 73],
+          [60, 45],
+          [60, 75],
+        ] as const
+      ).map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r="3.5" fill="#0a0a0b" fillOpacity={0.55} />
       ))}
       <circle cx="50" cy="60" r="4.5" fill="#fafafa" fillOpacity={0.95} />
       <circle cx="66" cy="62" r="4.5" fill={c} />
-      <line x1="18" y1="34" x2="82" y2="66" stroke="#fafafa" strokeOpacity={0.5} strokeWidth="2.5" strokeLinecap="round" />
+      <line
+        x1="18"
+        y1="34"
+        x2="82"
+        y2="66"
+        stroke="#fafafa"
+        strokeOpacity={0.5}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
     </>
   ),
 
@@ -68,14 +86,38 @@ const SCENES: Record<string, Scene> = {
     <>
       {(
         [
-          [30, 40, [[13, 13], [37, 37], [25, 25]]],
-          [64, 44, [[13, 37], [37, 13], [13, 13], [37, 37]]],
+          [
+            30,
+            40,
+            [
+              [13, 13],
+              [37, 37],
+              [25, 25],
+            ],
+          ],
+          [
+            64,
+            44,
+            [
+              [13, 37],
+              [37, 13],
+              [13, 13],
+              [37, 37],
+            ],
+          ],
         ] as const
       ).map(([x, y, pips], i) => (
         <g key={i} transform={`rotate(${i ? 8 : -8} ${x + 25} ${y + 25})`}>
           <rect x={x} y={y} width="34" height="34" rx="7" fill={c} fillOpacity={0.9} />
           {pips.map(([px, py], j) => (
-            <circle key={j} cx={x + px * 0.68} cy={y + py * 0.68} r="3" fill="#0a0a0b" fillOpacity={0.55} />
+            <circle
+              key={j}
+              cx={x + px * 0.68}
+              cy={y + py * 0.68}
+              r="3"
+              fill="#0a0a0b"
+              fillOpacity={0.55}
+            />
           ))}
         </g>
       ))}
@@ -90,7 +132,13 @@ const SCENES: Record<string, Scene> = {
       <circle cx="84" cy="60" r="12" fill="none" stroke={c} strokeWidth="3" />
       <line x1="84" y1="48" x2="84" y2="72" stroke={c} strokeWidth="3" />
       <line x1="72" y1="60" x2="96" y2="60" stroke={c} strokeWidth="3" />
-      <path d="M16 82 q10 -6 20 0 t20 0 t20 0 t20 0" fill="none" stroke={c} strokeOpacity={0.4} strokeWidth="3" />
+      <path
+        d="M16 82 q10 -6 20 0 t20 0 t20 0 t20 0"
+        fill="none"
+        stroke={c}
+        strokeOpacity={0.4}
+        strokeWidth="3"
+      />
     </>
   ),
 
@@ -107,7 +155,15 @@ const SCENES: Record<string, Scene> = {
         <g key={i}>
           <rect x={x} y={y} width={w} height={h} rx="2" fill={c} fillOpacity={0.35 + i * 0.12} />
           {Array.from({ length: 6 }).map((_, k) => (
-            <rect key={k} x={x + 4 + (k % 2) * 8} y={y + 6 + Math.floor(k / 2) * 9} width="4" height="4" fill="#fafafa" fillOpacity={0.8} />
+            <rect
+              key={k}
+              x={x + 4 + (k % 2) * 8}
+              y={y + 6 + Math.floor(k / 2) * 9}
+              width="4"
+              height="4"
+              fill="#fafafa"
+              fillOpacity={0.8}
+            />
           ))}
         </g>
       ))}
@@ -130,7 +186,11 @@ const SCENES: Record<string, Scene> = {
   vegas: (c) => (
     <>
       <rect x="28" y="34" width="64" height="40" rx="6" fill={c} fillOpacity={0.85} />
-      <path d="M60 44 l4 9 10 1 -7 7 2 10 -9 -5 -9 5 2 -10 -7 -7 10 -1 z" fill="#fafafa" fillOpacity={0.95} />
+      <path
+        d="M60 44 l4 9 10 1 -7 7 2 10 -9 -5 -9 5 2 -10 -7 -7 10 -1 z"
+        fill="#fafafa"
+        fillOpacity={0.95}
+      />
       {Array.from({ length: 22 }).map((_, i) => {
         const pt = perimeter(28, 34, 64, 40, i, 22)
         return <circle key={i} cx={pt.x} cy={pt.y} r="1.8" fill="#fafafa" fillOpacity={0.8} />
@@ -146,7 +206,11 @@ const SCENES: Record<string, Scene> = {
       <path d="M76 32 h8 a8 8 0 0 1 -8 8 z" fill={c} fillOpacity={0.5} />
       <rect x="56" y="54" width="8" height="12" fill={c} fillOpacity={0.9} />
       <rect x="46" y="66" width="28" height="8" rx="2" fill={c} fillOpacity={0.9} />
-      <path d="M60 28 l2.5 5 5.5 .6 -4 4 1 5.4 -5 -2.8 -5 2.8 1 -5.4 -4 -4 5.5 -.6 z" fill="#fafafa" fillOpacity={0.95} />
+      <path
+        d="M60 28 l2.5 5 5.5 .6 -4 4 1 5.4 -5 -2.8 -5 2.8 1 -5.4 -4 -4 5.5 -.6 z"
+        fill="#fafafa"
+        fillOpacity={0.95}
+      />
     </>
   ),
 }
@@ -189,7 +253,12 @@ const VENUE_IMAGES: Record<string, string> = {
 function VenueScene({ id, accent, className }: { id: string; accent: string; className?: string }) {
   const scene = SCENES[id] ?? SCENES.garage
   return (
-    <svg viewBox="0 0 120 96" className={cn('block', className)} aria-hidden preserveAspectRatio="xMidYMid slice">
+    <svg
+      viewBox="0 0 120 96"
+      className={cn('block', className)}
+      aria-hidden
+      preserveAspectRatio="xMidYMid slice"
+    >
       <rect x="0" y="0" width="120" height="96" {...soft(accent, 0.14)} />
       {scene(accent)}
     </svg>
@@ -211,7 +280,6 @@ export function VenueArt({
       {/* SVG fallback sits underneath; the image (if any) covers it. */}
       <VenueScene id={id} accent={accent} className="absolute inset-0 size-full" />
       {image && (
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={image}
           alt=""

@@ -32,9 +32,9 @@ Hold'em web app). This mirrors [`CLAUDE.md`](./CLAUDE.md); full docs are in
 - **No real-money framing:** "chips", never `$`; no casino textures or pop-ups.
 - **Engine is pure & deterministic** (seeded `Rng`; no React/store imports).
 - **Persisted-schema changes** bump `PERSIST_VERSION` + add a migration.
-- Obey the **`set-state-in-effect`** lint rule (see docs/development.md).
+- Obey the **`set-state-in-effect`** rule — by convention (see docs/development.md).
 
 ## Definition of done
 
-`pnpm typecheck`, `pnpm lint`, and `pnpm test` all pass (plus `pnpm build` for
-structural changes). Verify UI by running `pnpm dev`. Commit/push only when asked.
+`pnpm test:all` passes — format, types, lint (biome), AVA, knip, audit — (plus
+`pnpm build` for structural changes). Verify UI by running `pnpm dev`. Commit/push only when asked.

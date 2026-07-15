@@ -34,7 +34,10 @@ test('AI-vs-AI hands always terminate and conserve chips', (t) => {
     const before = seats.reduce((sum, s) => sum + s.stack, 0)
     const final = playOut(seats, mulberry32(seed))
     t.true(isHandComplete(final))
-    t.is(final.players.reduce((sum, p) => sum + p.stack, 0), before)
+    t.is(
+      final.players.reduce((sum, p) => sum + p.stack, 0),
+      before,
+    )
   }
 })
 

@@ -84,11 +84,7 @@ export interface StartHandOptions {
 // --- seat iteration helpers ------------------------------------------------
 
 /** Next seat (from exclusive) whose status is any of `statuses`, or -1. */
-function nextSeatWith(
-  players: Player[],
-  from: number,
-  statuses: PlayerStatus[],
-): number {
+function nextSeatWith(players: Player[], from: number, statuses: PlayerStatus[]): number {
   for (let i = 1; i <= players.length; i++) {
     const idx = (from + i) % players.length
     if (statuses.includes(players[idx].status)) return idx
@@ -152,9 +148,7 @@ export function startHand(opts: StartHandOptions): HandState {
   const heads = dealt === 2
 
   // Blind positions. Heads-up: button is the small blind.
-  const sbIndex = heads
-    ? buttonIndex
-    : nextSeatWith(players, buttonIndex, ['active'])
+  const sbIndex = heads ? buttonIndex : nextSeatWith(players, buttonIndex, ['active'])
   const bbIndex = nextSeatWith(players, sbIndex, ['active'])
 
   commit(players[sbIndex], smallBlind)
@@ -163,9 +157,7 @@ export function startHand(opts: StartHandOptions): HandState {
 
   // First to act preflop: heads-up the SB/button acts first; otherwise the
   // seat left of the big blind (UTG).
-  state.toActIndex = heads
-    ? sbIndex
-    : nextSeatWith(players, bbIndex, ['active'])
+  state.toActIndex = heads ? sbIndex : nextSeatWith(players, bbIndex, ['active'])
 
   // Posting a blind can put a player all-in. If the designated first actor
   // can no longer act, pass the action on. And when no further betting is
@@ -284,9 +276,7 @@ export function applyAction(prev: HandState, action: Action): HandState {
 function bettingRoundComplete(state: HandState): boolean {
   const actors = state.players.filter(canAct)
   if (actors.length === 0) return true
-  return actors.every(
-    (p) => p.hasActed && p.committedThisStreet === state.currentBet,
-  )
+  return actors.every((p) => p.hasActed && p.committedThisStreet === state.currentBet)
 }
 
 function advance(state: HandState): HandState {
@@ -413,11 +403,7 @@ function resolveShowdown(state: HandState): HandState {
  * Split a pot among winners, handling odd chips. Remainder chips go to the
  * earliest winners in seat order starting left of the button (poker convention).
  */
-function splitChips(
-  amount: number,
-  winners: string[],
-  state: HandState,
-): Array<[number, string]> {
+function splitChips(amount: number, winners: string[], state: HandState): Array<[number, string]> {
   const base = Math.floor(amount / winners.length)
   let remainder = amount - base * winners.length
 

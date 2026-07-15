@@ -30,7 +30,11 @@ export function AvatarEditor({
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <motion.div key={spec.seed} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+      <motion.div
+        key={spec.seed}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+      >
         <PlayerAvatar spec={spec} size={avatarSize} />
       </motion.div>
 

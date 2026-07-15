@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   // Pin the Turbopack root to this project so the pnpm-workspace.yaml
@@ -6,6 +6,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: import.meta.dirname,
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

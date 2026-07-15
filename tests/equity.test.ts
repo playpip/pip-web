@@ -16,8 +16,18 @@ test('pocket aces crush a single random opponent preflop', (t) => {
 })
 
 test('equity falls as more opponents join', (t) => {
-  const one = estimateEquity({ hole: h('Ah', 'Ad'), opponents: 1, iterations: 2000, rng: mulberry32(1) })
-  const five = estimateEquity({ hole: h('Ah', 'Ad'), opponents: 5, iterations: 2000, rng: mulberry32(1) })
+  const one = estimateEquity({
+    hole: h('Ah', 'Ad'),
+    opponents: 1,
+    iterations: 2000,
+    rng: mulberry32(1),
+  })
+  const five = estimateEquity({
+    hole: h('Ah', 'Ad'),
+    opponents: 5,
+    iterations: 2000,
+    rng: mulberry32(1),
+  })
   t.true(five.equity < one.equity)
 })
 
@@ -34,7 +44,17 @@ test('the nuts on the river has ~100% equity', (t) => {
 })
 
 test('same seed gives a reproducible estimate', (t) => {
-  const a = estimateEquity({ hole: h('7c', '2d'), opponents: 3, iterations: 800, rng: mulberry32(99) })
-  const b = estimateEquity({ hole: h('7c', '2d'), opponents: 3, iterations: 800, rng: mulberry32(99) })
+  const a = estimateEquity({
+    hole: h('7c', '2d'),
+    opponents: 3,
+    iterations: 800,
+    rng: mulberry32(99),
+  })
+  const b = estimateEquity({
+    hole: h('7c', '2d'),
+    opponents: 3,
+    iterations: 800,
+    rng: mulberry32(99),
+  })
   t.is(a.equity, b.equity)
 })

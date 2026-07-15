@@ -43,6 +43,6 @@ export function styleFor(ai: AiProfile): string {
 /** A pretend total bankroll, scaled to the venue (richer at higher stakes). */
 export function randomBankroll(venue: Venue): number {
   const raw = venue.buyIn * (5 + Math.random() * 40)
-  const mag = Math.pow(10, Math.max(0, Math.floor(Math.log10(raw)) - 1))
+  const mag = 10 ** Math.max(0, Math.floor(Math.log10(raw)) - 1)
   return Math.round(raw / mag) * mag
 }

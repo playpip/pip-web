@@ -34,10 +34,22 @@ const LOOSE_SPLIT = 0.42
 const AGGRO_SPLIT = 0.5
 
 const ARCHETYPES: Record<StyleKey, { name: string; blurb: string }> = {
-  shark: { name: 'The Shark', blurb: 'Tight and aggressive — selective, then lethal when you commit.' },
-  maniac: { name: 'The Maniac', blurb: 'Loose and aggressive — relentless pressure from every seat.' },
-  rock: { name: 'The Rock', blurb: 'Tight and patient — you wait for the goods and let others hang themselves.' },
-  station: { name: 'The Station', blurb: 'Loose and easygoing — you love a flop and hate to fold.' },
+  shark: {
+    name: 'The Shark',
+    blurb: 'Tight and aggressive — selective, then lethal when you commit.',
+  },
+  maniac: {
+    name: 'The Maniac',
+    blurb: 'Loose and aggressive — relentless pressure from every seat.',
+  },
+  rock: {
+    name: 'The Rock',
+    blurb: 'Tight and patient — you wait for the goods and let others hang themselves.',
+  },
+  station: {
+    name: 'The Station',
+    blurb: 'Loose and easygoing — you love a flop and hate to fold.',
+  },
 }
 
 /** Read the hero's lifetime style off their tendencies. */

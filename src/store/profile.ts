@@ -148,8 +148,7 @@ export const useProfile = create<ProfileState>()(
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
       mergeStats: (partial) =>
         set((s) => ({ stats: { ...s.stats, ...mergeStatValues(s.stats, partial) } })),
-      mergeTendencies: (delta) =>
-        set((s) => ({ tendencies: addTendencies(s.tendencies, delta) })),
+      mergeTendencies: (delta) => set((s) => ({ tendencies: addTendencies(s.tendencies, delta) })),
       recordRollPoint: () =>
         set((s) => ({
           rollHistory: [...s.rollHistory, { t: Date.now(), roll: s.roll }].slice(-ROLL_HISTORY_CAP),
@@ -157,7 +156,9 @@ export const useProfile = create<ProfileState>()(
       recordVenueEntry: (venueId) =>
         set((s) => {
           const rec = s.venueRecords[venueId] ?? emptyVenueRecord()
-          return { venueRecords: { ...s.venueRecords, [venueId]: { ...rec, entered: rec.entered + 1 } } }
+          return {
+            venueRecords: { ...s.venueRecords, [venueId]: { ...rec, entered: rec.entered + 1 } },
+          }
         }),
       recordVenueResult: (venueId, finish, hands) =>
         set((s) => {
@@ -226,8 +227,7 @@ export const useProfile = create<ProfileState>()(
         // onto the nearest design in the new set.
         if (fromVersion < 8) {
           const legacy = s.cardBack as unknown as { color?: string } | string
-          s.cardBack =
-            typeof legacy === 'string' ? legacy : nearestCardBack(legacy?.color).id
+          s.cardBack = typeof legacy === 'string' ? legacy : nearestCardBack(legacy?.color).id
         }
         // v8 → v9: lifetime hero tendencies (play-style chart).
         if (fromVersion < 9) s.tendencies = emptySeatStats()

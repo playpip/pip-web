@@ -2,9 +2,7 @@
 // when given a seeded RNG, so the whole engine is unit-testable.
 
 export type Suit = 'c' | 'd' | 'h' | 's'
-export type Rank =
-  | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-  | 'T' | 'J' | 'Q' | 'K' | 'A'
+export type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'T' | 'J' | 'Q' | 'K' | 'A'
 
 export interface Card {
   rank: Rank
@@ -12,15 +10,21 @@ export interface Card {
 }
 
 export const RANKS: readonly Rank[] = [
-  '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  'T',
+  'J',
+  'Q',
+  'K',
+  'A',
 ]
 export const SUITS: readonly Suit[] = ['c', 'd', 'h', 's']
-
-/** Numeric strength of a rank, 2 = 2 … A = 14. Handy for AI / sorting. */
-export const RANK_VALUE: Record<Rank, number> = {
-  '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
-  T: 10, J: 11, Q: 12, K: 13, A: 14,
-}
 
 const RED_SUITS: ReadonlySet<Suit> = new Set<Suit>(['d', 'h'])
 export const isRed = (suit: Suit): boolean => RED_SUITS.has(suit)

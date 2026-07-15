@@ -7,7 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'pip',
     short_name: 'pip',
-    description: 'Casual poker, redesigned. Clean single-player Texas Hold’em — play money, no accounts.',
+    description:
+      'Casual poker, redesigned. Clean single-player Texas Hold’em — play money, no accounts.',
     // Installed app launches straight into the lobby, not the marketing page.
     id: '/game',
     start_url: '/game',
@@ -18,7 +19,12 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-      { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      {
+        src: '/icons/icon-512-maskable.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
     ],
   }
 }

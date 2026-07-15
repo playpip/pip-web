@@ -91,7 +91,12 @@ function Header() {
 
 function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn('flex items-center gap-2 text-xl font-semibold lowercase tracking-tight', className)}>
+    <span
+      className={cn(
+        'flex items-center gap-2 text-xl font-semibold lowercase tracking-tight',
+        className,
+      )}
+    >
       <ChipMark className="size-5" />
       pip
     </span>
@@ -113,7 +118,15 @@ function ChipMark({ className }: { className?: string }) {
         strokeDasharray="3.3 6.517"
         strokeDashoffset="1.65"
       />
-      <circle cx="16" cy="16" r="8.25" fill="none" stroke="#FFFFFF" strokeWidth="1.5" opacity="0.95" />
+      <circle
+        cx="16"
+        cy="16"
+        r="8.25"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="1.5"
+        opacity="0.95"
+      />
     </svg>
   )
 }
@@ -168,9 +181,8 @@ function Hero() {
             custom={2}
             className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty"
           >
-            Real Hold&rsquo;em against AI that actually plays &mdash; wrapped in a calm,
-            modern app. No fake felt, no neon, no pop-ups. Just the table, your Roll,
-            and the next hand.
+            Real Hold&rsquo;em against AI that actually plays &mdash; wrapped in a calm, modern app.
+            No fake felt, no neon, no pop-ups. Just the table, your Roll, and the next hand.
           </motion.p>
 
           <motion.div
@@ -219,9 +231,15 @@ function Dot() {
 function GhostSuits() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <span className="absolute -left-6 top-24 text-[10rem] leading-none text-foreground/[0.03] select-none">♠</span>
-      <span className="absolute right-8 top-8 text-[7rem] leading-none text-foreground/[0.03] select-none">♥</span>
-      <span className="absolute right-1/3 bottom-4 text-[9rem] leading-none text-foreground/[0.02] select-none">♦</span>
+      <span className="absolute -left-6 top-24 text-[10rem] leading-none text-foreground/[0.03] select-none">
+        ♠
+      </span>
+      <span className="absolute right-8 top-8 text-[7rem] leading-none text-foreground/[0.03] select-none">
+        ♥
+      </span>
+      <span className="absolute right-1/3 bottom-4 text-[9rem] leading-none text-foreground/[0.02] select-none">
+        ♦
+      </span>
     </div>
   )
 }
@@ -251,7 +269,11 @@ function HeroTable() {
           animate={{ rotate: -14, x: -18, y: 0, opacity: 1 }}
           transition={{ ...spring, delay: 0.15 }}
         >
-          <PlayingCard card={HOLE[0]} size="lg" className="shadow-2xl shadow-black/30 dark:shadow-black/60" />
+          <PlayingCard
+            card={HOLE[0]}
+            size="lg"
+            className="shadow-2xl shadow-black/30 dark:shadow-black/60"
+          />
         </motion.div>
         <motion.div
           className="absolute inset-0 origin-bottom"
@@ -259,7 +281,11 @@ function HeroTable() {
           animate={{ rotate: 14, x: 18, y: 0, opacity: 1 }}
           transition={{ ...spring, delay: 0.28 }}
         >
-          <PlayingCard card={HOLE[1]} size="lg" className="shadow-2xl shadow-black/30 dark:shadow-black/60" />
+          <PlayingCard
+            card={HOLE[1]}
+            size="lg"
+            className="shadow-2xl shadow-black/30 dark:shadow-black/60"
+          />
         </motion.div>
       </div>
     </div>
@@ -268,12 +294,29 @@ function HeroTable() {
 
 /* --------------------------------- trust ---------------------------------- */
 
-const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string; body: string }[] = [
-  { icon: ShieldCheck, title: 'No real money', body: 'Play-money chips only. No wallet, no losses, no “buy more.”' },
-  { icon: WifiOff, title: 'No account', body: 'Nothing to sign up for. Your progress lives on your device.' },
-  { icon: Sparkles, title: 'No dark patterns', body: 'No forced pop-ups, no pay-to-win, no nagging. Ever.' },
-  { icon: FaGithub, title: 'Open source', body: 'Every hand, shuffle, and line of the engine is public. Read it, fork it, self-host it.' },
-]
+const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string; body: string }[] =
+  [
+    {
+      icon: ShieldCheck,
+      title: 'No real money',
+      body: 'Play-money chips only. No wallet, no losses, no “buy more.”',
+    },
+    {
+      icon: WifiOff,
+      title: 'No account',
+      body: 'Nothing to sign up for. Your progress lives on your device.',
+    },
+    {
+      icon: Sparkles,
+      title: 'No dark patterns',
+      body: 'No forced pop-ups, no pay-to-win, no nagging. Ever.',
+    },
+    {
+      icon: FaGithub,
+      title: 'Open source',
+      body: 'Every hand, shuffle, and line of the engine is public. Read it, fork it, self-host it.',
+    },
+  ]
 
 function TrustStrip() {
   return (
@@ -310,7 +353,10 @@ function Venues() {
   const ladder = [VENUES[0], VENUES[2], VENUES[4], VENUES[6], VENUES[8], VENUES[VENUES.length - 1]]
 
   return (
-    <section id="venues" className="mx-auto w-full max-w-6xl scroll-mt-20 px-6 py-24 md:px-10 md:py-28">
+    <section
+      id="venues"
+      className="mx-auto w-full max-w-6xl scroll-mt-20 px-6 py-24 md:px-10 md:py-28"
+    >
       <SectionHeading
         eyebrow="Where you'll play"
         title="A ladder to climb. Side tables to raid."
@@ -318,12 +364,18 @@ function Venues() {
       />
 
       <div className="mt-12">
-        <RailHeader title="The ladder" hint="Ten rungs · the buy-in is your stack · winner takes all" />
+        <RailHeader
+          title="The ladder"
+          hint="Ten rungs · the buy-in is your stack · winner takes all"
+        />
         <VenueRail venues={ladder} badge={tierBadge} />
       </div>
 
       <div className="mt-14">
-        <RailHeader title="Side tables" hint="Same game, different pressure — none of them gate your climb" />
+        <RailHeader
+          title="Side tables"
+          hint="Same game, different pressure — none of them gate your climb"
+        />
         <VenueRail venues={SIDE_TABLES} badge={formatBadge} />
       </div>
     </section>
@@ -333,7 +385,9 @@ function Venues() {
 function RailHeader({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 px-1">
-      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{title}</p>
+      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        {title}
+      </p>
       {hint && <p className="hidden text-sm text-muted-foreground sm:block">{hint}</p>}
     </div>
   )
@@ -391,7 +445,9 @@ function VenueRail({
               <p className="mt-0.5 truncate text-sm text-muted-foreground">{v.tagline}</p>
               <div className="mt-3 flex items-baseline justify-between">
                 <span className="text-sm font-medium tabular-nums">{money(v.buyIn)} chips</span>
-                <span className="text-xs text-muted-foreground tabular-nums">win {money(v.prize)}</span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  win {money(v.prize)}
+                </span>
               </div>
             </div>
           </motion.div>
@@ -410,13 +466,24 @@ function VenueRail({
 const REGULARS: { spec: AvatarSpec; name: string; style: string }[] = [
   { spec: { seed: 'Amber', backgroundColor: 'b6e3f4' }, name: 'Amber', style: 'Loose-aggressive' },
   { spec: { seed: 'Theo', backgroundColor: 'c0aede' }, name: 'Theo', style: 'Rock — waits for it' },
-  { spec: { seed: 'Priya', backgroundColor: 'd1f4d0' }, name: 'Priya', style: 'Floats, then pounces' },
-  { spec: { seed: 'Marcus', backgroundColor: 'ffd5dc' }, name: 'Marcus', style: 'Barrels every river' },
+  {
+    spec: { seed: 'Priya', backgroundColor: 'd1f4d0' },
+    name: 'Priya',
+    style: 'Floats, then pounces',
+  },
+  {
+    spec: { seed: 'Marcus', backgroundColor: 'ffd5dc' },
+    name: 'Marcus',
+    style: 'Barrels every river',
+  },
 ]
 
 function Features() {
   return (
-    <section id="features" className="scroll-mt-16 border-t border-foreground/5 bg-foreground/[0.015]">
+    <section
+      id="features"
+      className="scroll-mt-16 border-t border-foreground/5 bg-foreground/[0.015]"
+    >
       <div className="mx-auto w-full max-w-6xl px-6 py-24 md:px-10 md:py-28">
         <SectionHeading
           eyebrow="Built to respect you"
@@ -426,23 +493,32 @@ function Features() {
 
         {/* ── AI: the star feature, given a full alternating band ───────────── */}
         <div className="mt-16 grid items-center gap-10 lg:mt-20 lg:grid-cols-2 lg:gap-16">
-          <motion.div variants={rise} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }}>
+          <motion.div
+            variants={rise}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+          >
             <FeatureIcon icon={Brain} />
-            <h3 className="mt-5 text-3xl font-semibold tracking-tight text-balance">AI that actually plays</h3>
+            <h3 className="mt-5 text-3xl font-semibold tracking-tight text-balance">
+              AI that actually plays
+            </h3>
             <p className="mt-3 text-lg leading-relaxed text-muted-foreground text-pretty">
-              Every opponent weighs Monte-Carlo equity against pot odds through its own
-              personality — tightness, aggression, bluff frequency. They value-bet thin,
-              float, barrel, and lay hands down. Each venue is sharper than the last.
+              Every opponent weighs Monte-Carlo equity against pot odds through its own personality
+              — tightness, aggression, bluff frequency. They value-bet thin, float, barrel, and lay
+              hands down. Each venue is sharper than the last.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              {['Value-bets thin', 'Semi-bluffs', 'Sets traps', 'Reads your tendencies'].map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground"
-                >
-                  {t}
-                </span>
-              ))}
+              {['Value-bets thin', 'Semi-bluffs', 'Sets traps', 'Reads your tendencies'].map(
+                (t) => (
+                  <span
+                    key={t}
+                    className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground"
+                  >
+                    {t}
+                  </span>
+                ),
+              )}
             </div>
           </motion.div>
 
@@ -493,7 +569,8 @@ function Features() {
             Clean SFX synthesised in the browser — quiet blips, no coin-clatter or jingles.
           </MiniFeature>
           <MiniFeature icon={WifiOff} title="Yours & offline">
-            Fully local. Install it and play with no connection; your profile never leaves your device.
+            Fully local. Install it and play with no connection; your profile never leaves your
+            device.
           </MiniFeature>
           <MiniFeature icon={Sparkles} title="Collect special chips">
             Earn rare, one-off award chips for milestone runs and heroic hands.
@@ -536,7 +613,9 @@ function EquityReadout() {
   return (
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Your equity</span>
+        <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          Your equity
+        </span>
         <span className="text-2xl font-semibold tabular-nums leading-none text-pip">72%</span>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-foreground/10">
@@ -548,7 +627,9 @@ function EquityReadout() {
           className="h-full rounded-full bg-pip"
         />
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">Top pair, good kicker · ahead of 4 in 5 hands</p>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Top pair, good kicker · ahead of 4 in 5 hands
+      </p>
     </div>
   )
 }
@@ -560,7 +641,14 @@ function CustomizeStrip() {
       <PlayerAvatar spec={REGULARS[2].spec} size={56} />
       <div className="flex -space-x-4">
         {[CARD_BACKS[0], CARD_BACKS[5], CARD_BACKS[9]].map((d, i) => (
-          <div key={d.id} className={cn('origin-bottom', i === 0 && '-rotate-[12deg]', i === 2 && 'rotate-[12deg]')}>
+          <div
+            key={d.id}
+            className={cn(
+              'origin-bottom',
+              i === 0 && '-rotate-[12deg]',
+              i === 2 && 'rotate-[12deg]',
+            )}
+          >
             <CardBack design={d} size="sm" className="ring-1 ring-black/5 dark:ring-white/10" />
           </div>
         ))}
@@ -630,8 +718,8 @@ function FinalCta() {
           custom={1}
           className="mt-5 max-w-lg text-lg text-muted-foreground text-pretty"
         >
-          Make a player, take a seat at the Garage, and see how far your Roll can climb.
-          It&rsquo;s free — and it always will be.
+          Make a player, take a seat at the Garage, and see how far your Roll can climb. It&rsquo;s
+          free — and it always will be.
         </motion.p>
         <motion.div
           variants={rise}
@@ -657,8 +745,8 @@ function Footer() {
         <div>
           <Wordmark />
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-            Casual Texas Hold&rsquo;em, redesigned. Free, open source, and play money — never
-            real gambling.
+            Casual Texas Hold&rsquo;em, redesigned. Free, open source, and play money — never real
+            gambling.
           </p>
         </div>
         <div className="flex items-center gap-5 text-sm text-muted-foreground">
@@ -689,13 +777,7 @@ function Footer() {
  * The primary CTA. Reads the local profile (hydration-gated) so returning
  * players see “Continue” with their Roll, while newcomers see “Play free.”
  */
-function PlayButton({
-  size = 'lg',
-  className,
-}: {
-  size?: 'sm' | 'lg'
-  className?: string
-}) {
+function PlayButton({ size = 'lg', className }: { size?: 'sm' | 'lg'; className?: string }) {
   const hydrated = useHydrated()
   const created = useProfile((s) => s.created)
   const roll = useProfile((s) => s.roll)
@@ -730,7 +812,9 @@ function PlayButton({
     >
       {label}
       {returning && (
-        <span className="tabular-nums text-primary-foreground/60">&middot; {money(roll)} chips</span>
+        <span className="tabular-nums text-primary-foreground/60">
+          &middot; {money(roll)} chips
+        </span>
       )}
       <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
     </Link>
@@ -757,7 +841,9 @@ function SectionHeading({
       className="max-w-2xl"
     >
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-pip">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance md:text-4xl">{title}</h2>
+      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance md:text-4xl">
+        {title}
+      </h2>
       <p className="mt-4 text-lg leading-relaxed text-muted-foreground text-pretty">{body}</p>
     </motion.div>
   )

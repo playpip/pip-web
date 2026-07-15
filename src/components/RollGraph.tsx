@@ -133,7 +133,11 @@ export function RollGraph({
       {/* the "now" dot */}
       <motion.span
         className="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background"
-        style={{ left: `${xy[lastIndex].x}%`, top: `${(xy[lastIndex].y / H) * 100}%`, backgroundColor: accent }}
+        style={{
+          left: `${xy[lastIndex].x}%`,
+          top: `${(xy[lastIndex].y / H) * 100}%`,
+          backgroundColor: accent,
+        }}
         initial={reduced ? false : { opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: reduced ? 0 : 0.45, type: 'spring', stiffness: 400, damping: 20 }}
@@ -148,7 +152,11 @@ export function RollGraph({
           />
           <span
             className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-background"
-            style={{ left: `${activeXY.x}%`, top: `${(activeXY.y / H) * 100}%`, backgroundColor: accent }}
+            style={{
+              left: `${activeXY.x}%`,
+              top: `${(activeXY.y / H) * 100}%`,
+              backgroundColor: accent,
+            }}
           />
           <div
             className="pointer-events-none absolute"
@@ -165,7 +173,9 @@ export function RollGraph({
               <div className="text-sm font-semibold tabular-nums leading-none">
                 {format(activePt.roll)}
               </div>
-              <div className="mt-0.5 text-[10px] text-muted-foreground">{shortDate(activePt.t)}</div>
+              <div className="mt-0.5 text-[10px] text-muted-foreground">
+                {shortDate(activePt.t)}
+              </div>
             </div>
           </div>
         </>

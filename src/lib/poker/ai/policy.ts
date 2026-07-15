@@ -4,12 +4,7 @@
 // the action is. Pure and deterministic given an RNG.
 
 import type { Rng } from '../cards'
-import {
-  legalActions,
-  potSize,
-  type Action,
-  type HandState,
-} from '../engine'
+import { legalActions, potSize, type Action, type HandState } from '../engine'
 import { estimateEquity } from '../equity'
 
 export interface AiProfile {
@@ -29,14 +24,12 @@ export interface AiProfile {
   skill?: number
 }
 
-const clamp = (n: number, lo: number, hi: number): number =>
-  Math.max(lo, Math.min(hi, n))
+const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n))
 
 /** Count opponents still contesting the hand (folded/out excluded). */
 function opponentCount(state: HandState, selfId: string): number {
-  return state.players.filter(
-    (p) => p.id !== selfId && p.status !== 'folded' && p.status !== 'out',
-  ).length
+  return state.players.filter((p) => p.id !== selfId && p.status !== 'folded' && p.status !== 'out')
+    .length
 }
 
 /**
@@ -61,11 +54,7 @@ function sizedRaise(
  * Decide the AI's action for the player currently to act. Guaranteed to return
  * an action that is legal for the current state.
  */
-export function decideAction(
-  state: HandState,
-  profile: AiProfile,
-  rng: Rng = Math.random,
-): Action {
+export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Math.random): Action {
   const legal = legalActions(state)
   const player = state.players[state.toActIndex]
   if (!legal || !player) throw new Error('decideAction: no player to act')
@@ -122,7 +111,10 @@ export function decideAction(
   if (equity < continueThreshold) {
     // Usually fold; occasionally bluff-raise, or peel one cheaply when close.
     if (legal.canRaise && roll < profile.bluff * 0.5) {
-      return { type: 'raise', amount: sizedRaise(state, 0.6, legal.minRaiseTo, legal.maxRaiseTo, rng) }
+      return {
+        type: 'raise',
+        amount: sizedRaise(state, 0.6, legal.minRaiseTo, legal.maxRaiseTo, rng),
+      }
     }
     const cheap = toCall <= pot * 0.15
     if (legal.canCall && cheap && equity > potOdds * 0.85 && roll < 0.5) {
@@ -133,10 +125,16 @@ export function decideAction(
 
   // Strong enough to continue: value-raise the strongest holdings.
   if (equity > 0.78 && legal.canRaise && roll < 0.45 + profile.aggression * 0.5) {
-    return { type: 'raise', amount: sizedRaise(state, 0.7, legal.minRaiseTo, legal.maxRaiseTo, rng) }
+    return {
+      type: 'raise',
+      amount: sizedRaise(state, 0.7, legal.minRaiseTo, legal.maxRaiseTo, rng),
+    }
   }
   if (equity > 0.6 && legal.canRaise && roll < profile.aggression * 0.4) {
-    return { type: 'raise', amount: sizedRaise(state, 0.5, legal.minRaiseTo, legal.maxRaiseTo, rng) }
+    return {
+      type: 'raise',
+      amount: sizedRaise(state, 0.5, legal.minRaiseTo, legal.maxRaiseTo, rng),
+    }
   }
   return legal.canCall ? { type: 'call' } : { type: 'check' }
 }

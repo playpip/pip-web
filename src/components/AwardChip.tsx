@@ -23,15 +23,43 @@ export function AwardChip({
 
   if (!earned) {
     return (
-      <svg viewBox="0 0 32 32" width={size} height={size} className={cn('overflow-visible text-foreground/25', className)} aria-hidden>
-        <circle cx="16" cy="16" r="14.5" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="2.5 3" />
-        <circle cx="16" cy="16" r="8.25" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+      <svg
+        viewBox="0 0 32 32"
+        width={size}
+        height={size}
+        className={cn('overflow-visible text-foreground/25', className)}
+        aria-hidden
+      >
+        <circle
+          cx="16"
+          cy="16"
+          r="14.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeDasharray="2.5 3"
+        />
+        <circle
+          cx="16"
+          cy="16"
+          r="8.25"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          opacity="0.6"
+        />
       </svg>
     )
   }
 
   return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={cn('overflow-visible', className)} aria-hidden>
+    <svg
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      className={cn('overflow-visible', className)}
+      aria-hidden
+    >
       <circle cx="16" cy="16" r="15" fill={award.color} />
       <circle
         cx="16"
@@ -43,7 +71,15 @@ export function AwardChip({
         strokeDasharray="3.3 6.517"
         strokeDashoffset="1.65"
       />
-      <circle cx="16" cy="16" r="8.25" fill="none" stroke="#FFFFFF" strokeWidth="1.5" opacity="0.95" />
+      <circle
+        cx="16"
+        cy="16"
+        r="8.25"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="1.5"
+        opacity="0.95"
+      />
       <text
         x="16"
         y="16"

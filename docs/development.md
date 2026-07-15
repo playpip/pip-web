@@ -15,14 +15,18 @@
 pnpm dev         # Next dev server (Turbopack) → http://localhost:3000
 pnpm build       # production build
 pnpm start       # serve the production build
-pnpm lint        # eslint (must be clean — 0 errors)
+pnpm lint        # biome lint (must be clean — 0 errors)
+pnpm lint:fix    # biome — apply safe + unsafe fixes
+pnpm format      # biome — format + safe fixes, in place
 pnpm typecheck   # tsc --noEmit
 pnpm test        # AVA — the engine test suite
+pnpm test:all    # scripts/test.sh — format, types, lint, AVA, knip, audit
 pnpm sim         # difficulty simulation (scripts/sim.ts) — see below
 ```
 
-Before considering a change done: **`pnpm typecheck`, `pnpm lint`, and `pnpm test`
-should all pass**, and for anything structural, `pnpm build`.
+Before considering a change done: **`pnpm test:all` should pass** (it runs the format
+check, typecheck, lint, AVA suite, knip unused-code check, and dependency audit), and
+for anything structural, `pnpm build`.
 
 ### The difficulty simulator
 
@@ -71,8 +75,8 @@ alongside specific scenarios.
 ## Conventions & gotchas
 
 - **Colours:** use theme tokens, never hardcoded `white`/`black`. See [design.md](./design.md).
-- **`set-state-in-effect`:** the ESLint rule (React 19) forbids synchronous `setState`
-  inside `useEffect`. Patterns used here instead:
+- **`set-state-in-effect`:** no synchronous `setState` inside `useEffect` (a React 19
+  rule; enforced by convention here — Biome has no equivalent). Patterns used instead:
   - client-only gate → `useHydrated()` (`useSyncExternalStore`).
   - "seed a form when a dialog opens" → mount the form only while open (`{open && <Form/>}`)
     and initialize its `useState` from the store (see `ProfileDialog`/`SettingsDialog`).
@@ -84,8 +88,8 @@ alongside specific scenarios.
   branch in `store/profile.ts`.
 - **Turbopack root** is pinned in `next.config.ts` so `pnpm-workspace.yaml` isn't mistaken
   for a monorepo root.
-- **Images:** venue art uses `<img>` with an eslint-disable (data/So static art; `next/image`
-  adds little for these). Avatars are inline SVG data URIs.
+- **Images:** venue art uses plain `<img>` (static art; `next/image` adds little for
+  these) — Biome's `noImgElement` is off repo-wide. Avatars are inline SVG data URIs.
 
 ## Adding a dependency
 

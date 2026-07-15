@@ -47,7 +47,24 @@ type Point = { left: string; top: string }
 
 export function Table() {
   const router = useRouter()
-  const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, newAwards, lastBounty, seatStats, nextHand, leave } = useGame()
+  const {
+    hand,
+    seats,
+    venue,
+    aiThinkingId,
+    status,
+    message,
+    place,
+    heroEquity,
+    smallBlind,
+    bigBlind,
+    blindLevel,
+    newAwards,
+    lastBounty,
+    seatStats,
+    nextHand,
+    leave,
+  } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
   const adjustRoll = useProfile((s) => s.adjustRoll)
@@ -212,13 +229,22 @@ export function Table() {
             <div className="flex flex-col gap-2">
               {communityCards}
               <div className="flex items-baseline justify-end gap-2 px-2">
-                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Pot</span>
-                <CountUp value={pot} format={money} className="text-2xl font-semibold tabular-nums" />
+                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Pot
+                </span>
+                <CountUp
+                  value={pot}
+                  format={money}
+                  className="text-2xl font-semibold tabular-nums"
+                />
               </div>
             </div>
 
             {potWinners.map((id) =>
-              chipsTo(id, id === 'hero' ? { left: '50%', top: '150%' } : { left: '50%', top: '10%' }),
+              chipsTo(
+                id,
+                id === 'hero' ? { left: '50%', top: '150%' } : { left: '50%', top: '10%' },
+              ),
             )}
           </div>
 
@@ -254,7 +280,11 @@ export function Table() {
               const meta = metaById.get(p.id)
               if (!meta) return null
               return (
-                <div key={p.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={positions[i]}>
+                <div
+                  key={p.id}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={positions[i]}
+                >
                   <Seat
                     player={p}
                     name={meta.name}
@@ -273,14 +303,25 @@ export function Table() {
             <div className="absolute left-1/2 top-[62%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4">
               {communityCards}
               <div className="flex items-baseline gap-2 self-end">
-                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Pot</span>
-                <CountUp value={pot} format={money} className="text-3xl font-semibold tabular-nums" />
+                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  Pot
+                </span>
+                <CountUp
+                  value={pot}
+                  format={money}
+                  className="text-3xl font-semibold tabular-nums"
+                />
               </div>
             </div>
 
             {potWinners.map((id) => {
               const idx = opponents.findIndex((p) => p.id === id)
-              const to: Point = id === 'hero' ? { left: '50%', top: '118%' } : idx >= 0 ? positions[idx] : { left: '50%', top: '50%' }
+              const to: Point =
+                id === 'hero'
+                  ? { left: '50%', top: '118%' }
+                  : idx >= 0
+                    ? positions[idx]
+                    : { left: '50%', top: '50%' }
               return chipsTo(id, to)
             })}
           </div>
@@ -432,7 +473,10 @@ function Seat({
           onClick={onSelect}
           aria-label={`About ${name}`}
           animate={isActive ? { scale: 1.08 } : { scale: 1 }}
-          className={cn('rounded-full transition hover:brightness-110', isActive && 'ring-2 ring-foreground/80')}
+          className={cn(
+            'rounded-full transition hover:brightness-110',
+            isActive && 'ring-2 ring-foreground/80',
+          )}
         >
           <PlayerAvatar spec={avatarSpec} size={avatarSize} dimmed={folded} />
         </motion.button>
@@ -499,7 +543,13 @@ function Seat({
       >
         {name}
       </span>
-      <span className={cn('font-semibold tabular-nums', row ? 'text-xs' : 'text-sm', folded && 'text-muted-foreground/50')}>
+      <span
+        className={cn(
+          'font-semibold tabular-nums',
+          row ? 'text-xs' : 'text-sm',
+          folded && 'text-muted-foreground/50',
+        )}
+      >
         {money(player.stack)}
       </span>
       {player.committedThisStreet > 0 && (
@@ -636,7 +686,9 @@ function HeroPanel({
               <span className="text-2xl font-semibold tabular-nums">
                 {equity !== null ? `${Math.round(equity * 100)}%` : '—'}
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">win</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                win
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -648,7 +700,10 @@ function HeroPanel({
             key={i}
             onClick={() => setPage(i)}
             aria-label={i === 0 ? 'Show profile' : 'Show odds'}
-            className={cn('size-1.5 rounded-full transition', page === i ? 'bg-foreground/70' : 'bg-foreground/25')}
+            className={cn(
+              'size-1.5 rounded-full transition',
+              page === i ? 'bg-foreground/70' : 'bg-foreground/25',
+            )}
           />
         ))}
       </div>
@@ -722,7 +777,12 @@ function EndOverlay({
         className="text-center"
       >
         {/* The overlay is always dark, so text is white regardless of theme. */}
-        <h2 className={cn('text-5xl font-semibold tracking-tight sm:text-6xl', celebrate ? 'text-pip' : 'text-white')}>
+        <h2
+          className={cn(
+            'text-5xl font-semibold tracking-tight sm:text-6xl',
+            celebrate ? 'text-pip' : 'text-white',
+          )}
+        >
           {title}
         </h2>
         <p className="mt-3 text-white/60">{subtitle}</p>

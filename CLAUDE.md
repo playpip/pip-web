@@ -40,18 +40,18 @@ Rules change → engine (+ tests). Pacing/money → game store. Looks → compon
 - **Engine stays pure.** No React/store/browser imports in `src/lib/poker/`.
 - **Persisted profile changes** → bump `PERSIST_VERSION` + add a `migrate` branch in
   `src/store/profile.ts`.
-- **`set-state-in-effect`** (React 19 lint) is enforced — use the patterns in
+- **`set-state-in-effect`** (React 19 rule, enforced by convention) — use the patterns in
   docs/development.md (`useHydrated`, mount-form-while-open), not `setState` in `useEffect`.
 
 ## Commands / definition of done
 
 ```bash
 pnpm dev         # http://localhost:3000
-pnpm test        # AVA engine suite
-pnpm lint        # must be 0 errors
-pnpm typecheck   # tsc --noEmit
+pnpm test:all    # full gate: format, types, lint (biome), AVA, knip, audit
+pnpm test        # AVA engine suite only
+pnpm format      # biome — format + safe fixes
 pnpm build       # for structural changes
 ```
 
-A change is done when **typecheck + lint + test pass** (and `build` for structural work).
+A change is done when **`pnpm test:all` passes** (and `build` for structural work).
 UI isn't unit-tested — verify UI by running the app. Commit/push only when asked.

@@ -12,7 +12,14 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { VenueArt } from './VenueArt'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import { VENUES, SIDE_TABLES, KITCHEN_TABLE, FORMAT_LABELS, freerollOpen, type Venue } from '@/config/venues'
+import {
+  VENUES,
+  SIDE_TABLES,
+  KITCHEN_TABLE,
+  FORMAT_LABELS,
+  freerollOpen,
+  type Venue,
+} from '@/config/venues'
 import { rankFor } from '@/config/ranks'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -74,7 +81,9 @@ export function Home() {
           </div>
         </button>
         <div className="flex items-center gap-1">
-          <span className="mr-1 text-xl font-semibold lowercase tracking-tight text-muted-foreground">pip</span>
+          <span className="mr-1 text-xl font-semibold lowercase tracking-tight text-muted-foreground">
+            pip
+          </span>
           <ThemeToggle />
           <button
             onClick={() => {
@@ -274,49 +283,51 @@ function VenueTile({ model }: { model: VenueVM }) {
       transition={{ delay: index * 0.04 }}
       className="relative w-64 shrink-0 snap-start"
     >
-    <button
-      disabled={!playable}
-      onClick={() => playable && onEnter()}
-      className={cn(
-        // h-full: the wrapper stretches with the shelf row, so every card in a
-        // shelf matches the tallest regardless of tagline length.
-        'group flex h-full w-full flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
-        playable ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]' : 'opacity-45',
-      )}
-    >
-      <div className="relative aspect-square overflow-hidden rounded-xl">
-        <VenueArt id={venue.id} accent={venue.accent} className="size-full" />
-        <div className="absolute left-2 top-2">
-          <CornerTag venue={venue} tier={tier} />
-        </div>
-        {!playable && (
-          <div className="absolute bottom-2 right-2 rounded-md bg-black/45 px-1.5 py-0.5 backdrop-blur-sm">
-            <LockTag venue={venue} />
-          </div>
+      <button
+        disabled={!playable}
+        onClick={() => playable && onEnter()}
+        className={cn(
+          // h-full: the wrapper stretches with the shelf row, so every card in a
+          // shelf matches the tallest regardless of tagline length.
+          'group flex h-full w-full flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
+          playable
+            ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]'
+            : 'opacity-45',
         )}
-      </div>
-      <div className="mt-3 flex-1 px-1">
-        <h3 className="font-semibold">{venue.name}</h3>
-        <p className="mt-1 text-sm leading-snug text-muted-foreground">{venue.tagline}</p>
-      </div>
-      <div className="mt-3 flex items-end justify-between px-1">
-        <Stakes venue={venue} />
-        <ChevronRight
-          className={cn(
-            'size-4 text-muted-foreground transition group-hover:translate-x-0.5',
-            !playable && 'opacity-0',
+      >
+        <div className="relative aspect-square overflow-hidden rounded-xl">
+          <VenueArt id={venue.id} accent={venue.accent} className="size-full" />
+          <div className="absolute left-2 top-2">
+            <CornerTag venue={venue} tier={tier} />
+          </div>
+          {!playable && (
+            <div className="absolute bottom-2 right-2 rounded-md bg-black/45 px-1.5 py-0.5 backdrop-blur-sm">
+              <LockTag venue={venue} />
+            </div>
           )}
-        />
-      </div>
-    </button>
-    {/* sibling, not nested — buttons can't contain buttons */}
-    <button
-      onClick={onInfo}
-      aria-label={`About ${venue.name}`}
-      className="absolute right-5 top-5 rounded-full bg-black/45 p-1.5 text-white/75 backdrop-blur-sm transition hover:text-white"
-    >
-      <Info className="size-3.5" />
-    </button>
+        </div>
+        <div className="mt-3 flex-1 px-1">
+          <h3 className="font-semibold">{venue.name}</h3>
+          <p className="mt-1 text-sm leading-snug text-muted-foreground">{venue.tagline}</p>
+        </div>
+        <div className="mt-3 flex items-end justify-between px-1">
+          <Stakes venue={venue} />
+          <ChevronRight
+            className={cn(
+              'size-4 text-muted-foreground transition group-hover:translate-x-0.5',
+              !playable && 'opacity-0',
+            )}
+          />
+        </div>
+      </button>
+      {/* sibling, not nested — buttons can't contain buttons */}
+      <button
+        onClick={onInfo}
+        aria-label={`About ${venue.name}`}
+        className="absolute right-5 top-5 rounded-full bg-black/45 p-1.5 text-white/75 backdrop-blur-sm transition hover:text-white"
+      >
+        <Info className="size-3.5" />
+      </button>
     </motion.div>
   )
 }
@@ -326,41 +337,45 @@ function VenueRow({ model }: { model: VenueVM }) {
   const { venue, playable, onEnter, onInfo } = model
   return (
     <div className="relative">
-    <button
-      disabled={!playable}
-      onClick={() => playable && onEnter()}
-      className={cn(
-        'group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 pr-16 text-left transition',
-        playable ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]' : 'opacity-45',
-      )}
-    >
-      <ArtThumb venue={venue} className="size-14" />
-      <div className="min-w-0 flex-1">
-        <span className="flex items-center gap-1.5 font-medium">
-          <span className="truncate">{venue.name}</span>
-          {venue.format && (
-            <span
-              className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-semibold"
-              style={{ color: venue.accent }}
-            >
-              {FORMAT_LABELS[venue.format]}
-            </span>
-          )}
-        </span>
-        <p className="truncate text-sm text-muted-foreground">{venue.tagline}</p>
-      </div>
-      <div className="shrink-0 text-right">{playable ? <Stakes venue={venue} /> : <LockTag venue={venue} />}</div>
-    </button>
-    <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
       <button
-        onClick={onInfo}
-        aria-label={`About ${venue.name}`}
-        className="rounded-full p-1.5 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+        disabled={!playable}
+        onClick={() => playable && onEnter()}
+        className={cn(
+          'group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 pr-16 text-left transition',
+          playable
+            ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]'
+            : 'opacity-45',
+        )}
       >
-        <Info className="size-4" />
+        <ArtThumb venue={venue} className="size-14" />
+        <div className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5 font-medium">
+            <span className="truncate">{venue.name}</span>
+            {venue.format && (
+              <span
+                className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-semibold"
+                style={{ color: venue.accent }}
+              >
+                {FORMAT_LABELS[venue.format]}
+              </span>
+            )}
+          </span>
+          <p className="truncate text-sm text-muted-foreground">{venue.tagline}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          {playable ? <Stakes venue={venue} /> : <LockTag venue={venue} />}
+        </div>
       </button>
-      <ChevronRight className={cn('size-4 text-muted-foreground', !playable && 'opacity-0')} />
-    </div>
+      <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+        <button
+          onClick={onInfo}
+          aria-label={`About ${venue.name}`}
+          className="rounded-full p-1.5 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+        >
+          <Info className="size-4" />
+        </button>
+        <ChevronRight className={cn('size-4 text-muted-foreground', !playable && 'opacity-0')} />
+      </div>
     </div>
   )
 }

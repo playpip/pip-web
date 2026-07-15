@@ -72,7 +72,8 @@ export function ChipsDialog({
                       aria-label={award.name}
                       className={cn(
                         'flex flex-col items-center gap-1.5 rounded-xl p-1.5 transition hover:bg-foreground/5 active:scale-95',
-                        selectedId === award.id && 'bg-foreground/5 ring-1 ring-inset ring-foreground/20',
+                        selectedId === award.id &&
+                          'bg-foreground/5 ring-1 ring-inset ring-foreground/20',
                       )}
                     >
                       <AwardChip award={award} earned={earned} size={48} />
@@ -93,7 +94,9 @@ export function ChipsDialog({
         </div>
 
         <p className="min-h-4 border-t border-foreground/10 pt-3 text-center text-xs text-muted-foreground">
-          {selected ? `${selected.name} — ${selected.how.toLowerCase()}` : 'Tap a chip for its story.'}
+          {selected
+            ? `${selected.name} — ${selected.how.toLowerCase()}`
+            : 'Tap a chip for its story.'}
         </p>
       </DialogContent>
     </Dialog>

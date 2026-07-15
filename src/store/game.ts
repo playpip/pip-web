@@ -240,7 +240,10 @@ export const useGame = create<GameState>((set, get) => {
 
   function dealHand(buttonSeatId: string) {
     const configs = liveSeatConfigs()
-    const buttonIndex = Math.max(0, configs.findIndex((c) => c.id === buttonSeatId))
+    const buttonIndex = Math.max(
+      0,
+      configs.findIndex((c) => c.id === buttonSeatId),
+    )
     const { venue, handIndex } = get()
     const blinds =
       venue!.escalation === false
@@ -397,7 +400,16 @@ export const useGame = create<GameState>((set, get) => {
       profile.recordRollPoint()
       if (venue.freeroll) profile.setCameFromFreeroll(true)
       const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut)
-      set({ seats: nextSeats, hand, status: 'won', place: 1, aiThinkingId: null, message: null, newAwards, lastBounty: bountyWon })
+      set({
+        seats: nextSeats,
+        hand,
+        status: 'won',
+        place: 1,
+        aiThinkingId: null,
+        message: null,
+        newAwards,
+        lastBounty: bountyWon,
+      })
       return
     }
 
@@ -408,7 +420,11 @@ export const useGame = create<GameState>((set, get) => {
     saveTableSnapshot({
       venueId: venue.id,
       seats: nextSeats,
-      buttonSeatId: nextButtonSeatId(nextSeats, get().buttonSeatId, nextSeats.filter((s) => s.stack > 0)),
+      buttonSeatId: nextButtonSeatId(
+        nextSeats,
+        get().buttonSeatId,
+        nextSeats.filter((s) => s.stack > 0),
+      ),
       handIndex: get().handIndex,
       heroLow: heroLowTide,
     })

@@ -11,7 +11,14 @@ const SUIT_GLYPH: Record<Suit, string> = { c: '♣', d: '♦', h: '♥', s: '♠
 const rankLabel = (rank: string): string => (rank === 'T' ? '10' : rank)
 
 export const SIZES = {
-  xs: { w: 'w-8', h: 'h-11', rank: 'text-[13px]', suit: 'text-[11px]', pad: 'p-0.5', r: 'rounded-[5px]' },
+  xs: {
+    w: 'w-8',
+    h: 'h-11',
+    rank: 'text-[13px]',
+    suit: 'text-[11px]',
+    pad: 'p-0.5',
+    r: 'rounded-[5px]',
+  },
   sm: { w: 'w-11', h: 'h-16', rank: 'text-lg', suit: 'text-base', pad: 'p-1.5', r: 'rounded-lg' },
   md: { w: 'w-16', h: 'h-24', rank: 'text-3xl', suit: 'text-xl', pad: 'p-2', r: 'rounded-xl' },
   lg: { w: 'w-20', h: 'h-28', rank: 'text-4xl', suit: 'text-2xl', pad: 'p-2.5', r: 'rounded-xl' },

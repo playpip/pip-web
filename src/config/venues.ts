@@ -319,11 +319,6 @@ export function venueById(id: string): Venue | undefined {
   return [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE].find((v) => v.id === id)
 }
 
-/** Venues the player can currently buy into, given their Roll. */
-export function unlockedVenues(roll: number): Venue[] {
-  return VENUES.filter((v) => roll >= v.buyIn)
-}
-
 /** Can the player afford this venue's buy-in? */
 export function canAfford(venue: Venue, roll: number): boolean {
   return roll >= venue.buyIn

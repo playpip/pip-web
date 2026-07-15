@@ -50,25 +50,61 @@ test('any first pot win earns First Pot', (t) => {
 })
 
 test('hand chips need a showdown win with the hand', (t) => {
-  t.deepEqual(ids(showdownWin('Full House', "Full House, A's over K's")), ['hand-fullhouse', 'journey-first'])
+  t.deepEqual(ids(showdownWin('Full House', "Full House, A's over K's")), [
+    'hand-fullhouse',
+    'journey-first',
+  ])
   // no showdown → no hand chip; lost the pot → nothing at all
-  t.deepEqual(ids(baseCtx({ heroWon: true, showdown: false, heroHand: { name: 'Full House', description: '' } })), ['journey-first'])
-  t.deepEqual(ids(baseCtx({ heroWon: false, showdown: true, heroHand: { name: 'Full House', description: '' } })), [])
+  t.deepEqual(
+    ids(
+      baseCtx({
+        heroWon: true,
+        showdown: false,
+        heroHand: { name: 'Full House', description: '' },
+      }),
+    ),
+    ['journey-first'],
+  )
+  t.deepEqual(
+    ids(
+      baseCtx({
+        heroWon: false,
+        showdown: true,
+        heroHand: { name: 'Full House', description: '' },
+      }),
+    ),
+    [],
+  )
 })
 
 test('straight, flush, quads, straight flush, royal and wheel are recognised', (t) => {
   t.deepEqual(ids(showdownWin('Straight', 'Straight, 9 High')), ['hand-straight', 'journey-first'])
   t.deepEqual(ids(showdownWin('Flush', 'Flush, Ah High')), ['hand-flush', 'journey-first'])
-  t.deepEqual(ids(showdownWin('Four of a Kind', "Four of a Kind, A's")), ['hand-quads', 'journey-first'])
-  t.deepEqual(ids(showdownWin('Straight Flush', 'Straight Flush, Qh High')), ['hand-straightflush', 'journey-first'])
+  t.deepEqual(ids(showdownWin('Four of a Kind', "Four of a Kind, A's")), [
+    'hand-quads',
+    'journey-first',
+  ])
+  t.deepEqual(ids(showdownWin('Straight Flush', 'Straight Flush, Qh High')), [
+    'hand-straightflush',
+    'journey-first',
+  ])
   // a royal is also a straight flush — both chips land together
-  t.deepEqual(ids(showdownWin('Straight Flush', 'Royal Flush')), ['hand-straightflush', 'hand-royal', 'journey-first'])
+  t.deepEqual(ids(showdownWin('Straight Flush', 'Royal Flush')), [
+    'hand-straightflush',
+    'hand-royal',
+    'journey-first',
+  ])
   // the wheel is also a straight
-  t.deepEqual(ids(showdownWin('Straight', 'Straight, 5 High')), ['hand-straight', 'hand-wheel', 'journey-first'])
+  t.deepEqual(ids(showdownWin('Straight', 'Straight, 5 High')), [
+    'hand-straight',
+    'hand-wheel',
+    'journey-first',
+  ])
 })
 
 test('The Seven Deuce needs a won pot holding exactly 7-2', (t) => {
-  const holding = (a: string, b: string) => baseCtx({ heroWon: true, heroHole: [cardFromString(a), cardFromString(b)] })
+  const holding = (a: string, b: string) =>
+    baseCtx({ heroWon: true, heroHole: [cardFromString(a), cardFromString(b)] })
   t.deepEqual(ids(holding('7c', '2d')), ['moment-sevendeuce', 'journey-first'])
   t.deepEqual(ids(holding('2s', '7h')), ['moment-sevendeuce', 'journey-first'])
   t.deepEqual(ids(holding('7c', '7d')), ['journey-first'])
@@ -78,11 +114,17 @@ test('The Seven Deuce needs a won pot holding exactly 7-2', (t) => {
 })
 
 test('The Bouncer fires on a clean knockout', (t) => {
-  t.deepEqual(ids(baseCtx({ heroWon: true, knockedOut: true })), ['moment-knockout', 'journey-first'])
+  t.deepEqual(ids(baseCtx({ heroWon: true, knockedOut: true })), [
+    'moment-knockout',
+    'journey-first',
+  ])
 })
 
 test('The Comeback needs a ladder win from a tenth of the starting stack', (t) => {
-  t.deepEqual(ids(baseCtx({ tournamentWon: true, lowestStack: 10 })), ['moment-comeback', 'venue-garage'])
+  t.deepEqual(ids(baseCtx({ tournamentWon: true, lowestStack: 10 })), [
+    'moment-comeback',
+    'venue-garage',
+  ])
   t.deepEqual(ids(baseCtx({ tournamentWon: true, lowestStack: 11 })), ['venue-garage'])
   // a freeroll comeback doesn't count
   t.deepEqual(ids(baseCtx({ venue: KITCHEN_TABLE, tournamentWon: true, lowestStack: 5 })), [])
@@ -93,13 +135,24 @@ test('Back From Broke needs the freeroll flag AND a ladder tournament win', (t) 
   t.deepEqual(ids(win), ['venue-garage', 'journey-kitchen'])
   // flag without a win, or a freeroll win with the flag: no chip
   t.deepEqual(ids(baseCtx({ cameFromFreeroll: true })), [])
-  t.deepEqual(ids(baseCtx({ venue: KITCHEN_TABLE, tournamentWon: true, cameFromFreeroll: true })), [])
+  t.deepEqual(
+    ids(baseCtx({ venue: KITCHEN_TABLE, tournamentWon: true, cameFromFreeroll: true })),
+    [],
+  )
 })
 
 test('rank chips fire on peak Roll thresholds', (t) => {
   t.deepEqual(ids(baseCtx({ peakRoll: 999 })), [])
   t.deepEqual(ids(baseCtx({ peakRoll: 1_000 })), ['journey-regular'])
   t.deepEqual(ids(baseCtx({ peakRoll: 10_000 })), ['journey-regular', 'journey-shark'])
-  t.deepEqual(ids(baseCtx({ peakRoll: 1_000_000 })), ['journey-regular', 'journey-shark', 'journey-pro', 'journey-legend'])
-  t.deepEqual(ids(baseCtx({ peakRoll: 1_000_000 }), { 'journey-regular': 1, 'journey-shark': 1 }), ['journey-pro', 'journey-legend'])
+  t.deepEqual(ids(baseCtx({ peakRoll: 1_000_000 })), [
+    'journey-regular',
+    'journey-shark',
+    'journey-pro',
+    'journey-legend',
+  ])
+  t.deepEqual(ids(baseCtx({ peakRoll: 1_000_000 }), { 'journey-regular': 1, 'journey-shark': 1 }), [
+    'journey-pro',
+    'journey-legend',
+  ])
 })

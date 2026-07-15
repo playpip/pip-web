@@ -73,7 +73,9 @@ export function SettingsDialog({
                 whileTap={{ scale: 0.92 }}
                 className={cn(
                   'rounded-lg p-0.5 ring-2 transition',
-                  selectedId === design.id ? 'ring-foreground/70' : 'ring-transparent hover:ring-foreground/25',
+                  selectedId === design.id
+                    ? 'ring-foreground/70'
+                    : 'ring-transparent hover:ring-foreground/25',
                 )}
               >
                 <CardBack design={design} size="xs" />
@@ -113,7 +115,9 @@ function BackupSection() {
             Replace your profile with <span className="font-medium">{pending.summary.name}</span> —{' '}
             {money(pending.summary.roll)} chips, {pending.summary.chipsEarned} award chips?
           </p>
-          <p className="text-xs text-muted-foreground">This overwrites everything on this device.</p>
+          <p className="text-xs text-muted-foreground">
+            This overwrites everything on this device.
+          </p>
           <div className="flex gap-2">
             <button
               onClick={() => setPending(null)}
@@ -154,9 +158,7 @@ function BackupSection() {
               Restore…
             </button>
           </div>
-          {pending && !pending.ok && (
-            <p className="text-xs text-suit-red">{pending.error}</p>
-          )}
+          {pending && !pending.ok && <p className="text-xs text-suit-red">{pending.error}</p>}
           <input
             ref={fileInput}
             type="file"

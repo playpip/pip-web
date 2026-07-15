@@ -53,7 +53,12 @@ export function LeaveDialog({
             <div className="my-3 h-px bg-foreground/10" />
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Profit / loss</span>
-              <span className={cn('text-lg font-semibold tabular-nums', up ? 'text-emerald-500' : 'text-suit-red')}>
+              <span
+                className={cn(
+                  'text-lg font-semibold tabular-nums',
+                  up ? 'text-emerald-500' : 'text-suit-red',
+                )}
+              >
                 {up ? '+' : ''}
                 {money(pnl)}
               </span>

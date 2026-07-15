@@ -103,7 +103,12 @@ function EventRow({ event }: { event: HandEvent }) {
       <span className={cn('truncate', event.playerId === 'hero' && 'font-medium')}>
         {event.playerName}
       </span>
-      <span className={cn('shrink-0 tabular-nums', event.type === 'fold' ? 'text-muted-foreground/60' : 'text-muted-foreground')}>
+      <span
+        className={cn(
+          'shrink-0 tabular-nums',
+          event.type === 'fold' ? 'text-muted-foreground/60' : 'text-muted-foreground',
+        )}
+      >
         {verb}
       </span>
     </div>

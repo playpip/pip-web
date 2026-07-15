@@ -16,11 +16,7 @@
 // comfortably, and hard when they sit near or below it.
 
 import { mulberry32, type Rng } from '@/lib/poker/cards'
-import {
-  applyAction,
-  isHandComplete,
-  startHand,
-} from '@/lib/poker/engine'
+import { applyAction, isHandComplete, startHand } from '@/lib/poker/engine'
 import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
 import { KITCHEN_TABLE, SIDE_TABLES, VENUES, type Venue } from '@/config/venues'
@@ -78,7 +74,10 @@ function runTournament(venue: Venue, hero: AiProfile, rng: Rng): TourneyOutcome 
         ? { smallBlind: venue.smallBlind, bigBlind: venue.bigBlind }
         : blindsAt(venue, handIndex)
 
-    const buttonIndex = Math.max(0, live.findIndex((s) => s.id === buttonId))
+    const buttonIndex = Math.max(
+      0,
+      live.findIndex((s) => s.id === buttonId),
+    )
     let state = startHand({
       seats: live.map((s) => ({ id: s.id, name: s.name, stack: s.stack })),
       buttonIndex,
@@ -172,8 +171,13 @@ console.log(
 const pad = (s: string, w: number) => s.padEnd(w)
 const num = (s: string, w: number) => s.padStart(w)
 console.log(
-  pad('venue', 20) + num('seats', 6) + num('ai skill', 9) + num('win %', 8) + num('fair %', 8) +
-    num('avg hands', 11) + num('EV/entry', 10),
+  pad('venue', 20) +
+    num('seats', 6) +
+    num('ai skill', 9) +
+    num('win %', 8) +
+    num('fair %', 8) +
+    num('avg hands', 11) +
+    num('EV/entry', 10),
 )
 
 for (const venue of venues) {
@@ -197,8 +201,8 @@ for (const venue of venues) {
     pad(venue.name, 20) +
       num(String(venue.seats), 6) +
       num((venue.ai.skill ?? 1).toFixed(2), 9) +
-      num((winRate * 100).toFixed(0) + '%', 8) +
-      num((fair * 100).toFixed(0) + '%', 8) +
+      num(`${(winRate * 100).toFixed(0)}%`, 8) +
+      num(`${(fair * 100).toFixed(0)}%`, 8) +
       num((hands / n).toFixed(1), 11) +
       num((ev >= 0 ? '+' : '') + Math.round(ev).toLocaleString(), 10) +
       `   (${secs}s${timeouts ? `, ${timeouts} timeouts` : ''})`,

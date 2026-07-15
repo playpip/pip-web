@@ -28,7 +28,12 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-const CACHE_FIRST = [/^\/_next\/static\//, /^\/icons\//, /^\/venues\//, /\.(?:png|jpg|svg|ico|woff2?)$/]
+const CACHE_FIRST = [
+  /^\/_next\/static\//,
+  /^\/icons\//,
+  /^\/venues\//,
+  /\.(?:png|jpg|svg|ico|woff2?)$/,
+]
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
