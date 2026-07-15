@@ -181,6 +181,9 @@ const VENUE_IMAGES: Record<string, string> = {
   study: '/venues/study.jpg',
   duel: '/venues/duel.jpg',
   docks: '/venues/docks.jpg',
+  allnighter: '/venues/allnighter.jpg',
+  chopshop: '/venues/chopshop.jpg',
+  vault: '/venues/vault.jpg',
 }
 
 function VenueScene({ id, accent, className }: { id: string; accent: string; className?: string }) {
