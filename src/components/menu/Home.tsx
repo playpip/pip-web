@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Lock, ChevronRight, ChevronLeft, RotateCcw, Settings } from 'lucide-react'
+import { Lock, ChevronRight, ChevronLeft, Info, RotateCcw, Settings } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
 import { useProfile } from '@/store/profile'
@@ -11,6 +11,7 @@ import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { VenueArt } from './VenueArt'
+import { VenueInfoDialog } from './VenueInfoDialog'
 import { VENUES, SIDE_TABLES, KITCHEN_TABLE, FORMAT_LABELS, freerollOpen, type Venue } from '@/config/venues'
 import { rankFor } from '@/config/ranks'
 import { useMoney } from '@/lib/useMoney'
@@ -24,6 +25,7 @@ interface VenueVM {
   tier?: number
   playable: boolean
   onEnter: () => void
+  onInfo: () => void
 }
 
 export function Home() {
@@ -32,6 +34,7 @@ export function Home() {
   const money = useMoney()
   const [editOpen, setEditOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [infoVenue, setInfoVenue] = useState<Venue | null>(null)
 
   const rank = rankFor(peakRoll)
   const broke = freerollOpen(roll)
@@ -45,6 +48,10 @@ export function Home() {
       onEnter: () => {
         sound.play('call')
         router.push(`/play/${venue.id}`)
+      },
+      onInfo: () => {
+        sound.play('tap')
+        setInfoVenue(venue)
       },
     }))
 
@@ -136,6 +143,7 @@ export function Home() {
 
       <ProfileDialog open={editOpen} onOpenChange={setEditOpen} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <VenueInfoDialog venue={infoVenue} onOpenChange={(o) => !o && setInfoVenue(null)} />
     </div>
   )
 }
@@ -258,16 +266,19 @@ function Stakes({ venue }: { venue: Venue }) {
 
 /** Desktop slider card — vertical tile, fixed width, snap target. */
 function VenueTile({ model }: { model: VenueVM }) {
-  const { venue, index, tier, playable, onEnter } = model
+  const { venue, index, tier, playable, onEnter, onInfo } = model
   return (
-    <motion.button
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
+      className="relative w-64 shrink-0 snap-start"
+    >
+    <button
       disabled={!playable}
       onClick={() => playable && onEnter()}
       className={cn(
-        'group flex w-64 shrink-0 snap-start flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
+        'group flex w-full flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
         playable ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]' : 'opacity-45',
       )}
     >
@@ -277,7 +288,7 @@ function VenueTile({ model }: { model: VenueVM }) {
           <CornerTag venue={venue} tier={tier} />
         </div>
         {!playable && (
-          <div className="absolute right-2 top-2 rounded-md bg-black/45 px-1.5 py-0.5 backdrop-blur-sm">
+          <div className="absolute bottom-2 right-2 rounded-md bg-black/45 px-1.5 py-0.5 backdrop-blur-sm">
             <LockTag venue={venue} />
           </div>
         )}
@@ -295,19 +306,29 @@ function VenueTile({ model }: { model: VenueVM }) {
           )}
         />
       </div>
-    </motion.button>
+    </button>
+    {/* sibling, not nested — buttons can't contain buttons */}
+    <button
+      onClick={onInfo}
+      aria-label={`About ${venue.name}`}
+      className="absolute right-5 top-5 rounded-full bg-black/45 p-1.5 text-white/75 backdrop-blur-sm transition hover:text-white"
+    >
+      <Info className="size-3.5" />
+    </button>
+    </motion.div>
   )
 }
 
 /** Mobile list row — horizontal. */
 function VenueRow({ model }: { model: VenueVM }) {
-  const { venue, playable, onEnter } = model
+  const { venue, playable, onEnter, onInfo } = model
   return (
+    <div className="relative">
     <button
       disabled={!playable}
       onClick={() => playable && onEnter()}
       className={cn(
-        'group flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
+        'group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 pr-16 text-left transition',
         playable ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]' : 'opacity-45',
       )}
     >
@@ -327,7 +348,17 @@ function VenueRow({ model }: { model: VenueVM }) {
         <p className="truncate text-sm text-muted-foreground">{venue.tagline}</p>
       </div>
       <div className="shrink-0 text-right">{playable ? <Stakes venue={venue} /> : <LockTag venue={venue} />}</div>
-      <ChevronRight className={cn('size-4 shrink-0 text-muted-foreground', !playable && 'opacity-0')} />
     </button>
+    <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+      <button
+        onClick={onInfo}
+        aria-label={`About ${venue.name}`}
+        className="rounded-full p-1.5 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
+      >
+        <Info className="size-4" />
+      </button>
+      <ChevronRight className={cn('size-4 text-muted-foreground', !playable && 'opacity-0')} />
+    </div>
+    </div>
   )
 }
