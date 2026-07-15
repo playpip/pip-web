@@ -48,8 +48,12 @@ interface Venue {
 }
 ```
 
-`AiProfile` scales up the ladder — higher `tightness`/`aggression`/`bluff` and more
-equity `iterations` (smarter reads) at higher venues. See `docs/poker-engine.md`.
+`AiProfile` scales up the ladder on two axes. **Personality** — higher
+`tightness`/`aggression`/`bluff` and more equity `iterations` (sharper reads) at
+higher venues. **Soundness** — `skill` climbs from 0.4 at the Garage (players who
+just learned: misread hands, fold under pressure) through 0.97 at Vegas to 1.0 at
+the Main Event (plays its best game, no manufactured mistakes). The Kitchen Table
+freeroll sits below the ladder at 0.3. See `docs/poker-engine.md`.
 
 ## Adding / editing a venue
 

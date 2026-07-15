@@ -39,7 +39,7 @@ export const VENUES: readonly Venue[] = [
     seats: 4,
     prize: 400,
     accent: '#7C8CF0',
-    ai: { tightness: 0.15, aggression: 0.25, bluff: 0.05, iterations: 300 },
+    ai: { tightness: 0.15, aggression: 0.25, bluff: 0.05, iterations: 300, skill: 0.4 },
   },
   {
     id: 'pub',
@@ -51,7 +51,7 @@ export const VENUES: readonly Venue[] = [
     seats: 5,
     prize: 1_500,
     accent: '#5AA9E6',
-    ai: { tightness: 0.22, aggression: 0.32, bluff: 0.06, iterations: 400 },
+    ai: { tightness: 0.22, aggression: 0.32, bluff: 0.06, iterations: 400, skill: 0.5 },
   },
   {
     id: 'poolhall',
@@ -63,7 +63,7 @@ export const VENUES: readonly Venue[] = [
     seats: 5,
     prize: 3_750,
     accent: '#4FB477',
-    ai: { tightness: 0.28, aggression: 0.4, bluff: 0.08, iterations: 550 },
+    ai: { tightness: 0.28, aggression: 0.4, bluff: 0.08, iterations: 550, skill: 0.6 },
   },
   {
     id: 'cardroom',
@@ -75,7 +75,7 @@ export const VENUES: readonly Venue[] = [
     seats: 6,
     prize: 12_000,
     accent: '#E0A458',
-    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750 },
+    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750, skill: 0.7 },
   },
   {
     id: 'casino',
@@ -87,7 +87,7 @@ export const VENUES: readonly Venue[] = [
     seats: 6,
     prize: 30_000,
     accent: '#D9534F',
-    ai: { tightness: 0.45, aggression: 0.58, bluff: 0.14, iterations: 950 },
+    ai: { tightness: 0.45, aggression: 0.58, bluff: 0.14, iterations: 950, skill: 0.78 },
   },
   {
     id: 'riverboat',
@@ -99,7 +99,7 @@ export const VENUES: readonly Venue[] = [
     seats: 6,
     prize: 90_000,
     accent: '#17A2B8',
-    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_100 },
+    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_100, skill: 0.85 },
   },
   {
     id: 'penthouse',
@@ -111,7 +111,7 @@ export const VENUES: readonly Venue[] = [
     seats: 6,
     prize: 240_000,
     accent: '#C049D4',
-    ai: { tightness: 0.52, aggression: 0.66, bluff: 0.16, iterations: 1_300 },
+    ai: { tightness: 0.52, aggression: 0.66, bluff: 0.16, iterations: 1_300, skill: 0.9 },
   },
   {
     id: 'montecarlo',
@@ -123,7 +123,7 @@ export const VENUES: readonly Venue[] = [
     seats: 6,
     prize: 600_000,
     accent: '#E8B923',
-    ai: { tightness: 0.55, aggression: 0.7, bluff: 0.17, iterations: 1_500 },
+    ai: { tightness: 0.55, aggression: 0.7, bluff: 0.17, iterations: 1_500, skill: 0.94 },
   },
   {
     id: 'vegas',
@@ -135,7 +135,7 @@ export const VENUES: readonly Venue[] = [
     seats: 6,
     prize: 1_800_000,
     accent: '#FF7A45',
-    ai: { tightness: 0.58, aggression: 0.72, bluff: 0.18, iterations: 1_650 },
+    ai: { tightness: 0.58, aggression: 0.72, bluff: 0.18, iterations: 1_650, skill: 0.97 },
   },
   {
     id: 'mainevent',
