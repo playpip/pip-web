@@ -30,19 +30,19 @@ function venueDifficulty(venue: Venue): { level: 1 | 2 | 3 | 4 | 5; label: strin
     return {
       level: 2,
       label: 'Casual',
-      blurb: `Casual players with real leaks — ${style}, and prone to mistakes you can profit from.`,
+      blurb: `Casual players with real leaks — ${style}, and full of mistakes you can profit from.`,
     }
   if (skill <= 0.7)
     return {
       level: 3,
-      label: 'Solid',
-      blurb: `Solid players with habits — ${style}, and only the occasional slip.`,
+      label: 'Regulars',
+      blurb: `Regulars who know the game but still bleed chips — ${style}, with plenty of misreads left in them.`,
     }
   if (skill <= 0.9)
     return {
       level: 4,
       label: 'Sharp',
-      blurb: `Sharp, disciplined players — ${style}, and they rarely misstep.`,
+      blurb: `Sharp, disciplined players — ${style}; mistakes are rare, and they punish yours.`,
     }
   return {
     level: 5,
