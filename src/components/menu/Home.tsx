@@ -278,7 +278,9 @@ function VenueTile({ model }: { model: VenueVM }) {
       disabled={!playable}
       onClick={() => playable && onEnter()}
       className={cn(
-        'group flex w-full flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
+        // h-full: the wrapper stretches with the shelf row, so every card in a
+        // shelf matches the tallest regardless of tagline length.
+        'group flex h-full w-full flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
         playable ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]' : 'opacity-45',
       )}
     >
