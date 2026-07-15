@@ -44,7 +44,7 @@ export function StatsPage() {
 
   const back = () => {
     sound.play('tap')
-    router.push('/')
+    router.push('/game')
   }
 
   return (

@@ -80,7 +80,7 @@ export function Table() {
 
   const goHome = () => {
     leave()
-    router.push('/')
+    router.push('/game')
   }
   const cashOutAndLeave = () => {
     // Freeroll stacks are the house's chips — only the winner's prize pays out,

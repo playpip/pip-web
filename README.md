@@ -3,7 +3,7 @@
 # pip
 
 **Casual poker, redesigned.** Pip is a clean, single-player Texas Hold'em web app —
-play money, no accounts, no pop-ups, no fake felt.
+play money, no accounts, no pop-ups, no fake felt. Open source and local-first.
 
 Free poker apps tend to look and feel like a scam: neon, leather textures, coin
 jingles, and more time spent closing offers than playing cards. Pip is the opposite —
@@ -81,12 +81,17 @@ Agents working in this repo should start with [`CLAUDE.md`](CLAUDE.md) /
 
 ## About
 
-Pip is built by [playpip](https://github.com/playpip) and is under active
-development. It's a pure front-end app: no backend, no accounts, no tracking —
+Pip is built by [playpip](https://github.com/playpip), **open source**, and under
+active development. It's a pure front-end app: no backend, no accounts, no tracking —
 everything runs in the browser and persists locally. The engine is deterministic
-and fully unit-tested, and the product docs in [`docs/`](docs/README.md) are the
-source of truth for everything from the [brand](docs/brand.md) to the
+and fully unit-tested, so anyone can read exactly how a hand is dealt and shuffled —
+provably fair by inspection, not by promise. The product docs in [`docs/`](docs/README.md)
+are the source of truth for everything from the [brand](docs/brand.md) to the
 [economy](docs/game-flow.md).
+
+Openness is a deliberate foundation: as Pip grows to include things you can pay for
+(cosmetics and extras — never pay-to-win) and social/multiplayer play, a public
+codebase is what keeps the anti-scam promise honest. Contributions welcome.
 
 Play money only, forever — chips are never a currency, and nothing is for sale.
 

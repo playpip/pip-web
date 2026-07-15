@@ -21,6 +21,10 @@ The founding frustration we design against: free poker apps that *"look and feel
 scam"* — fake felt, leather, neon, and more time spent closing pop-ups than playing.
 Pip is the opposite.
 
+It is also **open source and local-first** — the code is public and the app runs entirely
+in your browser. That openness is core positioning, not a dev detail: it's the credibility
+that lets us grow (paid cosmetics, multiplayer) without becoming the thing we replaced.
+
 ## Principles
 
 1. **No scam energy.** Play money only. No real currency, no `$` symbols (balances read
@@ -29,6 +33,13 @@ Pip is the opposite.
 3. **Calm information.** Helpful stats (win %, hand strength) are ambient, never nagging.
 4. **Premium restraint.** Subtle motion and sound; generous space; nothing gratuitous.
 5. **Account-free & local.** No login, no barrier. Your progress is yours, on your device.
+6. **Open by default.** Pip is open source — the deterministic, seeded engine most of
+   all. Anyone can read exactly how a hand is dealt and shuffled, fork it, or self-host.
+   This is a deliberate trust foundation, not a footnote: when we later add things you
+   can pay for (cosmetics, extras — never pay-to-win) and social/multiplayer play,
+   *"you can read the code"* is what keeps the no-scam promise credible. Provably fair
+   beats "trust us." Guard this — closing the source, or shipping logic the public repo
+   doesn't reflect, would quietly break the brand's core promise.
 
 ## Voice & tone
 
@@ -52,3 +63,4 @@ Pip is the opposite.
 | Use one accent per surface | Rainbow gradients, neon |
 | Flat cards, subtle shadow | Fake felt, leather textures, glossy 3D |
 | Quiet, tactile SFX | Casino jingles, coin-clatter, fanfares |
+| Open source, provably fair | Hidden logic, "trust us", closed shuffles |
