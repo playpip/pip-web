@@ -8,7 +8,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AvatarSpec } from '@/lib/avatar'
 import { STARTING_ROLL } from '@/config/venues'
-import { DEFAULT_CARD_BACK, type CardBackDesign } from '@/config/cardBacks'
+import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -68,8 +68,8 @@ export interface ProfileState {
   rollHistory: RollPoint[]
   /** Per-venue records: entries, wins, best finish, fastest win. */
   venueRecords: Record<string, VenueRecord>
-  /** Chosen face-down card design. */
-  cardBack: CardBackDesign
+  /** Chosen face-down card design (a curated id — see config/cardBacks). */
+  cardBack: string
   /** Earned award chips: id → epoch ms earned (see lib/awards). */
   awards: Record<string, number>
   /** Comeback flag: the current run started with a Kitchen Table win. */
@@ -78,7 +78,7 @@ export interface ProfileState {
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
   setAvatar: (avatar: AvatarSpec) => void
-  setCardBack: (cardBack: CardBackDesign) => void
+  setCardBack: (cardBack: string) => void
   adjustRoll: (delta: number) => void
   setRoll: (roll: number) => void
   /** Record newly earned award chips (already-owned ids are left untouched). */
@@ -92,7 +92,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 7
+export const PERSIST_VERSION = 8
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -106,7 +106,7 @@ export const useProfile = create<ProfileState>()(
       stats: emptyStats(),
       rollHistory: [],
       venueRecords: {},
-      cardBack: DEFAULT_CARD_BACK,
+      cardBack: DEFAULT_CARD_BACK.id,
       awards: {},
       cameFromFreeroll: false,
 
@@ -181,7 +181,7 @@ export const useProfile = create<ProfileState>()(
           stats: emptyStats(),
           rollHistory: [],
           venueRecords: {},
-          cardBack: DEFAULT_CARD_BACK,
+          cardBack: DEFAULT_CARD_BACK.id,
           awards: {},
           cameFromFreeroll: false,
         }),
@@ -192,7 +192,7 @@ export const useProfile = create<ProfileState>()(
       migrate: (persisted, fromVersion) => {
         const s = persisted as ProfileState
         // v1 → v2: card-back customization added.
-        if (fromVersion < 2 && !s.cardBack) s.cardBack = DEFAULT_CARD_BACK
+        if (fromVersion < 2 && !s.cardBack) s.cardBack = DEFAULT_CARD_BACK.id
         // v2 → v3: cash-game economy — rank (peakRoll).
         if (fromVersion < 3) {
           s.peakRoll = Math.max(s.roll ?? STARTING_ROLL, STARTING_ROLL)
@@ -212,6 +212,13 @@ export const useProfile = create<ProfileState>()(
           s.rollHistory = []
           s.venueRecords = {}
           s.stats = { ...emptyStats(), ...s.stats }
+        }
+        // v7 → v8: curated card backs — map the old free-form colour choice
+        // onto the nearest design in the new set.
+        if (fromVersion < 8) {
+          const legacy = s.cardBack as unknown as { color?: string } | string
+          s.cardBack =
+            typeof legacy === 'string' ? legacy : nearestCardBack(legacy?.color).id
         }
         return s
       },

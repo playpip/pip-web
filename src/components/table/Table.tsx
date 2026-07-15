@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { KITCHEN_TABLE, freerollOpen } from '@/config/venues'
+import { cardBackById } from '@/config/cardBacks'
 import type { AvatarSpec } from '@/lib/avatar'
 
 /** Positions for N opponents spread along the top arc of an ellipse (y grows down). */
@@ -47,7 +48,7 @@ type Point = { left: string; top: string }
 export function Table() {
   const router = useRouter()
   const { hand, seats, venue, aiThinkingId, status, message, place, heroEquity, smallBlind, bigBlind, blindLevel, newAwards, nextHand, leave } = useGame()
-  const cardBack = useProfile((s) => s.cardBack)
+  const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
   const adjustRoll = useProfile((s) => s.adjustRoll)
   const money = useMoney()
