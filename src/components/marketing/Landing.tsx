@@ -10,7 +10,9 @@ import { motion, type Variants } from 'framer-motion'
 import {
   ArrowRight,
   Brain,
+  CalendarDays,
   Gauge,
+  Link2,
   Palette,
   ShieldCheck,
   Spade,
@@ -26,10 +28,10 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, type Venue } from '@/config/venues'
 import { CARD_BACKS } from '@/config/cardBacks'
+import { characterById, type Character } from '@/config/cast'
 import { useProfile } from '@/store/profile'
 import { useHydrated } from '@/lib/useHydrated'
 import { useMoney } from '@/lib/useMoney'
-import type { AvatarSpec } from '@/lib/avatar'
 import type { Card } from '@/lib/poker/cards'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -461,22 +463,11 @@ function VenueRail({
 
 /* -------------------------------- features -------------------------------- */
 
-// Fixed seeds → the same faces render on the server and client (no hydration
-// mismatch), and the notionists set is the very one the game uses for opponents.
-const REGULARS: { spec: AvatarSpec; name: string; style: string }[] = [
-  { spec: { seed: 'Amber', backgroundColor: 'b6e3f4' }, name: 'Amber', style: 'Loose-aggressive' },
-  { spec: { seed: 'Theo', backgroundColor: 'c0aede' }, name: 'Theo', style: 'Rock — waits for it' },
-  {
-    spec: { seed: 'Priya', backgroundColor: 'd1f4d0' },
-    name: 'Priya',
-    style: 'Floats, then pounces',
-  },
-  {
-    spec: { seed: 'Marcus', backgroundColor: 'ffd5dc' },
-    name: 'Marcus',
-    style: 'Barrels every river',
-  },
-]
+// The real cast (config/cast.ts) — the very characters you'll sit with in the
+// game, faces and bios included. Nothing on this page is a mock-up.
+const REGULARS = ['doris', 'frank', 'priya', 'sal']
+  .map((id) => characterById(id))
+  .filter((ch): ch is Character => ch !== undefined)
 
 function Features() {
   return (
@@ -501,32 +492,31 @@ function Features() {
           >
             <FeatureIcon icon={Brain} />
             <h3 className="mt-5 text-3xl font-semibold tracking-tight text-balance">
-              AI that actually plays
+              A cast you&rsquo;ll get to know
             </h3>
             <p className="mt-3 text-lg leading-relaxed text-muted-foreground text-pretty">
-              Every opponent weighs Monte-Carlo equity against pot odds through its own personality
-              — tightness, aggression, bluff frequency. They value-bet thin, float, barrel, and lay
-              hands down. Each venue is sharper than the last.
+              Pip seats a fixed troupe of regulars, not random bots. Each weighs Monte-Carlo equity
+              against pot odds through a personality of their own — they value-bet thin, float,
+              barrel, and lay hands down. And they remember you: your reads on them build across
+              sessions, like a real home game.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              {['Value-bets thin', 'Semi-bluffs', 'Sets traps', 'Reads your tendencies'].map(
-                (t) => (
-                  <span
-                    key={t}
-                    className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground"
-                  >
-                    {t}
-                  </span>
-                ),
-              )}
+              {['Value-bets thin', 'Semi-bluffs', 'Sets traps', 'Career-long reads'].map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground"
+                >
+                  {t}
+                </span>
+              ))}
             </div>
           </motion.div>
 
-          {/* the regulars — real notionists faces, one calm card each */}
+          {/* the regulars — the actual cast, faces and bios straight from the game */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {REGULARS.map((r, i) => (
               <motion.div
-                key={r.name}
+                key={r.id}
                 variants={rise}
                 initial="hidden"
                 whileInView="show"
@@ -534,18 +524,34 @@ function Features() {
                 custom={i}
                 className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-background p-4"
               >
-                <PlayerAvatar spec={r.spec} size={48} className="shrink-0" />
+                <PlayerAvatar spec={r.avatar} size={48} className="shrink-0" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{r.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{r.style}</p>
+                  <p className="truncate text-xs text-muted-foreground">{r.bio}</p>
                 </div>
               </motion.div>
             ))}
           </div>
         </div>
 
-        {/* ── Two balanced feature cards, each with a contained visual ──────── */}
+        {/* ── Balanced feature cards, each with a contained visual ──────────── */}
         <div className="mt-6 grid gap-4 md:mt-8 md:grid-cols-2">
+          <FeatureCard
+            icon={CalendarDays}
+            title="The Daily Deal"
+            body="One seeded tournament a day — everyone in the world plays the identical shuffle, and because the engine is open source, that's provable. Same cards, same opponents; your play makes the difference."
+          >
+            <DailyShareMock />
+          </FeatureCard>
+
+          <FeatureCard
+            icon={Link2}
+            title="Bad beats travel"
+            body="Share any hand as a link — the whole hand lives in the URL, no server, no account. Whoever opens it watches the replay, action by action, cards and all."
+          >
+            <HandLinkMock />
+          </FeatureCard>
+
           <FeatureCard
             icon={Gauge}
             title="Calm information"
@@ -557,7 +563,7 @@ function Features() {
           <FeatureCard
             icon={Palette}
             title="Make it yours"
-            body="Build an avatar, pick a card back, choose your display currency, and switch light or dark. Considered restraint, not clutter."
+            body="Build an avatar, pick a card back, and spend winnings at the Chip Shop — decks, table finishes, souvenirs. Style and story, never edge: nothing for sale touches the odds."
           >
             <CustomizeStrip />
           </FeatureCard>
@@ -572,8 +578,9 @@ function Features() {
             Fully local. Install it and play with no connection; your profile never leaves your
             device.
           </MiniFeature>
-          <MiniFeature icon={Sparkles} title="Collect special chips">
-            Earn rare, one-off award chips for milestone runs and heroic hands.
+          <MiniFeature icon={Sparkles} title="A shelf worth filling">
+            Earn one-off award chips for heroic hands — and buy souvenir chips of every venue you
+            conquer. The gaps are the goal list.
           </MiniFeature>
         </div>
       </div>
@@ -638,9 +645,9 @@ function EquityReadout() {
 function CustomizeStrip() {
   return (
     <div className="flex items-center justify-center gap-6 rounded-2xl border border-foreground/10 bg-foreground/[0.02] py-6">
-      <PlayerAvatar spec={REGULARS[2].spec} size={56} />
+      {REGULARS[2] && <PlayerAvatar spec={REGULARS[2].avatar} size={56} />}
       <div className="flex -space-x-4">
-        {[CARD_BACKS[0], CARD_BACKS[5], CARD_BACKS[9]].map((d, i) => (
+        {[CARD_BACKS[0], CARD_BACKS[4], CARD_BACKS[6]].map((d, i) => (
           <div
             key={d.id}
             className={cn(
@@ -653,6 +660,42 @@ function CustomizeStrip() {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** The Daily's copyable result line, as it comes out of the app. */
+function DailyShareMock() {
+  return (
+    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate font-mono text-sm text-muted-foreground">
+          pip daily #142 · 2nd of 5 · 34 hands
+        </span>
+        <span className="shrink-0 rounded-lg bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium">
+          Copied
+        </span>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        No streaks, no countdowns — tomorrow is simply another deal.
+      </p>
+    </div>
+  )
+}
+
+/** A hand permalink — the hand itself, folded into a URL. */
+function HandLinkMock() {
+  return (
+    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
+      <div className="flex items-center gap-2.5">
+        <Link2 className="size-4 shrink-0 text-pip" />
+        <span className="truncate font-mono text-sm text-muted-foreground">
+          playpip.io/hand#kQyJ3v…
+        </span>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Kings full, rivered by quads. They have to see it to believe it.
+      </p>
     </div>
   )
 }

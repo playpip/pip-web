@@ -1,6 +1,6 @@
 'use client'
 
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 import { Moon, Sun } from 'lucide-react'
 import { useHydrated } from '@/lib/useHydrated'
 import { sound } from '@/lib/sound'

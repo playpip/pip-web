@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import { ThemeProvider } from '@/components/theme-provider'
+import { THEME_BOOT_SCRIPT, ThemeProvider } from '@/components/theme-provider'
 import { AppBoot } from '@/components/AppBoot'
 
 const geistSans = Geist({
@@ -43,9 +43,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground min-h-full">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+        {/* No-flash theme boot — inline from the server so it runs pre-paint
+            (and React never sees a client-rendered script). */}
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <ThemeProvider>{children}</ThemeProvider>
         <AppBoot />
       </body>
     </html>

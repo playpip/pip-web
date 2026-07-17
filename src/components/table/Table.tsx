@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from 'next-themes'
+import { useTheme } from '@/components/theme-provider'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, HelpCircle, History, Volume2, VolumeX } from 'lucide-react'
 import { AwardChip } from '@/components/AwardChip'
