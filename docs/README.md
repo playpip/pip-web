@@ -18,7 +18,9 @@ cosmetics, multiplayer); see [brand.md](./brand.md).
 | [poker-engine.md](./poker-engine.md) | The pure, tested poker engine (cards, hand eval, pots, betting, equity, AI) |
 | [game-flow.md](./game-flow.md) | Runtime orchestration: the game store, the tournament loop, the economy, ranks, the freeroll |
 | [brand.md](./brand.md) | The Pip brand — name, voice, positioning |
+| [cast.md](./cast.md) | The cast — Pip's troupe of opponents, career reads, table talk |
 | [awards.md](./awards.md) | Collectible "special chips" awards — the set, triggers, visuals |
+| [shop.md](./shop.md) | The Chip Shop & earned unlocks — style, never edge |
 | [design.md](./design.md) | Design system: theme tokens, colour, typography, motion, sound, components |
 | [venues.md](./venues.md) | The venue ladder, adding venues, and the AI-image workflow |
 | [development.md](./development.md) | Setup, scripts, testing (AVA), conventions, gotchas |

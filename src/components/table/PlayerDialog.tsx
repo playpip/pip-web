@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import type { SeatMeta } from '@/store/game'
+import { useProfile } from '@/store/profile'
 import { deriveReads, READS_MIN_HANDS, type SeatStats } from '@/lib/reads'
 import { useMoney } from '@/lib/useMoney'
 
@@ -27,9 +28,14 @@ export function PlayerDialog({
   stats?: SeatStats
 }) {
   const money = useMoney()
+  const record = useProfile((s) =>
+    seat?.characterId ? s.castRecords[seat.characterId] : undefined,
+  )
   if (!seat) return null
 
-  const reads = deriveReads(stats)
+  // Cast characters carry their history: reads accumulate across sessions.
+  const career = record?.stats
+  const reads = deriveReads(career ?? stats)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,7 +57,7 @@ export function PlayerDialog({
           <Stat label="Bankroll" value={money(seat.bankroll ?? 0)} />
         </div>
 
-        {/* what you've noticed about them this game */}
+        {/* what you've noticed about them — career-long for cast regulars */}
         {!seat.isHuman && (
           <div className="mt-1">
             <p className="mb-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -74,6 +80,12 @@ export function PlayerDialog({
             ) : (
               <p className="text-sm text-muted-foreground">
                 Too early to tell — keep watching. Reads appear after {READS_MIN_HANDS} hands.
+              </p>
+            )}
+            {career && career.handsDealt > 0 && (
+              <p className="mt-3 text-xs text-muted-foreground/70">
+                {career.handsDealt.toLocaleString()} hands together
+                {record && record.kos > 0 && <> · busted them {record.kos}×</>}
               </p>
             )}
           </div>

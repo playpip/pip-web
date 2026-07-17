@@ -8,15 +8,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { motion } from 'framer-motion'
-import { CardBack } from '@/components/CardBack'
 import { useProfile } from '@/store/profile'
-import { CARD_BACKS, cardBackById } from '@/config/cardBacks'
 import { exportProfile, readBackup, applyBackup, type ParsedBackup } from '@/lib/backup'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
+/** App settings — the quiet stuff. Looks live in the Style dialog. */
 export function SettingsDialog({
   open,
   onOpenChange,
@@ -24,69 +22,56 @@ export function SettingsDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { cardBack: selectedId, setCardBack } = useProfile()
-  const selected = cardBackById(selectedId)
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Pick your card back.</DialogDescription>
+          <DialogDescription>Table talk and backups.</DialogDescription>
         </DialogHeader>
 
         <div className="flex min-w-0 flex-col gap-6 pt-1">
-          {/* live fanned preview of the chosen design */}
-          <div className="flex flex-col items-center gap-2.5 py-2">
-            <div className="flex justify-center">
-              <motion.div
-                key={`${selected.id}-a`}
-                initial={{ rotate: 0, x: 12 }}
-                animate={{ rotate: -8, x: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-              >
-                <CardBack design={selected} size="md" />
-              </motion.div>
-              <motion.div
-                key={`${selected.id}-b`}
-                className="-ml-6"
-                initial={{ rotate: 0, x: -12 }}
-                animate={{ rotate: 8, x: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-              >
-                <CardBack design={selected} size="md" />
-              </motion.div>
-            </div>
-            <p className="text-xs text-muted-foreground">{selected.name}</p>
-          </div>
-
-          {/* the curated set */}
-          <div className="grid grid-cols-6 justify-items-center gap-y-2.5">
-            {CARD_BACKS.map((design) => (
-              <motion.button
-                key={design.id}
-                onClick={() => {
-                  sound.play('tap')
-                  setCardBack(design.id)
-                }}
-                aria-label={design.name}
-                whileTap={{ scale: 0.92 }}
-                className={cn(
-                  'rounded-lg p-0.5 ring-2 transition',
-                  selectedId === design.id
-                    ? 'ring-foreground/70'
-                    : 'ring-transparent hover:ring-foreground/25',
-                )}
-              >
-                <CardBack design={design} size="xs" />
-              </motion.button>
-            ))}
-          </div>
-
+          <TableTalkSection />
           <BackupSection />
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The cast's rare one-liners at the table — on by default, easy to silence. */
+function TableTalkSection() {
+  const tableTalk = useProfile((s) => s.tableTalk)
+  const setTableTalk = useProfile((s) => s.setTableTalk)
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium">Table talk</p>
+        <p className="text-xs text-muted-foreground">
+          The occasional quiet line from the regulars.
+        </p>
+      </div>
+      <button
+        role="switch"
+        aria-checked={tableTalk}
+        aria-label="Table talk"
+        onClick={() => {
+          sound.play('tap')
+          setTableTalk(!tableTalk)
+        }}
+        className={cn(
+          'relative h-6 w-10 shrink-0 rounded-full transition',
+          tableTalk ? 'bg-primary' : 'bg-foreground/15',
+        )}
+      >
+        <span
+          className={cn(
+            'absolute top-0.5 size-5 rounded-full bg-background shadow transition-all',
+            tableTalk ? 'left-[18px]' : 'left-0.5',
+          )}
+        />
+      </button>
+    </div>
   )
 }
 

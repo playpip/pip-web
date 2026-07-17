@@ -21,30 +21,175 @@ export interface CardBackDesign {
   pattern: CardPattern
   /** Pattern + keyline ink. Light backs need dark ink. Defaults to 'light'. */
   ink?: 'light' | 'dark'
+  /**
+   * How a non-free back is unlocked. `venueWin` alone → earned free by winning
+   * that venue. `price` alone → bought in the Chip Shop. Both → the win unlocks
+   * the *right to buy*. Style, never edge (docs/shop.md).
+   */
+  unlock?: { venueWin?: string; price?: number }
 }
 
+// Slimmed to eight (2026-07-17): the free set is a tasteful starter spread —
+// one of each hue, nothing that upstages the earned venue backs or the shop's
+// paid designs. (Cut: graphite ≈ slate, sage ≈ ivy, rose, and the old gold —
+// gold is Gold Leaf's territory now.) Removed ids fall back to the default.
 export const CARD_BACKS: readonly CardBackDesign[] = [
   { id: 'pip', name: 'Pip', color: '#7E89D0', pattern: 'pips' },
   { id: 'midnight', name: 'Midnight', color: '#232936', pattern: 'pinstripe' },
   { id: 'slate', name: 'Slate', color: '#5C6672', pattern: 'crosshatch' },
-  { id: 'graphite', name: 'Graphite', color: '#3E434B', pattern: 'dots' },
   { id: 'ocean', name: 'Ocean', color: '#57779B', pattern: 'waves' },
   { id: 'ivy', name: 'Ivy', color: '#5F8A72', pattern: 'pinstripe' },
-  { id: 'sage', name: 'Sage', color: '#7D9583', pattern: 'waves' },
   { id: 'burgundy', name: 'Burgundy', color: '#82505A', pattern: 'diamonds' },
-  { id: 'rose', name: 'Dusty Rose', color: '#B08A92', pattern: 'rings' },
-  { id: 'gold', name: 'Monte Carlo', color: '#B3924C', pattern: 'crosshatch' },
   { id: 'sand', name: 'Sand', color: '#C7B292', pattern: 'checker', ink: 'dark' },
   { id: 'cream', name: 'Cream', color: '#E7DFCE', pattern: 'pips', ink: 'dark' },
 ] as const
 
 export const DEFAULT_CARD_BACK: CardBackDesign = CARD_BACKS[0]
 
-const byId = new Map(CARD_BACKS.map((d) => [d.id, d]))
+// Earned backs — winning a ladder venue for the first time unlocks its back,
+// free: the venue's accent in a fine pattern, a trophy you can play with.
+// (See docs/shop.md; availability is derived from venueRecords, no new state.)
+export const EARNED_BACKS: readonly CardBackDesign[] = [
+  {
+    id: 'back-garage',
+    name: "Friends' Garage",
+    color: '#7C8CF0',
+    pattern: 'checker',
+    unlock: { venueWin: 'garage' },
+  },
+  {
+    id: 'back-pub',
+    name: 'The Pub',
+    color: '#5AA9E6',
+    pattern: 'rings',
+    unlock: { venueWin: 'pub' },
+  },
+  {
+    id: 'back-poolhall',
+    name: 'The Pool Hall',
+    color: '#4FB477',
+    pattern: 'dots',
+    unlock: { venueWin: 'poolhall' },
+  },
+  {
+    id: 'back-cardroom',
+    name: 'The Card Room',
+    color: '#E0A458',
+    pattern: 'pips',
+    unlock: { venueWin: 'cardroom' },
+  },
+  {
+    id: 'back-casino',
+    name: 'Downtown Casino',
+    color: '#D9534F',
+    pattern: 'diamonds',
+    unlock: { venueWin: 'casino' },
+  },
+  {
+    id: 'back-riverboat',
+    name: 'The Riverboat',
+    color: '#17A2B8',
+    pattern: 'waves',
+    unlock: { venueWin: 'riverboat' },
+  },
+  {
+    id: 'back-penthouse',
+    name: 'The Penthouse',
+    color: '#C049D4',
+    pattern: 'pinstripe',
+    unlock: { venueWin: 'penthouse' },
+  },
+  {
+    id: 'back-montecarlo',
+    name: 'Monte Carlo',
+    color: '#E8B923',
+    pattern: 'crosshatch',
+    unlock: { venueWin: 'montecarlo' },
+  },
+  {
+    id: 'back-vegas',
+    name: 'Vegas Championship',
+    color: '#FF7A45',
+    pattern: 'rings',
+    unlock: { venueWin: 'vegas' },
+  },
+  {
+    id: 'back-mainevent',
+    name: 'The Main Event',
+    color: '#F0574E',
+    pattern: 'pips',
+    unlock: { venueWin: 'mainevent' },
+  },
+] as const
+
+// Shop backs — bought with the Roll (style costs progression, and that trade
+// is the point). Gold Leaf is the hybrid: win the Riverboat to earn the right
+// to buy it. The Millionaire is the prestige absurdity — the price IS the trophy.
+export const SHOP_BACKS: readonly CardBackDesign[] = [
+  {
+    id: 'back-penny',
+    name: 'Penny',
+    color: '#8A5A44',
+    pattern: 'dots',
+    unlock: { price: 1_000 },
+  },
+  {
+    id: 'back-powder',
+    name: 'Powder',
+    color: '#9FB6CD',
+    pattern: 'waves',
+    ink: 'dark',
+    unlock: { price: 5_000 },
+  },
+  { id: 'back-noir', name: 'Noir', color: '#17171C', pattern: 'solid', unlock: { price: 10_000 } },
+  {
+    id: 'back-racing',
+    name: 'Racing Green',
+    color: '#3F6B52',
+    pattern: 'pinstripe',
+    unlock: { price: 25_000 },
+  },
+  {
+    id: 'back-goldleaf',
+    name: 'Gold Leaf',
+    color: '#9A7B2D',
+    pattern: 'diamonds',
+    unlock: { venueWin: 'riverboat', price: 50_000 },
+  },
+  {
+    id: 'back-millionaire',
+    name: 'The Millionaire',
+    color: '#CDAA3D',
+    pattern: 'pips',
+    unlock: { price: 1_000_000 },
+  },
+] as const
+
+export const ALL_CARD_BACKS: readonly CardBackDesign[] = [
+  ...CARD_BACKS,
+  ...EARNED_BACKS,
+  ...SHOP_BACKS,
+]
+
+const byId = new Map(ALL_CARD_BACKS.map((d) => [d.id, d]))
 
 /** Look up a design by persisted id — unknown ids fall back to the default. */
 export function cardBackById(id: string): CardBackDesign {
   return byId.get(id) ?? DEFAULT_CARD_BACK
+}
+
+/**
+ * Is this design usable? Free designs always; earned ones once the venue is
+ * won; priced ones once bought (a hybrid's venue win only gates the *purchase*).
+ */
+export function cardBackUnlocked(
+  design: CardBackDesign,
+  wonVenues: ReadonlySet<string>,
+  owned: ReadonlySet<string>,
+): boolean {
+  if (!design.unlock) return true
+  if (design.unlock.price !== undefined) return owned.has(design.id)
+  return design.unlock.venueWin !== undefined && wonVenues.has(design.unlock.venueWin)
 }
 
 /**

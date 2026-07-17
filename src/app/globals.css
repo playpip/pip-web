@@ -52,6 +52,9 @@
 @theme {
   --color-suit-red: #f0574e;
   --color-suit-black: #16161d;
+  /* Four-colour deck (a Chip Shop purchase): diamonds blue, clubs green. */
+  --color-suit-blue: #3d6fc4;
+  --color-suit-green: #3a8f5f;
   --color-cardface: #fafafa;
   --color-cardface-ink: #16161d;
   --color-pip: #7c8cf0;
@@ -125,6 +128,56 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* --- venue ambience — "barely alive" ---------------------------------------
+   One slow, subtle motion per venue tile (see components/menu/VenueArt.tsx).
+   The rule: a screenshot must look identical. Off under reduced motion. */
+@keyframes venue-drift {
+  from {
+    transform: scale(1.04) translateX(-0.5%);
+  }
+  to {
+    transform: scale(1.04) translateX(0.5%);
+  }
+}
+@keyframes venue-breathe {
+  from {
+    opacity: 0.02;
+  }
+  to {
+    opacity: 0.09;
+  }
+}
+@keyframes venue-flicker {
+  0%,
+  86%,
+  94%,
+  100% {
+    opacity: 0.07;
+  }
+  90% {
+    opacity: 0.015;
+  }
+  92% {
+    opacity: 0.09;
+  }
+}
+.venue-drift {
+  animation: venue-drift 16s ease-in-out infinite alternate;
+}
+.venue-breathe {
+  animation: venue-breathe 7s ease-in-out infinite alternate;
+}
+.venue-flicker {
+  animation: venue-flicker 11s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .venue-drift,
+  .venue-breathe,
+  .venue-flicker {
+    animation: none;
+  }
 }
 
 @layer base {

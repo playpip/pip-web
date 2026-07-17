@@ -40,9 +40,12 @@ Holds the live `HandState`, `seats` (human + AI meta), `venue`, `status`
 (`idle | playing | handover | busted | won`), `heroEquity`, `aiThinkingId`, handover
 `message`, the human's finishing `place`, the current `smallBlind`/`bigBlind` +
 `blindLevel`/`handIndex` (escalation), `lastHand` (the previous hand's timeline
-for the history dialog), `lastBounty`, and `seatStats` — observed per-opponent
-tendencies (VPIP, aggression, folds to pressure) that become the plain-English
-**reads** in the player dialog after ~8 hands (`src/lib/reads.ts`, unit-tested).
+for the history dialog), `lastBounty`, `talk` (a rare one-line character moment —
+see docs/cast.md), and `seatStats` — observed per-opponent tendencies (VPIP,
+aggression, folds to pressure) that become the plain-English **reads** in the
+player dialog after ~8 hands (`src/lib/reads.ts`, unit-tested). Opponents are
+cast characters (`config/cast.ts`); their tendencies also flush into the
+profile's `castRecords`, so reads are career-long.
 
 ## The turn loop
 
@@ -83,6 +86,13 @@ top bar shows the level (`· L2`) once blinds have risen.
 (`HandRecord`) when a hand completes; the History button on the table opens
 `HandHistoryDialog` with the timeline, showdown reveals, and the result.
 
+**Hand permalinks**: the history dialog's "Share this hand" copies a URL with
+the whole `HandRecord` encoded in the **fragment** (`/hand#<token>`, codec in
+`lib/handLink.ts`, round-trip tested) — no server, no account; the fragment
+never even reaches one. The `/hand` route replays it step-by-step
+(`components/HandTimeline.tsx` is shared with the dialog). Malformed links
+decode to null and get a friendly empty state.
+
 **Refresh-proofing**: the live table is snapshotted to localStorage (`pip.table`)
 at every deal and hand end; the play page resumes an interrupted table instead of
 buying in again (a mid-hand refresh re-deals that hand from its start). The
@@ -107,6 +117,31 @@ snapshot is cleared on leave, bust, and win.
   wall. The stack is the house's — leaving a freeroll cashes out **zero** (no farming
   the starting stack). Entry points: the home screen (under the Roll) and the
   knocked-out overlay.
+
+## The Daily Deal
+
+**One seeded tournament a day — everyone in the world who plays it gets the
+identical shuffle.** The open, deterministic engine makes that *provably* true:
+anyone can read `lib/daily.ts` + the engine and verify the deal. The honest
+claim (and the copy) is **"same cards, same opponents — your play makes the
+difference"**: AI responses diverge once your actions diverge, and we say so.
+
+- **Venue**: `THE_DAILY` in `config/venues.ts` (`daily: true`) — buy-in 500,
+  5 seats, standard prize math. It costs a real buy-in: a free daily with a
+  prize would be a daily top-up, which breaks the no-free-top-up rule.
+- **Seeding** (`lib/daily.ts`, unit-tested): the UTC day key hashes to a base
+  seed; hand *n* is dealt from `mulberry32(handSeed(base, n))`, so a mid-run
+  refresh re-deals hand *n* identically. The cast draw and AI decision stream
+  are seeded from the same base. Zero engine changes — it's a seed convention
+  in the game store (`armDaily`).
+- **Once a day**: `profile.daily` records `{date, dayNo, place, hands}`.
+  Sitting down marks it played immediately — **abandoning counts as played**,
+  because the shuffle is knowable and a re-deal would be an exploit. The play
+  route redirects if today's daily is already recorded; a snapshot resume is
+  allowed (and keeps its original day's seed via `TableSnapshot.dailyDate`).
+- **Share**: the home card's Share button copies a calm one-liner
+  (`dailyShareText`): `pip daily #142 · 2nd of 6 · 34 hands · playpip.io`.
+  No streaks, no emoji grids, no countdowns — yesterday's daily is simply gone.
 
 ## Where to make changes
 

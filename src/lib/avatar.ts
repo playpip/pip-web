@@ -93,16 +93,3 @@ export function accentFromSwatch(swatch: string): string {
 export function freshSeed(): string {
   return `pip-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`
 }
-
-let counter = 0
-/**
- * A pseudo-random avatar spec. Deterministic-ish per call via an incrementing
- * counter + provided entropy, so opponents get varied looks without pulling in
- * Math.random at module scope.
- */
-export function randomAvatar(entropy: string | number = ''): AvatarSpec {
-  counter += 1
-  const seed = `pip-${entropy}-${counter}-${Math.floor(Math.random() * 1e9)}`
-  const backgroundColor = AVATAR_BG_SWATCHES[Math.floor(Math.random() * AVATAR_BG_SWATCHES.length)]
-  return { seed, backgroundColor }
-}

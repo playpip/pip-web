@@ -43,6 +43,8 @@ export interface Venue {
   handsPerLevel?: number
   /** Chips paid instantly for each opponent the player busts. */
   bounty?: number
+  /** The Daily Deal: one seeded tournament a day, same shuffle for everyone. */
+  daily?: boolean
 }
 
 // Low rungs escalate gently (handsPerLevel 10 → 7) — new players need room to
@@ -310,13 +312,33 @@ export const KITCHEN_TABLE: Venue = {
   ai: { tightness: 0.55, aggression: 0.15, bluff: 0.03, iterations: 80, skill: 0.3 },
 }
 
+// The Daily Deal — one tournament a day, dealt from a date-derived seed, so
+// everyone in the world who sits down today plays the identical shuffle. The
+// open, deterministic engine makes that provably true (see docs/game-flow.md).
+// It costs a real buy-in — there is no free top-up — and it can be played once:
+// abandoning counts as played (the shuffle is knowable, so re-deals would be
+// an exploit). Same cards, same opponents — your play makes the difference.
+export const THE_DAILY: Venue = {
+  id: 'daily',
+  name: 'The Daily',
+  tagline: 'One deal a day. Same cards for everyone.',
+  buyIn: 500,
+  smallBlind: 5,
+  bigBlind: 10,
+  seats: 5,
+  prize: 2_500,
+  daily: true,
+  accent: '#7C8CF0', // the pip periwinkle — it's the house special
+  ai: { tightness: 0.3, aggression: 0.45, bluff: 0.08, iterations: 500, skill: 0.45 },
+}
+
 /** The freeroll opens only while the player can't afford the ladder's bottom rung. */
 export function freerollOpen(roll: number): boolean {
   return roll < VENUES[0].buyIn
 }
 
 export function venueById(id: string): Venue | undefined {
-  return [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE].find((v) => v.id === id)
+  return [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE, THE_DAILY].find((v) => v.id === id)
 }
 
 /** Can the player afford this venue's buy-in? */

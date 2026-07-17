@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, HelpCircle, History, Volume2, VolumeX } from 'lucide-react'
 import { AwardChip } from '@/components/AwardChip'
@@ -24,6 +25,8 @@ import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { KITCHEN_TABLE, freerollOpen } from '@/config/venues'
+import { nicknameFor } from '@/config/handNames'
+import { tableFinishById } from '@/config/shop'
 import { cardBackById } from '@/config/cardBacks'
 import type { AvatarSpec } from '@/lib/avatar'
 
@@ -62,11 +65,14 @@ export function Table() {
     newAwards,
     lastBounty,
     seatStats,
+    talk,
     nextHand,
     leave,
   } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
+  const finish = tableFinishById(useProfile((s) => s.tableFinish))
+  const { resolvedTheme } = useTheme()
   const adjustRoll = useProfile((s) => s.adjustRoll)
   const money = useMoney()
   const isMobile = useIsMobile()
@@ -149,8 +155,42 @@ export function Table() {
       <ActionBar hand={hand} />
     )
 
+  // Table talk lives with the board — under the community cards, across from
+  // the pot, where table chatter belongs.
+  const talkLine = (
+    <AnimatePresence>
+      {talk && (
+        <motion.span
+          key={talk}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
+          className="text-[11px] italic leading-snug text-muted-foreground/80"
+        >
+          {talk}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  )
+
+  // An owned table finish recolours the felt — flat, no texture, ever. The two
+  // themes need different physics: on dark, translucent colour glows over the
+  // near-black background; on light, translucency makes a muddy stain that
+  // kills text contrast, so we mix an OPAQUE pastel toward white instead — a
+  // pale, designed surface that dark ink still reads on.
+  const finishStyle = finish
+    ? resolvedTheme === 'light'
+      ? {
+          background: `radial-gradient(120% 90% at 50% 42%, color-mix(in srgb, ${finish.swatch} 26%, white), color-mix(in srgb, ${finish.swatch} 12%, white) 78%)`,
+        }
+      : {
+          background: `radial-gradient(120% 90% at 50% 42%, ${finish.swatch}66, ${finish.swatch}24 78%), linear-gradient(${finish.swatch}1a, ${finish.swatch}1a)`,
+        }
+    : undefined
+
   return (
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden" style={finishStyle}>
       {/* top bar */}
       <div className="z-20 flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
         <button
@@ -225,18 +265,21 @@ export function Table() {
               })}
             </div>
 
-            {/* board in the middle, pot right-aligned beneath it */}
+            {/* board in the middle; talk on the left, pot on the right */}
             <div className="flex flex-col gap-2">
               {communityCards}
-              <div className="flex items-baseline justify-end gap-2 px-2">
-                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                  Pot
-                </span>
-                <CountUp
-                  value={pot}
-                  format={money}
-                  className="text-2xl font-semibold tabular-nums"
-                />
+              <div className="flex items-end justify-between gap-3 px-2">
+                <div className="min-w-0 flex-1">{talkLine}</div>
+                <div className="flex shrink-0 items-baseline gap-2">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Pot
+                  </span>
+                  <CountUp
+                    value={pot}
+                    format={money}
+                    className="text-2xl font-semibold tabular-nums"
+                  />
+                </div>
               </div>
             </div>
 
@@ -302,15 +345,18 @@ export function Table() {
 
             <div className="absolute left-1/2 top-[62%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4">
               {communityCards}
-              <div className="flex items-baseline gap-2 self-end">
-                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                  Pot
-                </span>
-                <CountUp
-                  value={pot}
-                  format={money}
-                  className="text-3xl font-semibold tabular-nums"
-                />
+              <div className="flex w-full items-end justify-between gap-6">
+                <div className="min-w-0 flex-1">{talkLine}</div>
+                <div className="flex shrink-0 items-baseline gap-2">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Pot
+                  </span>
+                  <CountUp
+                    value={pot}
+                    format={money}
+                    className="text-3xl font-semibold tabular-nums"
+                  />
+                </div>
               </div>
             </div>
 
@@ -584,19 +630,32 @@ function HeroCards({
   fanned?: boolean
 }) {
   const folded = hero.status === 'folded'
+  const nickname = nicknameFor(hero.hole)
   return (
-    <div className={cn('flex items-end', fanned ? '-space-x-6' : 'gap-2', folded && 'opacity-40')}>
-      {hero.hole.map((card, i) => (
-        // Key by the card so a new deal re-mounts and replays the animation.
-        <DealtCard
-          key={`${card.rank}${card.suit}`}
-          index={i}
-          card={card}
-          size={size}
-          className={cn(fanned && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'))}
-        />
-      ))}
-      <span className="sr-only">{hand.street}</span>
+    <div className={cn('flex flex-col items-center gap-1.5', folded && 'opacity-40')}>
+      <div className={cn('flex items-end', fanned ? '-space-x-6' : 'gap-2')}>
+        {hero.hole.map((card, i) => (
+          // Key by the card so a new deal re-mounts and replays the animation.
+          <DealtCard
+            key={`${card.rank}${card.suit}`}
+            index={i}
+            card={card}
+            size={size}
+            className={cn(fanned && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'))}
+          />
+        ))}
+        <span className="sr-only">{hand.street}</span>
+      </div>
+      {nickname && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-[11px] text-muted-foreground/70"
+        >
+          {nickname}
+        </motion.span>
+      )}
     </div>
   )
 }
@@ -604,7 +663,7 @@ function HeroCards({
 function useHandLabel(hero: Player, hand: HandState) {
   return useMemo(() => {
     if (hero.hole.length < 2) return null
-    if (hero.hole.length + hand.community.length < 5) return 'Hole cards'
+    if (hero.hole.length + hand.community.length < 5) return nicknameFor(hero.hole) ?? 'Hole cards'
     try {
       return evaluateHand(hero.hole, hand.community).name
     } catch {

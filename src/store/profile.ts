@@ -55,6 +55,28 @@ const emptyVenueRecord = (): VenueRecord => ({
   fastestWinHands: null,
 })
 
+/** Career history with one cast character (see config/cast.ts). */
+export interface CastRecord {
+  /** Tendencies observed across every session — reads that persist. */
+  stats: SeatStats
+  /** Times you've taken their last chip. */
+  kos: number
+}
+
+const emptyCastRecord = (): CastRecord => ({ stats: emptySeatStats(), kos: 0 })
+
+/** Today's Daily Deal — one play per UTC day; abandoning counts as played. */
+export interface DailyRecord {
+  /** UTC day key, e.g. "2026-07-16". */
+  date: string
+  /** Which daily this was (#1 = the epoch day). */
+  dayNo: number
+  /** Finishing place (1 = won), or null if abandoned mid-tournament. */
+  place: number | null
+  /** Hands the run lasted. */
+  hands: number
+}
+
 export interface ProfileState {
   /** Onboarding complete? */
   created: boolean
@@ -77,6 +99,18 @@ export interface ProfileState {
   awards: Record<string, number>
   /** Comeback flag: the current run started with a Kitchen Table win. */
   cameFromFreeroll: boolean
+  /** Career history per cast character: reads that persist across sessions. */
+  castRecords: Record<string, CastRecord>
+  /** Rare one-line character flavour at the table (see docs/cast.md). */
+  tableTalk: boolean
+  /** The most recent Daily Deal played (only today's gates anything). */
+  daily: DailyRecord | null
+  /** Chip Shop purchases (item ids). Style, never edge — see docs/shop.md. */
+  owned: string[]
+  /** Equipped deck face: 'classic' or an owned face id (e.g. 'face-fourcolor'). */
+  deckFace: string
+  /** Equipped table finish (an owned finish id), or null for the plain table. */
+  tableFinish: string | null
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -87,6 +121,19 @@ export interface ProfileState {
   /** Record newly earned award chips (already-owned ids are left untouched). */
   grantAwards: (ids: string[]) => void
   setCameFromFreeroll: (value: boolean) => void
+  /** Fold a hand's observed tendencies into each character's career record. */
+  mergeCastStats: (deltas: Record<string, Partial<SeatStats>>) => void
+  /** You took this character's last chip. */
+  recordCastKnockout: (characterId: string) => void
+  setTableTalk: (value: boolean) => void
+  /** Buy a Chip Shop item: deducts the price, records ownership. No-op if owned or short. */
+  buyItem: (id: string, price: number) => void
+  setDeckFace: (id: string) => void
+  setTableFinish: (id: string | null) => void
+  /** Sitting down at today's Daily — marks it played immediately. */
+  recordDailyStart: (date: string, dayNo: number) => void
+  /** Final placing for the daily started on `date` (ignored if dates mismatch). */
+  recordDailyResult: (date: string, place: number, hands: number) => void
   mergeStats: (partial: Partial<LifetimeStats>) => void
   /** Add a hand's worth of hero tendencies onto the lifetime totals. */
   mergeTendencies: (delta: Partial<SeatStats>) => void
@@ -97,7 +144,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 9
+export const PERSIST_VERSION = 10
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -115,6 +162,12 @@ export const useProfile = create<ProfileState>()(
       cardBack: DEFAULT_CARD_BACK.id,
       awards: {},
       cameFromFreeroll: false,
+      castRecords: {},
+      tableTalk: true,
+      daily: null,
+      owned: [],
+      deckFace: 'classic',
+      tableFinish: null,
 
       createProfile: (name, avatar) =>
         set((s) => ({
@@ -146,6 +199,34 @@ export const useProfile = create<ProfileState>()(
           return { awards }
         }),
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
+      mergeCastStats: (deltas) =>
+        set((s) => {
+          const ids = Object.keys(deltas)
+          if (ids.length === 0) return s
+          const castRecords = { ...s.castRecords }
+          for (const id of ids) {
+            const rec = castRecords[id] ?? emptyCastRecord()
+            castRecords[id] = { ...rec, stats: addTendencies(rec.stats, deltas[id]) }
+          }
+          return { castRecords }
+        }),
+      recordCastKnockout: (characterId) =>
+        set((s) => {
+          const rec = s.castRecords[characterId] ?? emptyCastRecord()
+          return { castRecords: { ...s.castRecords, [characterId]: { ...rec, kos: rec.kos + 1 } } }
+        }),
+      setTableTalk: (value) => set({ tableTalk: value }),
+      buyItem: (id, price) =>
+        set((s) => {
+          // Spending never moves peakRoll — rank is about winnings, not thrift.
+          if (s.owned.includes(id) || s.roll < price) return s
+          return { owned: [...s.owned, id], roll: s.roll - price }
+        }),
+      setDeckFace: (id) => set({ deckFace: id }),
+      setTableFinish: (id) => set({ tableFinish: id }),
+      recordDailyStart: (date, dayNo) => set({ daily: { date, dayNo, place: null, hands: 0 } }),
+      recordDailyResult: (date, place, hands) =>
+        set((s) => (s.daily?.date === date ? { daily: { ...s.daily, place, hands } } : s)),
       mergeStats: (partial) =>
         set((s) => ({ stats: { ...s.stats, ...mergeStatValues(s.stats, partial) } })),
       mergeTendencies: (delta) => set((s) => ({ tendencies: addTendencies(s.tendencies, delta) })),
@@ -194,6 +275,12 @@ export const useProfile = create<ProfileState>()(
           cardBack: DEFAULT_CARD_BACK.id,
           awards: {},
           cameFromFreeroll: false,
+          castRecords: {},
+          tableTalk: true,
+          daily: null,
+          owned: [],
+          deckFace: 'classic',
+          tableFinish: null,
         }),
     }),
     {
@@ -231,6 +318,16 @@ export const useProfile = create<ProfileState>()(
         }
         // v8 → v9: lifetime hero tendencies (play-style chart).
         if (fromVersion < 9) s.tendencies = emptySeatStats()
+        // v9 → v10: the charm release — cast career records, table talk, the
+        // Daily Deal, and the Chip Shop (all shipped together, one bump).
+        if (fromVersion < 10) {
+          s.castRecords = {}
+          s.tableTalk = true
+          s.daily = null
+          s.owned = []
+          s.deckFace = 'classic'
+          s.tableFinish = null
+        }
         return s
       },
     },

@@ -10,7 +10,8 @@ literacy: exactly the register of the clean, calm UI. One soft syllable, easy to
 and spell, and it names a *thing you can draw* — the identity (favicon, wordmark,
 motifs) falls out of it naturally.
 
-(GitHub repo: [`playpip/pip-web`](https://github.com/playpip/pip-web).)
+(GitHub repo: [`playpip/pip-web`](https://github.com/playpip/pip-web). Lives at
+[playpip.io](https://playpip.io).)
 
 ## Positioning
 
@@ -49,11 +50,35 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
 - Encouraging, not exploitative — the broke-player line is *"Broke? Win your way back
   at the Kitchen Table."* (a freeroll, not a handout).
 
+### The dry line (character copy)
+
+Character copy — table talk, bios, shop blurbs — has a house register:
+**deadpan and observational, usually two beats, the second undercutting the
+first.**
+
+> *"Ted asks what the blinds are. Again."*
+> *"Pearl straightens the shelf. It was already straight."*
+> *"Racing Green. Goes faster. (It doesn't.)"*
+> *"The Golden Pip. It's a pip. It's gold. It does nothing at all."*
+
+Rules of the register:
+
+- **Observe, don't perform.** The narrator reports what happened, flatly; the
+  joke lives in the gap between the sentences, never in an exclamation mark.
+- **Affectionate, never mean.** The joke is on the situation (or the product
+  being honest about itself), never on the player.
+- **Short.** One line, two sentences at most. If it needs a third beat, cut it.
+- **Honest.** The dryness often comes from telling the truth plainly —
+  especially about cosmetics doing nothing. Self-aware beats salesy.
+- The bartender test: if the line wouldn't land spoken flatly by a bartender,
+  cut it.
+
 ## Naming within the product
 
 - The bankroll is **"your Roll."**
 - Tables are **venues**, arranged as a **ladder** from *Friends' Garage* → *The Main Event*.
-- Opponents get friendly first names (see `config/names.ts`).
+- Opponents are **the cast** — a fixed troupe of named regulars (see
+  `config/cast.ts` and [cast.md](./cast.md)).
 
 ## Do / Don't
 

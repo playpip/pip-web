@@ -10,9 +10,13 @@ import {
 } from '@/components/ui/dialog'
 import { AwardChip } from '@/components/AwardChip'
 import { AWARDS, type AwardKind } from '@/lib/awards'
+import { SOUVENIRS, souvenirAward } from '@/config/shop'
 import { useProfile } from '@/store/profile'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+
+/** Souvenirs as chip defs — bought chips, same template as the earned ones. */
+const SOUVENIR_CHIPS = SOUVENIRS.map(souvenirAward)
 
 // Dev switch: renders every chip as earned so the designs can be reviewed.
 const PREVIEW_ALL_CHIPS = false
@@ -36,10 +40,12 @@ export function ChipsDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const owned = useProfile((s) => s.awards)
+  const boughtIds = useProfile((s) => s.owned)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const isEarned = (id: string) => PREVIEW_ALL_CHIPS || owned[id] !== undefined
-  const selected = AWARDS.find((a) => a.id === selectedId)
+  const isEarned = (id: string) =>
+    PREVIEW_ALL_CHIPS || owned[id] !== undefined || boughtIds.includes(id)
+  const selected = [...AWARDS, ...SOUVENIR_CHIPS].find((a) => a.id === selectedId)
   const earnedCount = AWARDS.filter((a) => isEarned(a.id)).length
 
   return (
@@ -91,6 +97,43 @@ export function ChipsDialog({
               </div>
             </section>
           ))}
+
+          {/* souvenirs — the bought chips, same shelf language as the earned */}
+          <section>
+            <p className="mb-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+              Souvenirs · from the Chip Shop
+            </p>
+            <div className="grid grid-cols-5 gap-x-2 gap-y-3">
+              {SOUVENIR_CHIPS.map((chip) => {
+                const earned = isEarned(chip.id)
+                return (
+                  <button
+                    key={chip.id}
+                    onClick={() => {
+                      sound.play('tap')
+                      setSelectedId(chip.id === selectedId ? null : chip.id)
+                    }}
+                    aria-label={chip.name}
+                    className={cn(
+                      'flex flex-col items-center gap-1.5 rounded-xl p-1.5 transition hover:bg-foreground/5 active:scale-95',
+                      selectedId === chip.id &&
+                        'bg-foreground/5 ring-1 ring-inset ring-foreground/20',
+                    )}
+                  >
+                    <AwardChip award={chip} earned={earned} size={48} />
+                    <span
+                      className={cn(
+                        'w-full truncate text-center text-[10px] leading-tight',
+                        earned ? 'text-foreground' : 'text-muted-foreground/60',
+                      )}
+                    >
+                      {chip.name}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
         </div>
 
         <p className="min-h-4 border-t border-foreground/10 pt-3 text-center text-xs text-muted-foreground">

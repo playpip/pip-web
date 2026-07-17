@@ -3,12 +3,27 @@
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Lock, ChevronRight, ChevronLeft, Info, RotateCcw, Settings } from 'lucide-react'
+import {
+  Lock,
+  ChevronRight,
+  ChevronLeft,
+  Info,
+  Moon,
+  MoonStar,
+  Palette,
+  RotateCcw,
+  Settings,
+  Store,
+  Sun,
+  Sunrise,
+} from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
 import { useProfile } from '@/store/profile'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
+import { StyleDialog } from '@/components/settings/StyleDialog'
+import { ShopDialog } from './ShopDialog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { VenueArt } from './VenueArt'
 import { VenueInfoDialog } from './VenueInfoDialog'
@@ -16,14 +31,27 @@ import {
   VENUES,
   SIDE_TABLES,
   KITCHEN_TABLE,
+  THE_DAILY,
   FORMAT_LABELS,
   freerollOpen,
   type Venue,
 } from '@/config/venues'
+import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { rankFor } from '@/config/ranks'
+import { characterById } from '@/config/cast'
 import { useMoney } from '@/lib/useMoney'
+import { greetingFor, kitchenHintFor, periodFor, type DayPeriod } from '@/lib/timeOfDay'
+import { useHydrated } from '@/lib/useHydrated'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+
+/** The sky outside, in one small glyph — a moon for the evening, and so on. */
+const PERIOD_ICONS: Record<DayPeriod, typeof Moon> = {
+  late: MoonStar,
+  morning: Sunrise,
+  afternoon: Sun,
+  evening: Moon,
+}
 
 interface VenueVM {
   venue: Venue
@@ -41,10 +69,15 @@ export function Home() {
   const money = useMoney()
   const [editOpen, setEditOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [styleOpen, setStyleOpen] = useState(false)
+  const [shopOpen, setShopOpen] = useState(false)
   const [infoVenue, setInfoVenue] = useState<Venue | null>(null)
 
   const rank = rankFor(peakRoll)
   const broke = freerollOpen(roll)
+  // Clock-derived copy renders client-side only (SSR has no local hour).
+  const hydrated = useHydrated()
+  const hour = hydrated ? new Date().getHours() : 12
 
   const modelsFor = (venues: readonly Venue[], tiered: boolean): VenueVM[] =>
     venues.map((venue, index) => ({
@@ -88,6 +121,16 @@ export function Home() {
           <button
             onClick={() => {
               sound.play('tap')
+              setStyleOpen(true)
+            }}
+            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+            aria-label="Style"
+          >
+            <Palette className="size-4" />
+          </button>
+          <button
+            onClick={() => {
+              sound.play('tap')
               setSettingsOpen(true)
             }}
             className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
@@ -111,10 +154,13 @@ export function Home() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center py-6 text-center"
+        className="flex flex-col items-start py-12 text-left"
       >
-        <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Your Roll</p>
-        <div className="mt-1 flex items-baseline justify-center gap-2">
+        {/* the greeting IS the label — one line, so it reads as part of the Roll */}
+        <p className="text-sm text-muted-foreground">
+          {hydrated ? <GreetingLine hour={hour} name={name} /> : 'Your Roll'}
+        </p>
+        <div className="mt-1 flex items-baseline gap-2">
           <CountUp
             value={roll}
             format={money}
@@ -137,9 +183,16 @@ export function Home() {
 
       {/* the shelves */}
       <div className="flex flex-1 flex-col justify-center gap-8 pb-2">
+        {hydrated && <DailyCard roll={roll} />}
+        <ShopCard
+          onOpen={() => {
+            sound.play('tap')
+            setShopOpen(true)
+          }}
+        />
         <VenueShelf
           title="The Ladder"
-          hint="Broke? Win your way back at the Kitchen Table."
+          hint={kitchenHintFor(hour)}
           models={modelsFor(VENUES, true)}
         />
         <VenueShelf
@@ -152,8 +205,92 @@ export function Home() {
 
       <ProfileDialog open={editOpen} onOpenChange={setEditOpen} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
+      <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
       <VenueInfoDialog venue={infoVenue} onOpenChange={(o) => !o && setInfoVenue(null)} />
     </div>
+  )
+}
+
+/** "Evening, Will 🌙 — your Roll": the little sky-glyph follows the name. */
+function GreetingLine({ hour, name }: { hour: number; name: string }) {
+  const Icon = PERIOD_ICONS[periodFor(hour)]
+  return (
+    <>
+      {greetingFor(hour)}, {name} <Icon className="mb-0.5 inline size-3.5" aria-hidden /> — your
+      Roll
+    </>
+  )
+}
+
+/**
+ * The Daily Deal — one seeded tournament a day, the same shuffle for everyone.
+ * Play state: a quiet enter row. Played state: today's result and a copyable
+ * share line. No streaks, no countdown — tomorrow is simply another deal.
+ */
+function DailyCard({ roll }: { roll: number }) {
+  const router = useRouter()
+  const money = useMoney()
+  const daily = useProfile((s) => s.daily)
+  const [copied, setCopied] = useState(false)
+
+  const today = dailyDateKey()
+  const dayNo = dailyNumber(today)
+  const playedToday = daily?.date === today
+  const playable = !playedToday && roll >= THE_DAILY.buyIn
+
+  const share = () => {
+    if (!daily) return
+    sound.play('tap')
+    void navigator.clipboard
+      ?.writeText(dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands))
+      .then(() => setCopied(true))
+  }
+
+  return (
+    <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="mb-3 px-1">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          The Daily <span className="tabular-nums">#{dayNo}</span>
+        </p>
+      </div>
+      <div className="flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 pl-4">
+        <div className="min-w-0 flex-1">
+          <span className="font-medium">{THE_DAILY.name}</span>
+          <p className="truncate text-sm text-muted-foreground">
+            {playedToday
+              ? daily?.place
+                ? daily.place === 1
+                  ? `Won it · ${daily.hands} hands`
+                  : `Finished ${ordinal(daily.place)} of ${THE_DAILY.seats} · ${daily.hands} hands`
+                : 'Played today. Back tomorrow.'
+              : THE_DAILY.tagline}
+          </p>
+        </div>
+        {playedToday ? (
+          daily?.place != null && (
+            <button
+              onClick={share}
+              className="shrink-0 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]"
+            >
+              {copied ? 'Copied' : 'Share'}
+            </button>
+          )
+        ) : playable ? (
+          <button
+            onClick={() => {
+              sound.play('call')
+              router.push(`/play/${THE_DAILY.id}`)
+            }}
+            className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+          >
+            Play — {money(THE_DAILY.buyIn)}
+          </button>
+        ) : (
+          <LockTag venue={THE_DAILY} />
+        )}
+      </div>
+    </motion.section>
   )
 }
 
@@ -206,6 +343,44 @@ function VenueShelf({
           <VenueRow key={m.venue.id} model={m} />
         ))}
       </div>
+    </motion.section>
+  )
+}
+
+/**
+ * The Chip Shop's storefront — its own full-width band under the shelves,
+ * sibling to the Daily card, with Pearl in the window. Always visible, never
+ * shouting: same quiet card language as everything else on the home screen.
+ */
+function ShopCard({ onOpen }: { onOpen: () => void }) {
+  const pearl = characterById('pearl')
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15, duration: 0.4, ease: 'easeOut' }}
+    >
+      <div className="mb-3 px-1">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">The Chip Shop</p>
+      </div>
+      <button
+        onClick={onOpen}
+        className="group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      >
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
+          {pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="font-medium">Pearl&rsquo;s counter</span>
+          <p className="truncate text-sm text-muted-foreground">
+            Card backs, deck faces, souvenirs — style, never edge.
+          </p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
+          <Store className="size-4" />
+          Browse
+        </span>
+      </button>
     </motion.section>
   )
 }

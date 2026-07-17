@@ -6,6 +6,7 @@ import { Table } from '@/components/table/Table'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
 import { venueById, canAfford, freerollOpen } from '@/config/venues'
+import { dailyDateKey } from '@/lib/daily'
 
 export default function PlayPage({ params }: { params: Promise<{ venue: string }> }) {
   const { venue: venueId } = use(params)
@@ -32,6 +33,12 @@ export default function PlayPage({ params }: { params: Promise<{ venue: string }
     const snapshot = loadTableSnapshot()
     if (snapshot && snapshot.venueId === venueId) {
       useGame.getState().resumeTable(venue, snapshot)
+      return
+    }
+
+    // The Daily is once a day — played (or abandoned) means done till tomorrow.
+    if (venue.daily && profile.daily?.date === dailyDateKey()) {
+      router.replace('/')
       return
     }
 

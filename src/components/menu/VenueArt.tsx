@@ -250,6 +250,21 @@ const VENUE_IMAGES: Record<string, string> = {
   vault: '/venues/vault.jpg',
 }
 
+// --- ambience — venues that are barely alive ---------------------------------
+// One slow, subtle motion per venue, invisible in a screenshot: the Riverboat
+// drifts, the Pool Hall's lamp breathes, the neon venues hum. A first small set
+// for review — most venues stay perfectly still, and that's fine too.
+// Keyframes live in globals.css; all of it is off under prefers-reduced-motion.
+
+type Ambience = 'drift' | 'breathe' | 'flicker'
+
+const AMBIENCE: Record<string, Ambience> = {
+  riverboat: 'drift',
+  poolhall: 'breathe',
+  casino: 'flicker',
+  vegas: 'flicker',
+}
+
 function VenueScene({ id, accent, className }: { id: string; accent: string; className?: string }) {
   const scene = SCENES[id] ?? SCENES.garage
   return (
@@ -275,6 +290,7 @@ export function VenueArt({
   className?: string
 }) {
   const image = VENUE_IMAGES[id]
+  const ambience = AMBIENCE[id]
   return (
     <div className={cn('relative overflow-hidden bg-[#0A0A0A]', className)}>
       {/* SVG fallback sits underneath; the image (if any) covers it. */}
@@ -284,10 +300,23 @@ export function VenueArt({
           src={image}
           alt=""
           draggable={false}
-          className="absolute inset-0 size-full object-cover"
+          className={cn(
+            'absolute inset-0 size-full object-cover',
+            ambience === 'drift' && 'venue-drift',
+          )}
           onError={(e) => {
             e.currentTarget.style.display = 'none'
           }}
+        />
+      )}
+      {(ambience === 'breathe' || ambience === 'flicker') && (
+        <div
+          aria-hidden
+          className={cn(
+            'pointer-events-none absolute inset-0',
+            ambience === 'breathe' ? 'venue-breathe' : 'venue-flicker',
+          )}
+          style={{ background: `radial-gradient(60% 50% at 50% 40%, ${accent}, transparent 70%)` }}
         />
       )}
     </div>

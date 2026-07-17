@@ -3,9 +3,24 @@
 import { motion } from 'framer-motion'
 import type { Card, Suit } from '@/lib/poker/cards'
 import { isRed } from '@/lib/poker/cards'
+import { useProfile } from '@/store/profile'
 import { cn } from '@/lib/utils'
 
 const SUIT_GLYPH: Record<Suit, string> = { c: '♣', d: '♦', h: '♥', s: '♠' }
+
+// The four-colour deck (a Chip Shop purchase): hearts red, spades black,
+// diamonds blue, clubs green — the poker-room standard for misreading nothing.
+const FOUR_COLOUR_INK: Record<Suit, string> = {
+  h: 'text-suit-red',
+  s: 'text-cardface-ink',
+  d: 'text-suit-blue',
+  c: 'text-suit-green',
+}
+
+function inkFor(suit: Suit, deckFace: string): string {
+  if (deckFace === 'face-fourcolor') return FOUR_COLOUR_INK[suit]
+  return isRed(suit) ? 'text-suit-red' : 'text-cardface-ink'
+}
 
 // Ten displays as "10" on the face; the engine keeps 'T' internally.
 const rankLabel = (rank: string): string => (rank === 'T' ? '10' : rank)
@@ -59,6 +74,9 @@ export function PlayingCard({
 }) {
   const s = SIZES[size]
   const hidden = faceDown || !card
+  const deckFace = useProfile((st) => st.deckFace)
+  // The High-Contrast deck: same colours, ink like it means it.
+  const contrast = deckFace === 'face-contrast'
 
   if (hidden) {
     return (
@@ -76,8 +94,7 @@ export function PlayingCard({
     )
   }
 
-  const red = isRed(card.suit)
-  const ink = red ? 'text-suit-red' : 'text-cardface-ink'
+  const ink = inkFor(card.suit, deckFace)
 
   // Tiny cards (showdown reveal) read better as a centred, compact index than
   // the spread top/bottom layout used at larger sizes.
@@ -92,8 +109,12 @@ export function PlayingCard({
           className,
         )}
       >
-        <span className={cn(s.rank, 'font-bold', ink)}>{rankLabel(card.rank)}</span>
-        <span className={cn(s.suit, ink)}>{SUIT_GLYPH[card.suit]}</span>
+        <span className={cn(s.rank, contrast ? 'font-black' : 'font-bold', ink)}>
+          {rankLabel(card.rank)}
+        </span>
+        <span className={cn(s.suit, ink, contrast && 'inline-block scale-110')}>
+          {SUIT_GLYPH[card.suit]}
+        </span>
       </div>
     )
   }
@@ -111,10 +132,19 @@ export function PlayingCard({
         className,
       )}
     >
-      <span className={cn(s.rank, 'font-semibold leading-none tracking-tight', ink)}>
+      <span
+        className={cn(
+          s.rank,
+          'leading-none tracking-tight',
+          contrast ? 'font-black' : 'font-semibold',
+          ink,
+        )}
+      >
         {rankLabel(card.rank)}
       </span>
-      <span className={cn(s.suit, 'leading-none', ink)}>{SUIT_GLYPH[card.suit]}</span>
+      <span className={cn(s.suit, 'leading-none', ink, contrast && 'inline-block scale-110')}>
+        {SUIT_GLYPH[card.suit]}
+      </span>
     </div>
   )
 }

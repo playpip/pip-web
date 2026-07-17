@@ -104,3 +104,5 @@ If pnpm reports ignored build scripts, add the package to `onlyBuiltDependencies
 
 Static-friendly Next app; deploys to **Vercel** as-is. `/` is static; `/play/[venue]`
 is dynamic. No backend, env vars, or secrets required.
+
+Production domain: **[playpip.io](https://playpip.io)**.

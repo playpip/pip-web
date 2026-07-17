@@ -7,10 +7,10 @@
 
 import { create } from 'zustand'
 import type { AvatarSpec } from '@/lib/avatar'
-import { randomAvatar } from '@/lib/avatar'
 import { sound } from '@/lib/sound'
-import { pickNames } from '@/config/names'
-import { pickBio, styleFor, randomBankroll } from '@/config/opponents'
+import { draftCast, profileFor, characterById } from '@/config/cast'
+import { styleFor, randomBankroll } from '@/config/opponents'
+import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
 import { freerollOpen, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
@@ -27,7 +27,9 @@ import {
 } from '@/lib/poker/engine'
 import { decideAction } from '@/lib/poker/ai/policy'
 import { estimateEquity } from '@/lib/poker/equity'
-import type { Card } from '@/lib/poker/cards'
+import { mulberry32, type Card, type Rng } from '@/lib/poker/cards'
+import { dailyDateKey, dailyNumber, dailySeed, handSeed } from '@/lib/daily'
+import { formatChips } from '@/lib/useMoney'
 import { useProfile } from './profile'
 
 export interface SeatMeta {
@@ -41,6 +43,10 @@ export interface SeatMeta {
   style?: string
   bio?: string
   bankroll?: number
+  /** Which cast character sits here (see config/cast.ts). */
+  characterId?: string
+  /** This seat's AI profile: the venue's, nudged by the character. */
+  ai?: AiProfile
 }
 
 export type GameStatus = 'idle' | 'playing' | 'handover' | 'busted' | 'won'
@@ -109,6 +115,8 @@ interface GameState {
   lastBounty: number
   /** Observed tendencies per seat this tournament (feeds the reads in the player dialog). */
   seatStats: Record<string, SeatStats>
+  /** One quiet line of character flavour, heavily rationed (see docs/cast.md). */
+  talk: string | null
 
   sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec }) => void
   /** Rebuild an interrupted table from its snapshot (no buy-in taken). */
@@ -142,6 +150,8 @@ export interface TableSnapshot {
   buttonSeatId: string
   handIndex: number
   heroLow: number
+  /** Which day's Daily this table is — keeps the seed stable across midnight. */
+  dailyDate?: string
 }
 
 function saveTableSnapshot(snap: TableSnapshot) {
@@ -177,6 +187,45 @@ let heroLowTide = Infinity
 let seatStatsLive: Record<string, SeatStats> = {}
 /** Hero tendencies already pushed to the lifetime profile — the flush baseline. */
 let heroTendencyFlushed: SeatStats = emptySeatStats()
+/** Cast tendencies already pushed to career records — flush baselines by seat. */
+let castFlushed: Record<string, SeatStats> = {}
+
+// --- the Daily Deal ------------------------------------------------------------
+// While a Daily table is live, decks come from a date-derived seed (hand n is
+// mulberry32(handSeed(base, n)) — so a refresh re-deals hand n identically) and
+// AI decisions draw from a seeded stream. Everything else is the normal loop.
+
+let dailyBase: number | null = null
+let dailyDay: string | null = null
+let dailyAiRng: Rng | null = null
+
+function armDaily(dateKey: string | null) {
+  dailyDay = dateKey
+  dailyBase = dateKey ? dailySeed(dateKey) : null
+  dailyAiRng = dailyBase !== null ? mulberry32(dailyBase ^ 0x5f356495) : null
+}
+
+// --- table talk ---------------------------------------------------------------
+// Rationed hard: at most one line every few hands, and most moments pass in
+// silence anyway. The writing bar is the feature — lines live in config/cast.ts.
+
+const TALK_MIN_GAP_HANDS = 4
+let lastTalkHand = -TALK_MIN_GAP_HANDS
+
+function maybeTalk(
+  kind: 'seat' | 'win' | 'bust',
+  seat: SeatMeta | undefined,
+  handIndex: number,
+  chance: number,
+): string | null {
+  if (!useProfile.getState().tableTalk) return null
+  if (handIndex - lastTalkHand < TALK_MIN_GAP_HANDS) return null
+  if (Math.random() > chance) return null
+  const lines = seat?.characterId ? characterById(seat.characterId)?.lines[kind] : undefined
+  if (!lines || lines.length === 0) return null
+  lastTalkHand = handIndex
+  return lines[Math.floor(Math.random() * lines.length)]
+}
 /** Who has voluntarily put chips in this hand already (VPIP counts once per hand). */
 let vpipThisHand = new Set<string>()
 
@@ -254,6 +303,7 @@ export const useGame = create<GameState>((set, get) => {
       buttonIndex,
       smallBlind: blinds.smallBlind,
       bigBlind: blinds.bigBlind,
+      rng: dailyBase !== null ? mulberry32(handSeed(dailyBase, handIndex)) : undefined,
     })
     sound.play('deal')
     currentEvents = []
@@ -264,6 +314,7 @@ export const useGame = create<GameState>((set, get) => {
       status: 'playing',
       newAwards: [],
       lastBounty: 0,
+      talk: null,
       seatStats: { ...seatStatsLive },
       buttonSeatId: configs[buttonIndex].id,
       smallBlind: blinds.smallBlind,
@@ -278,6 +329,7 @@ export const useGame = create<GameState>((set, get) => {
       buttonSeatId: configs[buttonIndex].id,
       handIndex,
       heroLow: heroLowTide,
+      dailyDate: dailyDay ?? undefined,
     })
     progress()
   }
@@ -311,7 +363,8 @@ export const useGame = create<GameState>((set, get) => {
       const cur = get().hand
       if (!cur || isHandComplete(cur)) return
       const venue = get().venue!
-      const action = decideAction(cur, venue.ai)
+      const seatAi = get().seats.find((s) => s.id === toAct.id)?.ai
+      const action = decideAction(cur, seatAi ?? venue.ai, dailyAiRng ?? Math.random)
       playActionSound(action, cur)
       const next = applyAction(cur, action)
       recordStep(cur, action, next)
@@ -361,6 +414,28 @@ export const useGame = create<GameState>((set, get) => {
       heroTendencyFlushed = { ...heroLive }
     }
 
+    // Flush each character's tendencies into their career record — the reads
+    // that persist across sessions (docs/cast.md). Delta since the last flush.
+    const castDeltas: Record<string, Partial<SeatStats>> = {}
+    for (const s of seats) {
+      if (s.isHuman || !s.characterId) continue
+      const live = seatStatsLive[s.id]
+      if (!live) continue
+      const base = castFlushed[s.id] ?? emptySeatStats()
+      const delta = {
+        handsDealt: live.handsDealt - base.handsDealt,
+        vpipHands: live.vpipHands - base.vpipHands,
+        raises: live.raises - base.raises,
+        calls: live.calls - base.calls,
+        betsFaced: live.betsFaced - base.betsFaced,
+        foldsToBet: live.foldsToBet - base.foldsToBet,
+        showdowns: live.showdowns - base.showdowns,
+      }
+      if (Object.values(delta).some((v) => v !== 0)) castDeltas[s.characterId] = delta
+      castFlushed[s.id] = { ...live }
+    }
+    profile.mergeCastStats(castDeltas)
+
     if (result) sound.play(heroWon ? 'win' : result.showdown ? 'lose' : 'tap')
 
     const survivors = nextSeats.filter((s) => s.stack > 0)
@@ -368,9 +443,10 @@ export const useGame = create<GameState>((set, get) => {
     const tournamentWon = humanAlive && survivors.length === 1
 
     // Knockouts: opponents busted this hand with every pot going to the hero.
-    const eliminatedCount = seats.filter(
+    const eliminated = seats.filter(
       (s) => s.id !== HUMAN_ID && s.stack > 0 && (stackById.get(s.id) ?? 0) === 0,
-    ).length
+    )
+    const eliminatedCount = eliminated.length
     const heroTookAll =
       !!result && Object.entries(result.payouts).every(([id, amt]) => id === HUMAN_ID || amt === 0)
     const knockedOut = heroWon && eliminatedCount > 0 && heroTookAll
@@ -379,11 +455,19 @@ export const useGame = create<GameState>((set, get) => {
     const bountyWon = knockedOut && venue.bounty ? eliminatedCount * venue.bounty : 0
     if (bountyWon > 0) profile.adjustRoll(bountyWon)
 
+    // Career scalps: you took a character's last chip.
+    if (knockedOut) {
+      for (const s of eliminated) {
+        if (s.characterId) profile.recordCastKnockout(s.characterId)
+      }
+    }
+
     // Tournament outcomes.
     if (!humanAlive) {
       clearTableSnapshot()
       const place = survivors.length + 1
       profile.recordVenueResult(venue.id, place, get().handIndex)
+      if (venue.daily && dailyDay) profile.recordDailyResult(dailyDay, place, get().handIndex)
       profile.recordRollPoint()
       // Busting back below the ladder resets the freeroll comeback story.
       if (profile.cameFromFreeroll && freerollOpen(profile.roll)) {
@@ -397,6 +481,7 @@ export const useGame = create<GameState>((set, get) => {
       profile.adjustRoll(venue.prize)
       profile.mergeStats({ tournamentsWon: 1 })
       profile.recordVenueResult(venue.id, 1, get().handIndex)
+      if (venue.daily && dailyDay) profile.recordDailyResult(dailyDay, 1, get().handIndex)
       profile.recordRollPoint()
       if (venue.freeroll) profile.setCameFromFreeroll(true)
       const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut)
@@ -414,6 +499,16 @@ export const useGame = create<GameState>((set, get) => {
     }
 
     // Otherwise: pause on the result until the player taps "Next hand".
+    // A character moment, maybe: a bust-out line beats a big-pot gloat, and
+    // most hands pass in silence (see maybeTalk's rationing).
+    const winnerId = result?.potsAwarded[0]?.winners[0]
+    const winnerSeat =
+      winnerId && winnerId !== HUMAN_ID ? seats.find((s) => s.id === winnerId) : undefined
+    const bigPot = pot >= get().bigBlind * 20
+    const talk =
+      maybeTalk('bust', eliminated[0], get().handIndex, 0.8) ??
+      (bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null)
+
     const newAwards = grantEarnedAwards(hand, venue, heroWon, false, knockedOut)
     heroLowTide = Math.min(heroLowTide, stackById.get(HUMAN_ID) ?? 0)
     // A refresh during the handover resumes with the next hand, chips intact.
@@ -427,6 +522,7 @@ export const useGame = create<GameState>((set, get) => {
       ),
       handIndex: get().handIndex,
       heroLow: heroLowTide,
+      dailyDate: dailyDay ?? undefined,
     })
     set({
       seats: nextSeats,
@@ -436,6 +532,7 @@ export const useGame = create<GameState>((set, get) => {
       message: describeResult(hand),
       newAwards,
       lastBounty: bountyWon,
+      talk,
     })
   }
 
@@ -496,6 +593,7 @@ export const useGame = create<GameState>((set, get) => {
     newAwards: [],
     lastBounty: 0,
     seatStats: {},
+    talk: null,
 
     sitDown: (venue, human) => {
       clearTimers()
@@ -503,18 +601,35 @@ export const useGame = create<GameState>((set, get) => {
       heroLowTide = stack
       seatStatsLive = {}
       heroTendencyFlushed = emptySeatStats()
+      castFlushed = {}
+      lastTalkHand = -TALK_MIN_GAP_HANDS
+      // The Daily deals from a date seed — and sitting down burns today's shot
+      // (abandoning counts as played; the shuffle is knowable).
+      armDaily(venue.daily ? dailyDateKey() : null)
+      if (venue.daily && dailyDay) {
+        useProfile.getState().recordDailyStart(dailyDay, dailyNumber(dailyDay))
+      }
       const aiCount = venue.seats - 1
-      const names = pickNames(aiCount)
-      const aiSeats: SeatMeta[] = names.map((name, i) => ({
-        id: `ai${i}`,
-        name,
-        avatar: randomAvatar(i),
-        isHuman: false,
-        stack,
-        style: styleFor(venue.ai),
-        bio: pickBio(),
-        bankroll: randomBankroll(venue),
-      }))
+      const cast = draftCast(
+        venue,
+        aiCount,
+        dailyBase !== null ? mulberry32(dailyBase ^ 0x9e3779b9) : undefined,
+      )
+      const aiSeats: SeatMeta[] = cast.map((ch, i) => {
+        const ai = profileFor(venue, ch)
+        return {
+          id: `ai${i}`,
+          name: ch.name,
+          avatar: ch.avatar,
+          isHuman: false,
+          stack,
+          style: styleFor(ai),
+          bio: ch.bio,
+          bankroll: randomBankroll(venue),
+          characterId: ch.id,
+          ai,
+        }
+      })
       const humanSeat: SeatMeta = {
         id: HUMAN_ID,
         name: human.name,
@@ -547,8 +662,13 @@ export const useGame = create<GameState>((set, get) => {
         newAwards: [],
         lastBounty: 0,
         seatStats: {},
+        talk: null,
       })
       dealHand(seats[0].id)
+      // Someone might say hello — one line at most, often nobody.
+      const speaker = aiSeats[Math.floor(Math.random() * aiSeats.length)]
+      const seatTalk = maybeTalk('seat', speaker, 0, 0.6)
+      if (seatTalk) set({ talk: seatTalk })
     },
 
     resumeTable: (venue, snapshot) => {
@@ -556,6 +676,10 @@ export const useGame = create<GameState>((set, get) => {
       heroLowTide = snapshot.heroLow
       seatStatsLive = {}
       heroTendencyFlushed = emptySeatStats()
+      castFlushed = {}
+      lastTalkHand = -TALK_MIN_GAP_HANDS
+      // Resume a Daily under its original day's seed, even across midnight.
+      armDaily(venue.daily ? (snapshot.dailyDate ?? dailyDateKey()) : null)
       set({
         venue,
         seats: snapshot.seats,
@@ -571,6 +695,7 @@ export const useGame = create<GameState>((set, get) => {
         lastHand: null,
         newAwards: [],
         lastBounty: 0,
+        talk: null,
       })
       dealHand(snapshot.buttonSeatId)
     },
@@ -592,6 +717,7 @@ export const useGame = create<GameState>((set, get) => {
     leave: () => {
       clearTimers()
       clearTableSnapshot()
+      armDaily(null)
       set({
         venue: null,
         seats: [],
@@ -610,6 +736,7 @@ export const useGame = create<GameState>((set, get) => {
         newAwards: [],
         lastBounty: 0,
         seatStats: {},
+        talk: null,
       })
     },
   }
@@ -695,7 +822,7 @@ function describeResult(hand: HandState): string {
     .join(' & ')
   if (r.showdown && r.evaluations) {
     const handName = r.evaluations[win.winners[0]]?.name
-    return `${names} wins ${win.amount} with ${handName}`
+    return `${names} wins ${formatChips(win.amount)} with ${handName}`
   }
-  return `${names} wins ${win.amount}`
+  return `${names} wins ${formatChips(win.amount)}`
 }
