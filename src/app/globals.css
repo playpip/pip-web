@@ -185,10 +185,11 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overscroll-none;
   }
   html {
-    @apply font-sans scroll-smooth;
+    /* overscroll-none kills the PWA rubber-band bounce at the page ends. */
+    @apply font-sans scroll-smooth overscroll-none;
     /* Native-app feel: kill double-tap-to-zoom (the viewport meta blocks
        pinch-zoom; this covers the double-tap gesture). */
     touch-action: manipulation;

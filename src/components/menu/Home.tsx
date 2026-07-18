@@ -12,7 +12,6 @@ import {
   Moon,
   MoonStar,
   Palette,
-  RotateCcw,
   Settings,
   Store,
   Sun,
@@ -25,7 +24,6 @@ import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { StyleDialog } from '@/components/settings/StyleDialog'
 import { ShopDialog } from './ShopDialog'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { VenueArt } from './VenueArt'
 import { VenueInfoDialog } from './VenueInfoDialog'
 import {
@@ -66,7 +64,7 @@ interface VenueVM {
 
 export function Home() {
   const router = useRouter()
-  const { name, avatar, roll, peakRoll, reset } = useProfile()
+  const { name, avatar, roll, peakRoll } = useProfile()
   const money = useMoney()
   const [editOpen, setEditOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -118,7 +116,6 @@ export function Home() {
           <span className="mr-1 text-xl font-semibold lowercase tracking-tight text-muted-foreground">
             pip
           </span>
-          <ThemeToggle />
           <button
             onClick={() => {
               sound.play('tap')
@@ -138,15 +135,6 @@ export function Home() {
             aria-label="Settings"
           >
             <Settings className="size-4" />
-          </button>
-          <button
-            onClick={() => {
-              if (confirm('Reset your profile and Roll?')) reset()
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Reset profile"
-          >
-            <RotateCcw className="size-4" />
           </button>
         </div>
       </div>

@@ -4,18 +4,19 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/theme-provider'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, HelpCircle, History, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, HelpCircle, History, Palette, Settings } from 'lucide-react'
 import { AwardChip } from '@/components/AwardChip'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { DealtCard, PlayingCard, type CardSize } from '@/components/PlayingCard'
 import { CardBack } from '@/components/CardBack'
 import { CountUp } from '@/components/CountUp'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { ActionBar } from './ActionBar'
 import { HandHistoryDialog } from './HandHistoryDialog'
 import { HandsHelpDialog } from './HandsHelpDialog'
 import { LeaveDialog } from './LeaveDialog'
 import { PlayerDialog } from './PlayerDialog'
+import { SettingsDialog } from '@/components/settings/SettingsDialog'
+import { StyleDialog } from '@/components/settings/StyleDialog'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
 import { potSize, type HandState, type Player } from '@/lib/poker/engine'
@@ -78,6 +79,8 @@ export function Table() {
   const isMobile = useIsMobile()
   const [helpOpen, setHelpOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [styleOpen, setStyleOpen] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [viewId, setViewId] = useState<string | null>(null)
   const hasHistory = useGame((s) => s.lastHand !== null)
@@ -232,8 +235,26 @@ export function Table() {
           >
             <HelpCircle className="size-5" />
           </button>
-          <ThemeToggle />
-          <MuteToggle />
+          <button
+            onClick={() => {
+              sound.play('tap')
+              setStyleOpen(true)
+            }}
+            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+            aria-label="Style"
+          >
+            <Palette className="size-5" />
+          </button>
+          <button
+            onClick={() => {
+              sound.play('tap')
+              setSettingsOpen(true)
+            }}
+            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+            aria-label="Settings"
+          >
+            <Settings className="size-5" />
+          </button>
         </div>
       </div>
 
@@ -397,6 +418,8 @@ export function Table() {
 
       <HandsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
       <HandHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
       <LeaveDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
@@ -598,11 +621,16 @@ function Seat({
       >
         {money(player.stack)}
       </span>
-      {player.committedThisStreet > 0 && (
-        <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium tabular-nums">
-          {money(player.committedThisStreet)}
-        </span>
-      )}
+      {/* Reserve the bet-chip slot always, so a bet appearing/clearing never
+          changes the seat's height (which would nudge the board via the
+          justify-evenly column on mobile). */}
+      <span className="flex h-[18px] items-center justify-center">
+        {player.committedThisStreet > 0 && (
+          <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium tabular-nums">
+            {money(player.committedThisStreet)}
+          </span>
+        )}
+      </span>
 
       {/* row: revealed cards below the seat */}
       {row && reveal && player.hole.length === 2 && (
@@ -771,24 +799,6 @@ function HeroPanel({
 }
 
 // --- chrome -----------------------------------------------------------------
-
-function MuteToggle() {
-  const [muted, setMuted] = useState(sound.isMuted())
-  return (
-    <button
-      onClick={() => {
-        const next = !muted
-        sound.setMuted(next)
-        setMuted(next)
-        if (!next) sound.play('tap')
-      }}
-      className="rounded-full p-2 text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
-      aria-label={muted ? 'Unmute' : 'Mute'}
-    >
-      {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-    </button>
-  )
-}
 
 function Banner({ children }: { children: React.ReactNode }) {
   return (

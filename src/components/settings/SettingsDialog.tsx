@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { QrCode } from '@/components/QrCode'
 import { RestoreConfirm } from '@/components/settings/RestoreConfirm'
 import {
@@ -10,10 +11,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { useTheme } from '@/components/theme-provider'
 import { useProfile } from '@/store/profile'
 import { applyBackup, exportProfile, type ParsedBackup, readBackup } from '@/lib/backup'
 import { decodeCode, profileCode, profileQrUrl } from '@/lib/transfer'
 import { sound } from '@/lib/sound'
+import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION
@@ -32,12 +35,15 @@ export function SettingsDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
-          <DialogDescription>Table talk and backups.</DialogDescription>
+          <DialogDescription>Preferences and backups.</DialogDescription>
         </DialogHeader>
 
         <div className="flex min-w-0 flex-col gap-6 pt-1">
+          <AppearanceSection />
+          <SoundSection />
           <TableTalkSection />
           <BackupSection />
+          <ResetSection />
           {APP_VERSION && (
             <p className="text-center text-[11px] tracking-wide text-muted-foreground/70">
               Pip v{APP_VERSION}
@@ -50,39 +56,110 @@ export function SettingsDialog({
   )
 }
 
-/** The cast's rare one-liners at the table — on by default, easy to silence. */
-function TableTalkSection() {
-  const tableTalk = useProfile((s) => s.tableTalk)
-  const setTableTalk = useProfile((s) => s.setTableTalk)
+/** A labelled on/off switch — the shared shape for every toggle in Settings. */
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string
+  hint: string
+  checked: boolean
+  onChange: () => void
+}) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
-        <p className="text-sm font-medium">Table talk</p>
-        <p className="text-xs text-muted-foreground">
-          The occasional quiet line from the regulars.
-        </p>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       </div>
       <button
         role="switch"
-        aria-checked={tableTalk}
-        aria-label="Table talk"
-        onClick={() => {
-          sound.play('tap')
-          setTableTalk(!tableTalk)
-        }}
+        aria-checked={checked}
+        aria-label={label}
+        onClick={onChange}
         className={cn(
           'relative h-6 w-10 shrink-0 rounded-full transition',
-          tableTalk ? 'bg-primary' : 'bg-foreground/15',
+          checked ? 'bg-primary' : 'bg-foreground/15',
         )}
       >
         <span
           className={cn(
             'absolute top-0.5 size-5 rounded-full bg-background shadow transition-all',
-            tableTalk ? 'left-[18px]' : 'left-0.5',
+            checked ? 'left-[18px]' : 'left-0.5',
           )}
         />
       </button>
     </div>
+  )
+}
+
+/** Light or dark — the toggle that used to live in the top bars. */
+function AppearanceSection() {
+  const { resolvedTheme, setTheme } = useTheme()
+  const hydrated = useHydrated()
+  const isDark = hydrated && resolvedTheme === 'dark'
+  return (
+    <ToggleRow
+      label="Dark mode"
+      hint="Switch the whole app between light and dark."
+      checked={isDark}
+      onChange={() => {
+        sound.play('tap')
+        setTheme(isDark ? 'light' : 'dark')
+      }}
+    />
+  )
+}
+
+/** The card snaps, chip clinks and taps — global mute, was a top-bar button. */
+function SoundSection() {
+  const [muted, setMuted] = useState(sound.isMuted())
+  return (
+    <ToggleRow
+      label="Sound"
+      hint="Card snaps, chip clinks and the little taps."
+      checked={!muted}
+      onChange={() => {
+        const next = !muted
+        sound.setMuted(next)
+        setMuted(next)
+        if (!next) sound.play('tap')
+      }}
+    />
+  )
+}
+
+/** The cast's rare one-liners at the table — on by default, easy to silence. */
+function TableTalkSection() {
+  const tableTalk = useProfile((s) => s.tableTalk)
+  const setTableTalk = useProfile((s) => s.setTableTalk)
+  return (
+    <ToggleRow
+      label="Table talk"
+      hint="The occasional quiet line from the regulars."
+      checked={tableTalk}
+      onChange={() => {
+        sound.play('tap')
+        setTableTalk(!tableTalk)
+      }}
+    />
+  )
+}
+
+/** Wipe the profile and Roll back to a clean start — guarded by a confirm. */
+function ResetSection() {
+  const reset = useProfile((s) => s.reset)
+  return (
+    <button
+      onClick={() => {
+        if (confirm('Reset your profile and Roll?')) reset()
+      }}
+      className="flex items-center justify-center gap-2 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium text-suit-red transition hover:bg-foreground/[0.12]"
+    >
+      <RotateCcw className="size-4" /> Reset profile
+    </button>
   )
 }
 

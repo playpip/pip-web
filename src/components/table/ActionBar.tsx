@@ -21,8 +21,11 @@ export function ActionBar({ hand }: { hand: HandState }) {
   const hero = hand.players[hand.toActIndex]
   const isHeroTurn = hero?.id === 'hero' && !!legal
 
+  // Match the real button row's height exactly (py-4 + text-base = 56px) so the
+  // bar appearing/clearing on the hero's turn never resizes the layout — that
+  // resize is what nudges the community cards.
   if (!isHeroTurn || !legal) {
-    return <div className="h-[52px]" aria-hidden />
+    return <div className="h-[56px]" aria-hidden />
   }
 
   const pot = potSize(hand)
