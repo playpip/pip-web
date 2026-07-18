@@ -30,8 +30,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run the full gate (format, types, lint, tests, knip, audit)
-        run: pnpm test:all
+      # The test:all gate, one step per check so a failure names its culprit.
+      - name: Check formatting
+        run: pnpm test:format
+
+      - name: Check types
+        run: pnpm test:types
+
+      - name: Lint
+        run: pnpm test:lint
+
+      - name: Run engine tests (AVA)
+        run: pnpm test:ava
+
+      - name: Check for unused code (knip)
+        run: pnpm test:knip
+
+      - name: Security audit
+        run: pnpm test:audit
 
       - name: Build static export
         run: pnpm build
