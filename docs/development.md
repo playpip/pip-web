@@ -102,7 +102,16 @@ If pnpm reports ignored build scripts, add the package to `onlyBuiltDependencies
 
 ## Deploy
 
-Static-friendly Next app; deploys to **Vercel** as-is. `/` is static; `/play/[venue]`
-is dynamic. No backend, env vars, or secrets required.
+**Cloudflare Pages, pure static.** `next.config.ts` sets `output: 'export'`, so
+`pnpm build` writes the whole site to `out/` as plain files — no server, no env
+vars, no secrets at runtime. Every route prerenders: `/play/[venue]` enumerates
+its paths via `generateStaticParams` (all venues are known config), and
+`app/manifest.ts` opts in with `dynamic = 'force-static'`.
+
+Pushes to `main` deploy automatically via
+`.github/workflows/deploy-cloudflare-pages.yaml`: the full `test:all` gate runs
+first, then `wrangler pages deploy out` publishes. The workflow needs two repo
+secrets — `CLOUDFLARE_API_TOKEN` (a token with the *Cloudflare Pages — Edit*
+permission) and `CLOUDFLARE_ACCOUNT_ID` — and a Pages project named `pip-web`.
 
 Production domain: **[playpip.io](https://playpip.io)**.

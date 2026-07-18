@@ -1,5 +1,8 @@
 import type { MetadataRoute } from 'next'
 
+// Metadata routes must opt in to static generation under `output: 'export'`.
+export const dynamic = 'force-static'
+
 // The PWA manifest — served at /manifest.webmanifest and linked automatically.
 // Installing Pip matters beyond convenience: installed web apps are exempt from
 // Safari's 7-day script-storage eviction, which protects the local profile.
