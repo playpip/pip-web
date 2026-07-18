@@ -747,17 +747,33 @@ export const useGame = create<GameState>((set, get) => {
 
 // --- helpers ---------------------------------------------------------------
 
+// How "self-selected" an opponent's range looks, in [0, ~0.8]. Someone who's
+// piled chips in — especially betting on later streets — is far likelier to
+// hold a real hand than a random two cards, so the win % shouldn't treat them
+// as random. Derived from chips committed this hand (in big blinds) plus a bump
+// for putting money in postflop.
+function opponentSelectivity(hand: HandState, opp: HandState['players'][number]): number {
+  const bb = Math.max(hand.bigBlind, 1)
+  const bbIn = opp.committedThisHand / bb
+  let sel = bbIn / (bbIn + 5) // saturating: 1bb→0.17, 5bb→0.5, 15bb→0.75
+  const backedItPostflop =
+    hand.street !== 'preflop' && hand.currentBet > 0 && opp.committedThisStreet >= hand.currentBet
+  if (backedItPostflop) sel += 0.1
+  return Math.min(sel, 0.8)
+}
+
 function computeHeroEquity(hand: HandState): number | null {
   const hero = hand.players.find((p) => p.id === HUMAN_ID)
   if (!hero || hero.hole.length < 2) return null
   const opponents = hand.players.filter(
     (p) => p.id !== HUMAN_ID && p.status !== 'folded' && p.status !== 'out',
-  ).length
-  if (opponents <= 0) return 1
+  )
+  if (opponents.length === 0) return 1
   return estimateEquity({
     hole: hero.hole,
     community: hand.community,
-    opponents,
+    opponents: opponents.length,
+    opponentSelectivity: opponents.map((p) => opponentSelectivity(hand, p)),
     iterations: 800,
   }).equity
 }
