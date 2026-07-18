@@ -124,8 +124,9 @@ Production domain: **[playpip.io](https://playpip.io)**.
 The same workflow cuts a release on every push to `main`, after a green gate +
 successful deploy:
 
-- **Version** auto-bumps — **patch by default**; put `#minor` or `#major` anywhere
-  in the commit message to bump harder (`#major` wins if both appear).
+- **Version** auto-bumps — **patch by default**; put `#minor` or `#major` in the
+  commit **subject** (first line only — the body is ignored, so prose mentioning
+  the tokens can't trigger a bump) to bump harder (`#major` wins if both appear).
 - The bump is **committed before the build**, so the deployed PWA reports the new
   version and its build id is the release commit.
 - Then it **tags `vX.Y.Z`, pushes it, and publishes a GitHub Release** with

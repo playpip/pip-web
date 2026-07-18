@@ -58,9 +58,11 @@ jobs:
         run: pnpm test:audit
 
       # Only real pushes to main cut a release; a manual dispatch just redeploys
-      # the current version. Patch by default; put #minor or #major in the
-      # commit message to bump harder. The bump is committed BEFORE the build so
-      # the deployed PWA reports the new version and its build id is this commit.
+      # the current version. Patch by default; put #minor or #major in the commit
+      # SUBJECT (first line only — the body is ignored, so prose that merely
+      # mentions the tokens can't trigger a bump) to bump harder. The bump is
+      # committed BEFORE the build so the deployed PWA reports the new version and
+      # its build id is this commit.
       - name: Bump version and stage release commit
         if: github.event_name == 'push'
         id: release
@@ -68,9 +70,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           level=patch
-          msg=$(git log -1 --pretty=%B)
-          if echo "$msg" | grep -qi '#minor'; then level=minor; fi
-          if echo "$msg" | grep -qi '#major'; then level=major; fi
+          subject=$(git log -1 --pretty=%s)
+          if echo "$subject" | grep -qi '#minor'; then level=minor; fi
+          if echo "$subject" | grep -qi '#major'; then level=major; fi
           pnpm version "$level" --no-git-tag-version >/dev/null
           version=$(node -p "require('./package.json').version")
           # [skip ci] is belt-and-braces; GITHUB_TOKEN pushes don't retrigger anyway.

@@ -44,9 +44,9 @@ Rules change → engine (+ tests). Pacing/money → game store. Looks → compon
 - **`set-state-in-effect`** (React 19 rule, enforced by convention) — use the patterns in
   docs/development.md (`useHydrated`, mount-form-while-open), not `setState` in `useEffect`.
 - **Releases are automatic.** Pushing to `main` deploys *and* cuts a release: the version
-  auto-bumps (patch by default; `#minor`/`#major` in the commit message to bump harder),
-  tags, and publishes a GitHub Release. Don't bump `package.json` version by hand.
-  (See docs/development.md → Deploy & releases.)
+  auto-bumps (patch by default; `#minor`/`#major` in the commit **subject line** to bump
+  harder — the body is ignored), tags, and publishes a GitHub Release. Don't bump
+  `package.json` version by hand. (See docs/development.md → Deploy & releases.)
 
 ## Commands / definition of done
 
