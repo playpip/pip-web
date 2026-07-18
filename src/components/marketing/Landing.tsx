@@ -522,7 +522,7 @@ function Features() {
                 whileInView="show"
                 viewport={{ once: true, margin: '-60px' }}
                 custom={i}
-                className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-background p-4"
+                className="flex min-w-0 items-center gap-3 rounded-2xl border border-foreground/10 bg-background p-4"
               >
                 <PlayerAvatar spec={r.avatar} size={48} className="shrink-0" />
                 <div className="min-w-0">
@@ -605,7 +605,10 @@ function FeatureCard({
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, margin: '-60px' }}
-      className="flex flex-col rounded-3xl border border-foreground/10 bg-background p-7 transition hover:border-foreground/20"
+      // min-w-0: grid items refuse to shrink below their content's min-content
+      // width — without it the nowrap mock lines push the whole card grid past
+      // the edge of a phone screen.
+      className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-7 transition hover:border-foreground/20"
     >
       <FeatureIcon icon={icon} />
       <h3 className="mt-5 text-xl font-semibold tracking-tight">{title}</h3>
@@ -669,7 +672,9 @@ function DailyShareMock() {
   return (
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
       <div className="flex items-center justify-between gap-3">
-        <span className="truncate font-mono text-sm text-muted-foreground">
+        {/* min-w-0: without it the nowrap line sets the card's min-content and
+            the whole feature grid overflows the phone screen */}
+        <span className="min-w-0 truncate font-mono text-sm text-muted-foreground">
           pip daily #142 · 2nd of 5 · 34 hands
         </span>
         <span className="shrink-0 rounded-lg bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium">
@@ -689,7 +694,7 @@ function HandLinkMock() {
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
       <div className="flex items-center gap-2.5">
         <Link2 className="size-4 shrink-0 text-pip" />
-        <span className="truncate font-mono text-sm text-muted-foreground">
+        <span className="min-w-0 truncate font-mono text-sm text-muted-foreground">
           playpip.io/hand#kQyJ3v…
         </span>
       </div>
