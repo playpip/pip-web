@@ -143,6 +143,25 @@ difference"**: AI responses diverge once your actions diverge, and we say so.
   (`dailyShareText`): `pip daily #142 · 2nd of 6 · 34 hands · playpip.io`.
   No streaks, no emoji grids, no countdowns — yesterday's daily is simply gone.
 
+## The tutorial (`/learn`)
+
+A skippable, animated eight-page tour of poker's grammar — **a tour, not a
+course**: one idea per page, built entirely from product primitives
+(`PlayingCard`, `DealtCard`, `CardBack`, `CountUp`, `VenueArt`). All
+presentation layer (`components/learn/`); no engine, no stores mutated, no
+profile required — the route is standalone and shareable.
+
+- **The offer**: after `createProfile` succeeds, `/game` shows a one-time
+  interstitial (`TutorialOffer`) — "Show me the basics" → `/learn?from=onboarding`
+  or "Deal me in" → home. The offer is memory-only state in the create flow;
+  `created` already gates onboarding, so it can only ever appear once. No
+  persisted flag, no `PERSIST_VERSION` bump.
+- **The quiet return path**: one line on the home screen under the shelves
+  ("New to poker? Take the tour.") — no badge, no pulse, never re-offered.
+- **No-nag rules**: skippable from every page (the corner Skip), no quiz, no
+  gating, no completion tracking. Strategy stays out; the tutorial teaches the
+  grammar, the ladder and the reads system teach the game.
+
 ## Where to make changes
 
 | Want to change… | Edit |

@@ -7,7 +7,7 @@ import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { useProfile } from '@/store/profile'
 import { sound } from '@/lib/sound'
 
-export function Onboarding() {
+export function Onboarding({ onCreated }: { onCreated?: () => void }) {
   const createProfile = useProfile((s) => s.createProfile)
   const [spec, setSpec] = useState<AvatarSpec>(() => ({
     seed: freshSeed(),
@@ -19,6 +19,7 @@ export function Onboarding() {
     if (!name.trim()) return
     sound.play('call')
     createProfile(name, spec)
+    onCreated?.()
   }
 
   return (

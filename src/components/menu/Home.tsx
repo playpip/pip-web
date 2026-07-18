@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
@@ -201,6 +202,17 @@ export function Home() {
           models={modelsFor(SIDE_TABLES, false)}
           delay={0.1}
         />
+        {/* the tour's quiet permanent entry — one line, no badge, no pulse */}
+        <p className="pb-1 text-center text-xs text-muted-foreground/70">
+          New to poker?{' '}
+          <Link
+            href="/learn"
+            onClick={() => sound.play('tap')}
+            className="underline underline-offset-2 transition hover:text-foreground"
+          >
+            Take the tour.
+          </Link>
+        </p>
       </div>
 
       <ProfileDialog open={editOpen} onOpenChange={setEditOpen} />
