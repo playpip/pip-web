@@ -144,7 +144,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 10
+export const PERSIST_VERSION = 11
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -327,6 +327,13 @@ export const useProfile = create<ProfileState>()(
           s.owned = []
           s.deckFace = 'classic'
           s.tableFinish = null
+        }
+        // v10 → v11: three muted card backs (ocean, slate, midnight) moved from
+        // the free set into the Chip Shop. Grandfather existing players — they
+        // had these free, so they keep them — while new profiles must buy them.
+        if (fromVersion < 11) {
+          const freed = ['ocean', 'slate', 'midnight']
+          s.owned = Array.from(new Set([...(s.owned ?? []), ...freed]))
         }
         return s
       },

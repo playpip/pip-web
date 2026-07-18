@@ -10,6 +10,8 @@ const baseCtx = (over: Partial<AwardContext> = {}): AwardContext => ({
   heroHand: undefined,
   heroHole: undefined,
   knockedOut: false,
+  eliminatedCount: 0,
+  bigBlind: 2,
   lowestStack: 100,
   startingStack: 100,
   tournamentWon: false,
@@ -24,12 +26,12 @@ const ids = (ctx: AwardContext, owned: Record<string, number> = {}) =>
 const showdownWin = (name: string, description: string, over: Partial<AwardContext> = {}) =>
   baseCtx({ heroWon: true, showdown: true, heroHand: { name, description }, ...over })
 
-test('the set has 26 chips with unique ids', (t) => {
-  t.is(AWARDS.length, 26)
-  t.is(new Set(AWARDS.map((a) => a.id)).size, 26)
+test('the set has 30 chips with unique ids', (t) => {
+  t.is(AWARDS.length, 30)
+  t.is(new Set(AWARDS.map((a) => a.id)).size, 30)
   t.is(AWARDS.filter((a) => a.kind === 'venue').length, 10)
   t.is(AWARDS.filter((a) => a.kind === 'hand').length, 7)
-  t.is(AWARDS.filter((a) => a.kind === 'moment').length, 3)
+  t.is(AWARDS.filter((a) => a.kind === 'moment').length, 7)
   t.is(AWARDS.filter((a) => a.kind === 'journey').length, 6)
   t.truthy(awardById('venue-garage'))
 })
@@ -128,6 +130,64 @@ test('The Comeback needs a ladder win from a tenth of the starting stack', (t) =
   t.deepEqual(ids(baseCtx({ tournamentWon: true, lowestStack: 11 })), ['venue-garage'])
   // a freeroll comeback doesn't count
   t.deepEqual(ids(baseCtx({ venue: KITCHEN_TABLE, tournamentWon: true, lowestStack: 5 })), [])
+})
+
+test('Chip and a Chair needs a ladder win from a single big blind', (t) => {
+  // Down to one big blind (of a 100 stack) — both the comeback and the rarer
+  // chip-and-a-chair land together.
+  t.deepEqual(ids(baseCtx({ tournamentWon: true, bigBlind: 50, lowestStack: 8 })), [
+    'moment-comeback',
+    'moment-chipandchair',
+    'venue-garage',
+  ])
+  // At one big blind but never below a tenth of the stack: chip-and-a-chair only.
+  t.deepEqual(ids(baseCtx({ tournamentWon: true, bigBlind: 50, lowestStack: 50 })), [
+    'moment-chipandchair',
+    'venue-garage',
+  ])
+  // Over a big blind at the low point: neither moment, just the venue chip.
+  t.deepEqual(ids(baseCtx({ tournamentWon: true, bigBlind: 50, lowestStack: 51 })), [
+    'venue-garage',
+  ])
+  // The freeroll never grants moment chips.
+  t.deepEqual(
+    ids(baseCtx({ venue: KITCHEN_TABLE, tournamentWon: true, bigBlind: 50, lowestStack: 8 })),
+    [],
+  )
+})
+
+test('The Bullets fires on a won pot holding pocket aces', (t) => {
+  const holding = (a: string, b: string) =>
+    baseCtx({ heroWon: true, heroHole: [cardFromString(a), cardFromString(b)] })
+  t.deepEqual(ids(holding('Ac', 'Ad')), ['moment-bullets', 'journey-first'])
+  t.deepEqual(ids(holding('Ac', 'Kd')), ['journey-first'])
+  // losing with aces earns nothing
+  t.deepEqual(ids(baseCtx({ heroHole: [cardFromString('Ac'), cardFromString('Ad')] })), [])
+})
+
+test('Big Slick needs a showdown win holding Ace-King', (t) => {
+  const showdownHole = (a: string, b: string) =>
+    baseCtx({ heroWon: true, showdown: true, heroHole: [cardFromString(a), cardFromString(b)] })
+  t.deepEqual(ids(showdownHole('Ah', 'Ks')), ['moment-bigslick', 'journey-first'])
+  t.deepEqual(ids(showdownHole('Ks', 'Ah')), ['moment-bigslick', 'journey-first'])
+  // no showdown → no chip (Big Slick's drama is at the reveal)
+  t.deepEqual(
+    ids(baseCtx({ heroWon: true, heroHole: [cardFromString('Ah'), cardFromString('Ks')] })),
+    ['journey-first'],
+  )
+})
+
+test('Two Birds needs a double knockout', (t) => {
+  t.deepEqual(ids(baseCtx({ heroWon: true, knockedOut: true, eliminatedCount: 2 })), [
+    'moment-knockout',
+    'moment-doubleko',
+    'journey-first',
+  ])
+  // a single knockout is only the Bouncer
+  t.deepEqual(ids(baseCtx({ heroWon: true, knockedOut: true, eliminatedCount: 1 })), [
+    'moment-knockout',
+    'journey-first',
+  ])
 })
 
 test('Back From Broke needs the freeroll flag AND a ladder tournament win', (t) => {

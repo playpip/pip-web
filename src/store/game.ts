@@ -484,7 +484,7 @@ export const useGame = create<GameState>((set, get) => {
       if (venue.daily && dailyDay) profile.recordDailyResult(dailyDay, 1, get().handIndex)
       profile.recordRollPoint()
       if (venue.freeroll) profile.setCameFromFreeroll(true)
-      const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut)
+      const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut, eliminatedCount)
       set({
         seats: nextSeats,
         hand,
@@ -509,7 +509,7 @@ export const useGame = create<GameState>((set, get) => {
       maybeTalk('bust', eliminated[0], get().handIndex, 0.8) ??
       (bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null)
 
-    const newAwards = grantEarnedAwards(hand, venue, heroWon, false, knockedOut)
+    const newAwards = grantEarnedAwards(hand, venue, heroWon, false, knockedOut, eliminatedCount)
     heroLowTide = Math.min(heroLowTide, stackById.get(HUMAN_ID) ?? 0)
     // A refresh during the handover resumes with the next hand, chips intact.
     saveTableSnapshot({
@@ -543,6 +543,7 @@ export const useGame = create<GameState>((set, get) => {
     heroWon: boolean,
     tournamentWon: boolean,
     knockedOut: boolean,
+    eliminatedCount: number,
   ): AwardDef[] {
     const profile = useProfile.getState() // re-read: the prize may have just landed
     const earned = detectAwards(
@@ -553,6 +554,8 @@ export const useGame = create<GameState>((set, get) => {
         heroHand: hand.result?.evaluations?.[HUMAN_ID],
         heroHole: hand.players.find((p) => p.id === HUMAN_ID)?.hole,
         knockedOut,
+        eliminatedCount,
+        bigBlind: get().bigBlind,
         lowestStack: heroLowTide,
         startingStack: venue.startingStack ?? venue.buyIn,
         tournamentWon,

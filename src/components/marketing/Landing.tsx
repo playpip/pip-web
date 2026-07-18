@@ -650,7 +650,7 @@ function CustomizeStrip() {
     <div className="flex items-center justify-center gap-6 rounded-2xl border border-foreground/10 bg-foreground/[0.02] py-6">
       {REGULARS[2] && <PlayerAvatar spec={REGULARS[2].avatar} size={56} />}
       <div className="flex -space-x-4">
-        {[CARD_BACKS[0], CARD_BACKS[4], CARD_BACKS[6]].map((d, i) => (
+        {[CARD_BACKS[0], CARD_BACKS[2], CARD_BACKS[4]].map((d, i) => (
           <div
             key={d.id}
             className={cn(

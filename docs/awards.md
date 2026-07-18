@@ -34,7 +34,7 @@ Unearned chips show as hollow outlines (the hatch pattern used for face-down car
 so the shelf reads as a collection with visible gaps — the pull is seeing what's
 missing, not a nag.
 
-## The set (26 chips)
+## The set (30 chips)
 
 ### Venue chips — one per rung, earned by **winning** the venue (10)
 
@@ -60,13 +60,17 @@ it); the chip marks conquering it.
 Must be **won at showdown** (the engine's `result.evaluations` names the hand), so the
 chip certifies a real moment, not a folded-out technicality.
 
-### Moment chips — plays that make a story (3)
+### Moment chips — plays that make a story (7)
 
 | id | Chip | Earned by |
 |----|------|-----------|
 | `moment-sevendeuce` | "The Seven Deuce" | Win a pot holding 7-2 (the classic) |
+| `moment-bullets` | "The Bullets" | Win a pot holding pocket aces |
+| `moment-bigslick` | "Big Slick" | Win a **showdown** holding Ace-King |
 | `moment-knockout` | "The Bouncer" | Take **every** chip in a hand that busts an opponent |
+| `moment-doubleko` | "Two Birds" | Bust **two** opponents in a single hand |
 | `moment-comeback` | "The Comeback" | Win a ladder venue after falling to ≤10% of your starting stack |
+| `moment-chipandchair` | "Chip and a Chair" | Win a ladder venue after being ground down to ≤1 big blind |
 
 ### Journey chips — the story of the grind (6)
 

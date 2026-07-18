@@ -122,6 +122,38 @@ const momentChips: AwardDef[] = [
     color: AMBER,
     glyph: '10%',
   },
+  {
+    id: 'moment-chipandchair',
+    kind: 'moment',
+    name: 'Chip and a Chair',
+    how: 'Win a venue after being ground down to a single big blind',
+    color: AMBER,
+    glyph: '1BB',
+  },
+  {
+    id: 'moment-bullets',
+    kind: 'moment',
+    name: 'The Bullets',
+    how: 'Win a pot holding pocket aces',
+    color: AMBER,
+    glyph: 'AA',
+  },
+  {
+    id: 'moment-bigslick',
+    kind: 'moment',
+    name: 'Big Slick',
+    how: 'Win a showdown holding Ace-King',
+    color: AMBER,
+    glyph: 'AK',
+  },
+  {
+    id: 'moment-doubleko',
+    kind: 'moment',
+    name: 'Two Birds',
+    how: 'Bust two opponents in a single hand',
+    color: AMBER,
+    glyph: '2×',
+  },
 ]
 
 const rankMin = (name: string) => RANKS.find((r) => r.name === name)!.min
@@ -201,6 +233,10 @@ export interface AwardContext {
   heroHole?: readonly Card[]
   /** Hero took every pot in a hand where an opponent was eliminated. */
   knockedOut: boolean
+  /** Opponents busted in the just-finished hand (for a double knockout). */
+  eliminatedCount: number
+  /** The big blind in force this hand (for the chip-and-a-chair moment). */
+  bigBlind: number
   /** Hero's lowest between-hands stack this tournament. */
   lowestStack: number
   /** The tournament's starting stack. */
@@ -217,6 +253,15 @@ const isSevenDeuce = (hole?: readonly Card[]): boolean =>
   hole?.length === 2 &&
   new Set(hole.map((c) => c.rank)).size === 2 &&
   hole.every((c) => c.rank === '7' || c.rank === '2')
+
+const isPocketAces = (hole?: readonly Card[]): boolean =>
+  hole?.length === 2 && hole.every((c) => c.rank === 'A')
+
+const isAceKing = (hole?: readonly Card[]): boolean => {
+  if (hole?.length !== 2) return false
+  const ranks = new Set(hole.map((c) => c.rank))
+  return ranks.has('A') && ranks.has('K')
+}
 
 /** Newly earned chips for a finished hand — never re-grants anything in `owned`. */
 export function detectAwards(ctx: AwardContext, owned: Record<string, number>): AwardDef[] {
@@ -242,13 +287,13 @@ export function detectAwards(ctx: AwardContext, owned: Record<string, number>): 
 
   // Moment chips.
   if (ctx.heroWon && isSevenDeuce(ctx.heroHole)) add('moment-sevendeuce')
+  if (ctx.heroWon && isPocketAces(ctx.heroHole)) add('moment-bullets')
+  if (ctx.heroWon && ctx.showdown && isAceKing(ctx.heroHole)) add('moment-bigslick')
   if (ctx.knockedOut) add('moment-knockout')
-  if (
-    ctx.tournamentWon &&
-    ctx.venue.freeroll !== true &&
-    ctx.lowestStack <= ctx.startingStack / 10
-  ) {
-    add('moment-comeback')
+  if (ctx.knockedOut && ctx.eliminatedCount >= 2) add('moment-doubleko')
+  if (ctx.tournamentWon && ctx.venue.freeroll !== true) {
+    if (ctx.lowestStack <= ctx.startingStack / 10) add('moment-comeback')
+    if (ctx.lowestStack <= ctx.bigBlind) add('moment-chipandchair')
   }
 
   // Venue + comeback chips fire on taking the table down (ladder venues only).

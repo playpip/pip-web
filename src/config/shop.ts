@@ -182,6 +182,10 @@ export function souvenirAward(item: ShopItem): AwardDef {
 // --- shop backs (from the card-back set) --------------------------------------------
 
 const BACK_BLURBS: Record<string, string> = {
+  ocean: 'The deep end, gently.',
+  rose: 'A soft touch at the table.',
+  slate: 'Cool, grey, all business.',
+  midnight: 'Lights low, focus high.',
   'back-penny': 'Everyone’s first splurge.',
   'back-powder': 'Soft as a fold.',
   'back-noir': 'Black on black. Says nothing, loudly.',

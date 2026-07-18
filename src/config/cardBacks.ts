@@ -29,15 +29,14 @@ export interface CardBackDesign {
   unlock?: { venueWin?: string; price?: number }
 }
 
-// Slimmed to eight (2026-07-17): the free set is a tasteful starter spread —
-// one of each hue, nothing that upstages the earned venue backs or the shop's
-// paid designs. (Cut: graphite ≈ slate, sage ≈ ivy, rose, and the old gold —
-// gold is Gold Leaf's territory now.) Removed ids fall back to the default.
+// Slimmed to five (2026-07-18): the free set is a tight, distinct starter spread
+// — one warm, one cool, one green, one tan, one light — with no two designs in
+// the same family. The muted blues and greys (midnight, slate, ocean) moved to
+// the Chip Shop's low tier: they read too close to the paid backs to give away,
+// and a beginner needs something cheap to want. Removed ids fall back to the
+// default. (Earlier cuts: graphite ≈ slate, sage ≈ ivy, rose, the old gold.)
 export const CARD_BACKS: readonly CardBackDesign[] = [
   { id: 'pip', name: 'Pip', color: '#7E89D0', pattern: 'pips' },
-  { id: 'midnight', name: 'Midnight', color: '#232936', pattern: 'pinstripe' },
-  { id: 'slate', name: 'Slate', color: '#5C6672', pattern: 'crosshatch' },
-  { id: 'ocean', name: 'Ocean', color: '#57779B', pattern: 'waves' },
   { id: 'ivy', name: 'Ivy', color: '#5F8A72', pattern: 'pinstripe' },
   { id: 'burgundy', name: 'Burgundy', color: '#82505A', pattern: 'diamonds' },
   { id: 'sand', name: 'Sand', color: '#C7B292', pattern: 'checker', ink: 'dark' },
@@ -123,9 +122,40 @@ export const EARNED_BACKS: readonly CardBackDesign[] = [
 ] as const
 
 // Shop backs — bought with the Roll (style costs progression, and that trade
-// is the point). Gold Leaf is the hybrid: win the Riverboat to earn the right
-// to buy it. The Millionaire is the prestige absurdity — the price IS the trophy.
+// is the point). The low tier (under a Garage buy-in of chips) exists so a
+// beginner has something to want within a win or two — the muted cool designs
+// pulled from the free set live here. Gold Leaf is the hybrid: win the Riverboat
+// to earn the right to buy it. The Millionaire is the prestige absurdity — the
+// price IS the trophy. Ordered cheapest-first, the way the shop lists them.
 export const SHOP_BACKS: readonly CardBackDesign[] = [
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    color: '#57779B',
+    pattern: 'waves',
+    unlock: { price: 250 },
+  },
+  {
+    id: 'rose',
+    name: 'Rosé',
+    color: '#C27B93',
+    pattern: 'dots',
+    unlock: { price: 400 },
+  },
+  {
+    id: 'slate',
+    name: 'Slate',
+    color: '#5C6672',
+    pattern: 'crosshatch',
+    unlock: { price: 500 },
+  },
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    color: '#232936',
+    pattern: 'pinstripe',
+    unlock: { price: 750 },
+  },
   {
     id: 'back-penny',
     name: 'Penny',
