@@ -146,14 +146,17 @@ export function Table() {
 
   const actionArea =
     status === 'handover' ? (
-      <motion.button
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        onClick={nextHand}
-        className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
-      >
-        Next hand
-      </motion.button>
+      // Entrance transform lives on the wrapper; the button keeps its own CSS
+      // `transition` for hover/press. Animating `y` on the same element that
+      // has `transition-property: transform` makes the two fight → jitter (iOS).
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+        <button
+          onClick={nextHand}
+          className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+        >
+          Next hand
+        </button>
+      </motion.div>
     ) : (
       <ActionBar hand={hand} />
     )
