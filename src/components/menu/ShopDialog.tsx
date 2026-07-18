@@ -6,15 +6,16 @@
 // No sale banners, no NEW dots: the shop is here when you go looking.
 
 import { useMemo, useState } from 'react'
-import { Lock } from 'lucide-react'
+import { Lock, XIcon } from 'lucide-react'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { accentFromSwatch } from '@/lib/avatar'
 import { CardBack } from '@/components/CardBack'
 import { useProfile } from '@/store/profile'
 import { characterById } from '@/config/cast'
@@ -49,20 +50,44 @@ export function ShopDialog({
     return open && lines.length > 0 ? lines[Math.floor(Math.random() * lines.length)] : null
   }, [open, pearl])
 
+  // No shop photo — so the cover is spun from Pearl's own palette: her sand
+  // swatch warmed by its derived accent into a soft, storefront-y band.
+  const swatch = pearl ? `#${pearl.avatar.backgroundColor}` : '#f4e7b6'
+  const accent = pearl ? accentFromSwatch(pearl.avatar.backgroundColor) : '#c9a94e'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="items-center text-center">
-          {pearl && <PlayerAvatar spec={pearl.avatar} size={64} />}
-          <DialogTitle>The Chip Shop</DialogTitle>
-          <DialogDescription>{line ?? 'Style, never edge.'}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md" showCloseButton={false}>
+        <header className="relative text-center">
+          {/* warm cover strip drawn from Pearl's palette */}
+          <div
+            aria-hidden
+            className="h-24 w-full"
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${accent} 0%, ${swatch} 55%, ${accent} 100%)`,
+            }}
+          />
+          {/* fixed-contrast close, matching the venue dialog */}
+          <DialogClose
+            aria-label="Close"
+            className="absolute top-2.5 right-2.5 grid size-7 place-items-center rounded-full bg-black/35 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/55 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none"
+          >
+            <XIcon className="size-4" />
+          </DialogClose>
+          {/* Pearl straddles the strip's lower edge */}
+          <div className="flex flex-col items-center px-4 pb-1">
+            {pearl && (
+              <PlayerAvatar spec={pearl.avatar} size={72} className="-mt-9 ring-4 ring-popover" />
+            )}
+            <DialogTitle className="mt-2 text-lg">The Chip Shop</DialogTitle>
+            <DialogDescription className="mt-1">{line ?? 'Style, never edge.'}</DialogDescription>
+            <p className="mt-3 rounded-full bg-foreground/[0.06] px-3 py-1 text-xs font-medium text-muted-foreground tabular-nums">
+              Your Roll — {money(roll)} chips
+            </p>
+          </div>
+        </header>
 
-        <p className="text-center text-xs text-muted-foreground tabular-nums">
-          Your Roll — {money(roll)} chips
-        </p>
-
-        <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto pt-1">
+        <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto px-4 pt-4 pb-4">
           <Section title="Card backs" items={SHOP_BACKS.map((d) => shopBackItem(d.id))} />
           <Section title="The deck" items={[...DECK_FACES]} />
           <Section title="Table finishes" items={[...TABLE_FINISHES]} />

@@ -2,11 +2,13 @@
 
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { VenueArt } from '@/components/menu/VenueArt'
+import { XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import { FORMAT_LABELS, VENUES, type Venue } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
@@ -87,23 +89,47 @@ export function VenueInfoDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {venue.name}
-            {venue.format && (
-              <span
-                className="rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[11px] font-semibold"
-                style={{ color: venue.accent }}
-              >
-                {FORMAT_LABELS[venue.format]}
-              </span>
-            )}
-          </DialogTitle>
-          <DialogDescription>{venue.tagline}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-sm" showCloseButton={false}>
+        {/* cover photo — the venue art bleeds to the edges and fades into the
+            dialog, with the name and format riding the gradient at the bottom. */}
+        <header className="relative overflow-hidden">
+          {/* Softly blurred + scaled so the flat art reads as a cover photo and
+              melts into the dialog; scale hides the blur's transparent edges. */}
+          <VenueArt
+            id={venue.id}
+            accent={venue.accent}
+            className="h-40 w-full scale-110 blur-[3px]"
+          />
+          {/* Fixed dark scrim (not theme-tinted) so white cover text stays
+              legible over the photo in both light and dark mode. */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/15" />
+          {/* Close sits over the photo, so it carries its own fixed-contrast
+              scrim rather than the theme-flipping ghost treatment. */}
+          <DialogClose
+            aria-label="Close"
+            className="absolute top-2.5 right-2.5 grid size-7 place-items-center rounded-full bg-black/35 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/55 hover:text-white focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none"
+          >
+            <XIcon className="size-4" />
+          </DialogClose>
+          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 p-4">
+            <DialogTitle className="flex items-center gap-2 text-lg text-white">
+              {venue.name}
+              {venue.format && (
+                <span
+                  className="rounded bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold"
+                  style={{ color: venue.accent }}
+                >
+                  {FORMAT_LABELS[venue.format]}
+                </span>
+              )}
+            </DialogTitle>
+            <DialogDescription className="leading-snug text-white/75">
+              {venue.tagline}
+            </DialogDescription>
+          </div>
+        </header>
 
-        <div className="flex flex-col gap-5 pt-1">
+        <div className="flex flex-col gap-5 p-4">
           {/* difficulty */}
           <section>
             <div className="mb-1.5 flex items-center justify-between">
