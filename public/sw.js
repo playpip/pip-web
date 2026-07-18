@@ -7,7 +7,9 @@
 //   - hashed static assets (/_next/static, icons, venue art): cache-first
 //   - everything else: straight to the network
 
-const CACHE = 'pip-v1'
+// v2: purges v1 caches poisoned by a cached 404 (see the response.ok guards —
+// v1 could permanently store a deploy-window 404 page as a hashed asset).
+const CACHE = 'pip-v2'
 const SHELL = '/'
 
 self.addEventListener('install', (event) => {
@@ -46,8 +48,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone()
-          caches.open(CACHE).then((cache) => cache.put(SHELL, copy))
+          if (response.ok) {
+            const copy = response.clone()
+            caches.open(CACHE).then((cache) => cache.put(SHELL, copy))
+          }
           return response
         })
         .catch(() => caches.match(SHELL)),
@@ -62,8 +66,12 @@ self.addEventListener('fetch', (event) => {
         (hit) =>
           hit ??
           fetch(request).then((response) => {
-            const copy = response.clone()
-            caches.open(CACHE).then((cache) => cache.put(request, copy))
+            // Never cache errors: a 404 during a deploy's propagation window
+            // must stay transient, not become the asset forever.
+            if (response.ok) {
+              const copy = response.clone()
+              caches.open(CACHE).then((cache) => cache.put(request, copy))
+            }
             return response
           }),
       ),
