@@ -189,6 +189,16 @@
   }
   html {
     @apply font-sans scroll-smooth;
+    /* Native-app feel: kill double-tap-to-zoom (the viewport meta blocks
+       pinch-zoom; this covers the double-tap gesture). */
+    touch-action: manipulation;
+  }
+  /* iOS zooms toward any focused control whose text is under 16px. Keeping the
+     font at least 16px stops that jump even where the viewport hint is loose. */
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1rem);
   }
   /* Honour reduced-motion — no smooth-scroll animation for anchor jumps. */
   @media (prefers-reduced-motion: reduce) {
