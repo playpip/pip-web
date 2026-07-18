@@ -170,7 +170,8 @@ const secondaryButton =
 function BackupSection() {
   const fileInput = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<ParsedBackup | null>(null)
-  const [panel, setPanel] = useState<'none' | 'paste' | 'qr'>('none')
+  const [panel, setPanel] = useState<'none' | 'paste'>('none')
+  const [qrOpen, setQrOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [pasteText, setPasteText] = useState('')
@@ -196,7 +197,7 @@ function BackupSection() {
 
   const showQr = async () => {
     sound.play('tap')
-    setPanel('qr')
+    setQrOpen(true)
     setQrUrl(await profileQrUrl(location.origin))
   }
 
@@ -235,27 +236,10 @@ function BackupSection() {
             <button onClick={copyCode} className={secondaryButton}>
               {copied ? 'Copied ✓' : 'Copy data'}
             </button>
-            <button
-              onClick={() => {
-                sound.play('tap')
-                setPanel(panel === 'qr' ? 'none' : 'qr')
-                if (panel !== 'qr') void showQr()
-              }}
-              className={secondaryButton}
-            >
-              {panel === 'qr' ? 'Hide QR' : 'Show QR'}
+            <button onClick={showQr} className={secondaryButton}>
+              Show QR
             </button>
           </div>
-
-          {panel === 'qr' && (
-            <div className="flex flex-col gap-2 pt-1">
-              {qrUrl ? <QrCode value={qrUrl} /> : null}
-              <p className="text-center text-xs text-muted-foreground">
-                Scan with your phone camera to bring over your chips, awards and looks. (Detailed
-                stats stay on this device — use the code for everything.)
-              </p>
-            </div>
-          )}
 
           <div className="mt-1 flex gap-2">
             <button
@@ -320,6 +304,25 @@ function BackupSection() {
           />
         </div>
       )}
+
+      {/* The QR lives in its own dialog over Settings — a big, scannable target
+          rather than a cramped inline panel. */}
+      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Scan to move over</DialogTitle>
+            <DialogDescription>
+              Point your phone camera here to bring over your chips, awards and looks.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-1">
+            {qrUrl ? <QrCode value={qrUrl} /> : null}
+            <p className="text-center text-xs text-muted-foreground">
+              Detailed stats stay on this device — use the code for everything.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
