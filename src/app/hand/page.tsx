@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { PlayingCard } from '@/components/PlayingCard'
 import { HandTimeline } from '@/components/HandTimeline'
+import { Splash } from '@/components/Splash'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { decodeHand } from '@/lib/handLink'
 import { nicknameFor } from '@/config/handNames'
@@ -27,7 +28,7 @@ export default function HandPage() {
   const [step, setStep] = useState(0)
   const money = useMoney()
 
-  if (!hydrated) return <div className="min-h-dvh" />
+  if (!hydrated) return <Splash />
 
   if (!record) {
     return (

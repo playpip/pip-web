@@ -23,7 +23,8 @@ cosmetics, multiplayer); see [brand.md](./brand.md).
 | [shop.md](./shop.md) | The Chip Shop & earned unlocks — style, never edge |
 | [design.md](./design.md) | Design system: theme tokens, colour, typography, motion, sound, components |
 | [venues.md](./venues.md) | The venue ladder, adding venues, and the AI-image workflow |
-| [development.md](./development.md) | Setup, scripts, testing (AVA), conventions, gotchas |
+| [data-and-offline.md](./data-and-offline.md) | Persistence, profile backup/transfer (file / code / QR), and the offline PWA |
+| [development.md](./development.md) | Setup, scripts, testing (AVA), conventions, deploy & releases |
 
 ## 30-second mental model
 
@@ -42,7 +43,8 @@ If you change how it *looks*, you stay in components + theme tokens.
 
 - **In scope / built:** onboarding, avatar creator, the Roll + venue ladder,
   full Hold'em vs AI, sit-and-go tournaments with a bankroll/rank economy + selectable currency, live equity, sound, motion, theming,
-  card-back customization.
+  card-back customization, an installable offline PWA, and account-free profile
+  backup/transfer (file / copyable code / scan-to-phone QR).
 - **Explicitly out of scope (for now):** online multiplayer, accounts, real money,
   cash games, non-Hold'em variants.
 - See the repo root [`PLAN.md`](../PLAN.md) for the original plan and rationale.

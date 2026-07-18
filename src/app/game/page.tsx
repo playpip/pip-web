@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Onboarding } from '@/components/onboarding/Onboarding'
 import { TutorialOffer } from '@/components/onboarding/TutorialOffer'
 import { Home } from '@/components/menu/Home'
+import { ImportHandler } from '@/components/settings/ImportHandler'
+import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useHydrated } from '@/lib/useHydrated'
 
@@ -17,8 +19,19 @@ export default function Page() {
   // never reappear or nag (no persisted flag needed; `created` gates the flow).
   const [offering, setOffering] = useState(false)
 
-  if (!hydrated) return <div className="min-h-dvh" />
-  if (!created) return <Onboarding onCreated={() => setOffering(true)} />
-  if (offering) return <TutorialOffer onDeclined={() => setOffering(false)} />
-  return <Home />
+  if (!hydrated) return <Splash />
+  // ImportHandler rides alongside every state so a scanned QR can offer a
+  // restore even mid-onboarding on a fresh device.
+  return (
+    <>
+      <ImportHandler />
+      {!created ? (
+        <Onboarding onCreated={() => setOffering(true)} />
+      ) : offering ? (
+        <TutorialOffer onDeclined={() => setOffering(false)} />
+      ) : (
+        <Home />
+      )}
+    </>
+  )
 }

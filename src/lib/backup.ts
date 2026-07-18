@@ -2,14 +2,18 @@
 // persisted profile exactly as stored (versioned), and restores by writing it
 // back and reloading so zustand's migrate path runs as usual. Never partially
 // applies: a restore either fully validates or nothing changes.
+//
+// The envelope + validation here are transport-agnostic: a downloaded file
+// (this module) and a copy/paste or QR code (lib/transfer) share them, so every
+// path is validated identically before it can touch the stored profile.
 
 'use client'
 
 import { PERSIST_VERSION } from '@/store/profile'
 
-const PROFILE_KEY = 'pip.profile'
+export const PROFILE_KEY = 'pip.profile'
 
-interface BackupEnvelope {
+export interface BackupEnvelope {
   app: 'pip'
   exportedAt: string
   profile: {
@@ -26,15 +30,24 @@ export interface BackupSummary {
   exportedAt: string
 }
 
-/** Download the current profile as pip-profile.json. Returns false if there is nothing to export. */
-export function exportProfile(): boolean {
+/**
+ * The current profile wrapped for transport, or null if there's nothing saved.
+ * `exportedAt` is stamped here (browser-only, never in the engine).
+ */
+export function buildEnvelope(): BackupEnvelope | null {
   const raw = localStorage.getItem(PROFILE_KEY)
-  if (!raw) return false
-  const envelope: BackupEnvelope = {
+  if (!raw) return null
+  return {
     app: 'pip',
     exportedAt: new Date().toISOString(),
     profile: JSON.parse(raw),
   }
+}
+
+/** Download the current profile as pip-profile.json. Returns false if there is nothing to export. */
+export function exportProfile(): boolean {
+  const envelope = buildEnvelope()
+  if (!envelope) return false
   const blob = new Blob([JSON.stringify(envelope, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -49,15 +62,11 @@ export type ParsedBackup =
   | { ok: true; envelope: BackupEnvelope; summary: BackupSummary }
   | { ok: false; error: string }
 
-/** Parse + validate a backup file. Applies nothing. */
-export async function readBackup(file: File): Promise<ParsedBackup> {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(await file.text())
-  } catch {
-    return { ok: false, error: 'That file isn’t valid JSON.' }
-  }
-
+/**
+ * Validate an already-parsed value as a Pip backup. Applies nothing. Shared by
+ * every restore path (file, pasted code, scanned QR) so validation lives once.
+ */
+export function validateEnvelope(parsed: unknown): ParsedBackup {
   const env = parsed as Partial<BackupEnvelope>
   if (env?.app !== 'pip' || typeof env.profile !== 'object' || env.profile === null) {
     return { ok: false, error: 'That doesn’t look like a Pip backup.' }
@@ -85,6 +94,17 @@ export async function readBackup(file: File): Promise<ParsedBackup> {
       exportedAt: typeof env.exportedAt === 'string' ? env.exportedAt : '',
     },
   }
+}
+
+/** Parse + validate a backup file. Applies nothing. */
+export async function readBackup(file: File): Promise<ParsedBackup> {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(await file.text())
+  } catch {
+    return { ok: false, error: 'That file isn’t valid JSON.' }
+  }
+  return validateEnvelope(parsed)
 }
 
 /** Overwrite the stored profile with a validated backup and reload the app. */

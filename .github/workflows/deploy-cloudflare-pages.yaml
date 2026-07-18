@@ -10,6 +10,10 @@ concurrency:
   group: deploy-pages
   cancel-in-progress: true
 
+# Needed to commit the version bump, push the tag, and cut the GitHub Release.
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -17,6 +21,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Full history + tags so the release notes can diff against the last
+          # release, and so we can push the bump commit back to main.
+          fetch-depth: 0
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -49,6 +57,27 @@ jobs:
       - name: Security audit
         run: pnpm test:audit
 
+      # Only real pushes to main cut a release; a manual dispatch just redeploys
+      # the current version. Patch by default; put #minor or #major in the
+      # commit message to bump harder. The bump is committed BEFORE the build so
+      # the deployed PWA reports the new version and its build id is this commit.
+      - name: Bump version and stage release commit
+        if: github.event_name == 'push'
+        id: release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          level=patch
+          msg=$(git log -1 --pretty=%B)
+          if echo "$msg" | grep -qi '#minor'; then level=minor; fi
+          if echo "$msg" | grep -qi '#major'; then level=major; fi
+          pnpm version "$level" --no-git-tag-version >/dev/null
+          version=$(node -p "require('./package.json').version")
+          # [skip ci] is belt-and-braces; GITHUB_TOKEN pushes don't retrigger anyway.
+          git commit -am "chore: release v$version [skip ci]"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing v$version (bump: $level)"
+
       - name: Build static export
         run: pnpm build
 
@@ -59,3 +88,16 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler@4 pages deploy out --project-name=pip-web --branch=main
+
+      # Deploy succeeded — now make it official: push the bump, tag it, and let
+      # GitHub write the release notes from the commits since the last release.
+      - name: Tag and publish GitHub Release
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ steps.release.outputs.version }}"
+          git tag "$tag"
+          git push origin "HEAD:${{ github.ref_name }}"
+          git push origin "$tag"
+          gh release create "$tag" --title "$tag" --generate-notes

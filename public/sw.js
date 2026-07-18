@@ -7,18 +7,26 @@
 //   - hashed static assets (/_next/static, icons, venue art): cache-first
 //   - everything else: straight to the network
 
-// v2: purges v1 caches poisoned by a cached 404 (see the response.ok guards —
-// v1 could permanently store a deploy-window 404 page as a hashed asset).
-const CACHE = 'pip-v2'
+// The cache name carries the build id (stamped in at build by
+// scripts/stamp-sw.mjs). Every deploy changes it, so the new worker installs a
+// fresh cache and `activate` purges the old one — that's the cache-bust. It also
+// clears the old failure mode where a deploy-window 404 could be cached as a
+// hashed asset forever (see the response.ok guards below).
+// (`__BUILD_ID__` stays literal in dev, where the worker isn't registered.)
+const CACHE = 'pip-__BUILD_ID__'
 const SHELL = '/'
 
+// Note: no skipWaiting() here. On an update the new worker parks in "waiting"
+// until the app posts SKIP_WAITING (the user tapping "Reload" — see the message
+// handler below and lib/useServiceWorker). On the very first install there's no
+// active worker to wait behind, so it activates immediately anyway.
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.add(SHELL))
-      .then(() => self.skipWaiting()),
-  )
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.add(SHELL)))
+})
+
+// The app asks the waiting worker to take over now.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Table } from '@/components/table/Table'
+import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
 import { venueById, canAfford, freerollOpen } from '@/config/venues'
@@ -58,6 +59,6 @@ export function PlayClient() {
     })
   }, [venueId, router])
 
-  if (activeVenue?.id !== venueId) return <div className="min-h-dvh" />
+  if (activeVenue?.id !== venueId) return <Splash />
   return <Table />
 }

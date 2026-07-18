@@ -42,6 +42,9 @@ src/
     sound.ts                # Web Audio SFX engine (cue-based)
     useHydrated.ts          # SSR-safe client-only gate (useSyncExternalStore)
     utils.ts                # cn() (clsx + tailwind-merge)
+    backup.ts               # profile backup envelope: build + validate + apply (file restore)
+    transfer.ts             # device-to-device transfer: compressed code + trimmed QR deep link
+    useServiceWorker.ts     # SW registration + "new version ready" detection
 
   config/
     venues.ts               # the venue ladder (buy-ins, blinds, prizes, AI profiles)
@@ -58,15 +61,20 @@ src/
     menu/                   # Home (Roll hero + venue slider), VenueArt
     onboarding/             # first-launch flow
     profile/                # AvatarEditor (shared), ProfileDialog
-    settings/               # SettingsDialog (card-back customization)
+    settings/               # SettingsDialog (table talk + backup/transfer), RestoreConfirm, ImportHandler
     table/                  # Table, ActionBar
     ui/                     # shadcn primitives (button, dialog)
+    AppBoot.tsx             # boot work: storage.persist(), roll-graph seed
+    UpdatePrompt.tsx        # "new version ready → Reload" nudge (uses useServiceWorker)
+    QrCode.tsx              # scannable QR image (fixed contrast — see design note)
     PlayingCard.tsx, CardBack.tsx, PlayerAvatar.tsx, CountUp.tsx,
     ThemeToggle.tsx, theme-provider.tsx
 
   types/pokersolver.d.ts    # ambient types for the CJS pokersolver module
 
 tests/                      # AVA specs for the engine + a deck helper
+scripts/                    # sim.ts, test.sh, stamp-sw.mjs (stamps the SW cache with the git SHA)
+public/sw.js                # hand-rolled offline service worker (cache name stamped at build)
 public/venues/              # generated venue art (garage.jpg … mainevent.jpg)
 ```
 
@@ -104,7 +112,15 @@ choreography (timers, sounds, transitions) on top.
 - **Deterministic RNG.** `mulberry32(seed)` makes shuffles and equity reproducible,
   which is what makes the engine testable. Production uses `Math.random`.
 - **Local-only persistence.** Only `profile` is persisted (localStorage, versioned
-  with a migration hook) — a clean seam to swap for a backend later.
+  with a migration hook) — a clean seam to swap for a backend later. Durability is
+  hardened with `navigator.storage.persist()` + PWA install; the profile is portable
+  across devices with no account via a shared backup envelope (file / copyable code /
+  QR deep link). See [data-and-offline.md](./data-and-offline.md).
+- **Offline PWA + self-update.** A small hand-rolled service worker (`public/sw.js`)
+  makes the app playable offline after first visit. Its cache name is stamped with
+  the git SHA at build (`scripts/stamp-sw.mjs`) so every deploy busts the cache; a new
+  version waits and prompts to reload rather than swapping under the player. See
+  [development.md](./development.md#versioning--cache-busting).
 - **AI on the main thread.** Equity sims (up to ~1800 iters) run synchronously inside
   the AI's turn timer. Fine today; the obvious future optimization is a Web Worker.
 - **Account-free, no real money.** Chips are play money; the display currency is a

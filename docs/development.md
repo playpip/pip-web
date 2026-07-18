@@ -75,6 +75,8 @@ alongside specific scenarios.
 ## Conventions & gotchas
 
 - **Colours:** use theme tokens, never hardcoded `white`/`black`. See [design.md](./design.md).
+  The one deliberate exception is `QrCode.tsx` (fixed white card for camera
+  scannability) — see [data-and-offline.md](./data-and-offline.md#qr-scan-to-phone).
 - **`set-state-in-effect`:** no synchronous `setState` inside `useEffect` (a React 19
   rule; enforced by convention here — Biome has no equivalent). Patterns used instead:
   - client-only gate → `useHydrated()` (`useSyncExternalStore`).
@@ -85,7 +87,8 @@ alongside specific scenarios.
 - **No `Date.now()`/`Math.random()` in engine logic that must be deterministic** — pass a
   seeded `Rng`. (They're fine in UI/store code like avatar seeds.)
 - **Persisted profile:** changing its shape → bump `PERSIST_VERSION` and add a `migrate`
-  branch in `store/profile.ts`.
+  branch in `store/profile.ts`. The profile is portable (file / code / QR) via one
+  shared envelope — see [data-and-offline.md](./data-and-offline.md).
 - **Turbopack root** is pinned in `next.config.ts` so `pnpm-workspace.yaml` isn't mistaken
   for a monorepo root.
 - **Images:** venue art uses plain `<img>` (static art; `next/image` adds little for
@@ -100,7 +103,7 @@ pnpm add -D <pkg>         # dev
 If pnpm reports ignored build scripts, add the package to `onlyBuiltDependencies` /
 `allowBuilds` in `pnpm-workspace.yaml` and re-run `pnpm install`.
 
-## Deploy
+## Deploy & releases
 
 **Cloudflare Pages, pure static.** `next.config.ts` sets `output: 'export'`, so
 `pnpm build` writes the whole site to `out/` as plain files — no server, no env
@@ -115,3 +118,48 @@ secrets — `CLOUDFLARE_API_TOKEN` (a token with the *Cloudflare Pages — Edit*
 permission) and `CLOUDFLARE_ACCOUNT_ID` — and a Pages project named `pip-web`.
 
 Production domain: **[playpip.io](https://playpip.io)**.
+
+### Automatic releases
+
+The same workflow cuts a release on every push to `main`, after a green gate +
+successful deploy:
+
+- **Version** auto-bumps — **patch by default**; put `#minor` or `#major` anywhere
+  in the commit message to bump harder (`#major` wins if both appear).
+- The bump is **committed before the build**, so the deployed PWA reports the new
+  version and its build id is the release commit.
+- Then it **tags `vX.Y.Z`, pushes it, and publishes a GitHub Release** with
+  auto-generated notes (diffed from the previous release).
+
+Notes:
+
+- No infinite loop: the bump commit is pushed with the default `GITHUB_TOKEN`
+  (which doesn't retrigger workflows) and carries `[skip ci]` as belt-and-braces.
+  The workflow declares `permissions: contents: write` and checks out with
+  `fetch-depth: 0` (needed to push and to diff release notes).
+- A manual `workflow_dispatch` run **redeploys the current version** — no bump, no
+  release (the release steps are gated to `push` events).
+- This pushes **directly to `main`** — if you add branch protection that blocks
+  everyone, exempt the `github-actions` bot or move to a Release-PR model.
+
+### Versioning & cache-busting
+
+Two values are injected at build (`next.config.ts` → `env`) and inlined into the
+client bundle:
+
+- `NEXT_PUBLIC_APP_VERSION` — the human version, read from `package.json`. Shown in
+  the Settings footer (`Pip v0.1.0 · <build id>`).
+- `NEXT_PUBLIC_BUILD_ID` — the git short SHA. Uniquely identifies each deploy.
+
+The service worker's cache name is `pip-__BUILD_ID__`; `scripts/stamp-sw.mjs` (run
+by `pnpm build`, after `next build`) stamps the git short SHA into `out/sw.js`. So
+**every deploy ships a byte-different `sw.js`** → the browser installs a new worker
+→ `activate` purges the old cache. That's the cache-bust.
+
+On an update the new worker **waits** rather than taking over silently.
+`useServiceWorkerUpdate` (registered from `UpdatePrompt`, mounted in the root
+layout) detects the waiting worker — re-checking hourly and whenever the tab regains
+focus — and shows a "new version is ready → Reload" nudge. Reload posts
+`SKIP_WAITING`; the worker activates and the page reloads onto the new assets. See
+[data-and-offline.md](./data-and-offline.md#offline-the-service-worker) for the
+offline caching strategy itself.
