@@ -47,7 +47,7 @@ export interface Venue {
   daily?: boolean
 }
 
-// Low rungs escalate gently (handsPerLevel 10 → 7) — new players need room to
+// Low rungs escalate gently (handsPerLevel 12 → 9) — new players need room to
 // play poker before the blinds force shove-or-fold. From the Casino up the
 // default pacing applies and stack pressure becomes part of the difficulty.
 export const VENUES: readonly Venue[] = [
@@ -60,7 +60,7 @@ export const VENUES: readonly Venue[] = [
     bigBlind: 2,
     seats: 4,
     prize: 400,
-    handsPerLevel: 10,
+    handsPerLevel: 12,
     accent: '#7C8CF0',
     ai: { tightness: 0.15, aggression: 0.25, bluff: 0.05, iterations: 300, skill: 0.28 },
   },
@@ -73,7 +73,7 @@ export const VENUES: readonly Venue[] = [
     bigBlind: 6,
     seats: 5,
     prize: 1_500,
-    handsPerLevel: 9,
+    handsPerLevel: 11,
     accent: '#5AA9E6',
     ai: { tightness: 0.22, aggression: 0.32, bluff: 0.06, iterations: 400, skill: 0.36 },
   },
@@ -86,7 +86,7 @@ export const VENUES: readonly Venue[] = [
     bigBlind: 10,
     seats: 5,
     prize: 3_750,
-    handsPerLevel: 8,
+    handsPerLevel: 10,
     accent: '#4FB477',
     ai: { tightness: 0.28, aggression: 0.4, bluff: 0.08, iterations: 550, skill: 0.44 },
   },
@@ -99,7 +99,7 @@ export const VENUES: readonly Venue[] = [
     bigBlind: 30,
     seats: 6,
     prize: 12_000,
-    handsPerLevel: 7,
+    handsPerLevel: 9,
     accent: '#E0A458',
     ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750, skill: 0.54 },
   },

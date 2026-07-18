@@ -5,8 +5,13 @@
 
 export const HANDS_PER_LEVEL = 6
 
+// Gentle ~1.3–1.4× steps with extra rungs, rather than a ×3→×5→×8 cliff. The
+// old curve lurched straight into shove-or-fold right as a low-venue table
+// reached its endgame; this reaches similar heights (so tournaments still end)
+// but eases into the shallow zone. Must stay integers — the Garage posts SB 1,
+// so a fractional multiplier would give fractional blinds (see blinds.test.ts).
 /** Blind multiplier per level; the last one holds once reached. */
-export const LEVEL_MULTIPLIERS = [1, 2, 3, 5, 8, 12, 18, 27, 40, 60] as const
+export const LEVEL_MULTIPLIERS = [1, 2, 3, 4, 6, 8, 11, 15, 20, 28, 40, 55] as const
 
 /** 0-based blind level in effect for hand number `handIndex` (0 = first hand). */
 export function blindLevel(handIndex: number, handsPerLevel: number = HANDS_PER_LEVEL): number {

@@ -75,12 +75,14 @@ once folded. Between hands the game **pauses on the result** and waits for **"Ne
 no auto-advance.
 
 **Blind escalation** (`config/blinds.ts`, unit-tested): blinds rise every
-`HANDS_PER_LEVEL` (6) hands through `LEVEL_MULTIPLIERS` (×1, ×2, ×3, ×5, ×8, … ×60,
-then capped), scaling each venue's base blinds — so tournaments always end. Venues
-override the pace with `handsPerLevel`: the low ladder rungs escalate gently
-(Garage 10 → Card Room 7, so new players play poker rather than shove-or-fold),
-turbo/hyper side tables escalate fast (3/2), and the freeroll never escalates. The
-top bar shows the level (`· L2`) once blinds have risen.
+`HANDS_PER_LEVEL` (6) hands through `LEVEL_MULTIPLIERS` (×1, ×2, ×3, ×4, ×6, ×8, …
+×55, then capped), scaling each venue's base blinds — so tournaments always end.
+The curve climbs in gentle ~1.3–1.4× steps (no ×3→×5→×8 cliff) so tables ease into
+the shallow zone rather than lurching into shove-or-fold. Venues override the pace
+with `handsPerLevel`: the low ladder rungs escalate gently (Garage 12 → Card Room 9,
+so new players play poker rather than shove-or-fold), turbo/hyper side tables
+escalate fast (3/2), and the freeroll never escalates. The top bar shows the level
+(`· L2`) once blinds have risen.
 
 **Hand history**: every action (and dealt street) is recorded into `lastHand`
 (`HandRecord`) when a hand completes; the History button on the table opens
