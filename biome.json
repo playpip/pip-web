@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!.next", "!node_modules", "!pnpm-lock.yaml", "!next-env.d.ts", "!agents"]
+    "includes": [
+      "**",
+      "!.next",
+      "!node_modules",
+      "!pnpm-lock.yaml",
+      "!next-env.d.ts",
+      "!agents",
+      "!design/**"
+    ]
   },
   "formatter": {
     "enabled": true,
