@@ -6,6 +6,7 @@
 import type { Rng } from '../cards'
 import { legalActions, potSize, type Action, type HandState } from '../engine'
 import { estimateEquity } from '../equity'
+import { holeStrength } from '../range'
 
 export interface AiProfile {
   /** Loose (0) → nitty (1). Raises the equity needed to continue. */
@@ -126,10 +127,23 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   // less — a steal into a live field is far likelier to run into a real hand.
   const posPressure = positionalPressure(state, player)
 
+  // Preflop, gate voluntary chips on starting-hand quality. Raw equity vs two
+  // random cards flatters junk — 2-3o still wins ~a third of the time heads-up —
+  // so an equity-only bot limps and cheap-peels hands a real player just mucks.
+  // The cutoff scales hard with tightness: it's the main dial separating a loose
+  // low-stakes field that plays a wide, junky range from a nosebleed nit that
+  // folds everything but premiums. A holding below it won't open-bluff and folds
+  // to any bet. This never overrides checking for free (the unbet branch takes
+  // its free card) so a limped big blind still sees the flop with anything.
+  const preStrength = state.street === 'preflop' ? holeStrength(player.hole, state.community) : 1
+  const preflopCutoff = 0.15 + profile.tightness * 0.5
+  const trashPreflop = state.street === 'preflop' && preStrength < preflopCutoff
+
   // --- unbet pot: check or lead out --------------------------------------
   if (toCall === 0) {
     const wantsValue = equity > 0.62 && roll < 0.35 + profile.aggression * 0.55
-    const wantsBluff = equity < 0.4 && roll < profile.bluff * (1 - posPressure * 0.5)
+    const wantsBluff =
+      equity < 0.4 && !trashPreflop && roll < profile.bluff * (1 - posPressure * 0.5)
     if ((wantsValue || wantsBluff) && (legal.canBet || legal.canRaise)) {
       const fraction = wantsValue ? 0.55 + profile.aggression * 0.25 : 0.5
       return {
@@ -141,6 +155,12 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   }
 
   // --- facing a bet ------------------------------------------------------
+  // Muck preflop junk to any bet rather than peel with 2-3 — no price is good
+  // enough for a hand a real player never entered the pot with.
+  if (trashPreflop) {
+    return { type: 'fold' }
+  }
+
   // Unskilled players also just give up under pressure — the exploitable
   // tell a casual human can actually find and use.
   if (skill < 1 && rng() < (1 - skill) * 0.35) {
@@ -149,7 +169,12 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
 
   // Tightness demands more equity than the raw pot odds before continuing;
   // position asks for a little extra when players are still to act behind us.
-  const continueThreshold = potOdds + profile.tightness * 0.15 + posPressure * 0.06
+  // Preflop it bites harder — a loose field discounts the price and calls wide
+  // (station-y, exploitable), a nit demands a premium over it — so the ladder's
+  // looseness actually shows up in how many hands each table plays.
+  const oddsFactor = state.street === 'preflop' ? 0.42 + profile.tightness * 1.15 : 1
+  const tightnessTax = profile.tightness * (state.street === 'preflop' ? 0.2 : 0.15)
+  const continueThreshold = potOdds * oddsFactor + tightnessTax + posPressure * 0.06
 
   if (equity < continueThreshold) {
     // Usually fold; occasionally bluff-raise, or peel one cheaply when close.
