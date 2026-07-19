@@ -117,6 +117,9 @@ interface GameState {
   seatStats: Record<string, SeatStats>
   /** One quiet line of character flavour, heavily rationed (see docs/cast.md). */
   talk: string | null
+  /** Chips bought in this session — the sit-in plus any rebuys. Drives the cash
+   * table's cash-out P/L (which must count rebuys, not just the first buy-in). */
+  cashInvested: number
 
   sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec }) => void
   /** Rebuild an interrupted table from its snapshot (no buy-in taken). */
@@ -152,6 +155,8 @@ export interface TableSnapshot {
   buttonSeatId: string
   handIndex: number
   heroLow: number
+  /** Chips bought in so far (cash tables) — restored so P/L survives a refresh. */
+  cashInvested?: number
   /** Which day's Daily this table is — keeps the seed stable across midnight. */
   dailyDate?: string
 }
@@ -331,6 +336,7 @@ export const useGame = create<GameState>((set, get) => {
       buttonSeatId: configs[buttonIndex].id,
       handIndex,
       heroLow: heroLowTide,
+      cashInvested: get().cashInvested,
       dailyDate: dailyDay ?? undefined,
     })
     progress()
@@ -605,6 +611,7 @@ export const useGame = create<GameState>((set, get) => {
       ),
       handIndex: get().handIndex,
       heroLow: heroLowTide,
+      cashInvested: get().cashInvested,
     })
     set({
       seats: rebought,
@@ -679,6 +686,7 @@ export const useGame = create<GameState>((set, get) => {
     lastBounty: 0,
     seatStats: {},
     talk: null,
+    cashInvested: 0,
 
     sitDown: (venue, human) => {
       clearTimers()
@@ -752,6 +760,7 @@ export const useGame = create<GameState>((set, get) => {
         lastBounty: 0,
         seatStats: {},
         talk: null,
+        cashInvested: venue.buyIn,
       })
       dealHand(seats[0].id)
       // Someone might say hello — one line at most, often nobody.
@@ -785,6 +794,7 @@ export const useGame = create<GameState>((set, get) => {
         newAwards: [],
         lastBounty: 0,
         talk: null,
+        cashInvested: snapshot.cashInvested ?? venue.buyIn,
       })
       dealHand(snapshot.buttonSeatId)
     },
@@ -813,7 +823,13 @@ export const useGame = create<GameState>((set, get) => {
       profile.adjustRoll(-venue.buyIn) // buy a fresh stack from the Roll
       const nextSeats = seats.map((s) => (s.isHuman ? { ...s, stack: tableStack } : s))
       heroLowTide = Math.min(heroLowTide, tableStack)
-      set({ seats: nextSeats, status: 'playing', place: null, message: null })
+      set({
+        seats: nextSeats,
+        status: 'playing',
+        place: null,
+        message: null,
+        cashInvested: get().cashInvested + venue.buyIn,
+      })
       const live = nextSeats.filter((s) => s.stack > 0)
       dealHand(nextButtonSeatId(nextSeats, get().buttonSeatId, live))
     },
@@ -841,6 +857,7 @@ export const useGame = create<GameState>((set, get) => {
         lastBounty: 0,
         seatStats: {},
         talk: null,
+        cashInvested: 0,
       })
     },
   }

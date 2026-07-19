@@ -51,17 +51,10 @@ export function LeaveDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {cash && (
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-sm text-muted-foreground">You’re taking</span>
-            <span className="text-lg font-semibold tabular-nums">{money(stack)}</span>
-          </div>
-        )}
-
-        {!freeroll && !cash && (
+        {!freeroll && (
           <div className="pt-1">
-            <Row label="Bought in for" value={money(buyIn)} />
-            <Row label="Your stack" value={money(stack)} />
+            <Row label={cash ? 'Bought in' : 'Bought in for'} value={money(buyIn)} />
+            <Row label={cash ? 'Standing up with' : 'Your stack'} value={money(stack)} />
             <div className="my-3 h-px bg-foreground/10" />
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Profit / loss</span>

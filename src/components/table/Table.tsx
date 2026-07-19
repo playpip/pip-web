@@ -66,6 +66,7 @@ export function Table() {
     lastBounty,
     seatStats,
     talk,
+    cashInvested,
     nextHand,
     rebuy,
     leave,
@@ -400,7 +401,7 @@ export function Table() {
       <LeaveDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
-        buyIn={venue.buyIn}
+        buyIn={venue.cash ? cashInvested : venue.buyIn}
         stack={hero?.stack ?? 0}
         freeroll={venue.freeroll === true}
         cash={venue.cash === true}
