@@ -76,7 +76,14 @@ equity + pot odds + a personality.
   → compare to pot odds (tightness, plus a little more when players are still to act
   behind it) → value-bet/raise strong hands, check/call medium, fold weak, occasionally
   bluff (less so out of position). Bet sizing is a jittered fraction of the pot,
-  clamped to legal bounds.
+  clamped to legal bounds. **Preflop, `tightness` is the looseness dial**: it sets a
+  starting-hand-quality cutoff (`holeStrength`) below which a holding won't open-bluff
+  and folds to any bet, and it scales how far the continue decision discounts (loose,
+  station-y) or demands a premium over (nit) the pot odds. Raw equity vs random cards
+  flatters junk — 2-3o still wins ~⅓ heads-up — so without this an equity-only bot
+  limps and cheap-peels hands a real player mucks. Net effect: a loose low-stakes table
+  plays ~30% of hands (6-max), a Main-Event nit ~15%, matching real VPIP ranges. Never
+  overrides checking for free — a limped big blind still sees the flop with anything.
 - `opponentSelectivity(state, opp)` is exported and shared with the store's hero
   "win %" read, so both sides model opponent ranges identically.
 - Difficulty scales per venue via the profile (see `config/venues.ts`).
