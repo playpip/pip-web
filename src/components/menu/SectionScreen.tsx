@@ -23,7 +23,7 @@ export function SectionScreen({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="rise-layer flex flex-1 flex-col"
+        className="flex flex-1 flex-col"
       >
         <div className="mb-6 px-1">
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>

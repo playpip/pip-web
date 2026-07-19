@@ -180,26 +180,6 @@
   }
 }
 
-/* --- entrance-animation compositing (iOS PWA) ------------------------------
-   Cards on the menu / Rail rise in with a translateY (framer-motion). On iOS
-   WebKit a translating ancestor forces any backdrop-blur descendant to
-   re-rasterise every frame, and framer's add/remove of will-change flashes the
-   layer as it demotes at the end — together that reads as a flicker.
-
-   `.rise-layer` keeps the animating card promoted for the whole gesture (no
-   end-of-animation demotion flash); `.blur-layer` pins each blurred badge onto
-   its own stable GPU layer so the parent's transform can't re-blur it. */
-.rise-layer {
-  will-change: transform;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-.blur-layer {
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;

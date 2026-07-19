@@ -65,7 +65,7 @@ export function Home() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rise-layer flex flex-col items-start py-10 text-left"
+        className="flex flex-col items-start py-10 text-left"
       >
         {/* the greeting IS the label — one line, so it reads as part of the Roll */}
         <p className="text-sm text-muted-foreground">
@@ -212,35 +212,44 @@ function CategoryCard({
   delay?: number
 }) {
   return (
-    <motion.button
+    // The rise animates a plain wrapper, not the card itself: animating
+    // opacity/transform on an element that also clips (overflow-hidden +
+    // rounded) makes iOS WebKit re-rasterise the rounded mask each frame and
+    // flicker. Keeping the clipped card a static child sidesteps it — the same
+    // structure the venue tiles use.
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35, ease: 'easeOut' }}
-      onClick={onClick}
-      className="rise-layer group flex flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      className="w-full"
     >
-      <div className="relative aspect-[16/10] w-full">
-        <CategoryArt id={art} accent={accent} className="absolute inset-0 size-full" />
-        <span className="blur-layer absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/40 backdrop-blur-sm">
-          {locked ? (
-            <Lock className="size-3.5 text-white/85" />
-          ) : (
-            <ChevronRight className="size-4 text-white/85 transition group-hover:translate-x-0.5" />
-          )}
-        </span>
-      </div>
-      <div className={cn('p-3 md:p-4', locked && 'opacity-60')}>
-        <h3 className="flex items-center gap-1.5 font-semibold">
-          {title}
-          {badge && (
-            <span className="text-xs font-medium tabular-nums text-muted-foreground/70">
-              {badge}
-            </span>
-          )}
-        </h3>
-        <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-      </div>
-    </motion.button>
+      <button
+        onClick={onClick}
+        className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      >
+        <div className="relative aspect-[16/10] w-full">
+          <CategoryArt id={art} accent={accent} className="absolute inset-0 size-full" />
+          <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/40 backdrop-blur-sm">
+            {locked ? (
+              <Lock className="size-3.5 text-white/85" />
+            ) : (
+              <ChevronRight className="size-4 text-white/85 transition group-hover:translate-x-0.5" />
+            )}
+          </span>
+        </div>
+        <div className={cn('p-3 md:p-4', locked && 'opacity-60')}>
+          <h3 className="flex items-center gap-1.5 font-semibold">
+            {title}
+            {badge && (
+              <span className="text-xs font-medium tabular-nums text-muted-foreground/70">
+                {badge}
+              </span>
+            )}
+          </h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+      </button>
+    </motion.div>
   )
 }
 
@@ -321,26 +330,31 @@ function DailyTile({ roll, delay }: { roll: number; delay: number }) {
 function ShopCard({ onOpen }: { onOpen: () => void }) {
   const pearl = characterById('pearl')
   return (
-    <motion.button
+    // Same as the tiles: animate the wrapper, keep the rounded card static so
+    // iOS doesn't re-rasterise (and flicker) its rounded mask each frame.
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2, duration: 0.35, ease: 'easeOut' }}
-      onClick={onOpen}
-      className="rise-layer group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
     >
-      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
-        {pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <span className="font-medium">Pearl&rsquo;s counter</span>
-        <p className="truncate text-sm text-muted-foreground">
-          Card backs, deck faces, souvenirs — style, never edge.
-        </p>
-      </div>
-      <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
-        <Store className="size-4" />
-        Browse
-      </span>
-    </motion.button>
+      <button
+        onClick={onOpen}
+        className="group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      >
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
+          {pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="font-medium">Pearl&rsquo;s counter</span>
+          <p className="truncate text-sm text-muted-foreground">
+            Card backs, deck faces, souvenirs — style, never edge.
+          </p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
+          <Store className="size-4" />
+          Browse
+        </span>
+      </button>
+    </motion.div>
   )
 }
