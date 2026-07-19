@@ -8,7 +8,6 @@ import {
   Lock,
   ChevronRight,
   ChevronLeft,
-  Info,
   Moon,
   MoonStar,
   Palette,
@@ -58,8 +57,8 @@ interface VenueVM {
   /** Ladder rung number; side tables have none. */
   tier?: number
   playable: boolean
-  onEnter: () => void
-  onInfo: () => void
+  /** Tapping a venue opens its info dialog, which confirms the buy-in. */
+  onOpen: () => void
 }
 
 export function Home() {
@@ -84,11 +83,7 @@ export function Home() {
       index,
       tier: tiered ? index + 1 : undefined,
       playable: roll >= venue.buyIn,
-      onEnter: () => {
-        sound.play('call')
-        router.push(`/play/${venue.id}`)
-      },
-      onInfo: () => {
+      onOpen: () => {
         sound.play('tap')
         setInfoVenue(venue)
       },
@@ -207,7 +202,15 @@ export function Home() {
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
       <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
-      <VenueInfoDialog venue={infoVenue} onOpenChange={(o) => !o && setInfoVenue(null)} />
+      <VenueInfoDialog
+        venue={infoVenue}
+        playable={infoVenue ? roll >= infoVenue.buyIn : false}
+        onOpenChange={(o) => !o && setInfoVenue(null)}
+        onPlay={(venue) => {
+          sound.play('call')
+          router.push(`/play/${venue.id}`)
+        }}
+      />
     </div>
   )
 }
@@ -450,24 +453,21 @@ function Stakes({ venue }: { venue: Venue }) {
 
 /** Desktop slider card — vertical tile, fixed width, snap target. */
 function VenueTile({ model }: { model: VenueVM }) {
-  const { venue, index, tier, playable, onEnter, onInfo } = model
+  const { venue, index, tier, playable, onOpen } = model
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
-      className="relative w-64 shrink-0 snap-start"
+      className="w-64 shrink-0 snap-start"
     >
       <button
-        disabled={!playable}
-        onClick={() => playable && onEnter()}
+        onClick={onOpen}
+        aria-label={`About ${venue.name}`}
         className={cn(
           // h-full: the wrapper stretches with the shelf row, so every card in a
           // shelf matches the tallest regardless of tagline length.
-          'group flex h-full w-full flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition',
-          playable
-            ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]'
-            : 'opacity-45',
+          'group flex h-full w-full flex-col rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]',
         )}
       >
         <div className="relative aspect-square overflow-hidden rounded-xl">
@@ -487,21 +487,8 @@ function VenueTile({ model }: { model: VenueVM }) {
         </div>
         <div className="mt-3 flex items-end justify-between px-1">
           <Stakes venue={venue} />
-          <ChevronRight
-            className={cn(
-              'size-4 text-muted-foreground transition group-hover:translate-x-0.5',
-              !playable && 'opacity-0',
-            )}
-          />
+          <ChevronRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5" />
         </div>
-      </button>
-      {/* sibling, not nested — buttons can't contain buttons */}
-      <button
-        onClick={onInfo}
-        aria-label={`About ${venue.name}`}
-        className="absolute right-5 top-5 rounded-full bg-black/45 p-1.5 text-white/75 backdrop-blur-sm transition hover:text-white"
-      >
-        <Info className="size-3.5" />
       </button>
     </motion.div>
   )
@@ -509,48 +496,32 @@ function VenueTile({ model }: { model: VenueVM }) {
 
 /** Mobile list row — horizontal. */
 function VenueRow({ model }: { model: VenueVM }) {
-  const { venue, playable, onEnter, onInfo } = model
+  const { venue, playable, onOpen } = model
   return (
-    <div className="relative">
-      <button
-        disabled={!playable}
-        onClick={() => playable && onEnter()}
-        className={cn(
-          'group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 pr-16 text-left transition',
-          playable
-            ? 'hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]'
-            : 'opacity-45',
-        )}
-      >
-        <ArtThumb venue={venue} className="size-14" />
-        <div className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5 font-medium">
-            <span className="truncate">{venue.name}</span>
-            {venue.format && (
-              <span
-                className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-semibold"
-                style={{ color: venue.accent }}
-              >
-                {FORMAT_LABELS[venue.format]}
-              </span>
-            )}
-          </span>
-          <p className="truncate text-sm text-muted-foreground">{venue.tagline}</p>
-        </div>
-        <div className="shrink-0 text-right">
-          {playable ? <Stakes venue={venue} /> : <LockTag venue={venue} />}
-        </div>
-      </button>
-      <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
-        <button
-          onClick={onInfo}
-          aria-label={`About ${venue.name}`}
-          className="rounded-full p-1.5 text-muted-foreground transition hover:bg-foreground/10 hover:text-foreground"
-        >
-          <Info className="size-4" />
-        </button>
-        <ChevronRight className={cn('size-4 text-muted-foreground', !playable && 'opacity-0')} />
+    <button
+      onClick={onOpen}
+      aria-label={`About ${venue.name}`}
+      className="group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+    >
+      <ArtThumb venue={venue} className="size-14" />
+      <div className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5 font-medium">
+          <span className="truncate">{venue.name}</span>
+          {venue.format && (
+            <span
+              className="shrink-0 rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{ color: venue.accent }}
+            >
+              {FORMAT_LABELS[venue.format]}
+            </span>
+          )}
+        </span>
+        <p className="truncate text-sm text-muted-foreground">{venue.tagline}</p>
       </div>
-    </div>
+      <div className="shrink-0 text-right">
+        {playable ? <Stakes venue={venue} /> : <LockTag venue={venue} />}
+      </div>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+    </button>
   )
 }

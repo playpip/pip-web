@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { VenueArt } from '@/components/menu/VenueArt'
-import { XIcon } from 'lucide-react'
+import { Lock, XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import { FORMAT_LABELS, VENUES, type Venue } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
@@ -73,10 +73,14 @@ function formatNote(venue: Venue): string | null {
 /** The little "about this table" dialog — structure, format, difficulty. */
 export function VenueInfoDialog({
   venue,
+  playable,
   onOpenChange,
+  onPlay,
 }: {
   venue: Venue | null
+  playable: boolean
   onOpenChange: (open: boolean) => void
+  onPlay: (venue: Venue) => void
 }) {
   const money = useMoney()
   if (!venue) return <Dialog open={false} onOpenChange={onOpenChange} />
@@ -188,6 +192,21 @@ export function VenueInfoDialog({
               {rung > 0 && <InfoRow label="Ladder" value={`Rung ${rung} of ${VENUES.length}`} />}
             </div>
           </section>
+
+          {/* confirm — the play button lives here now, so tapping a venue opens
+              this dialog and playing is a deliberate second tap. */}
+          {playable ? (
+            <button
+              onClick={() => onPlay(venue)}
+              className="w-full rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            >
+              {venue.freeroll ? 'Play — free' : `Play — ${money(venue.buyIn)}`}
+            </button>
+          ) : (
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-foreground/10 py-3 text-sm text-muted-foreground">
+              <Lock className="size-4" /> Need {money(venue.buyIn)} to buy in
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
