@@ -186,6 +186,18 @@
   }
   body {
     @apply bg-background text-foreground overscroll-none;
+    /* Native-app feel: no long-press text selection, and no iOS callout
+       ("Copy / Look Up") menu. Selection is re-enabled on real inputs below. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* Text entry must stay selectable/editable. */
+  input,
+  textarea,
+  [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
   }
   html {
     /* overscroll-none kills the PWA rubber-band bounce at the page ends. */
