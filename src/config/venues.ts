@@ -386,7 +386,10 @@ export const KITCHEN_TABLE: Venue = {
   accent: '#64B98C',
   // Low skill is what makes this beatable: heads-up, a sound equity bot is
   // brutal however "loose" it is. This one misreads its hand and folds under
-  // pressure — simulated ~75% win rate for a competent-casual player.
+  // pressure — and since the AI now ranges its opponent (folding more to a
+  // bettor), heads-up it plays soft enough that a competent player wins it
+  // ~95%+. That's the intent: the freeroll is a speed bump, a near-gimme back
+  // onto the ladder, not a wall.
   ai: { tightness: 0.55, aggression: 0.15, bluff: 0.03, iterations: 80, skill: 0.3 },
 }
 

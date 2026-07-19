@@ -25,7 +25,7 @@ import {
   type HandState,
   type SeatConfig,
 } from '@/lib/poker/engine'
-import { decideAction } from '@/lib/poker/ai/policy'
+import { decideAction, opponentSelectivity } from '@/lib/poker/ai/policy'
 import { estimateEquity } from '@/lib/poker/equity'
 import { mulberry32, type Card, type Rng } from '@/lib/poker/cards'
 import { dailyDateKey, dailyNumber, dailySeed, handSeed } from '@/lib/daily'
@@ -864,21 +864,6 @@ export const useGame = create<GameState>((set, get) => {
 })
 
 // --- helpers ---------------------------------------------------------------
-
-// How "self-selected" an opponent's range looks, in [0, ~0.8]. Someone who's
-// piled chips in — especially betting on later streets — is far likelier to
-// hold a real hand than a random two cards, so the win % shouldn't treat them
-// as random. Derived from chips committed this hand (in big blinds) plus a bump
-// for putting money in postflop.
-function opponentSelectivity(hand: HandState, opp: HandState['players'][number]): number {
-  const bb = Math.max(hand.bigBlind, 1)
-  const bbIn = opp.committedThisHand / bb
-  let sel = bbIn / (bbIn + 5) // saturating: 1bb→0.17, 5bb→0.5, 15bb→0.75
-  const backedItPostflop =
-    hand.street !== 'preflop' && hand.currentBet > 0 && opp.committedThisStreet >= hand.currentBet
-  if (backedItPostflop) sel += 0.1
-  return Math.min(sel, 0.8)
-}
 
 function computeHeroEquity(hand: HandState): number | null {
   const hero = hand.players.find((p) => p.id === HUMAN_ID)

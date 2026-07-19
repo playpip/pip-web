@@ -26,10 +26,44 @@ export interface AiProfile {
 
 const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n))
 
-/** Count opponents still contesting the hand (folded/out excluded). */
-function opponentCount(state: HandState, selfId: string): number {
+/** Opponents still contesting the hand (folded/out excluded). */
+function liveOpponents(state: HandState, selfId: string): HandState['players'] {
   return state.players.filter((p) => p.id !== selfId && p.status !== 'folded' && p.status !== 'out')
-    .length
+}
+
+/**
+ * How "self-selected" an opponent's range looks, in [0, ~0.8]. Someone who has
+ * piled chips in — especially betting later streets — is far likelier to hold a
+ * real hand than two random cards, so equity should not treat them as random.
+ * Derived from chips committed this hand (in big blinds) plus a bump for backing
+ * it postflop. Feeds `estimateEquity`'s `opponentSelectivity`. Shared with the
+ * hero's ambient read (store/game.ts) so both sides model ranges the same way.
+ */
+export function opponentSelectivity(state: HandState, opp: HandState['players'][number]): number {
+  const bb = Math.max(state.bigBlind, 1)
+  const bbIn = opp.committedThisHand / bb
+  let sel = bbIn / (bbIn + 5) // saturating: 1bb→0.17, 5bb→0.5, 15bb→0.75
+  const backedItPostflop =
+    state.street !== 'preflop' &&
+    state.currentBet > 0 &&
+    opp.committedThisStreet >= state.currentBet
+  if (backedItPostflop) sel += 0.1
+  return Math.min(sel, 0.8)
+}
+
+/**
+ * Positional pressure in [0, 1]: how many live opponents still owe a decision
+ * *after* us this street, normalised by the field. Acting with players left to
+ * speak is riskier — someone behind can wake up with a raise — so early position
+ * tightens (near 1) and last-to-act (the button's late seats) loosens (near 0).
+ */
+function positionalPressure(state: HandState, self: HandState['players'][number]): number {
+  const opponents = liveOpponents(state, self.id)
+  if (opponents.length === 0) return 0
+  const behind = opponents.filter(
+    (p) => p.status === 'active' && !(p.hasActed && p.committedThisStreet === state.currentBet),
+  ).length
+  return behind / opponents.length
 }
 
 /**
@@ -59,15 +93,19 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   const player = state.players[state.toActIndex]
   if (!legal || !player) throw new Error('decideAction: no player to act')
 
-  const opponents = opponentCount(state, player.id)
-  if (opponents <= 0) {
+  const opponents = liveOpponents(state, player.id)
+  if (opponents.length === 0) {
     return legal.canCheck ? { type: 'check' } : { type: 'call' }
   }
 
+  // Model each opponent's range by how much they've backed the hand, not as two
+  // random cards — otherwise the AI over-values its equity into aggression and
+  // calls too light. This mirrors the hero's ambient read (store/game.ts).
   const { equity: trueEquity } = estimateEquity({
     hole: player.hole,
     community: state.community,
-    opponents,
+    opponents: opponents.length,
+    opponentSelectivity: opponents.map((p) => opponentSelectivity(state, p)),
     iterations: profile.iterations,
     rng,
   })
@@ -84,10 +122,14 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   const potOdds = toCall > 0 ? toCall / (pot + toCall) : 0
   const roll = rng()
 
+  // Out of position (players still to act behind us) we tighten up and bluff
+  // less — a steal into a live field is far likelier to run into a real hand.
+  const posPressure = positionalPressure(state, player)
+
   // --- unbet pot: check or lead out --------------------------------------
   if (toCall === 0) {
     const wantsValue = equity > 0.62 && roll < 0.35 + profile.aggression * 0.55
-    const wantsBluff = equity < 0.4 && roll < profile.bluff
+    const wantsBluff = equity < 0.4 && roll < profile.bluff * (1 - posPressure * 0.5)
     if ((wantsValue || wantsBluff) && (legal.canBet || legal.canRaise)) {
       const fraction = wantsValue ? 0.55 + profile.aggression * 0.25 : 0.5
       return {
@@ -105,8 +147,9 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
     return { type: 'fold' }
   }
 
-  // Tightness demands more equity than the raw pot odds before continuing.
-  const continueThreshold = potOdds + profile.tightness * 0.15
+  // Tightness demands more equity than the raw pot odds before continuing;
+  // position asks for a little extra when players are still to act behind us.
+  const continueThreshold = potOdds + profile.tightness * 0.15 + posPressure * 0.06
 
   if (equity < continueThreshold) {
     // Usually fold; occasionally bluff-raise, or peel one cheaply when close.

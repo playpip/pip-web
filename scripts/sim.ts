@@ -15,11 +15,14 @@
 // than the field. A venue is beatable when the target player type clears fair
 // comfortably, and hard when they sit near or below it.
 
+import { spawn } from 'node:child_process'
+import os from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { mulberry32, type Rng } from '@/lib/poker/cards'
 import { applyAction, isHandComplete, startHand } from '@/lib/poker/engine'
 import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
-import { KITCHEN_TABLE, SIDE_TABLES, VENUES, type Venue } from '@/config/venues'
+import { KITCHEN_TABLE, SIDE_TABLES, VENUES, venueById, type Venue } from '@/config/venues'
 
 const HERO_ID = 'hero'
 
@@ -103,6 +106,113 @@ function runTournament(venue: Venue, hero: AiProfile, rng: Rng): TourneyOutcome 
   return { heroWon: false, hands: MAX_HANDS, timedOut: true }
 }
 
+interface SliceResult {
+  wins: number
+  hands: number
+  timeouts: number
+}
+
+/**
+ * Run tournaments `[tStart, tEnd)` for one venue. Each tournament's RNG is keyed
+ * on its index, so slicing the range across workers is deterministic — the union
+ * of slices is byte-identical to running the whole range serially.
+ */
+function simulateSlice(venue: Venue, hero: AiProfile, seed: number, tStart: number, tEnd: number) {
+  let wins = 0
+  let hands = 0
+  let timeouts = 0
+  for (let t = tStart; t < tEnd; t++) {
+    const rng = mulberry32((hash(venue.id) + seed * 1_000_003 + t) >>> 0)
+    const outcome = runTournament(venue, hero, rng)
+    if (outcome.heroWon) wins++
+    if (outcome.timedOut) timeouts++
+    hands += outcome.hands
+  }
+  return { wins, hands, timeouts } satisfies SliceResult
+}
+
+// --- worker: run one venue's slice and report back --------------------------
+
+interface WorkerInput {
+  venueId: string
+  skill?: number
+  heroName: string
+  seed: number
+  tStart: number
+  tEnd: number
+}
+
+// Worker mode: a child process replays `node <tsx-cli> sim.ts` with SIM_SLICE
+// set, runs its tournament slice, and writes the totals back as JSON on stdout.
+// (worker_threads can't be used: the thread wouldn't inherit tsx's TS loader.)
+if (process.env.SIM_SLICE) {
+  const { venueId, skill, heroName, seed, tStart, tEnd } = JSON.parse(
+    process.env.SIM_SLICE,
+  ) as WorkerInput
+  const base = venueById(venueId)
+  const heroProfile = HEROES[heroName]
+  if (!base || !heroProfile) throw new Error(`worker: bad venue/hero ${venueId}/${heroName}`)
+  const venue = skill === undefined ? base : { ...base, ai: { ...base.ai, skill } }
+  process.stdout.write(JSON.stringify(simulateSlice(venue, heroProfile, seed, tStart, tEnd)))
+  process.exit(0)
+}
+
+/** Fan a venue's `n` tournaments across `workers` child processes; sum the totals. */
+function runVenueParallel(
+  venue: Venue,
+  seed: number,
+  heroName: string,
+  n: number,
+  workers: number,
+): Promise<SliceResult> {
+  const chunk = Math.ceil(n / workers)
+  const ranges: Array<[number, number]> = []
+  for (let start = 0; start < n; start += chunk) ranges.push([start, Math.min(start + chunk, n)])
+  const scriptPath = fileURLToPath(import.meta.url)
+
+  return Promise.all(
+    ranges.map(
+      ([tStart, tEnd]) =>
+        new Promise<SliceResult>((resolve, reject) => {
+          const input: WorkerInput = {
+            venueId: venue.id,
+            skill: venue.ai.skill,
+            heroName,
+            seed,
+            tStart,
+            tEnd,
+          }
+          const child = spawn(process.execPath, ['--import', 'tsx', scriptPath], {
+            env: { ...process.env, SIM_SLICE: JSON.stringify(input) },
+            stdio: ['ignore', 'pipe', 'inherit'],
+          })
+          let out = ''
+          child.stdout.on('data', (d) => {
+            out += d
+          })
+          child.on('error', reject)
+          child.on('close', (code) => {
+            if (code !== 0) return reject(new Error(`worker exited ${code}`))
+            try {
+              resolve(JSON.parse(out) as SliceResult)
+            } catch (err) {
+              reject(err)
+            }
+          })
+        }),
+    ),
+  ).then((parts) =>
+    parts.reduce<SliceResult>(
+      (acc, p) => ({
+        wins: acc.wins + p.wins,
+        hands: acc.hands + p.hands,
+        timeouts: acc.timeouts + p.timeouts,
+      }),
+      { wins: 0, hands: 0, timeouts: 0 },
+    ),
+  )
+}
+
 // --- CLI ---------------------------------------------------------------------
 
 function parseArgs(argv: string[]) {
@@ -150,61 +260,59 @@ function hash(s: string): number {
   return h >>> 0
 }
 
-const { flags, names } = parseArgs(process.argv.slice(2))
-const n = Number(flags.get('n') ?? 200)
-const seed = Number(flags.get('seed') ?? 1)
-const heroName = flags.get('hero') ?? 'competent'
-const hero = HEROES[heroName]
-if (!hero) {
-  console.error(`Unknown hero "${heroName}". Heroes: ${Object.keys(HEROES).join(', ')}`)
-  process.exit(1)
-}
-const skillOverride = flags.has('skill') ? Number(flags.get('skill')) : undefined
-const venues = resolveVenues(names).map((v) =>
-  skillOverride === undefined ? v : { ...v, ai: { ...v.ai, skill: skillOverride } },
-)
-
-console.log(
-  `Simulating ${n} tournaments per venue · hero: ${heroName} (skill ${hero.skill}) · seed ${seed}\n`,
-)
-
-const pad = (s: string, w: number) => s.padEnd(w)
-const num = (s: string, w: number) => s.padStart(w)
-console.log(
-  pad('venue', 20) +
-    num('seats', 6) +
-    num('ai skill', 9) +
-    num('win %', 8) +
-    num('fair %', 8) +
-    num('avg hands', 11) +
-    num('EV/entry', 10),
-)
-
-for (const venue of venues) {
-  const started = Date.now()
-  let wins = 0
-  let hands = 0
-  let timeouts = 0
-  for (let t = 0; t < n; t++) {
-    const rng = mulberry32((hash(venue.id) + seed * 1_000_003 + t) >>> 0)
-    const outcome = runTournament(venue, hero, rng)
-    if (outcome.heroWon) wins++
-    if (outcome.timedOut) timeouts++
-    hands += outcome.hands
+if (!process.env.SIM_SLICE) {
+  const { flags, names } = parseArgs(process.argv.slice(2))
+  const n = Number(flags.get('n') ?? 200)
+  const seed = Number(flags.get('seed') ?? 1)
+  const heroName = flags.get('hero') ?? 'competent'
+  const hero = HEROES[heroName]
+  if (!hero) {
+    console.error(`Unknown hero "${heroName}". Heroes: ${Object.keys(HEROES).join(', ')}`)
+    process.exit(1)
   }
-  const winRate = wins / n
-  const fair = 1 / venue.seats
-  // Expected chips per entry, ignoring bounties and mid-game cash-outs.
-  const ev = winRate * venue.prize - venue.buyIn
-  const secs = ((Date.now() - started) / 1000).toFixed(0)
-  console.log(
-    pad(venue.name, 20) +
-      num(String(venue.seats), 6) +
-      num((venue.ai.skill ?? 1).toFixed(2), 9) +
-      num(`${(winRate * 100).toFixed(0)}%`, 8) +
-      num(`${(fair * 100).toFixed(0)}%`, 8) +
-      num((hands / n).toFixed(1), 11) +
-      num((ev >= 0 ? '+' : '') + Math.round(ev).toLocaleString(), 10) +
-      `   (${secs}s${timeouts ? `, ${timeouts} timeouts` : ''})`,
+  const skillOverride = flags.has('skill') ? Number(flags.get('skill')) : undefined
+  const venues = resolveVenues(names).map((v) =>
+    skillOverride === undefined ? v : { ...v, ai: { ...v.ai, skill: skillOverride } },
   )
+
+  // Fan each venue's tournaments across cores. Sharding is by tournament index,
+  // so results are identical to a serial run — just N× faster. Leave a couple of
+  // cores free for the OS; never spin up more workers than there are tournaments.
+  const workers = Math.max(1, Math.min(os.cpus().length - 2, n))
+
+  console.log(
+    `Simulating ${n} tournaments per venue · hero: ${heroName} (skill ${hero.skill}) · seed ${seed} · ${workers} workers\n`,
+  )
+
+  const pad = (s: string, w: number) => s.padEnd(w)
+  const num = (s: string, w: number) => s.padStart(w)
+  console.log(
+    pad('venue', 20) +
+      num('seats', 6) +
+      num('ai skill', 9) +
+      num('win %', 8) +
+      num('fair %', 8) +
+      num('avg hands', 11) +
+      num('EV/entry', 10),
+  )
+
+  for (const venue of venues) {
+    const started = Date.now()
+    const { wins, hands, timeouts } = await runVenueParallel(venue, seed, heroName, n, workers)
+    const winRate = wins / n
+    const fair = 1 / venue.seats
+    // Expected chips per entry, ignoring bounties and mid-game cash-outs.
+    const ev = winRate * venue.prize - venue.buyIn
+    const secs = ((Date.now() - started) / 1000).toFixed(0)
+    console.log(
+      pad(venue.name, 20) +
+        num(String(venue.seats), 6) +
+        num((venue.ai.skill ?? 1).toFixed(2), 9) +
+        num(`${(winRate * 100).toFixed(0)}%`, 8) +
+        num(`${(fair * 100).toFixed(0)}%`, 8) +
+        num((hands / n).toFixed(1), 11) +
+        num((ev >= 0 ? '+' : '') + Math.round(ev).toLocaleString(), 10) +
+        `   (${secs}s${timeouts ? `, ${timeouts} timeouts` : ''})`,
+    )
+  }
 }

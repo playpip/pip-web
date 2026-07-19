@@ -7,8 +7,15 @@ import {
   type HandState,
   type SeatConfig,
 } from '@/lib/poker/engine'
-import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
+import { decideAction, opponentSelectivity, type AiProfile } from '@/lib/poker/ai/policy'
 import { mulberry32, type Rng } from '@/lib/poker/cards'
+
+type Player = HandState['players'][number]
+
+/** Minimal opponent stub for the pure selectivity read (only reads commitments). */
+function opp(committedThisHand: number, committedThisStreet = 0): Player {
+  return { committedThisHand, committedThisStreet, status: 'active' } as Player
+}
 
 const PROFILE: AiProfile = { tightness: 0.4, aggression: 0.5, bluff: 0.12, iterations: 200 }
 
@@ -81,6 +88,27 @@ test('tighter AI folds more than a looser one facing the same spots', (t) => {
   }
 
   t.true(countFolds(nit) > countFolds(maniac))
+})
+
+test('opponentSelectivity rises with chips committed and stays bounded', (t) => {
+  const preflop = { bigBlind: 10, street: 'preflop', currentBet: 0 } as HandState
+
+  const little = opponentSelectivity(preflop, opp(10)) // 1bb in
+  const some = opponentSelectivity(preflop, opp(50)) // 5bb in
+  const lots = opponentSelectivity(preflop, opp(300)) // 30bb in
+
+  t.true(some > little)
+  t.true(lots > some)
+  t.true(little >= 0 && lots <= 0.8) // bounded [0, 0.8]
+})
+
+test('opponentSelectivity adds a bump for backing it postflop', (t) => {
+  // Same chips committed, but one opponent has matched the bet on a later
+  // street — a stronger signal of a real hand than dead preflop money.
+  const flop = { bigBlind: 10, street: 'flop', currentBet: 40 } as HandState
+  const passive = opponentSelectivity({ ...flop, street: 'preflop' } as HandState, opp(60, 0))
+  const aggressive = opponentSelectivity(flop, opp(60, 40))
+  t.true(aggressive > passive)
 })
 
 test('low-skill AI folds to pressure more than its full-skill self', (t) => {

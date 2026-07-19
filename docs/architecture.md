@@ -48,10 +48,13 @@ src/
 
   config/
     venues.ts               # the venue ladder (buy-ins, blinds, prizes, AI profiles)
-    names.ts                # AI opponent name pool
+    blinds.ts               # blind-escalation curve (levels, hands-per-level)
+    cast.ts                 # the cast — opponent characters, avatars, table-talk, drafting
+    opponents.ts            # AI style labels + bankroll ranges (flavour helpers)
     cardBacks.ts            # card-back colours + patterns
-    currencies.ts           # selectable display currencies
-    ranks.ts                # rank titles (by peak Roll) + top-up amount
+    handNames.ts            # display names for made hands
+    ranks.ts                # rank titles (by peak Roll)
+    shop.ts                 # the Chip Shop catalogue (earned cosmetic unlocks)
 
   store/
     profile.ts              # PERSISTED: name, avatar, Roll, peakRoll, currency, stats, cardBack (versioned)
@@ -130,6 +133,14 @@ choreography (timers, sounds, transitions) on top.
 
 - AI equity is main-thread (see above) → Web Worker candidate.
 - SFX are synthesised; `howler` is present to swap in real samples without touching callers.
-- No hand-history / detailed-stats screen yet (lifetime counters are tracked in `profile`).
 - Opponent hole cards are revealed only at showdown (hidden during play).
-- Blinds are fixed — no tournament blind escalation yet.
+- The game store keeps a little **module-level mutable state** (`heroLowTide`,
+  `seatStatsLive`, `castFlushed`, `dailyAiRng`, `currentEvents`, the turn timer)
+  outside Zustand. It's fine because exactly one table is live at a time, and it's
+  reset on every `sitDown`/`resumeTable`/`leave` — but it's the seam to fold into
+  the store first if we ever run two tables or need stricter test isolation.
+- **The AI is stateless per decision** — equity vs pot odds, ranged opponents
+  (`opponentSelectivity`) and a light positional term, but no cross-street memory
+  of a specific villain, no board-texture bluffing, no explicit hand-reading. The
+  `skill` knob makes bots *worse* convincingly; there's no lever yet that makes
+  them read *better* than "more Monte-Carlo iterations."

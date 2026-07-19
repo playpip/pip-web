@@ -13,7 +13,7 @@
       "!pnpm-lock.yaml",
       "!next-env.d.ts",
       "!agents",
-      "!design/**"
+      "!design"
     ]
   },
   "formatter": {

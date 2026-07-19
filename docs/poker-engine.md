@@ -57,9 +57,11 @@ Results live on `state.result: HandResult` when a hand ends:
 `{ showdown, payouts, potsAwarded, evaluations? }`.
 
 ### `equity.ts`
-Monte-Carlo equity — how often a hand wins at showdown vs N random opponents.
-- `estimateEquity({ hole, community?, opponents, iterations?, rng? }): EquityResult`
+Monte-Carlo equity — how often a hand wins at showdown vs N opponents.
+- `estimateEquity({ hole, community?, opponents, iterations?, rng?, opponentSelectivity? }): EquityResult`
   → `{ win, tie, equity, iterations }`. `equity` = win share incl. tie splits, in `[0,1]`.
+- `opponentSelectivity` (per-opponent, `[0,1]`) weights each opponent's range toward
+  stronger hands instead of two random cards — omit it for classic raw equity.
 - Powers both the AI and the human's ambient "win %" readout. ~800–1800 iters is plenty.
 
 ### `ai/policy.ts`
@@ -69,9 +71,14 @@ equity + pot odds + a personality.
   degrades play quality with genuine mistakes: noisy self-equity reads and folding
   under pressure. Used by the Kitchen Table freeroll so it stays beatable heads-up.
 - `decideAction(state, profile, rng?): Action` — always returns a **legal** action.
-  Logic: estimate equity vs live opponents → compare to pot odds (tightness raises the
-  bar) → value-bet/raise strong hands, check/call medium, fold weak, occasionally bluff.
-  Bet sizing is a jittered fraction of the pot, clamped to legal bounds.
+  Logic: estimate equity vs live opponents — **ranging each by how much they've
+  backed the hand** (`opponentSelectivity`, so it doesn't over-call into aggression)
+  → compare to pot odds (tightness, plus a little more when players are still to act
+  behind it) → value-bet/raise strong hands, check/call medium, fold weak, occasionally
+  bluff (less so out of position). Bet sizing is a jittered fraction of the pot,
+  clamped to legal bounds.
+- `opponentSelectivity(state, opp)` is exported and shared with the store's hero
+  "win %" read, so both sides model opponent ranges identically.
 - Difficulty scales per venue via the profile (see `config/venues.ts`).
 
 ## Invariants worth preserving (and how they're tested)
