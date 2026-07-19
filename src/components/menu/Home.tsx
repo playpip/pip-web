@@ -65,7 +65,7 @@ export function Home() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-start py-10 text-left"
+        className="rise-layer flex flex-col items-start py-10 text-left"
       >
         {/* the greeting IS the label — one line, so it reads as part of the Roll */}
         <p className="text-sm text-muted-foreground">
@@ -217,11 +217,11 @@ function CategoryCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35, ease: 'easeOut' }}
       onClick={onClick}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      className="rise-layer group flex flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
     >
       <div className="relative aspect-[16/10] w-full">
         <CategoryArt id={art} accent={accent} className="absolute inset-0 size-full" />
-        <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/40 backdrop-blur-sm">
+        <span className="blur-layer absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/40 backdrop-blur-sm">
           {locked ? (
             <Lock className="size-3.5 text-white/85" />
           ) : (
@@ -326,7 +326,7 @@ function ShopCard({ onOpen }: { onOpen: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2, duration: 0.35, ease: 'easeOut' }}
       onClick={onOpen}
-      className="group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      className="rise-layer group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
     >
       <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
         {pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}

@@ -25,6 +25,7 @@ import { PlayingCard } from '@/components/PlayingCard'
 import { CardBack } from '@/components/CardBack'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { Wordmark } from './Wordmark'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, type Venue } from '@/config/venues'
 import { CARD_BACKS } from '@/config/cardBacks'
@@ -88,48 +89,6 @@ function Header() {
         </nav>
       </div>
     </header>
-  )
-}
-
-function Wordmark({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn(
-        'flex items-center gap-2 text-xl font-semibold lowercase tracking-tight',
-        className,
-      )}
-    >
-      <ChipMark className="size-5" />
-      pip
-    </span>
-  )
-}
-
-/** The brand mark — the Pip poker chip (matches the favicon at src/app/icon.svg). */
-function ChipMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <circle cx="16" cy="16" r="15" fill="#7C8CF0" />
-      <circle
-        cx="16"
-        cy="16"
-        r="12.5"
-        fill="none"
-        stroke="#FFFFFF"
-        strokeWidth="4.5"
-        strokeDasharray="3.3 6.517"
-        strokeDashoffset="1.65"
-      />
-      <circle
-        cx="16"
-        cy="16"
-        r="8.25"
-        fill="none"
-        stroke="#FFFFFF"
-        strokeWidth="1.5"
-        opacity="0.95"
-      />
-    </svg>
   )
 }
 
@@ -797,13 +756,19 @@ function Footer() {
             gambling.
           </p>
         </div>
-        <div className="flex items-center gap-5 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
           <a href="#features" className="transition hover:text-foreground">
             Features
           </a>
           <a href="#venues" className="transition hover:text-foreground">
             Venues
           </a>
+          <Link href="/privacy" className="transition hover:text-foreground">
+            Privacy
+          </Link>
+          <Link href="/terms" className="transition hover:text-foreground">
+            Terms
+          </Link>
           <a
             href="https://github.com/playpip/pip-web"
             target="_blank"
