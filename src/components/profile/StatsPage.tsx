@@ -1,9 +1,8 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ChevronLeft } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { PageShell } from '@/components/PageShell'
 import { RollGraph } from '@/components/RollGraph'
 import { CountUp } from '@/components/CountUp'
 import { PlayStyleChart } from './PlayStyleChart'
@@ -13,14 +12,12 @@ import { rankFor } from '@/config/ranks'
 import { derivePlayStyle } from '@/lib/playStyle'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
-import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
 const ALL_VENUES = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE]
 
 /** Lifetime stats — a full-page bento, the play-style quadrant at its centre. */
 export function StatsPage() {
-  const router = useRouter()
   const { name, avatar, roll, peakRoll, stats, rollHistory, venueRecords, tendencies } =
     useProfile()
   const money = useMoney()
@@ -47,38 +44,19 @@ export function StatsPage() {
     .slice()
     .sort((a, b) => (venueRecords[b.id]?.entered ?? 0) - (venueRecords[a.id]?.entered ?? 0))[0]
 
-  const back = () => {
-    sound.play('tap')
-    router.push('/game')
-  }
-
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-6 py-8 md:px-10">
-      {/* top bar */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={back}
-          className="-ml-2 flex items-center gap-1 rounded-full py-1.5 pl-2 pr-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.98]"
-        >
-          <ChevronLeft className="size-4" />
-          Back
-        </button>
-        <span className="text-xl font-semibold lowercase tracking-tight text-muted-foreground">
-          pip
-        </span>
-      </div>
-
+    <PageShell leading="back">
       {/* masthead — identity on the left, peak on the right */}
       <motion.header
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mt-4 mb-6 flex flex-wrap items-center justify-between gap-6"
+        className="mb-6 flex flex-wrap items-center justify-between gap-6"
       >
         <div className="flex items-center gap-4">
           {avatar && <PlayerAvatar spec={avatar} size={64} />}
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              Your stats
+              The story so far
             </p>
             <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{name}</h1>
             <p className="text-sm text-muted-foreground">{rank.name}</p>
@@ -131,7 +109,7 @@ export function StatsPage() {
             </>
           ) : (
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              Keep playing — {Math.max(0, 20 - style.hands)} more hands to name your style.
+              {Math.max(0, 20 - style.hands)} more hands and your style earns a name.
             </p>
           )}
         </Card>
@@ -159,7 +137,7 @@ export function StatsPage() {
             ) : (
               <div className="mt-3 flex h-40 items-center justify-center rounded-xl bg-foreground/[0.03]">
                 <p className="text-sm text-muted-foreground">
-                  Play a few games and your story starts here.
+                  Win a few, lose a few. Your story starts here.
                 </p>
               </div>
             )}
@@ -229,7 +207,7 @@ export function StatsPage() {
           </Card>
         </motion.section>
       )}
-    </div>
+    </PageShell>
   )
 }
 

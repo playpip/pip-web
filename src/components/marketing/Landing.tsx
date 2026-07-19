@@ -306,7 +306,7 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
     {
       icon: WifiOff,
       title: 'No account',
-      body: 'Nothing to sign up for. Your progress lives on your device.',
+      body: 'Nothing to sign up for, nothing to verify. Your progress lives on your device, not ours.',
     },
     {
       icon: Sparkles,
@@ -362,7 +362,7 @@ function Venues() {
       <SectionHeading
         eyebrow="Where you'll play"
         title="A ladder to climb. Side tables to raid."
-        body="Ten winner-take-all venues from Friends’ Garage to The Main Event, plus a set of side tables that twist the format. Same clean game everywhere — only the pressure changes."
+        body="Ten winner-take-all venues, Friends’ Garage up to The Main Event, plus side tables that bend the format. Same clean game throughout — the Garage forgives, the Main Event doesn’t."
       />
 
       <div className="mt-12">
@@ -575,7 +575,7 @@ function Features() {
             Clean SFX synthesised in the browser — quiet blips, no coin-clatter or jingles.
           </MiniFeature>
           <MiniFeature icon={WifiOff} title="Yours & offline">
-            Fully local. Install it and play with no connection; your profile never leaves your
+            Fully local. Install it, pull the plug, keep playing — your profile never leaves your
             device.
           </MiniFeature>
           <MiniFeature icon={Sparkles} title="A shelf worth filling">
@@ -766,8 +766,8 @@ function FinalCta() {
           custom={1}
           className="mt-5 max-w-lg text-lg text-muted-foreground text-pretty"
         >
-          Make a player, take a seat at the Garage, and see how far your Roll can climb. It&rsquo;s
-          free — and it always will be.
+          Make a player, take a seat at the Garage, and see how far your Roll climbs. It&rsquo;s
+          free — and with nothing to sell you, it stays that way.
         </motion.p>
         <motion.div
           variants={rise}

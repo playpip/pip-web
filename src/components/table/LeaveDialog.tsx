@@ -11,9 +11,10 @@ import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 
 /**
- * "Are you sure?" on leaving a table — shows session P/L and cashes out on
- * confirm. Freerolls cash out nothing (the stack is the house's; only the
- * winner's prize pays), so the dialog says exactly that instead of P/L.
+ * "Are you sure?" on leaving a table. A tournament shows session P/L and warns
+ * you're forfeiting the prize; a freeroll cashes out nothing (the stack is the
+ * house's). A cash table has no prize and no forfeit — standing up is the whole
+ * point — so it just confirms you're walking with your chips.
  */
 export function LeaveDialog({
   open,
@@ -21,6 +22,7 @@ export function LeaveDialog({
   buyIn,
   stack,
   freeroll = false,
+  cash = false,
   onConfirm,
 }: {
   open: boolean
@@ -28,6 +30,7 @@ export function LeaveDialog({
   buyIn: number
   stack: number
   freeroll?: boolean
+  cash?: boolean
   onConfirm: () => void
 }) {
   const money = useMoney()
@@ -38,15 +41,24 @@ export function LeaveDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle>Leave the table?</DialogTitle>
+          <DialogTitle>{cash ? 'Stand up?' : 'Leave the table?'}</DialogTitle>
           <DialogDescription>
             {freeroll
               ? 'It’s a freeroll — the chips stay at the table. Leave now and you walk away with nothing; only winning pays.'
-              : 'You’ll cash out your chips and forfeit a shot at the prize.'}
+              : cash
+                ? 'Cash out and stand up — every chip in front of you is yours to keep.'
+                : 'You’ll cash out your chips and forfeit a shot at the prize.'}
           </DialogDescription>
         </DialogHeader>
 
-        {!freeroll && (
+        {cash && (
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-sm text-muted-foreground">You’re taking</span>
+            <span className="text-lg font-semibold tabular-nums">{money(stack)}</span>
+          </div>
+        )}
+
+        {!freeroll && !cash && (
           <div className="pt-1">
             <Row label="Bought in for" value={money(buyIn)} />
             <Row label="Your stack" value={money(stack)} />
@@ -77,7 +89,7 @@ export function LeaveDialog({
             onClick={onConfirm}
             className="flex-1 rounded-2xl bg-primary py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
           >
-            {freeroll ? 'Leave' : 'Cash out'}
+            {freeroll ? 'Leave' : cash ? 'Stand up' : 'Cash out'}
           </button>
         </div>
       </DialogContent>

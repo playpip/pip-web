@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/components/theme-provider'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, HelpCircle, History, Palette, Settings } from 'lucide-react'
+import { HelpCircle, History } from 'lucide-react'
+import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { DealtCard, PlayingCard, type CardSize } from '@/components/PlayingCard'
@@ -15,8 +16,6 @@ import { HandHistoryDialog } from './HandHistoryDialog'
 import { HandsHelpDialog } from './HandsHelpDialog'
 import { LeaveDialog } from './LeaveDialog'
 import { PlayerDialog } from './PlayerDialog'
-import { SettingsDialog } from '@/components/settings/SettingsDialog'
-import { StyleDialog } from '@/components/settings/StyleDialog'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
 import { potSize, type HandState, type Player } from '@/lib/poker/engine'
@@ -68,6 +67,7 @@ export function Table() {
     seatStats,
     talk,
     nextHand,
+    rebuy,
     leave,
   } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
@@ -79,8 +79,6 @@ export function Table() {
   const isMobile = useIsMobile()
   const [helpOpen, setHelpOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [styleOpen, setStyleOpen] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [viewId, setViewId] = useState<string | null>(null)
   const hasHistory = useGame((s) => s.lastHand !== null)
@@ -197,69 +195,47 @@ export function Table() {
 
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden" style={finishStyle}>
-      {/* top bar */}
-      <div className="z-20 flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
-        <button
-          onClick={() => {
-            sound.play('tap')
-            setLeaveOpen(true)
-          }}
-          className="flex items-center gap-1.5 rounded-full px-2 py-2 text-sm text-muted-foreground hover:bg-foreground/5 hover:text-foreground md:px-3"
-        >
-          <ArrowLeft className="size-5" /> <span className="hidden sm:inline">Venues</span>
-        </button>
-        <div className="flex flex-col items-center leading-tight">
-          <span className="text-sm font-medium text-muted-foreground">{venue.name}</span>
-          <span className="text-[11px] tabular-nums text-muted-foreground/60">
-            Blinds {smallBlind.toLocaleString()}/{bigBlind.toLocaleString()}
-            {blindLevel > 0 && ` · L${blindLevel + 1}`}
-          </span>
-        </div>
-        <div className="flex items-center gap-0.5 md:gap-1">
-          {hasHistory && (
-            <button
+      {/* top bar — the shared AppBar; back confirms via the leave dialog */}
+      <AppBar
+        className="z-20"
+        leading="back"
+        backLabel="Venues"
+        showWordmark={false}
+        onBack={() => setLeaveOpen(true)}
+        title={
+          <>
+            <span className="text-sm font-medium text-muted-foreground">{venue.name}</span>
+            <span className="text-[11px] tabular-nums text-muted-foreground/60">
+              Blinds {smallBlind.toLocaleString()}/{bigBlind.toLocaleString()}
+              {blindLevel > 0 && ` · L${blindLevel + 1}`}
+            </span>
+          </>
+        }
+        actions={
+          <>
+            {hasHistory && (
+              <AppBarAction
+                label="Last hand"
+                onClick={() => {
+                  sound.play('tap')
+                  setHistoryOpen(true)
+                }}
+              >
+                <History className="size-4" />
+              </AppBarAction>
+            )}
+            <AppBarAction
+              label="Hand rankings"
               onClick={() => {
                 sound.play('tap')
-                setHistoryOpen(true)
+                setHelpOpen(true)
               }}
-              className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-              aria-label="Last hand"
             >
-              <History className="size-5" />
-            </button>
-          )}
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setHelpOpen(true)
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Hand rankings"
-          >
-            <HelpCircle className="size-5" />
-          </button>
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setStyleOpen(true)
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Style"
-          >
-            <Palette className="size-5" />
-          </button>
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setSettingsOpen(true)
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Settings"
-          >
-            <Settings className="size-5" />
-          </button>
-        </div>
-      </div>
+              <HelpCircle className="size-4" />
+            </AppBarAction>
+          </>
+        }
+      />
 
       {isMobile ? (
         /* ------------------------------ MOBILE ------------------------------ */
@@ -421,14 +397,13 @@ export function Table() {
 
       <HandsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
       <HandHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
       <LeaveDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}
         buyIn={venue.buyIn}
         stack={hero?.stack ?? 0}
         freeroll={venue.freeroll === true}
+        cash={venue.cash === true}
         onConfirm={cashOutAndLeave}
       />
       <PlayerDialog
@@ -455,32 +430,64 @@ export function Table() {
             ))}
           </Banner>
         )}
-        {status === 'busted' && (
-          <EndOverlay
-            key="bust"
-            title="Knocked out"
-            subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
-            onHome={goHome}
-            primaryLabel={freerollOpen(roll) ? 'Play the freeroll' : undefined}
-            onPrimary={
-              freerollOpen(roll)
-                ? () => {
-                    sound.play('call')
-                    if (venue.freeroll && heroMeta) {
-                      // Already on the freeroll route — navigation would no-op
-                      // and blank the table. Re-seat in place instead.
-                      useGame
-                        .getState()
-                        .sitDown(KITCHEN_TABLE, { name: heroMeta.name, avatar: heroMeta.avatar })
-                    } else {
+        {status === 'busted' &&
+          (venue.cash ? (
+            // Cash tables: busting isn't the end. Rebuy from your Roll and sit
+            // straight back down, drop to the freeroll if you can't afford it,
+            // or just stand up. No "you finished Nth" — there's no tournament.
+            <EndOverlay
+              key="bust-cash"
+              title="Out of chips"
+              subtitle="The table’s still running — buy back in, or call it a session."
+              onHome={goHome}
+              primaryLabel={
+                freerollOpen(roll)
+                  ? 'Play the freeroll'
+                  : roll >= venue.buyIn
+                    ? `Rebuy — ${money(venue.buyIn)}`
+                    : undefined
+              }
+              onPrimary={
+                freerollOpen(roll)
+                  ? () => {
+                      sound.play('call')
                       leave()
                       router.push(`/play/${KITCHEN_TABLE.id}`)
                     }
-                  }
-                : undefined
-            }
-          />
-        )}
+                  : roll >= venue.buyIn
+                    ? () => {
+                        sound.play('call')
+                        rebuy()
+                      }
+                    : undefined
+              }
+            />
+          ) : (
+            <EndOverlay
+              key="bust"
+              title="Knocked out"
+              subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
+              onHome={goHome}
+              primaryLabel={freerollOpen(roll) ? 'Play the freeroll' : undefined}
+              onPrimary={
+                freerollOpen(roll)
+                  ? () => {
+                      sound.play('call')
+                      if (venue.freeroll && heroMeta) {
+                        // Already on the freeroll route — navigation would no-op
+                        // and blank the table. Re-seat in place instead.
+                        useGame
+                          .getState()
+                          .sitDown(KITCHEN_TABLE, { name: heroMeta.name, avatar: heroMeta.avatar })
+                      } else {
+                        leave()
+                        router.push(`/play/${KITCHEN_TABLE.id}`)
+                      }
+                    }
+                  : undefined
+              }
+            />
+          ))}
         {status === 'won' && (
           <EndOverlay
             key="won"

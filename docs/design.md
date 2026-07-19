@@ -71,8 +71,10 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 
 ## Layout patterns
 
-- **Desktop-first.** Home: a compact Roll hero + a horizontally-scrolling venue slider
-  (arrows on desktop); collapses to a vertical list on mobile.
+- **Desktop-first.** Home: a compact Roll hero + a card-grid main menu (The Daily, The
+  Rail, Venues, Side Tables, the Chip Shop). Tapping a section opens its own page
+  (`/game/ladder`, `/game/rail`, `/game/side`) via `SectionScreen` — an iOS-style back
+  header; venue pages show a responsive grid on desktop, a vertical list on mobile.
 - **Table:** opponents arranged around a minimal arc (computed via ellipse math in
   `Table.tsx`), community + pot dead-center, the hero anchored bottom-center with the
   action bar. No felt, no table graphic — just the players and cards on the canvas.

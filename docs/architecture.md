@@ -58,7 +58,7 @@ src/
     game.ts                 # TRANSIENT: current hand, seats, AI pacing, equity, economy
 
   components/
-    menu/                   # Home (Roll hero + venue slider), VenueArt
+    menu/                   # Home (Roll hero + card-grid menu); section pages (VenueBrowser/RailBrowser), VenueArt
     onboarding/             # first-launch flow
     profile/                # AvatarEditor (shared), ProfileDialog
     settings/               # SettingsDialog (table talk + backup/transfer), RestoreConfirm, ImportHandler

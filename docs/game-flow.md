@@ -120,6 +120,27 @@ snapshot is cleared on leave, bust, and win.
   the starting stack). Entry points: the home screen (under the Roll) and the
   knocked-out overlay.
 
+## Cash tables (The Rail)
+
+Ring tables (`RING_TABLES`, `cash: true`) reuse the same loop with three flips in
+`finishHand`, branched via `finishCashHand`:
+
+- **No elimination.** Opponents who bust rebuy to the table stack (`startingStack ?? buyIn`)
+  the moment the hand resolves, so the table stays full — a persistent place, not a bracket
+  that drains to heads-up.
+- **No prize, no win.** The `tournamentWon` / `status: 'won'` path never runs; the hand goes
+  to a normal `handover`. Your chips *are* the payout, always — standing up
+  (`cashOutAndLeave`, already `adjustRoll(+stack)`) is the intended, endorsed exit, so the
+  `LeaveDialog` drops the "forfeit the prize" framing.
+- **Bust = rebuy or stand up.** When the human's stack hits 0 it's `status: 'busted'` but with
+  a cash-specific overlay: **Rebuy** (`rebuy()` — spends another buy-in, deals on) if you can
+  afford it, the **freeroll** if `freerollOpen(roll)`, or just walk. No "you finished Nth".
+
+Blinds are fixed (`escalation: false`) so hand 1 plays like hand 500, and cash tables skip the
+tournament bookkeeping (`recordVenueEntry`, `recordVenueResult`, `tournamentsEntered`). Hand
+stats, tendencies and reads still accrue normally. See [venues.md](./venues.md) for the stakes
+ladder and why difficulty tracks the stake.
+
 ## The Daily Deal
 
 **One seeded tournament a day — everyone in the world who plays it gets the
@@ -141,8 +162,8 @@ difference"**: AI responses diverge once your actions diverge, and we say so.
   because the shuffle is knowable and a re-deal would be an exploit. The play
   route redirects if today's daily is already recorded; a snapshot resume is
   allowed (and keeps its original day's seed via `TableSnapshot.dailyDate`).
-- **Share**: the home card's Share button copies a calm one-liner
-  (`dailyShareText`): `pip daily #142 · 2nd of 6 · 34 hands · playpip.io`.
+- **Share**: once played, tapping the Daily tile on the menu copies a calm
+  one-liner (`dailyShareText`): `pip daily #142 · 2nd of 6 · 34 hands · playpip.io`.
   No streaks, no emoji grids, no countdowns — yesterday's daily is simply gone.
 
 ## The tutorial (`/learn`)
@@ -158,7 +179,7 @@ profile required — the route is standalone and shareable.
   or "Deal me in" → home. The offer is memory-only state in the create flow;
   `created` already gates onboarding, so it can only ever appear once. No
   persisted flag, no `PERSIST_VERSION` bump.
-- **The quiet return path**: one line on the home screen under the shelves
+- **The quiet return path**: one line on the home screen under the menu
   ("New to poker? Take the tour.") — no badge, no pulse, never re-offered.
 - **No-nag rules**: skippable from every page (the corner Skip), no quiz, no
   gating, no completion tracking. Strategy stays out; the tutorial teaches the

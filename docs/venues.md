@@ -43,6 +43,32 @@ the moment you take every chip in a hand that busts an opponent (the same seam a
 The Bouncer chip) and show on the handover banner. Side-table prizes are budgeted
 like the ladder (≈ buy-in × seats, minus the bounty pool on bounty tables).
 
+## The Rail (cash / ring tables)
+
+Also off the ladder, **`RING_TABLES`** is a short ladder of **cash games** — the fast,
+low-commitment mode. Unlike a sit-and-go they never end and have no prize: you sit down
+with a stack (a slice of your Roll), play any number of hands, and **stand up with whatever's
+in front of you** — no clock, no forfeit. Opponents rebuy so the table stays full; bust and
+you can rebuy or walk. All pure venue config (`cash: true` + `escalation: false`), no engine
+changes.
+
+| id | Name | Blinds | Sit-down (100bb) | AI skill | Feel |
+|----|------|-------:|------:|:--:|------|
+| `ring-micro` | Micro Ring | 1/2 | 200 | 0.30 | loose-passive — beatable by value |
+| `ring-low` | Low Ring | 10/20 | 2,000 | 0.55 | Friday-night regulars |
+| `ring-mid` | Mid Ring | 100/200 | 20,000 | 0.80 | solid, bluff-aware |
+| `ring-high` | High Ring | 1,000/2,000 | 200,000 | 0.95 | sharks |
+
+**Difficulty is the stake.** There's no difficulty toggle: the AI sharpens as the stakes
+rise (`skill` 0.30 → 0.95), and rooms unlock by affordability (`roll >= buyIn`), so a player
+of any level self-sorts into an honest game just by picking a stake they can afford. Every
+room is 100 big blinds deep and blinds never escalate. Cash tables aren't tournaments — they
+don't record venue results or count as entries, and there are no cash-table souvenirs.
+
+Reached from the main menu via the **The Rail** card, which opens its own page
+(`/game/rail` → `RailBrowser`) — framed as a place you sit rather than an event you enter.
+See [game-flow.md](./game-flow.md) for the cash-mode orchestration.
+
 Off the ladder also sits **The Kitchen Table** (`kitchen`) — a **freeroll** that opens only
 while you can't afford the Garage (`freerollOpen(roll)`): no buy-in, **heads-up** vs the
 softest AI, a nominal 100 stack (`startingStack`), **no blind escalation**
@@ -83,7 +109,7 @@ freeroll sits below the ladder at 0.3. See `docs/poker-engine.md`.
    (≈ `buyIn × seats`).
 2. Give it an `accent` and an `AiProfile` that fits its position on the ladder.
 3. Add art (below). Until an image exists it falls back to a geometric SVG scene.
-4. No other code changes needed — the home slider, routing, unlock logic, and economy
+4. No other code changes needed — the menu, routing, unlock logic, and economy
    are all data-driven from `VENUES`.
 
 > Changing an existing `id` orphans its image mapping — prefer adding over renaming.

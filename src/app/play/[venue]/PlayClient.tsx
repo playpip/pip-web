@@ -39,7 +39,7 @@ export function PlayClient() {
 
     // The Daily is once a day — played (or abandoned) means done till tomorrow.
     if (venue.daily && profile.daily?.date === dailyDateKey()) {
-      router.replace('/')
+      router.replace('/game')
       return
     }
 

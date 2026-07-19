@@ -123,6 +123,8 @@ interface GameState {
   resumeTable: (venue: Venue, snapshot: TableSnapshot) => void
   act: (action: Action) => void
   nextHand: () => void
+  /** Cash tables only: buy a fresh stack after busting and deal on. */
+  rebuy: () => void
   leave: () => void
 }
 
@@ -438,6 +440,15 @@ export const useGame = create<GameState>((set, get) => {
 
     if (result) sound.play(heroWon ? 'win' : result.showdown ? 'lose' : 'tap')
 
+    // Cash / ring tables: no prize, no elimination. Opponents rebuy so the
+    // table stays full, and the hand simply resolves to a handover (or, if the
+    // human is out of chips, a rebuy-or-stand-up prompt). None of the
+    // tournament-outcome logic below applies.
+    if (venue.cash) {
+      finishCashHand(hand, nextSeats, stackById, heroWon, pot)
+      return
+    }
+
     const survivors = nextSeats.filter((s) => s.stack > 0)
     const humanAlive = (stackById.get(HUMAN_ID) ?? 0) > 0
     const tournamentWon = humanAlive && survivors.length === 1
@@ -532,6 +543,77 @@ export const useGame = create<GameState>((set, get) => {
       message: describeResult(hand),
       newAwards,
       lastBounty: bountyWon,
+      talk,
+    })
+  }
+
+  /**
+   * Resolve a hand at a cash table. Opponents who busted rebuy to a full stack
+   * so the table stays full; the hand goes to a normal handover. If the human
+   * is out of chips it's not "knocked out" — the overlay offers a rebuy or a
+   * stand-up (or the freeroll when they can't afford either).
+   */
+  function finishCashHand(
+    hand: HandState,
+    nextSeats: SeatMeta[],
+    stackById: Map<string, number>,
+    heroWon: boolean,
+    pot: number,
+  ) {
+    const venue = get().venue!
+    const tableStack = venue.startingStack ?? venue.buyIn
+    const humanAlive = (stackById.get(HUMAN_ID) ?? 0) > 0
+    const rebought = nextSeats.map((s) =>
+      !s.isHuman && s.stack <= 0 ? { ...s, stack: tableStack } : s,
+    )
+    const newAwards = grantEarnedAwards(hand, venue, heroWon, false, false, 0)
+
+    if (!humanAlive) {
+      clearTimers()
+      // Nothing to resume — the buy-in is spent; a refresh re-seats fresh.
+      clearTableSnapshot()
+      useProfile.getState().recordRollPoint()
+      set({
+        seats: rebought,
+        hand,
+        status: 'busted',
+        place: null,
+        aiThinkingId: null,
+        message: null,
+        newAwards,
+        lastBounty: 0,
+        talk: null,
+      })
+      return
+    }
+
+    // A quiet win line, maybe — same rationing as the tournament handover.
+    const winnerId = hand.result?.potsAwarded[0]?.winners[0]
+    const winnerSeat =
+      winnerId && winnerId !== HUMAN_ID ? get().seats.find((s) => s.id === winnerId) : undefined
+    const bigPot = pot >= get().bigBlind * 20
+    const talk = bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null
+
+    heroLowTide = Math.min(heroLowTide, stackById.get(HUMAN_ID) ?? 0)
+    saveTableSnapshot({
+      venueId: venue.id,
+      seats: rebought,
+      buttonSeatId: nextButtonSeatId(
+        rebought,
+        get().buttonSeatId,
+        rebought.filter((s) => s.stack > 0),
+      ),
+      handIndex: get().handIndex,
+      heroLow: heroLowTide,
+    })
+    set({
+      seats: rebought,
+      hand,
+      status: 'handover',
+      aiThinkingId: null,
+      message: describeResult(hand),
+      newAwards,
+      lastBounty: 0,
       talk,
     })
   }
@@ -645,9 +727,13 @@ export const useGame = create<GameState>((set, get) => {
       seats.splice(Math.floor(aiSeats.length / 2), 0, humanSeat)
 
       const profile = useProfile.getState()
-      profile.adjustRoll(-venue.buyIn) // pay the buy-in
-      profile.mergeStats({ tournamentsEntered: 1 })
-      profile.recordVenueEntry(venue.id)
+      profile.adjustRoll(-venue.buyIn) // pay the buy-in (your stack on the table)
+      // Cash tables aren't tournaments — they don't count as entries and their
+      // ids don't belong in the per-venue win/finish records.
+      if (!venue.cash) {
+        profile.mergeStats({ tournamentsEntered: 1 })
+        profile.recordVenueEntry(venue.id)
+      }
 
       set({
         venue,
@@ -716,6 +802,21 @@ export const useGame = create<GameState>((set, get) => {
     },
 
     nextHand: dealNextHand,
+
+    rebuy: () => {
+      const { venue, seats, status } = get()
+      if (!venue?.cash || status !== 'busted') return
+      const profile = useProfile.getState()
+      if (profile.roll < venue.buyIn) return
+      clearTimers()
+      const tableStack = venue.startingStack ?? venue.buyIn
+      profile.adjustRoll(-venue.buyIn) // buy a fresh stack from the Roll
+      const nextSeats = seats.map((s) => (s.isHuman ? { ...s, stack: tableStack } : s))
+      heroLowTide = Math.min(heroLowTide, tableStack)
+      set({ seats: nextSeats, status: 'playing', place: null, message: null })
+      const live = nextSeats.filter((s) => s.stack > 0)
+      dealHand(nextButtonSeatId(nextSeats, get().buttonSeatId, live))
+    },
 
     leave: () => {
       clearTimers()

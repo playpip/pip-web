@@ -45,6 +45,12 @@ export interface Venue {
   bounty?: number
   /** The Daily Deal: one seeded tournament a day, same shuffle for everyone. */
   daily?: boolean
+  /**
+   * Cash / ring table: fixed blinds, no prize, no elimination. Opponents rebuy
+   * to the table stack so the table stays full, and you stand up with your
+   * chips whenever you like. A place you dip into, not a tournament you finish.
+   */
+  cash?: boolean
 }
 
 // Low rungs escalate gently (handsPerLevel 12 → 9) — new players need room to
@@ -282,6 +288,78 @@ export const SIDE_TABLES: readonly Venue[] = [
   },
 ] as const
 
+// The Rail — cash / ring tables. Unlike the ladder, these never end and have no
+// prize: you sit down with a stack (a slice of your Roll), play any number of
+// hands, and stand up with whatever's in front of you. Opponents rebuy so the
+// table stays full; bust and you can rebuy or walk. Difficulty is the stake —
+// Micro is loose-passive (beatable by value), the nosebleeds are sharks — so a
+// player of any level finds an honest game just by picking their stake. Every
+// room is 100 big blinds deep and blinds never escalate. (See docs/game-flow.md.)
+export const RING_TABLES: readonly Venue[] = [
+  {
+    id: 'ring-micro',
+    name: 'Micro Ring',
+    tagline: 'Loosest cash game. Sit down, stand up anytime.',
+    buyIn: 200,
+    startingStack: 200,
+    smallBlind: 1,
+    bigBlind: 2,
+    seats: 5,
+    prize: 0,
+    cash: true,
+    escalation: false,
+    accent: '#7C8CF0',
+    // Loose-passive on purpose: calls too much, rarely bluffs. A beginner beats
+    // this by value-betting, so the softest cash game is genuinely forgiving.
+    ai: { tightness: 0.16, aggression: 0.2, bluff: 0.04, iterations: 350, skill: 0.3 },
+  },
+  {
+    id: 'ring-low',
+    name: 'Low Ring',
+    tagline: 'Cash game. Friday-night regulars.',
+    buyIn: 2_000,
+    startingStack: 2_000,
+    smallBlind: 10,
+    bigBlind: 20,
+    seats: 6,
+    prize: 0,
+    cash: true,
+    escalation: false,
+    accent: '#4FB477',
+    ai: { tightness: 0.32, aggression: 0.42, bluff: 0.09, iterations: 700, skill: 0.55 },
+  },
+  {
+    id: 'ring-mid',
+    name: 'Mid Ring',
+    tagline: 'Cash game. Solid, bluff-aware players.',
+    buyIn: 20_000,
+    startingStack: 20_000,
+    smallBlind: 100,
+    bigBlind: 200,
+    seats: 6,
+    prize: 0,
+    cash: true,
+    escalation: false,
+    accent: '#E0A458',
+    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_150, skill: 0.8 },
+  },
+  {
+    id: 'ring-high',
+    name: 'High Ring',
+    tagline: 'Nosebleed cash. Sharks only.',
+    buyIn: 200_000,
+    startingStack: 200_000,
+    smallBlind: 1_000,
+    bigBlind: 2_000,
+    seats: 6,
+    prize: 0,
+    cash: true,
+    escalation: false,
+    accent: '#D9534F',
+    ai: { tightness: 0.57, aggression: 0.72, bluff: 0.18, iterations: 1_600, skill: 0.95 },
+  },
+] as const
+
 // Two Garage buy-ins: losing your first tournament stings but doesn't send a
 // brand-new player straight to the freeroll.
 export const STARTING_ROLL = 200
@@ -338,7 +416,9 @@ export function freerollOpen(roll: number): boolean {
 }
 
 export function venueById(id: string): Venue | undefined {
-  return [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE, THE_DAILY].find((v) => v.id === id)
+  return [...VENUES, ...SIDE_TABLES, ...RING_TABLES, KITCHEN_TABLE, THE_DAILY].find(
+    (v) => v.id === id,
+  )
 }
 
 /** Can the player afford this venue's buy-in? */

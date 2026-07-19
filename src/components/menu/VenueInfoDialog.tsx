@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { VenueArt } from '@/components/menu/VenueArt'
+import { CategoryArt } from '@/components/menu/CategoryArt'
 import { Lock, XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import { FORMAT_LABELS, VENUES, type Venue } from '@/config/venues'
@@ -54,6 +55,10 @@ function venueDifficulty(venue: Venue): { level: 1 | 2 | 3 | 4 | 5; label: strin
 }
 
 function formatNote(venue: Venue): string | null {
+  if (venue.cash)
+    return `Cash game — no prize and no clock. Sit down with a stack, play as many hands as you fancy, and stand up whenever with whatever's in front of you. Bust and you can rebuy or walk; the table doesn't mind either way.`
+  if (venue.daily)
+    return `The Daily — one seeded deal a day, and everyone who plays gets the identical shuffle. Same cards, same opponents; your play makes the difference. You get one shot: sitting down spends today's, and leaving early still counts as played.`
   switch (venue.format) {
     case 'turbo':
       return `Turbo — blinds rise every ${venue.handsPerLevel} hands instead of ${HANDS_PER_LEVEL}. Short stacks arrive fast; patience is a liability.`
@@ -99,11 +104,19 @@ export function VenueInfoDialog({
         <header className="relative overflow-hidden">
           {/* Softly blurred + scaled so the flat art reads as a cover photo and
               melts into the dialog; scale hides the blur's transparent edges. */}
-          <VenueArt
-            id={venue.id}
-            accent={venue.accent}
-            className="h-40 w-full scale-110 blur-[3px]"
-          />
+          {venue.cash || venue.daily ? (
+            <CategoryArt
+              id={venue.id}
+              accent={venue.accent}
+              className="h-40 w-full scale-110 blur-[3px]"
+            />
+          ) : (
+            <VenueArt
+              id={venue.id}
+              accent={venue.accent}
+              className="h-40 w-full scale-110 blur-[3px]"
+            />
+          )}
           {/* Fixed dark scrim (not theme-tinted) so white cover text stays
               legible over the photo in both light and dark mode. */}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/15" />
@@ -162,7 +175,7 @@ export function VenueInfoDialog({
           {note && (
             <section>
               <p className="mb-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
-                The format
+                How it plays
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">{note}</p>
             </section>
@@ -185,7 +198,7 @@ export function VenueInfoDialog({
                     : `${money(venue.smallBlind)}/${money(venue.bigBlind)}, fixed`
                 }
               />
-              <InfoRow label="Winner takes" value={money(venue.prize)} />
+              {!venue.cash && <InfoRow label="Winner takes" value={money(venue.prize)} />}
               {venue.bounty !== undefined && (
                 <InfoRow label="Knockout bounty" value={`+${money(venue.bounty)} each`} />
               )}
@@ -200,7 +213,11 @@ export function VenueInfoDialog({
               onClick={() => onPlay(venue)}
               className="w-full rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
             >
-              {venue.freeroll ? 'Play — free' : `Play — ${money(venue.buyIn)}`}
+              {venue.freeroll
+                ? 'Play — free'
+                : venue.cash
+                  ? `Sit down — ${money(venue.buyIn)}`
+                  : `Play — ${money(venue.buyIn)}`}
             </button>
           ) : (
             <div className="flex items-center justify-center gap-2 rounded-2xl border border-foreground/10 py-3 text-sm text-muted-foreground">
