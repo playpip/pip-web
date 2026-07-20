@@ -81,6 +81,11 @@ jobs:
           echo "Releasing v$version (bump: $level)"
 
       - name: Build static export
+        # NEXT_PUBLIC_* is baked into the client bundle at build time, so it must
+        # be present for THIS step. It's not a secret (it ships to every visitor),
+        # so it lives as a repo Variable, not a Secret. Unset → no analytics tag.
+        env:
+          NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${{ vars.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
         run: pnpm build
 
       # Plain npx rather than wrangler-action: the action installs wrangler via

@@ -8,6 +8,7 @@
 import { create } from 'zustand'
 import type { AvatarSpec } from '@/lib/avatar'
 import { sound } from '@/lib/sound'
+import { trackOnce } from '@/lib/analytics'
 import { draftCast, profileFor, characterById } from '@/config/cast'
 import { styleFor, randomBankroll } from '@/config/opponents'
 import type { AiProfile } from '@/lib/poker/ai/policy'
@@ -313,6 +314,9 @@ export const useGame = create<GameState>((set, get) => {
       rng: dailyBase !== null ? mulberry32(handSeed(dailyBase, handIndex)) : undefined,
     })
     sound.play('deal')
+    // Engagement — someone actually started playing. Once per tab session so a
+    // busy session doesn't drown the signal; anonymous.
+    trackOnce('first-hand')
     currentEvents = []
     vpipThisHand = new Set()
     for (const c of configs) statsFor(c.id).handsDealt++

@@ -10,6 +10,7 @@ import type { AvatarSpec } from '@/lib/avatar'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
+import { track } from '@/lib/analytics'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -169,13 +170,16 @@ export const useProfile = create<ProfileState>()(
       deckFace: 'classic',
       tableFinish: null,
 
-      createProfile: (name, avatar) =>
+      createProfile: (name, avatar) => {
+        // Activation — the one moment a visitor becomes a player. Anonymous.
+        track('profile-created')
         set((s) => ({
           created: true,
           name: name.trim() || 'Player',
           avatar,
           rollHistory: [{ t: Date.now(), roll: s.roll }],
-        })),
+        }))
+      },
       setName: (name) => set({ name: name.trim() || 'Player' }),
       setAvatar: (avatar) => set({ avatar }),
       setCardBack: (cardBack) => set({ cardBack }),

@@ -12,8 +12,9 @@ export default function PrivacyPage() {
       <Section title="The short version">
         <p>
           Pip is built to need as little of your data as possible — which turns out to be almost
-          none. There&rsquo;s no account, no analytics, and no tracking. Here&rsquo;s the whole
-          story, plainly.
+          none. No account, no personal data, no cross-site tracking, no cookies. We do count
+          anonymous, cookieless usage so we can see what&rsquo;s working — nothing that identifies
+          you. Here&rsquo;s the whole story, plainly.
         </p>
       </Section>
 
@@ -33,19 +34,32 @@ export default function PrivacyPage() {
             for, so nothing for us to hold.
           </Item>
           <Item>
-            <strong className="font-medium text-foreground">No analytics.</strong> We don&rsquo;t
-            track what you do, where you tap, or how long you stay. We wouldn&rsquo;t know how —
-            there&rsquo;s no tracking code in the app, and you can check.
+            <strong className="font-medium text-foreground">No personal data.</strong> The counts we
+            keep (below) are anonymous and aggregate — never your name, avatar, Roll, or anything
+            that points back to you. You can check: it&rsquo;s all in the open repo.
           </Item>
           <Item>
             <strong className="font-medium text-foreground">No tracking cookies.</strong> None. So
-            there&rsquo;s no cookie banner to click away, either.
+            there&rsquo;s no cookie banner to click away, either — and no way to follow you around
+            the web.
           </Item>
           <Item>
             <strong className="font-medium text-foreground">No selling your data.</strong> We
             don&rsquo;t have any to sell, and wouldn&rsquo;t if we did.
           </Item>
         </List>
+      </Section>
+
+      <Section title="What we count">
+        <p>
+          To know whether Pip is any good — whether people find it, start playing, and come back —
+          we keep a handful of anonymous, aggregate counts through{' '}
+          <A href="https://umami.is">Umami</A>, a privacy-first, cookieless analytics tool. It
+          records things like page views and a couple of milestones (someone made a profile, someone
+          played their first hand) with no cookies, no fingerprinting, and no personal data. We
+          can&rsquo;t tie any of it to a person — including you. It exists so we can improve the
+          game, and for nothing else. It&rsquo;s never sold or shared.
+        </p>
       </Section>
 
       <Section title="Server logs">

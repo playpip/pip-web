@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
+// Anonymous, cookieless analytics (Umami). Baked in at build time and loaded
+// only in production when the website id is configured — dev/test/preview stay
+// clean, and there's no tag at all until the id is set in the Pages env.
+const UMAMI_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID
+const UMAMI_SRC = process.env.NEXT_PUBLIC_UMAMI_SRC ?? 'https://cloud.umami.is/script.js'
+
 export const metadata: Metadata = {
   // Required so static-export OG/Twitter image URLs resolve to absolute links.
   metadataBase: new URL('https://playpip.io'),
@@ -74,6 +80,11 @@ export default function RootLayout({
         <ThemeProvider>{children}</ThemeProvider>
         <AppBoot />
         <UpdatePrompt />
+        {/* Umami's standard cookieless tag. Cross-origin, so the offline SW
+            ignores it; fire-and-forget, so a blocked/failed load is harmless. */}
+        {process.env.NODE_ENV === 'production' && UMAMI_ID && (
+          <script defer src={UMAMI_SRC} data-website-id={UMAMI_ID} />
+        )}
       </body>
     </html>
   )
