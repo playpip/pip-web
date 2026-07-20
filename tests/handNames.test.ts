@@ -18,6 +18,9 @@ test('named hands resolve regardless of order or suits', (t) => {
   t.is(nicknameFor(hole('Ac', 'Ad')), 'Pocket Rockets')
   t.is(nicknameFor(hole('5c', 'Jh')), 'Motown')
   t.is(nicknameFor(hole('7d', 'Qs')), 'The Computer Hand')
+  // non-pair names whose ranks read low-first still resolve (keys are high-first)
+  t.is(nicknameFor(hole('5c', '7h')), 'The Heinz')
+  t.is(nicknameFor(hole('3d', '9s')), 'Jack Benny')
 })
 
 test('suffixed names apply to only that variant', (t) => {

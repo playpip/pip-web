@@ -26,14 +26,16 @@ const ids = (ctx: AwardContext, owned: Record<string, number> = {}) =>
 const showdownWin = (name: string, description: string, over: Partial<AwardContext> = {}) =>
   baseCtx({ heroWon: true, showdown: true, heroHand: { name, description }, ...over })
 
-test('the set has 30 chips with unique ids', (t) => {
-  t.is(AWARDS.length, 30)
-  t.is(new Set(AWARDS.map((a) => a.id)).size, 30)
+test('the set has 55 chips with unique ids', (t) => {
+  t.is(AWARDS.length, 55)
+  t.is(new Set(AWARDS.map((a) => a.id)).size, 55)
   t.is(AWARDS.filter((a) => a.kind === 'venue').length, 10)
   t.is(AWARDS.filter((a) => a.kind === 'hand').length, 7)
   t.is(AWARDS.filter((a) => a.kind === 'moment').length, 7)
+  t.is(AWARDS.filter((a) => a.kind === 'nickname').length, 25)
   t.is(AWARDS.filter((a) => a.kind === 'journey').length, 6)
   t.truthy(awardById('venue-garage'))
+  t.truthy(awardById('nickname-QQ'))
 })
 
 test('winning a ladder venue earns its chip — once', (t) => {
@@ -109,10 +111,31 @@ test('The Seven Deuce needs a won pot holding exactly 7-2', (t) => {
     baseCtx({ heroWon: true, heroHole: [cardFromString(a), cardFromString(b)] })
   t.deepEqual(ids(holding('7c', '2d')), ['moment-sevendeuce', 'journey-first'])
   t.deepEqual(ids(holding('2s', '7h')), ['moment-sevendeuce', 'journey-first'])
-  t.deepEqual(ids(holding('7c', '7d')), ['journey-first'])
+  // pocket sevens aren't 7-2 — but they are Hockey Sticks, a named hand
+  t.deepEqual(ids(holding('7c', '7d')), ['nickname-77', 'journey-first'])
   t.deepEqual(ids(holding('Ac', '2d')), ['journey-first'])
   // losing with 7-2 earns nothing
   t.deepEqual(ids(baseCtx({ heroHole: [cardFromString('7c'), cardFromString('2d')] })), [])
+})
+
+test('nickname chips fire on a won pot with a folk-named starting hand', (t) => {
+  const holding = (a: string, b: string) =>
+    baseCtx({ heroWon: true, heroHole: [cardFromString(a), cardFromString(b)] })
+  // pairs and offsuit/suited-agnostic names
+  t.deepEqual(ids(holding('Qc', 'Qd')), ['nickname-QQ', 'journey-first']) // Ladies
+  t.deepEqual(ids(holding('5c', 'Jh')), ['nickname-J5', 'journey-first']) // Motown, any order
+  // The Heinz (5-7) and Jack Benny (3-9) resolve to their high-first keys
+  t.deepEqual(ids(holding('7c', '5d')), ['nickname-75', 'journey-first'])
+  t.deepEqual(ids(holding('9c', '3d')), ['nickname-93', 'journey-first'])
+  // an unnamed hand earns no nickname chip
+  t.deepEqual(ids(holding('9c', '4d')), ['journey-first'])
+  // losing with a named hand earns nothing
+  t.deepEqual(ids(baseCtx({ heroHole: [cardFromString('Qc'), cardFromString('Qd')] })), [])
+  // the three iconic hands keep their bespoke moment chip — no nickname duplicate
+  t.deepEqual(ids(holding('Ac', 'Ad')), ['moment-bullets', 'journey-first'])
+  t.deepEqual(ids(holding('7c', '2d')), ['moment-sevendeuce', 'journey-first'])
+  t.is(awardById('nickname-AA'), undefined)
+  t.is(awardById('nickname-AK'), undefined)
 })
 
 test('The Bouncer fires on a clean knockout', (t) => {
