@@ -22,7 +22,14 @@ import { mulberry32, type Rng } from '@/lib/poker/cards'
 import { applyAction, isHandComplete, startHand } from '@/lib/poker/engine'
 import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
-import { KITCHEN_TABLE, SIDE_TABLES, VENUES, venueById, type Venue } from '@/config/venues'
+import {
+  KITCHEN_TABLE,
+  RING_TABLES,
+  SIDE_TABLES,
+  VENUES,
+  venueById,
+  type Venue,
+} from '@/config/venues'
 
 const HERO_ID = 'hero'
 
@@ -234,13 +241,18 @@ function resolveVenues(names: string[]): Venue[] {
   if (names.length === 0) return [KITCHEN_TABLE, ...VENUES]
   const picked: Venue[] = []
   for (const name of names) {
-    if (name === 'all') picked.push(KITCHEN_TABLE, ...VENUES, ...SIDE_TABLES)
+    if (name === 'all') picked.push(KITCHEN_TABLE, ...VENUES, ...SIDE_TABLES, ...RING_TABLES)
     else if (name === 'ladder') picked.push(...VENUES)
     else if (name === 'side') picked.push(...SIDE_TABLES)
+    else if (name === 'ring') picked.push(...RING_TABLES)
     else {
-      const venue = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE].find((v) => v.id === name)
+      const venue = [...VENUES, ...SIDE_TABLES, ...RING_TABLES, KITCHEN_TABLE].find(
+        (v) => v.id === name,
+      )
       if (!venue) {
-        const ids = [KITCHEN_TABLE, ...VENUES, ...SIDE_TABLES].map((v) => v.id).join(', ')
+        const ids = [KITCHEN_TABLE, ...VENUES, ...SIDE_TABLES, ...RING_TABLES]
+          .map((v) => v.id)
+          .join(', ')
         console.error(`Unknown venue "${name}". Ids: ${ids} (or: all, ladder, side)`)
         process.exit(1)
       }

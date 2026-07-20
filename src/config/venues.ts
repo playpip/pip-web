@@ -295,6 +295,8 @@ export const SIDE_TABLES: readonly Venue[] = [
 // Micro is loose-passive (beatable by value), the nosebleeds are sharks — so a
 // player of any level finds an honest game just by picking their stake. Every
 // room is 100 big blinds deep and blinds never escalate. (See docs/game-flow.md.)
+// Skill mirrors the post-rebalance ladder (~0.06 softer per rung): these tables
+// were authored after that retune, so their numbers were dialled to match it.
 export const RING_TABLES: readonly Venue[] = [
   {
     id: 'ring-micro',
@@ -311,7 +313,7 @@ export const RING_TABLES: readonly Venue[] = [
     accent: '#7C8CF0',
     // Loose-passive on purpose: calls too much, rarely bluffs. A beginner beats
     // this by value-betting, so the softest cash game is genuinely forgiving.
-    ai: { tightness: 0.16, aggression: 0.2, bluff: 0.04, iterations: 350, skill: 0.3 },
+    ai: { tightness: 0.16, aggression: 0.2, bluff: 0.04, iterations: 350, skill: 0.24 },
   },
   {
     id: 'ring-low',
@@ -326,7 +328,7 @@ export const RING_TABLES: readonly Venue[] = [
     cash: true,
     escalation: false,
     accent: '#4FB477',
-    ai: { tightness: 0.32, aggression: 0.42, bluff: 0.09, iterations: 700, skill: 0.55 },
+    ai: { tightness: 0.32, aggression: 0.42, bluff: 0.09, iterations: 700, skill: 0.49 },
   },
   {
     id: 'ring-mid',
@@ -341,7 +343,7 @@ export const RING_TABLES: readonly Venue[] = [
     cash: true,
     escalation: false,
     accent: '#E0A458',
-    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_150, skill: 0.8 },
+    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_150, skill: 0.74 },
   },
   {
     id: 'ring-high',
@@ -356,7 +358,7 @@ export const RING_TABLES: readonly Venue[] = [
     cash: true,
     escalation: false,
     accent: '#D9534F',
-    ai: { tightness: 0.57, aggression: 0.72, bluff: 0.18, iterations: 1_600, skill: 0.95 },
+    ai: { tightness: 0.57, aggression: 0.72, bluff: 0.18, iterations: 1_600, skill: 0.89 },
   },
 ] as const
 
@@ -376,7 +378,11 @@ export const KITCHEN_TABLE: Venue = {
   name: 'The Kitchen Table',
   tagline: 'Freeroll. Win your way back in.',
   buyIn: 0,
-  startingStack: 100,
+  // 25bb heads-up (was 50bb): flat blinds mean a fold-heavy opponent transfers
+  // chips slowly, so a deep stack made the freeroll a long grind even though
+  // it's easy. Halving the stack halves the hands-to-win without touching AI
+  // skill or blinds — still soft, just quicker to close out.
+  startingStack: 50,
   smallBlind: 1,
   bigBlind: 2,
   seats: 2,

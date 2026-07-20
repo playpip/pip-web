@@ -114,7 +114,7 @@ snapshot is cleared on leave, bust, and win.
   pure `detectAwards` helper; see [awards.md](./awards.md).
 - **The freeroll** — there is **no free top-up**. When you can't afford the Garage
   (`freerollOpen(roll)`), **The Kitchen Table** opens: a free **heads-up** game vs the
-  softest AI with a nominal 100 stack, flat blinds (`escalation: false`), and a 150
+  softest AI with a nominal 50-chip stack, flat blinds (`escalation: false`), and a 150
   winner's stake. You win your way back onto the ladder — it's a speed bump, not a
   wall. The stack is the house's — leaving a freeroll cashes out **zero** (no farming
   the starting stack). Entry points: the home screen (under the Roll) and the
