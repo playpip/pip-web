@@ -16,12 +16,30 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  // Required so static-export OG/Twitter image URLs resolve to absolute links.
+  metadataBase: new URL('https://playpip.io'),
   title: 'Pip — clean poker',
   description: "Casual Texas Hold'em, redesigned. No fake felt, no neon.",
   appleWebApp: {
     capable: true,
     title: 'pip',
     statusBarStyle: 'black-translucent',
+  },
+  // The og/twitter image comes from `app/opengraph-image.tsx` — Next wires it
+  // into `openGraph.images` + `twitter.images` automatically.
+  openGraph: {
+    type: 'website',
+    siteName: 'Pip',
+    url: 'https://playpip.io',
+    title: 'Poker without the casino.',
+    description:
+      "Real Texas Hold'em vs AI, wrapped in a calm, modern app. Play money, no accounts, open source.",
+    locale: 'en_GB',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Poker without the casino.',
+    description: "Real Texas Hold'em vs AI. Play money, no accounts, open source.",
   },
 }
 

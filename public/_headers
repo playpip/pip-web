@@ -1,0 +1,9 @@
+# Cloudflare Pages response headers (copied verbatim to out/_headers on export).
+# The OG image routes are extension-less files, so static hosting would serve
+# them as octet-stream and social scrapers would reject them. Force image/png.
+/opengraph-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=86400
+/hand/opengraph-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=86400
