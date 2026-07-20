@@ -34,7 +34,7 @@ Unearned chips show as hollow outlines (the hatch pattern used for face-down car
 so the shelf reads as a collection with visible gaps — the pull is seeing what's
 missing, not a nag.
 
-## The set (30 chips)
+## The set (55 chips)
 
 ### Venue chips — one per rung, earned by **winning** the venue (10)
 
@@ -72,6 +72,20 @@ chip certifies a real moment, not a folded-out technicality.
 | `moment-comeback` | "The Comeback" | Win a ladder venue after falling to ≤10% of your starting stack |
 | `moment-chipandchair` | "Chip and a Chair" | Win a ladder venue after being ground down to ≤1 big blind |
 
+### Nickname chips — win a pot holding a folk-named starting hand (25)
+
+| id | Chip | Earned by |
+|----|------|-----------|
+| `nickname-KK` … `nickname-93` | The hand's folk name (jade) | Win a pot holding that named starting hand |
+
+Generated one-to-one from the nicknames in `src/config/handNames.ts` (Cowboys,
+Ladies, Snowmen, Motown, The Heinz …), so the shelf tracks that list exactly.
+The three most iconic named hands — pocket aces, Ace-King, 7-2 — are **not**
+duplicated here; they keep their bespoke moment chips (The Bullets, Big Slick,
+The Seven Deuce). Detection reuses `nicknameKeyFor` from `handNames`, so the
+whisper you see when dealt the hand and the chip you earn for winning with it
+are always the same set.
+
 ### Journey chips — the story of the grind (6)
 
 | id | Chip | Earned by |
@@ -89,8 +103,8 @@ minutes.
 All triggers are observable at two seams — no engine changes:
 
 - **`finishHand()`** in `store/game.ts` already knows: winners, `result.evaluations`
-  (hand names), payouts, survivors, and the venue → hand chips + venue chips + rank
-  chips (from the just-updated `peakRoll`).
+  (hand names), payouts, survivors, hero's hole cards, and the venue → hand chips +
+  venue chips + nickname chips + rank chips (from the just-updated `peakRoll`).
 - "Back From Broke" uses one persisted flag (`cameFromFreeroll`): set on a Kitchen
   Table win, consumed when the comeback chip is earned, and cleared if you bust back
   below the Garage buy-in first.

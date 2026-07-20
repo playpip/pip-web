@@ -6,8 +6,9 @@ import { RANKS, type Card } from '@/lib/poker/cards'
 
 // Keys: rank pair high-first (`AA`), optionally suffixed `s`/`o` when the
 // nickname belongs to only one variant (The Hammer is 7-2 *offsuit*). Bare
-// keys apply to suited and offsuit alike.
-const NICKNAMES: Record<string, string> = {
+// keys apply to suited and offsuit alike. Non-pair keys are high rank first to
+// match `holeKey` — otherwise they never resolve.
+export const NICKNAMES: Record<string, string> = {
   AA: 'Pocket Rockets',
   KK: 'Cowboys',
   QQ: 'Ladies',
@@ -34,8 +35,8 @@ const NICKNAMES: Record<string, string> = {
   T4: 'Ten-Four',
   '95': 'Dolly Parton',
   '72o': 'The Hammer',
-  '57': 'The Heinz',
-  '39': 'Jack Benny',
+  '75': 'The Heinz',
+  '93': 'Jack Benny',
 }
 
 /** Canonical starting-hand key: high rank first, `s`/`o` for non-pairs. */
@@ -46,9 +47,21 @@ export function holeKey(cards: readonly Card[]): string | null {
   return `${a.rank}${b.rank}${a.suit === b.suit ? 's' : 'o'}`
 }
 
-/** The folk name for these hole cards, or null — most hands have none. */
-export function nicknameFor(cards: readonly Card[]): string | null {
+/**
+ * The canonical `NICKNAMES` key these hole cards resolve to, or null. Prefers
+ * the exact key (`72o`) and falls back to the bare rank pair (`72`), so a
+ * suited-only nickname never leaks onto the offsuit hand and vice versa.
+ */
+export function nicknameKeyFor(cards: readonly Card[]): string | null {
   const key = holeKey(cards)
   if (!key) return null
-  return NICKNAMES[key] ?? NICKNAMES[key.slice(0, 2)] ?? null
+  if (NICKNAMES[key]) return key
+  const bare = key.slice(0, 2)
+  return NICKNAMES[bare] ? bare : null
+}
+
+/** The folk name for these hole cards, or null — most hands have none. */
+export function nicknameFor(cards: readonly Card[]): string | null {
+  const key = nicknameKeyFor(cards)
+  return key ? NICKNAMES[key] : null
 }

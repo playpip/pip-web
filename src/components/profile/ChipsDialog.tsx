@@ -25,6 +25,7 @@ const SECTIONS: { kind: AwardKind; title: string }[] = [
   { kind: 'venue', title: 'Venues' },
   { kind: 'hand', title: 'Hands' },
   { kind: 'moment', title: 'Moments' },
+  { kind: 'nickname', title: 'Nicknames' },
   { kind: 'journey', title: 'The Journey' },
 ]
 
