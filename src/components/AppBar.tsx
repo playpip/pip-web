@@ -24,8 +24,8 @@ type Leading = 'profile' | 'back' | 'none'
  * - `leading='back'` — every sub-screen: a chevron back (to the menu by
  *   default, or `onBack` for a custom exit like the table's leave-confirm).
  * - `title` — an optional centred label (the table shows venue + blinds).
- * - `actions` — page-specific buttons (e.g. the table's History / Help),
- *   rendered just before the shared pip · Style · Settings cluster.
+ * - `actions` — page-specific buttons, rendered just before the shared
+ *   pip · Style · Settings cluster.
  */
 export function AppBar({
   leading = 'back',
