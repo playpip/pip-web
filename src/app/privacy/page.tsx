@@ -60,6 +60,10 @@ export default function PrivacyPage() {
           can&rsquo;t tie any of it to a person — including you. It exists so we can improve the
           game, and for nothing else. It&rsquo;s never sold or shared.
         </p>
+        <p>
+          The counts are held by Umami on our behalf and roll off after about six months. We
+          don&rsquo;t keep our own copy beyond that.
+        </p>
       </Section>
 
       <Section title="Server logs">
