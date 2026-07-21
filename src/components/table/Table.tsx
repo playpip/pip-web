@@ -143,6 +143,33 @@ export function Table() {
     </div>
   )
 
+  // History + Help live here now — a small cluster pinned to the top-left of the
+  // table surface, above the community cards, rather than crowding the AppBar.
+  const boardControls = (
+    <div className="absolute left-4 top-2 z-20 flex items-center gap-0.5 md:left-6">
+      {hasHistory && (
+        <AppBarAction
+          label="Last hand"
+          onClick={() => {
+            sound.play('tap')
+            setHistoryOpen(true)
+          }}
+        >
+          <History className="size-4" />
+        </AppBarAction>
+      )}
+      <AppBarAction
+        label="Hand rankings"
+        onClick={() => {
+          sound.play('tap')
+          setHelpOpen(true)
+        }}
+      >
+        <HelpCircle className="size-4" />
+      </AppBarAction>
+    </div>
+  )
+
   const actionArea =
     status === 'handover' ? (
       // Entrance transform lives on the wrapper; the button keeps its own CSS
@@ -212,30 +239,6 @@ export function Table() {
             </span>
           </>
         }
-        actions={
-          <>
-            {hasHistory && (
-              <AppBarAction
-                label="Last hand"
-                onClick={() => {
-                  sound.play('tap')
-                  setHistoryOpen(true)
-                }}
-              >
-                <History className="size-4" />
-              </AppBarAction>
-            )}
-            <AppBarAction
-              label="Hand rankings"
-              onClick={() => {
-                sound.play('tap')
-                setHelpOpen(true)
-              }}
-            >
-              <HelpCircle className="size-4" />
-            </AppBarAction>
-          </>
-        }
       />
 
       {isMobile ? (
@@ -244,6 +247,7 @@ export function Table() {
           {/* opponents + board drift toward the centre — slack splits evenly
               above, between, and below them */}
           <div className="relative flex min-h-0 flex-1 flex-col justify-evenly px-2 pb-2">
+            {boardControls}
             <div className="flex items-start justify-evenly">
               {opponents.map((p) => {
                 const meta = metaById.get(p.id)
@@ -320,6 +324,7 @@ export function Table() {
         <>
           {/* table surface + seats */}
           <div className="relative flex-1">
+            {boardControls}
             {opponents.map((p, i) => {
               const meta = metaById.get(p.id)
               if (!meta) return null
