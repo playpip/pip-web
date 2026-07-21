@@ -297,7 +297,7 @@ export function Table() {
 
           {/* hero: big fanned hole cards + a swipeable profile / odds panel */}
           {hero && heroMeta && (
-            <div className="flex items-stretch gap-3 px-3 pt-3 pb-[max(2.75rem,env(safe-area-inset-bottom))]">
+            <div className="flex items-stretch gap-3 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
               {/* cards and panel each get exactly half the row; cards align
                   with the left edge of the action buttons (pl offsets the
                   first card's tilt so its corner doesn't poke past) */}
