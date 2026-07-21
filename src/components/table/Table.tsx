@@ -143,33 +143,6 @@ export function Table() {
     </div>
   )
 
-  // History + Help live here now — a small cluster pinned to the top-left of the
-  // table surface, above the community cards, rather than crowding the AppBar.
-  const boardControls = (
-    <div className="absolute left-4 top-2 z-20 flex items-center gap-0.5 md:left-6">
-      {hasHistory && (
-        <AppBarAction
-          label="Last hand"
-          onClick={() => {
-            sound.play('tap')
-            setHistoryOpen(true)
-          }}
-        >
-          <History className="size-4" />
-        </AppBarAction>
-      )}
-      <AppBarAction
-        label="Hand rankings"
-        onClick={() => {
-          sound.play('tap')
-          setHelpOpen(true)
-        }}
-      >
-        <HelpCircle className="size-4" />
-      </AppBarAction>
-    </div>
-  )
-
   const actionArea =
     status === 'handover' ? (
       // Entrance transform lives on the wrapper; the button keeps its own CSS
@@ -221,6 +194,33 @@ export function Table() {
         }
     : undefined
 
+  // Help + last-hand controls. On desktop they sit in the AppBar; on mobile
+  // they move down to just above the community cards (see below).
+  const tableControls = (
+    <>
+      {hasHistory && (
+        <AppBarAction
+          label="Last hand"
+          onClick={() => {
+            sound.play('tap')
+            setHistoryOpen(true)
+          }}
+        >
+          <History className="size-4" />
+        </AppBarAction>
+      )}
+      <AppBarAction
+        label="Hand rankings"
+        onClick={() => {
+          sound.play('tap')
+          setHelpOpen(true)
+        }}
+      >
+        <HelpCircle className="size-4" />
+      </AppBarAction>
+    </>
+  )
+
   return (
     <div className="relative flex h-dvh w-full flex-col overflow-hidden" style={finishStyle}>
       {/* top bar — the shared AppBar; back confirms via the leave dialog */}
@@ -239,6 +239,7 @@ export function Table() {
             </span>
           </>
         }
+        actions={isMobile ? undefined : tableControls}
       />
 
       {isMobile ? (
@@ -247,7 +248,6 @@ export function Table() {
           {/* opponents + board drift toward the centre — slack splits evenly
               above, between, and below them */}
           <div className="relative flex min-h-0 flex-1 flex-col justify-evenly px-2 pb-2">
-            {boardControls}
             <div className="flex items-start justify-evenly">
               {opponents.map((p) => {
                 const meta = metaById.get(p.id)
@@ -270,8 +270,12 @@ export function Table() {
               })}
             </div>
 
-            {/* board in the middle; talk on the left, pot on the right */}
+            {/* board in the middle; talk on the left, pot on the right.
+                Help + last-hand sit just above the board, aligned left. */}
             <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-1 px-2 text-muted-foreground">
+                {tableControls}
+              </div>
               {communityCards}
               <div className="flex items-end justify-between gap-3 px-2">
                 <div className="min-w-0 flex-1">{talkLine}</div>
@@ -324,7 +328,6 @@ export function Table() {
         <>
           {/* table surface + seats */}
           <div className="relative flex-1">
-            {boardControls}
             {opponents.map((p, i) => {
               const meta = metaById.get(p.id)
               if (!meta) return null
