@@ -688,7 +688,14 @@ function HeroCards({
             index={i}
             card={card}
             size={size}
-            className={cn(fanned && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'))}
+            className={cn(
+              fanned && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'),
+              // A dimmed (opacity-40) rounded card with a drop shadow renders a
+              // bright halo along its bottom edge on iOS Safari — the shadow
+              // inverts under fractional opacity. Folded cards don't need a
+              // shadow anyway, so drop it and the artifact goes with it.
+              folded && 'shadow-none dark:shadow-none',
+            )}
           />
         ))}
         <span className="sr-only">{hand.street}</span>
