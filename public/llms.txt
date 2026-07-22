@@ -1,0 +1,35 @@
+# Pip
+
+> Real single-player Texas Hold'em against AI — no accounts, no real money, open source
+> and provably fair. A calm, anti-casino poker web app: play money only, no ads, no
+> pop-ups, no dark patterns. Play in the browser at https://playpip.io — no signup,
+> nothing to install.
+
+Pip is a pure front-end app (no backend, static export). Your profile lives in your
+browser, not on a server. The poker engine is a pure, deterministic, unit-tested
+TypeScript module with a seeded RNG — so "provably fair" means you can read exactly how
+every hand is shuffled and dealt. There's a Daily Deal: one date-seeded tournament a day,
+identical for everyone in the world, verifiable because the code is open.
+
+Privacy: no accounts, no cookies, no personal data. The only analytics are anonymous and
+cookieless (Umami); the privacy page lists exactly what is counted.
+
+## Play
+
+- [Play Pip](https://playpip.io): The app — single-player Texas Hold'em, no signup.
+- [Privacy](https://playpip.io/privacy): Exactly what Pip counts, and for how long.
+
+## Project
+
+- [Source code](https://github.com/playpip/pip-web): The full open-source repo (MIT).
+- [Roadmap](https://github.com/playpip/pip-web/blob/main/ROADMAP.md): Where Pip is going, in the open.
+- [Contributing](https://github.com/playpip/pip-web/blob/main/CONTRIBUTING.md): How to get involved — code or not.
+
+## What it is
+
+- Single-player Texas Hold'em against a fixed cast of AI opponents with faces and personalities.
+- A ladder of ten sit-and-go tournaments, from Friends' Garage to The Main Event, plus side formats.
+- Play money only — nothing costs real money, ever. Cosmetics are style, never edge (no pay-to-win).
+- Hand permalinks: share any hand as a URL that replays step by step, with no server or account.
+- Ambient help: live win-% equity, hand strength, plain-English opponent reads.
+- Installable PWA; light and dark themes; works offline once loaded.

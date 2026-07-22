@@ -1,16 +1,40 @@
-<img src="docs/assets/pip-logo.png" width="72" alt="pip logo" />
+<p align="center">
+  <img src="docs/assets/pip-logo.png" width="72" alt="pip logo" />
+</p>
 
-# pip
+<h1 align="center">pip</h1>
 
-**Casual poker, redesigned.** Pip is a clean, single-player Texas Hold'em web app —
-play money, no accounts, no pop-ups, no fake felt. Open source and local-first.
-Live at **[playpip.io](https://playpip.io)**.
+<p align="center">
+  <b>Real single-player Texas Hold'em against AI — no accounts, no real money,<br/>
+  open source and provably fair.</b>
+</p>
+
+<p align="center">
+  <a href="https://playpip.io"><b>▶ Play at playpip.io</b></a> · no signup, nothing to install
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-111111" /></a>
+  <img alt="No backend" src="https://img.shields.io/badge/backend-none-111111" />
+  <img alt="Static export" src="https://img.shields.io/badge/deploy-static-111111" />
+  <a href="https://playpip.io"><img alt="Live" src="https://img.shields.io/badge/live-playpip.io-111111" /></a>
+  <a href="https://github.com/playpip/pip-web/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/playpip/pip-web?style=flat&color=111111&labelColor=555555" /></a>
+</p>
+
+<p align="center">
+  <img src="docs/assets/hero-fullhouse.gif" width="640" alt="A hand of Pip: flopping a full house, the win-% climbing, betting three streets, and taking the pot at showdown" />
+</p>
 
 Free poker apps tend to look and feel like a scam: neon, leather textures, coin
 jingles, and more time spent closing offers than playing cards. Pip is the opposite —
-a flat, calm, black-first table where the poker is the whole product.
+a flat, calm, black-first table where the poker is the whole product. Single-player,
+play money only, no pop-ups, no fake felt.
 
 ## How it plays
+
+<p align="center">
+  <img src="docs/assets/venues-ladder.png" width="720" alt="The venue ladder — ten tournaments from Friends' Garage to The Main Event" />
+</p>
 
 - **The venue ladder** — ten winner-take-all sit-and-go tournaments, from the
   100-chip *Friends' Garage* to the 1,000,000-chip *Main Event*. The buy-in is your
@@ -35,8 +59,14 @@ a flat, calm, black-first table where the poker is the whole product.
 - **Ambient help** — live win-% equity, hand strength, plain-English reads on
   opponents, and a reviewable last-hand history. Informative, never nagging.
 - **Yours, locally** — your profile, Roll (bankroll), rank, collection, and style
-  live in localStorage (versioned, exportable). No login, no server, no tracking.
+  live in localStorage (versioned, exportable). No login, no server, no account.
+  The only analytics are anonymous and cookieless — see [Privacy](#privacy) below.
 - Light and dark themes, quiet tactile sound, desktop and mobile layouts.
+
+<p align="center">
+  <img src="docs/assets/table-light.png" width="380" alt="Pip's table, light theme" />
+  <img src="docs/assets/table-dark.png" width="380" alt="Pip's table, dark theme" />
+</p>
 
 Play money only: balances are **chips**, never a currency. The only shop takes
 chips you won at the table — nothing costs real money, ever.
@@ -95,10 +125,25 @@ Full documentation lives in [`docs/`](docs/README.md):
 Agents working in this repo should start with [`CLAUDE.md`](CLAUDE.md) /
 [`AGENTS.md`](AGENTS.md).
 
+## Privacy
+
+No accounts, no cookies, no personal data. Your profile lives in your browser, not on
+a server. The only thing Pip records is **anonymous, cookieless usage counts** (via
+[Umami](https://umami.is)) — no fingerprinting, no ad tech, nothing tied to you. The
+[privacy page](https://playpip.io/privacy) lists exactly what's counted and for how long.
+Because the whole app is open source, you can verify all of this in the code.
+
+## Contributing
+
+Contributions are welcome — and not only code. Playtesting and bug reports, design and
+UX feedback, docs, and spreading the word all count. Start with
+[CONTRIBUTING.md](CONTRIBUTING.md), see what's next in [ROADMAP.md](ROADMAP.md), or pick
+up a [`good first issue`](https://github.com/playpip/pip-web/labels/good%20first%20issue).
+
 ## About
 
 Pip is built by [playpip](https://github.com/playpip), **open source**, and under
-active development. It's a pure front-end app: no backend, no accounts, no tracking —
+active development. It's a pure front-end app: no backend and no accounts —
 everything runs in the browser and persists locally. The engine is deterministic
 and fully unit-tested, so anyone can read exactly how a hand is dealt and shuffled —
 provably fair by inspection, not by promise. The product docs in [`docs/`](docs/README.md)
