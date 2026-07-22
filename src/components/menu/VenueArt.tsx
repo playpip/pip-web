@@ -4,6 +4,9 @@
 // Vector so they're crisp from a 48px thumb to a full-width banner, themeable,
 // and consistent with the minimal aesthetic. viewBox is 120×96 throughout.
 
+import { useState } from 'react'
+
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 type Scene = (c: string) => React.ReactNode
@@ -291,25 +294,45 @@ export function VenueArt({
 }) {
   const image = VENUE_IMAGES[id]
   const ambience = AMBIENCE[id]
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading')
+
+  // The SVG scene is the fallback: shown when there's no image at all, or when
+  // the image failed to load. While a real image loads we show a skeleton
+  // instead so we don't flash the placeholder art.
+  const showScene = !image || status === 'error'
+  const showSkeleton = Boolean(image) && status === 'loading'
+
   return (
     <div className={cn('relative overflow-hidden bg-[#0A0A0A]', className)}>
-      {/* SVG fallback sits underneath; the image (if any) covers it. */}
-      <VenueScene id={id} accent={accent} className="absolute inset-0 size-full" />
-      {image && (
+      {showScene && <VenueScene id={id} accent={accent} className="absolute inset-0 size-full" />}
+      {showSkeleton && (
+        // Accent-tinted so it reads on the always-dark stage in both themes.
+        // Inline colour wins over the component's default bg-accent token.
+        <Skeleton
+          className="absolute inset-0 size-full rounded-none"
+          style={{ backgroundColor: `color-mix(in oklab, ${accent} 12%, transparent)` }}
+        />
+      )}
+      {image && status !== 'error' && (
         <img
+          // Cached images can finish loading before React attaches onLoad, so
+          // reconcile from `complete` when the node mounts.
+          ref={(node) => {
+            if (node?.complete) setStatus(node.naturalWidth > 0 ? 'loaded' : 'error')
+          }}
           src={image}
           alt=""
           draggable={false}
           className={cn(
             'absolute inset-0 size-full object-cover',
+            status !== 'loaded' && 'opacity-0',
             ambience === 'drift' && 'venue-drift',
           )}
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
+          onLoad={() => setStatus('loaded')}
+          onError={() => setStatus('error')}
         />
       )}
-      {(ambience === 'breathe' || ambience === 'flicker') && (
+      {!showSkeleton && (ambience === 'breathe' || ambience === 'flicker') && (
         <div
           aria-hidden
           className={cn(
