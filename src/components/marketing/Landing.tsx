@@ -769,6 +769,9 @@ function Footer() {
           <Link href="/terms" className="transition hover:text-foreground">
             Terms
           </Link>
+          <Link href="/credits" className="transition hover:text-foreground">
+            Credits
+          </Link>
           <a
             href="https://github.com/playpip/pip-web"
             target="_blank"
