@@ -26,13 +26,13 @@ const ids = (ctx: AwardContext, owned: Record<string, number> = {}) =>
 const showdownWin = (name: string, description: string, over: Partial<AwardContext> = {}) =>
   baseCtx({ heroWon: true, showdown: true, heroHand: { name, description }, ...over })
 
-test('the set has 55 chips with unique ids', (t) => {
-  t.is(AWARDS.length, 55)
-  t.is(new Set(AWARDS.map((a) => a.id)).size, 55)
+test('the set has 59 chips with unique ids', (t) => {
+  t.is(AWARDS.length, 59)
+  t.is(new Set(AWARDS.map((a) => a.id)).size, 59)
   t.is(AWARDS.filter((a) => a.kind === 'venue').length, 10)
   t.is(AWARDS.filter((a) => a.kind === 'hand').length, 7)
   t.is(AWARDS.filter((a) => a.kind === 'moment').length, 7)
-  t.is(AWARDS.filter((a) => a.kind === 'nickname').length, 25)
+  t.is(AWARDS.filter((a) => a.kind === 'nickname').length, 29)
   t.is(AWARDS.filter((a) => a.kind === 'journey').length, 6)
   t.truthy(awardById('venue-garage'))
   t.truthy(awardById('nickname-QQ'))
