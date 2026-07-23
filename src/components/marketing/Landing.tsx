@@ -170,20 +170,6 @@ function Hero() {
           >
             Plays in your browser &mdash; no download, no sign-up. Loads in a second.
           </motion.p>
-
-          <motion.p
-            variants={rise}
-            initial="hidden"
-            animate="show"
-            custom={5}
-            className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"
-          >
-            <span>No account</span>
-            <Dot />
-            <span>Open source</span>
-            <Dot />
-            <span>Play money, always</span>
-          </motion.p>
         </div>
 
         {/* the table showpiece — a real hand, not a mock */}
@@ -198,10 +184,6 @@ function usePrefersReducedMotion() {
   const hydrated = useHydrated()
   if (!hydrated || typeof window === 'undefined') return false
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-}
-
-function Dot() {
-  return <span className="text-foreground/25">&middot;</span>
 }
 
 /** A few oversized suit glyphs, barely there — texture, not decoration. */
