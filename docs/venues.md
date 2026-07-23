@@ -8,7 +8,7 @@ The venue ladder is the progression spine of Pip: 10 **sit-and-go tournaments** 
 
 | # | id | Name | Buy-in | Blinds | Prize | AI feel |
 |---|----|------|-------:|-------:|------:|---------|
-| 1 | `garage` | Friends' Garage | 100 | 1/2 | 400 | loosest, forgiving |
+| 1 | `garage` | Friends' Garage | 100 | 1/2 | 300 | loosest, forgiving |
 | 2 | `pub` | The Pub | 300 | 3/6 | 1,500 | Friday-night amateurs |
 | 3 | `poolhall` | The Pool Hall | 750 | 5/10 | 3,750 | hustlers, semi-loose |
 | 4 | `cardroom` | The Card Room | 2,000 | 15/30 | 12,000 | tight, positional |
