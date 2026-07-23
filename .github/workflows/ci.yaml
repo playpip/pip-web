@@ -1,0 +1,65 @@
+name: CI
+
+# The quality gate for pull requests. Mirrors the gate in
+# deploy-cloudflare-pages.yaml step-for-step (one step per check so a failure
+# names its culprit) but stops at the build — no version bump, no deploy, no
+# release. Nothing here needs secrets, so it runs safely on PRs from forks
+# (fork PRs get a read-only token and no secret access by design).
+
+on:
+  pull_request:
+    branches:
+      - main
+
+# A new push to the same PR supersedes the old run; don't burn minutes on stale commits.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The test:all gate, one step per check so a failure names its culprit.
+      - name: Check formatting
+        run: pnpm test:format
+
+      - name: Check types
+        run: pnpm test:types
+
+      - name: Lint
+        run: pnpm test:lint
+
+      - name: Run engine tests (AVA)
+        run: pnpm test:ava
+
+      - name: Check for unused code (knip)
+        run: pnpm test:knip
+
+      - name: Security audit
+        run: pnpm test:audit
+
+      # Verify the static export builds. gen-credits falls back to the committed
+      # JSON if GitHub is unreachable, and the analytics id is optional, so this
+      # runs fine without any secrets or repo variables.
+      - name: Build static export
+        run: pnpm build
