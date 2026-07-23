@@ -10,31 +10,102 @@ import { cn } from '@/lib/utils'
 
 type Scene = (c: string) => React.ReactNode
 
-/** One tower of chips — banded edges with a brighter top face. */
-function chipTower(c: string, cx: number, floorY: number, count: number): React.ReactNode {
-  const gap = 4.4
-  const chips = []
-  for (let k = 0; k < count; k++) {
-    const top = k === count - 1
-    chips.push(
+// Chip geometry shared by the towers: front-on, slightly squashed ellipses.
+const CHIP = { rx: 11.5, ry: 4, h: 4.4 }
+
+/** Tiny alternating lean so a tower reads hand-stacked rather than extruded. */
+const lean = (k: number) => (((k * 5) % 3) - 1) * 0.7
+
+/** A chip seen face-on: solid disc, dashed ring of edge spots, dark inlay. */
+function chipFace(c: string, cx: number, cy: number): React.ReactNode {
+  const { rx, ry } = CHIP
+  return (
+    <>
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={c} fillOpacity={0.95} />
+      {/* pathLength normalises the dash pattern to 6 even spots around the rim. */}
       <ellipse
-        key={k}
         cx={cx}
-        cy={floorY - k * gap}
-        rx={14}
-        ry={4.6}
-        fill={c}
-        fillOpacity={top ? 0.92 : 0.45 + (k % 2) * 0.14}
-      />,
-    )
-  }
-  return <g key={cx}>{chips}</g>
+        cy={cy}
+        rx={rx * 0.68}
+        ry={ry * 0.68}
+        fill="none"
+        stroke="#fafafa"
+        strokeOpacity={0.75}
+        strokeWidth={2.2}
+        pathLength={100}
+        strokeDasharray="9 7.66"
+      />
+      <ellipse cx={cx} cy={cy} rx={rx * 0.4} ry={ry * 0.4} fill="#0a0a0b" fillOpacity={0.3} />
+    </>
+  )
 }
 
-/** A row of chip towers of the given heights, evenly spread across the frame. */
+/**
+ * One tower of chips. Each chip is a solid cylinder band whose top and bottom
+ * follow the ellipse curve, with three white edge spots clipped to the band so
+ * they hug the curve — stacked, the spots line up into the stripes a real
+ * stack has. A seam under each chip separates it from the one below, and a
+ * soft shadow sits the tower on the felt.
+ */
+function chipTower(c: string, cx: number, floorY: number, count: number): React.ReactNode {
+  const { rx, ry, h } = CHIP
+  const chips = []
+  for (let k = 0; k < count; k++) {
+    const x = cx + lean(k)
+    const yTop = floorY - (k + 1) * h
+    const yBot = yTop + h
+    const band = `M ${x - rx} ${yTop} A ${rx} ${ry} 0 0 0 ${x + rx} ${yTop} L ${x + rx} ${yBot} A ${rx} ${ry} 0 0 1 ${x - rx} ${yBot} Z`
+    // Unique per chip on the page; a collision could only come from identical
+    // geometry in another tile, which would clip identically anyway.
+    const clipId = `chip-${cx}-${floorY}-${k}`
+    chips.push(
+      <g key={k}>
+        <clipPath id={clipId}>
+          <path d={band} />
+        </clipPath>
+        <path d={band} fill={c} fillOpacity={0.85} />
+        <path
+          d={`M ${x - rx} ${yBot} A ${rx} ${ry} 0 0 0 ${x + rx} ${yBot}`}
+          fill="none"
+          stroke="#0a0a0b"
+          strokeOpacity={0.35}
+          strokeWidth={1}
+        />
+        <g clipPath={`url(#${clipId})`}>
+          {[-0.55, 0, 0.55].map((f) => (
+            <rect
+              key={f}
+              x={x + f * rx - 1.6}
+              y={yTop}
+              width={3.2}
+              height={h + ry * 2}
+              fill="#fafafa"
+              fillOpacity={0.8}
+            />
+          ))}
+        </g>
+      </g>,
+    )
+  }
+  return (
+    <g key={cx}>
+      <ellipse cx={cx} cy={floorY + 1.5} rx={rx + 4} ry={ry + 1} fill="#0a0a0b" fillOpacity={0.4} />
+      {chips}
+      {chipFace(c, cx + lean(count - 1), floorY - count * h)}
+    </g>
+  )
+}
+
+/**
+ * A row of chip towers of the given heights, evenly spread across the frame.
+ * Alternate towers sit a touch higher (further away), back-to-front drawn so
+ * near stacks overlap far ones.
+ */
 function chipStacks(c: string, heights: number[], floorY: number): React.ReactNode {
   const step = 96 / (heights.length + 1)
-  return <>{heights.map((h, i) => chipTower(c, 12 + step * (i + 1), floorY, h))}</>
+  const floors = heights.map((_, i) => floorY - (i % 2) * 4)
+  const order = heights.map((_, i) => i).sort((a, b) => floors[a] - floors[b])
+  return <>{order.map((i) => chipTower(c, 12 + step * (i + 1), floors[i], heights[i]))}</>
 }
 
 const SCENES: Record<string, Scene> = {
@@ -59,12 +130,8 @@ const SCENES: Record<string, Scene> = {
   // The Rail — a stack of chips. Cash on the table.
   rail: (c) => (
     <>
-      {[66, 56, 46].map((y, i) => (
-        <g key={y}>
-          <ellipse cx="60" cy={y} rx="27" ry="8.5" fill={c} fillOpacity={0.88 - i * 0.14} />
-          <ellipse cx="60" cy={y} rx="14" ry="4.2" fill="#0a0a0b" fillOpacity={0.26} />
-        </g>
-      ))}
+      {chipTower(c, 45, 64, 5)}
+      {chipTower(c, 73, 68, 3)}
     </>
   ),
 
@@ -122,10 +189,10 @@ const SCENES: Record<string, Scene> = {
 
   // The Rail's rooms — chip towers that grow with the stakes. Micro is a couple
   // of modest stacks; the nosebleeds are a skyline.
-  'ring-micro': (c) => chipStacks(c, [3, 2], 62),
-  'ring-low': (c) => chipStacks(c, [3, 4, 2], 66),
-  'ring-mid': (c) => chipStacks(c, [5, 6, 4], 70),
-  'ring-high': (c) => chipStacks(c, [7, 9, 6, 8], 76),
+  'ring-micro': (c) => chipStacks(c, [3, 2], 66),
+  'ring-low': (c) => chipStacks(c, [4, 3, 2], 68),
+  'ring-mid': (c) => chipStacks(c, [6, 4, 5], 70),
+  'ring-high': (c) => chipStacks(c, [8, 10, 6, 9], 74),
 }
 
 // Generated art, once it exists, covers the SVG fallback. Add an entry here and

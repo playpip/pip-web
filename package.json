@@ -1,12 +1,12 @@
 {
   "name": "clean-poker",
-  "version": "1.1.16",
+  "version": "1.1.22",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.9",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/stamp-sw.mjs",
+    "build": "node scripts/gen-credits.mjs && next build && node scripts/stamp-sw.mjs",
     "start": "next start",
     "lint": "biome lint .",
     "lint:fix": "biome check --write --unsafe .",
@@ -31,7 +31,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
-    "next": "16.2.10",
+    "next": "16.2.11",
     "pokersolver": "^2.1.4",
     "qrcode": "^1.5.4",
     "react": "19.2.4",

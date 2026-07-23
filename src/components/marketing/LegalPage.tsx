@@ -14,7 +14,7 @@ export function LegalPage({
   children,
 }: {
   title: string
-  updated: string
+  updated?: string
   children: React.ReactNode
 }) {
   return (
@@ -30,7 +30,7 @@ export function LegalPage({
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-14 md:px-8 md:py-20">
         <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Last updated {updated}</p>
+        {updated && <p className="mt-2 text-sm text-muted-foreground">Last updated {updated}</p>}
         <div className="mt-10">{children}</div>
       </main>
 
@@ -44,6 +44,9 @@ export function LegalPage({
           </Link>
           <Link href="/terms" className="transition hover:text-foreground">
             Terms
+          </Link>
+          <Link href="/credits" className="transition hover:text-foreground">
+            Credits
           </Link>
           <a
             href="https://github.com/playpip/pip-web"

@@ -44,12 +44,20 @@ export function SettingsDialog({
           <TableTalkSection />
           <BackupSection />
           <ResetSection />
-          {APP_VERSION && (
-            <p className="text-center text-[11px] tracking-wide text-muted-foreground/70">
-              Pip v{APP_VERSION}
-              {BUILD_ID ? ` · ${BUILD_ID}` : ''}
-            </p>
-          )}
+          <div className="flex flex-col items-center gap-1 text-[11px] tracking-wide text-muted-foreground/70">
+            <a
+              href="/credits"
+              className="underline-offset-2 transition hover:text-foreground hover:underline"
+            >
+              Credits
+            </a>
+            {APP_VERSION && (
+              <p className="text-center">
+                Pip v{APP_VERSION}
+                {BUILD_ID ? ` · ${BUILD_ID}` : ''}
+              </p>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

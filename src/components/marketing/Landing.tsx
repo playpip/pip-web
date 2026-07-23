@@ -1,8 +1,9 @@
 'use client'
 
 // The marketing landing page ("/"). The app itself lives at "/game". Built from
-// the real product primitives — PlayingCard, VenueArt, CardBack — so nothing here
-// is a mock-up: what you see on the page is what you get at the table. Flat,
+// the real product primitives — VenueArt, CardBack, the cast — plus a recorded
+// hand for the hero, so nothing here is a mock-up: what you see on the page is
+// what you get at the table. Flat,
 // black-first, one accent (pip). Works in both light and dark (see docs/design.md).
 
 import Link from 'next/link'
@@ -21,7 +22,6 @@ import {
   WifiOff,
 } from 'lucide-react'
 import { FaGithub } from 'react-icons/fa'
-import { PlayingCard } from '@/components/PlayingCard'
 import { CardBack } from '@/components/CardBack'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -33,7 +33,6 @@ import { characterById, type Character } from '@/config/cast'
 import { useProfile } from '@/store/profile'
 import { useHydrated } from '@/lib/useHydrated'
 import { useMoney } from '@/lib/useMoney'
-import type { Card } from '@/lib/poker/cards'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -142,8 +141,8 @@ function Hero() {
             custom={2}
             className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty"
           >
-            Real Hold&rsquo;em against AI that actually plays &mdash; wrapped in a calm, modern app.
-            No fake felt, no neon, no pop-ups. Just the table, your Roll, and the next hand.
+            Real Hold&rsquo;em against AI that plays a proper game &mdash; wrapped in a calm, modern
+            app. No fake felt, no neon, no pop-ups. Just the table, your Roll, and the next hand.
           </motion.p>
 
           <motion.div
@@ -167,6 +166,16 @@ function Hero() {
             initial="hidden"
             animate="show"
             custom={4}
+            className="mt-4 text-sm text-muted-foreground"
+          >
+            Plays in your browser &mdash; no download, no sign-up. Loads in a second.
+          </motion.p>
+
+          <motion.p
+            variants={rise}
+            initial="hidden"
+            animate="show"
+            custom={5}
             className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"
           >
             <span>No account</span>
@@ -177,11 +186,18 @@ function Hero() {
           </motion.p>
         </div>
 
-        {/* the table showpiece */}
+        {/* the table showpiece — a real hand, not a mock */}
         <HeroTable />
       </div>
     </section>
   )
+}
+
+/** Respect the user's reduced-motion setting — hydration-gated so SSR/client agree. */
+function usePrefersReducedMotion() {
+  const hydrated = useHydrated()
+  if (!hydrated || typeof window === 'undefined') return false
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 }
 
 function Dot() {
@@ -205,51 +221,52 @@ function GhostSuits() {
   )
 }
 
-/** Your hand: two big hole cards fanning out from the deal. Nothing else. */
-const HOLE: Card[] = [
-  { rank: 'A', suit: 's' },
-  { rank: 'A', suit: 'h' },
-]
-
+/**
+ * The hero showpiece: a real recorded hand at the Garage — flop a full house,
+ * value-bet three streets, win at showdown. Answers a cold visitor's #1 question
+ * ("what's it actually like to play?") with the game itself, not a mock-up.
+ * Muted autoplay loop; falls back to a static poster for reduced-motion users
+ * (the brand is calm — never flashing for attention). 5:4 to match the capture.
+ */
 function HeroTable() {
-  const spring = { type: 'spring', stiffness: 210, damping: 22 } as const
+  const reducedMotion = usePrefersReducedMotion()
   return (
-    <div className="relative flex min-h-[22rem] items-center justify-center md:min-h-[28rem]">
-      {/* soft focus glow behind the cards */}
+    <motion.div
+      variants={rise}
+      initial="hidden"
+      animate="show"
+      custom={2}
+      className="relative flex items-center justify-center"
+    >
+      {/* soft focus glow behind the frame */}
       <div
         aria-hidden
-        className="pointer-events-none absolute size-[32rem] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_24%,transparent),transparent_70%)] blur-3xl"
+        className="pointer-events-none absolute size-[32rem] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_20%,transparent),transparent_70%)] blur-3xl"
       />
-      {/* the fan — a one-card-sized box scaled from its own centre, so the pair
-          grows symmetrically and stays centred. Both cards share the box and
-          pivot from its bottom edge, splaying out like a held hand. */}
-      <div className="relative h-28 w-20 scale-[1.9] sm:scale-[2.15] lg:scale-[2.35]">
-        <motion.div
-          className="absolute inset-0 origin-bottom"
-          initial={{ rotate: 0, x: 0, y: 16, opacity: 0 }}
-          animate={{ rotate: -14, x: -18, y: 0, opacity: 1 }}
-          transition={{ ...spring, delay: 0.15 }}
-        >
-          <PlayingCard
-            card={HOLE[0]}
-            size="lg"
-            className="shadow-2xl shadow-black/30 dark:shadow-black/60"
+      <div className="relative aspect-[5/4] w-full overflow-hidden rounded-3xl border border-foreground/10 bg-background shadow-2xl shadow-black/30 ring-1 ring-black/5 dark:shadow-black/60 dark:ring-white/5">
+        {reducedMotion ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/hero-poster.jpg"
+            alt="A hand at the Garage — a full house wins 136 at showdown"
+            className="size-full object-cover"
           />
-        </motion.div>
-        <motion.div
-          className="absolute inset-0 origin-bottom"
-          initial={{ rotate: 0, x: 0, y: 16, opacity: 0 }}
-          animate={{ rotate: 14, x: 18, y: 0, opacity: 1 }}
-          transition={{ ...spring, delay: 0.28 }}
-        >
-          <PlayingCard
-            card={HOLE[1]}
-            size="lg"
-            className="shadow-2xl shadow-black/30 dark:shadow-black/60"
-          />
-        </motion.div>
+        ) : (
+          <video
+            className="size-full object-cover"
+            poster="/hero-poster.jpg"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            aria-label="Gameplay: a full house wins at showdown at the Garage"
+          >
+            <source src="/hero.mp4" type="video/mp4" />
+          </video>
+        )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -768,6 +785,9 @@ function Footer() {
           </Link>
           <Link href="/terms" className="transition hover:text-foreground">
             Terms
+          </Link>
+          <Link href="/credits" className="transition hover:text-foreground">
+            Credits
           </Link>
           <a
             href="https://github.com/playpip/pip-web"
