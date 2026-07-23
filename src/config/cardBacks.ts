@@ -151,12 +151,12 @@ export const SHOP_BACKS: readonly CardBackDesign[] = [
   },
   // New Lilac back
   {
-  id: 'back-lilac',
-  name: 'Lilac',
-  color: '#B9B2C8',
-  pattern: 'rings',
-  ink: 'dark',
-  unlock: { price: 600 },
+    id: 'lilac',
+    name: 'Lilac',
+    color: '#B9B2C8',
+    pattern: 'rings',
+    ink: 'dark',
+    unlock: { price: 600 },
   },
   {
     id: 'midnight',
