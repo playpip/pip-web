@@ -41,9 +41,15 @@ export function useServiceWorkerUpdate(): { updateReady: boolean; applyUpdate: (
       .catch(() => {})
 
     // The waiting worker called skipWaiting → it now controls us → reload once
-    // so every open tab lands on the new assets together.
+    // so every open tab lands on the new assets together. But the FIRST install
+    // also fires controllerchange (via clients.claim in the worker's activate),
+    // and reloading there is the first-visit double-load — the page is already
+    // showing the current assets. So only reload when we were already under a
+    // worker: a controllerchange from an uncontrolled start is the initial
+    // handoff, not an update.
+    const hadController = Boolean(navigator.serviceWorker.controller)
     const onControllerChange = () => {
-      if (reloading.current) return
+      if (reloading.current || !hadController) return
       reloading.current = true
       location.reload()
     }
