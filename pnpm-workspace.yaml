@@ -5,7 +5,8 @@ allowBuilds:
 
 # Security overrides — force patched versions of transitively-pulled packages
 # flagged by `pnpm audit --audit-level=high`. Revisit when the parent deps
-# (next → sharp, shadcn → ajv → fast-uri) ship the fixes themselves.
+# (next → sharp/postcss, shadcn → ajv → fast-uri) ship the fixes themselves.
 overrides:
   fast-uri: '>=3.1.4 <4' # GHSA-v2hh-gcrm-f6hx (host confusion); stay on ajv's 3.x line
   sharp: '>=0.35.0' # libvips CVEs; unused at runtime under static export
+  postcss: '>=8.5.12' # GHSA-6g55-p6wh-862q (arbitrary file read); next pins 8.4.31
