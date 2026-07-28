@@ -47,22 +47,27 @@ export function AvatarEditor({
       </button>
 
       <div className="flex gap-2">
-        {AVATAR_BG_SWATCHES.map((swatch) => (
-          <button
-            key={swatch}
-            type="button"
-            onClick={() => {
-              sound.play('tap')
-              onSpecChange({ ...spec, backgroundColor: swatch })
-            }}
-            aria-label={`background ${swatch}`}
-            className={cn(
-              'size-7 rounded-full ring-2 ring-transparent transition',
-              spec.backgroundColor === swatch && 'ring-foreground/70',
-            )}
-            style={{ backgroundColor: `#${swatch}` }}
-          />
-        ))}
+        {AVATAR_BG_SWATCHES.map((swatch, index) => {
+          const isSelected = spec.backgroundColor === swatch
+
+          return (
+            <button
+              key={swatch}
+              type="button"
+              onClick={() => {
+                sound.play('tap')
+                onSpecChange({ ...spec, backgroundColor: swatch })
+              }}
+              aria-label={`Choose avatar background color ${index + 1}`}
+              aria-pressed={isSelected}
+              className={cn(
+                'size-7 rounded-full ring-2 ring-transparent transition',
+                isSelected && 'ring-foreground/70',
+              )}
+              style={{ backgroundColor: `#${swatch}` }}
+            />
+          )
+        })}
       </div>
 
       <input
