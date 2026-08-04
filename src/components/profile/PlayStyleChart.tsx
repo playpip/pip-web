@@ -83,10 +83,18 @@ export function PlayStyleChart({
           "keep playing" copy shown below the chart. */}
       {style.ready && (
         <>
-          {/* soft glow anchoring the dot to its quadrant */}
+          {/* Soft glow anchoring the dot to its quadrant. Painted as a radial
+              gradient rather than a blurred disc: Safari rasterises a
+              `filter: blur()` layer at the element's own bounds, so a blurred
+              shape gets clipped into a hard-edged square instead of bleeding
+              out. A gradient needs no filter and renders the same everywhere. */}
           <motion.div
-            className="pointer-events-none absolute size-32 rounded-full blur-2xl"
-            style={{ left: `${x * 100}%`, top: `${y * 100}%`, backgroundColor: tint(20) }}
+            className="pointer-events-none absolute size-52 rounded-full"
+            style={{
+              left: `${x * 100}%`,
+              top: `${y * 100}%`,
+              backgroundImage: `radial-gradient(circle closest-side, ${tint(20)}, ${tint(17)} 30%, ${tint(9)} 55%, ${tint(3)} 78%, transparent 100%)`,
+            }}
             initial={reduced ? false : { opacity: 0 }}
             animate={{ opacity: 1, x: '-50%', y: '-50%' }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
