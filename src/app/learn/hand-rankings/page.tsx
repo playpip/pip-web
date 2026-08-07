@@ -1,16 +1,45 @@
 import type { Metadata } from 'next'
 import { AceRuns } from '@/components/learn/AceRuns'
-import { GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { GuideChart, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
-import { guideBySlug } from '@/config/learn'
+import { guideArtUrl, guideBySlug } from '@/config/learn'
 
 const guide = guideBySlug('hand-rankings')!
+
+// The hero doubles as this page's share card. Without it a shared guide link
+// previews as the site's generic card, so the thing being shared looks like
+// Pip in general rather than the page somebody meant to send.
+const card = guide.hero
+  ? {
+      images: [
+        {
+          url: guideArtUrl(guide.hero),
+          width: guide.hero.width,
+          height: guide.hero.height,
+          alt: guide.hero.alt,
+        },
+      ],
+    }
+  : {}
 
 export const metadata: Metadata = {
   title: `${guide.metaTitle} · Pip`,
   description: guide.description,
   alternates: { canonical: `https://playpip.io/learn/${guide.slug}` },
+  openGraph: {
+    type: 'article',
+    url: `https://playpip.io/learn/${guide.slug}`,
+    title: guide.metaTitle,
+    description: guide.description,
+    ...card,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: guide.metaTitle,
+    description: guide.description,
+    ...card,
+  },
 }
 
 const HANDS = [
@@ -131,6 +160,11 @@ export default function HandRankingsGuide() {
             ))}
           </tbody>
         </GuideTable>
+        {/* Directly under the table it draws, so the two are read as one
+            thing. It is also the asset most likely to be reposted, which is
+            the argument for it sitting high on the page rather than at the
+            foot where a screenshot would miss it. */}
+        <GuideChart slug="hand-rankings" />
         <p>
           The order is not arbitrary.{' '}
           <strong className={strong}>

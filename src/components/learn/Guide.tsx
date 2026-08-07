@@ -5,9 +5,52 @@
 
 import Link from 'next/link'
 import { LegalPage } from '@/components/marketing/LegalPage'
-import { guideBySlug, relatedGuides } from '@/config/learn'
+import { type GuideArt, guideArtUrl, guideBySlug, relatedGuides } from '@/config/learn'
 
 const SITE = 'https://playpip.io'
+
+/**
+ * Guide artwork. A plain <img> rather than next/image: the app is a static
+ * export with no optimiser, and these are pre-sized PNGs from the capture
+ * harness. width/height come from the registry so the space is reserved
+ * before the file lands and the prose doesn't jump.
+ */
+function Art({
+  art,
+  eager = false,
+  className = '',
+}: {
+  art: GuideArt
+  /** True for the hero, which is the largest thing above the fold. */
+  eager?: boolean
+  className?: string
+}) {
+  return (
+    <img
+      src={art.src}
+      alt={art.alt}
+      width={art.width}
+      height={art.height}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      className={`h-auto w-full rounded-2xl border border-foreground/10 ${className}`}
+    />
+  )
+}
+
+/**
+ * A guide's in-body chart, placed by the page rather than by this frame,
+ * because only the page knows which passage it illustrates.
+ */
+export function GuideChart({ slug }: { slug: string }) {
+  const art = guideBySlug(slug)?.chart
+  if (!art) return null
+  return (
+    <figure className="mt-6">
+      <Art art={art} />
+    </figure>
+  )
+}
 
 /**
  * A guide's page chrome: the marketing column, the Article structured data,
@@ -29,6 +72,11 @@ export function GuidePage({ slug, children }: { slug: string; children: React.Re
     author: { '@type': 'Organization', name: 'Pip', url: SITE },
     publisher: { '@type': 'Organization', name: 'Pip', url: SITE },
     isAccessibleForFree: true,
+    // Both, where they exist: Google's Article rich result wants an image, and
+    // the chart is the one worth showing next to a rankings query.
+    ...(guide.hero || guide.chart
+      ? { image: [guide.hero, guide.chart].filter((art) => art !== undefined).map(guideArtUrl) }
+      : {}),
   }
 
   return (
@@ -39,6 +87,8 @@ export function GuidePage({ slug, children }: { slug: string; children: React.Re
         // biome-ignore lint/security/noDangerouslySetInnerHtml: a build-time constant, no user input
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {guide.hero && <Art art={guide.hero} eager className="mb-8" />}
 
       {children}
 
