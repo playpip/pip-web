@@ -6,6 +6,12 @@
 //      configured). Analytics must never affect gameplay.
 //   2. No personal data, ever. We send event names only — no name, avatar, Roll,
 //      or any identifier. See src/app/privacy/page.tsx for the promise this keeps.
+//
+// This module was never the risk. Umami's own tag sends a pageview underneath
+// us, and it used to include the URL fragment, which is where Supabase returns
+// an auth session. That is fixed with data-exclude-hash on the tag in
+// src/app/layout.tsx, not here. If you are auditing the promise above,
+// audit the tag too.
 
 type UmamiTrack = (event: string, data?: Record<string, unknown>) => void
 

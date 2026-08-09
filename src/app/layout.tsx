@@ -87,9 +87,21 @@ export default function RootLayout({
         <SyncConflictDialog />
         <UpdatePrompt />
         {/* Umami's standard cookieless tag. Cross-origin, so the offline SW
-            ignores it; fire-and-forget, so a blocked/failed load is harmless. */}
+            ignores it; fire-and-forget, so a blocked/failed load is harmless.
+
+            data-exclude-hash is not housekeeping. Supabase returns an auth
+            session in the URL fragment (see lib/sync/client.ts), so without it
+            a confirm or password-reset landing records the player's access
+            token (which carries their email address) as a page path. The
+            attribute makes Umami blank the fragment on the page URL, the
+            referrer, and SPA navigations alike, before anything is sent.
+
+            Search params are deliberately NOT excluded: campaign attribution
+            reads utm_* from the query, and nothing secret arrives there today.
+            If sync ever moves to the PKCE flow the code lands in the query
+            instead, and this decision has to be revisited (technology#30). */}
         {process.env.NODE_ENV === 'production' && UMAMI_ID && (
-          <script defer src={UMAMI_SRC} data-website-id={UMAMI_ID} />
+          <script defer src={UMAMI_SRC} data-website-id={UMAMI_ID} data-exclude-hash="true" />
         )}
       </body>
     </html>

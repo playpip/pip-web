@@ -59,6 +59,13 @@ export async function getSupabase(): Promise<SupabaseClient<Database> | null> {
           persistSession: true,
           autoRefreshToken: true,
           // The reset link comes back as a URL fragment; let the client consume it.
+          //
+          // The fragment holds a real access token with the account's email in
+          // it, and it sits in the URL until this client loads and strips it.
+          // Anything reading location in the meantime sees it: that is how it
+          // reached analytics (fixed with data-exclude-hash in app/layout.tsx),
+          // and it is still in browser history. Moving to the PKCE flow is the
+          // fix that removes the token from the URL entirely. See technology#30.
           detectSessionInUrl: true,
         },
       })
