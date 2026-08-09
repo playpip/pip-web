@@ -108,15 +108,8 @@ export function Home() {
         )}
       </motion.div>
 
-      {/* the main menu — Pearl's shop up top, then one tap into each corner */}
+      {/* the main menu — one tap into each corner, then the two side rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
-        <ShopCard
-          onOpen={() => {
-            sound.play('tap')
-            setShopOpen(true)
-          }}
-        />
-
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {hydrated && <DailyTile roll={roll} delay={0} />}
           <CategoryCard
@@ -145,7 +138,19 @@ export function Home() {
           />
         </div>
 
-        <LearnCard />
+        {/* The two side rooms, paired: Learn and the shop are both places you
+            step out of the game into, so they read better as a shelf than as
+            two full-width bands with the tiles sandwiched between them. Two up
+            from md, stacked below it. */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <LearnCard />
+          <ShopCard
+            onOpen={() => {
+              sound.play('tap')
+              setShopOpen(true)
+            }}
+          />
+        </div>
       </div>
 
       <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
@@ -166,22 +171,25 @@ function LearnCard() {
     // Same treatment as the shop card: animate the wrapper, keep the rounded
     // card static so iOS doesn't re-rasterise its mask each frame.
     <motion.div
+      className="h-full"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.25, duration: 0.35, ease: 'easeOut' }}
+      transition={{ delay: 0.2, duration: 0.35, ease: 'easeOut' }}
     >
       <Link
         href="/learn"
         onClick={() => sound.play('tap')}
-        className="group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+        className="group flex h-full w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
       >
         <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
           {webb && <PlayerAvatar spec={webb.avatar} size={44} />}
         </div>
         <div className="min-w-0 flex-1">
           <span className="font-medium">Learn poker with Webb</span>
+          {/* Kept short enough to survive the half-width card: at two-up this
+              line has ~350px, and the old one truncated mid-word. */}
           <p className="truncate text-sm text-muted-foreground">
-            A three-minute tour, plus written guides on how the game works.
+            A three-minute tour, plus written guides.
           </p>
         </div>
         <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
@@ -354,8 +362,8 @@ function DailyTile({ roll, delay }: { roll: number; delay: number }) {
 }
 
 /**
- * The Chip Shop's storefront — a full-width band under the grid, with Pearl in
- * the window. Same quiet card language as everything else on the menu.
+ * The Chip Shop's storefront — paired with the Learn card under the grid, with
+ * Pearl in the window. Same quiet card language as everything else on the menu.
  */
 function ShopCard({ onOpen }: { onOpen: () => void }) {
   const pearl = characterById('pearl')
@@ -363,13 +371,14 @@ function ShopCard({ onOpen }: { onOpen: () => void }) {
     // Same as the tiles: animate the wrapper, keep the rounded card static so
     // iOS doesn't re-rasterise (and flicker) its rounded mask each frame.
     <motion.div
+      className="h-full"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2, duration: 0.35, ease: 'easeOut' }}
+      transition={{ delay: 0.25, duration: 0.35, ease: 'easeOut' }}
     >
       <button
         onClick={onOpen}
-        className="group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+        className="group flex h-full w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
       >
         <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
           {pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
