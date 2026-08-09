@@ -19,12 +19,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # main is protected by a ruleset, and GITHUB_TOKEN cannot be given a bypass:
+      # GitHub Actions is not an org-installed app, so it is rejected as a bypass
+      # actor ("must be part of the ruleset source or owner organization").
+      # This app exists solely so the release commit can push through the rule.
+      #
+      # It is deliberately NOT the same app the CTO and CMO runs use. Their token
+      # would then bypass the gate too, which is the whole thing the gate prevents.
+      # This key lives only in pip-web's secrets and nothing else reads it.
+      - name: Mint the release token
+        id: release_app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           # Full history + tags so the release notes can diff against the last
           # release, and so we can push the bump commit back to main.
           fetch-depth: 0
+          # Persist the app credential, so the later `git push` carries the
+          # bypass. Without this the push goes out as GITHUB_TOKEN and the
+          # ruleset rejects it, after the deploy has already gone live.
+          token: ${{ steps.release_app.outputs.token }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -87,7 +106,10 @@ jobs:
           if echo "$subjects" | grep -qi '#major'; then level=major; fi
           pnpm version "$level" --no-git-tag-version >/dev/null
           version=$(node -p "require('./package.json').version")
-          # [skip ci] is belt-and-braces; GITHUB_TOKEN pushes don't retrigger anyway.
+          # [skip ci] IS LOAD-BEARING NOW. It used to be belt-and-braces, because a
+          # GITHUB_TOKEN push cannot retrigger a workflow. This commit is pushed with
+          # a GitHub App token, and App pushes DO retrigger: without the marker this
+          # deploy re-runs itself on its own release commit, forever. Do not remove it.
           git commit -am "chore: release v$version [skip ci]"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Releasing v$version (bump: $level)"
@@ -120,7 +142,8 @@ jobs:
       - name: Tag and publish GitHub Release
         if: github.event_name == 'push'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The app token, not GITHUB_TOKEN: this push has to clear the ruleset.
+          GITHUB_TOKEN: ${{ steps.release_app.outputs.token }}
         run: |
           tag="v${{ steps.release.outputs.version }}"
           git tag "$tag"
