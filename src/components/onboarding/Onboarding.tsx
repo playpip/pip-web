@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { AvatarEditor } from '@/components/profile/AvatarEditor'
+import { AccountDialog } from '@/components/settings/AccountDialog'
 import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { useProfile } from '@/store/profile'
+import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
 
 export function Onboarding({ onCreated }: { onCreated?: () => void }) {
@@ -14,6 +16,9 @@ export function Onboarding({ onCreated }: { onCreated?: () => void }) {
     backgroundColor: AVATAR_BG_SWATCHES[1],
   }))
   const [name, setName] = useState('')
+  const [signInOpen, setSignInOpen] = useState(false)
+  // Sync unconfigured means there are no accounts in this build to return to.
+  const hasAccounts = useSync((s) => s.status !== 'off')
 
   const enter = () => {
     if (!name.trim()) return
@@ -54,6 +59,32 @@ export function Onboarding({ onCreated }: { onCreated?: () => void }) {
         >
           Enter
         </button>
+
+        {/* The way back for someone who already has an account.
+            Without this it was a dead end: onboarding has no AppBar, so no
+            Settings, so no sign-in — a returning player on a new device had to
+            invent a name they didn't want, land in the lobby and go looking.
+            Signing in from here fills the profile in for them instead
+            (sync#syncNow restores outright when the device is pristine).
+
+            It is a text link under Enter, not a second button beside it,
+            because making a player is what this screen is for. It doubles as
+            the only mention a first-timer needs: the sentence tells them
+            accounts exist without asking them for one. */}
+        {hasAccounts && (
+          <>
+            <button
+              onClick={() => {
+                sound.play('tap')
+                setSignInOpen(true)
+              }}
+              className="mt-4 flex min-h-11 w-full items-center justify-center text-xs text-muted-foreground/70 underline-offset-2 transition hover:text-foreground hover:underline"
+            >
+              Already have an account? Sign in
+            </button>
+            <AccountDialog open={signInOpen} mode="signin" onOpenChange={setSignInOpen} />
+          </>
+        )}
       </motion.div>
     </div>
   )
