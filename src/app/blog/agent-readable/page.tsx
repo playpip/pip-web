@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate } from '@/config/blog'
+import { contentAlternates } from '@/config/site'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'agent-readable')!
 
 export const metadata: Metadata = {
   title: `${post.title} · Pip`,
   description: post.description,
+  alternates: contentAlternates(`/blog/${post.slug}`),
 }
 
 export default function AgentReadablePost() {

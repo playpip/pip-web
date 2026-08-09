@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { BLOG_POSTS } from '@/config/blog'
 import { LEARN_GUIDES } from '@/config/learn'
+import { SITE_URL } from '@/config/site'
 
 // Generated at build time into out/sitemap.xml (the app is a static export).
 // Only the pages worth a crawler's time — the game itself is app, not content.
@@ -8,7 +9,9 @@ import { LEARN_GUIDES } from '@/config/learn'
 // Required for the static export — rendered once at build into out/sitemap.xml.
 export const dynamic = 'force-static'
 
-const BASE = 'https://playpip.io'
+// Same constant the canonical tags are built from (src/config/site.ts), so a
+// listed URL and the URL that page claims for itself cannot drift.
+const BASE = SITE_URL
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = [

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
+import { contentAlternates } from '@/config/site'
 
 export const metadata: Metadata = {
   title: 'Terms · Pip',
   description: 'The short, human rules for using Pip — free, play money, open source.',
+  alternates: contentAlternates('/terms'),
 }
 
 export default function TermsPage() {

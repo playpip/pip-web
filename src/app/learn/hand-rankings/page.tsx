@@ -4,6 +4,7 @@ import { GuideChart, GuidePage, GuideTable, Lead, TryIt } from '@/components/lea
 import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideArtUrl, guideBySlug } from '@/config/learn'
+import { contentAlternates } from '@/config/site'
 
 const guide = guideBySlug('hand-rankings')!
 
@@ -26,7 +27,7 @@ const card = guide.hero
 export const metadata: Metadata = {
   title: `${guide.metaTitle} · Pip`,
   description: guide.description,
-  alternates: { canonical: `https://playpip.io/learn/${guide.slug}` },
+  alternates: contentAlternates(`/learn/${guide.slug}`),
   openGraph: {
     type: 'article',
     url: `https://playpip.io/learn/${guide.slug}`,

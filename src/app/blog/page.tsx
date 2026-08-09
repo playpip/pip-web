@@ -2,11 +2,13 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { A, LegalPage } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate } from '@/config/blog'
+import { contentAlternates } from '@/config/site'
 
 export const metadata: Metadata = {
   title: 'Blog · Pip',
   description:
     'Notes from the Pip table — what shipped, what changed, and the occasional hand worth talking about.',
+  alternates: contentAlternates('/blog'),
 }
 
 export default function BlogIndexPage() {

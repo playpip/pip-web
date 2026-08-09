@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import { LegalPage, Section, List, Item, A } from '@/components/marketing/LegalPage'
+import { contentAlternates } from '@/config/site'
 
 export const metadata: Metadata = {
   title: 'Privacy · Pip',
   description:
     'What Pip collects (almost nothing), where your data lives, and how to delete an account.',
+  alternates: contentAlternates('/privacy'),
 }
 
 export default function PrivacyPage() {
