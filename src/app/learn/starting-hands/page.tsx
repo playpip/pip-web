@@ -3,6 +3,7 @@ import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/lear
 import { StartingHandChart } from '@/components/learn/StartingHandChart'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug } from '@/config/learn'
+import { contentAlternates } from '@/config/site'
 import { cumulativeShare } from '@/config/startingHands'
 
 const guide = guideBySlug('starting-hands')!
@@ -10,7 +11,7 @@ const guide = guideBySlug('starting-hands')!
 export const metadata: Metadata = {
   title: `${guide.metaTitle} · Pip`,
   description: guide.description,
-  alternates: { canonical: `https://playpip.io/learn/${guide.slug}` },
+  alternates: contentAlternates(`/learn/${guide.slug}`),
   openGraph: {
     type: 'article',
     url: `https://playpip.io/learn/${guide.slug}`,
