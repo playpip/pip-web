@@ -53,6 +53,27 @@ export const challengeable = (band: CastBand): Character[] =>
 export const isChallengeTable = (venue: Venue): boolean =>
   CHALLENGE_TABLES.some((v) => v.id === venue.id)
 
+/** The band a challenge table is pitched at, or `null` for any other venue. */
+export function challengeBandOf(venue: Venue): CastBand | null {
+  return BAND_ORDER.find((band) => venue.id === `challenge-${band}`) ?? null
+}
+
+/**
+ * Who is sitting opposite at a challenge table, `null` anywhere else.
+ *
+ * Read at sit-down rather than passed in from the card, so a refresh, a
+ * deep link or a second device all seat the same face: the challenger is
+ * derived state and this is the only place the table asks for it.
+ */
+export function challengerFor(
+  venue: Venue,
+  p: Pick<ChallengeInput, 'challengeWins' | 'challengesPlayed'>,
+): Character | null {
+  const band = challengeBandOf(venue)
+  if (band === null) return null
+  return selectChallenger(band, p.challengeWins, p.challengesPlayed)
+}
+
 /**
  * The band the player has *demonstrated*, not the one they can afford.
  *

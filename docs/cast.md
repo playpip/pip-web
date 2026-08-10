@@ -62,6 +62,23 @@ big pot** (≥20 big blinds), **busting out**. Rationing is the design:
 The writing bar is the feature: lines are dry, specific and short. If a line
 wouldn't read well spoken by a bartender, cut it.
 
+## The challenge line
+
+A fourth line, `lines.challenge`, is the invitation a character waits with on the
+home screen (see [venues.md](./venues.md) → challenge tables). **One line, not an
+array**: the other three rotate because you sit at those tables repeatedly, while a
+challenger appears once.
+
+It is an **invitation, not a taunt**. A taunt on the home screen every time you open
+the app is a nag with a face on it, which is the exact thing the no-decline, no-timer
+design exists to avoid. No line names a stake, a venue or a reward, so tuning any of
+those cannot make one stale.
+
+Optional on the type, required by the gate: `tests/challenge.test.ts` fails if a
+*challengeable* character lacks one. Ray, Pearl and Sable are pinned to a venue and can
+never be challenged, so requiring it on the type would mean writing invitations nobody
+can ever accept.
+
 ## Non-goals
 
 - No character progression, moods, or grudges — tendencies are observed, not
@@ -73,7 +90,7 @@ wouldn't read well spoken by a bartender, cut it.
 
 | Want to change… | Edit |
 |-----------------|------|
-| Add/rewrite a character, bio, lines | `src/config/cast.ts` (+ `tests/cast.test.ts` coverage holds) |
+| Add/rewrite a character, bio, lines | `src/config/cast.ts` (+ `tests/cast.test.ts` and `tests/challenge.test.ts` coverage holds) |
 | Where a character plays | `bands` / `only` on the character |
 | Talk frequency / moments | `maybeTalk` + call sites in `src/store/game.ts` |
 | The talk line's look | the table-talk block in `components/table/Table.tsx` |

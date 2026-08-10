@@ -1,4 +1,4 @@
-import { VENUES, SIDE_TABLES, RING_TABLES, KITCHEN_TABLE, THE_DAILY } from '@/config/venues'
+import { ALL_VENUES } from '@/config/venues'
 import { PlayClient } from './PlayClient'
 
 // Every venue is known config, so all play routes prerender for the static
@@ -7,9 +7,7 @@ import { PlayClient } from './PlayClient'
 export const dynamicParams = false
 
 export function generateStaticParams() {
-  return [...VENUES, ...SIDE_TABLES, ...RING_TABLES, KITCHEN_TABLE, THE_DAILY].map((v) => ({
-    venue: v.id,
-  }))
+  return ALL_VENUES.map((v) => ({ venue: v.id }))
 }
 
 export default function PlayPage() {

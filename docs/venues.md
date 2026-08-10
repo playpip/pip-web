@@ -86,7 +86,7 @@ cashes out nothing**; only the winner's prize pays.
 
 See [game-flow.md](./game-flow.md) for the economy, ranks, and blind escalation.
 
-## Challenge tables (partially built)
+## Challenge tables
 
 **`CHALLENGE_TABLES`** is where a cast member's standing challenge gets played out:
 one heads-up table per band, `seats: 2`, paying **~2.5x** where a ladder duel pays 2x.
@@ -108,10 +108,19 @@ coordination and there is no pending-challenge object for sync to reconcile. The
 comes from the highest ladder venue you have actually **won**, stepped down if your Roll
 can't cover the buy-in.
 
-> **Not yet wired.** These tables are deliberately **absent from `venueById` and
-> `generateStaticParams`**, so `/play/challenge-low` is a 404. Registering them lands
-> with the card that puts a challenger in the seat: a 2.5x table reachable by guessing
-> a URL, with nobody sitting opposite, is a grind waiting to be found.
+**The way in is the card, not the URL.** These tables are in `ALL_VENUES`, so they
+resolve and they prerender, because the card's link would 404 under static export
+otherwise. Reaching one any other way is turned around: `PlayClient` sends you back to
+`/game` unless the table matches the challenge you actually have standing. Without that
+guard, `/play/challenge-high` is a repeatable 2.5x heads-up game two bands above your
+play, found by anyone who guesses a URL once.
+
+`sitDown` fills the one opposite chair from `challengerFor(venue, profile)` rather than
+from `draftCast`, so a reload, a deep link and the card all seat the same face. The
+result is recorded by `recordChallenge` at both terminal branches of `finishHand`:
+**any completed challenge rotates the challenger, only a win records the scalp.**
+Standing up mid-tournament is not a completed challenge, so the same face is still
+waiting, the same way an abandoned ladder run leaves that rung unbeaten.
 
 ## The `Venue` shape
 

@@ -12,6 +12,7 @@ import { PageShell } from '@/components/PageShell'
 import { useProfile } from '@/store/profile'
 import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
+import { ChallengeCard } from './ChallengeCard'
 import { CategoryArt } from './CategoryArt'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
@@ -110,6 +111,13 @@ export function Home() {
 
       {/* the main menu — one tap into each corner, then the two side rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
+        {/* Somebody is waiting. First on the menu because it is the one item
+            here that is a person rather than a place, and because it is the
+            only card whose contents change on their own, and under the Roll is
+            where the eye already is. Client-only: who is waiting comes from
+            the persisted profile, which the prerender doesn't have. */}
+        {hydrated && <ChallengeCard delay={0} />}
+
         {/* The two side rooms, paired: the shop and Learn are both places you
             step out of the game into, so they read better as a shelf than as
             two full-width bands. Sitting directly under the Roll puts Pearl's

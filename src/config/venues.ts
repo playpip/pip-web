@@ -421,10 +421,11 @@ export const RING_TABLES: readonly Venue[] = [
 // Duel's 750 would leave The Duel with no reason to exist. Stacks are 50-75bb,
 // the same depth as the other heads-up tables.
 //
-// NOTE: not yet in `venueById`, so `/play/challenge-low` is deliberately
-// unreachable. Registering them is one line and it lands with the wiring that
-// puts a challenger in the seat (technology#22). A 2.5x table reachable by
-// guessing a URL, with no challenger attached, is a grind waiting to be found.
+// These are reachable (`ALL_VENUES`, and therefore `venueById` and the static
+// export) as of the card landing, but reaching one by guessing the URL is not
+// enough to play it: `PlayClient` turns you away unless the table matches the
+// challenge you actually have standing, so a 2.5x heads-up game is never a
+// repeatable farm (technology#22).
 export const CHALLENGE_TABLES: readonly Venue[] = [
   {
     id: 'challenge-low',
@@ -529,10 +530,24 @@ export function freerollOpen(roll: number): boolean {
   return roll < VENUES[0].buyIn
 }
 
+/**
+ * Every table a player can sit at, in one list.
+ *
+ * It exists so route resolution and route *generation* cannot drift: under the
+ * static export, an id that `venueById` knows but `generateStaticParams` never
+ * emitted is a 404 with a fully green build. Both read this.
+ */
+export const ALL_VENUES: readonly Venue[] = [
+  ...VENUES,
+  ...SIDE_TABLES,
+  ...RING_TABLES,
+  ...CHALLENGE_TABLES,
+  KITCHEN_TABLE,
+  THE_DAILY,
+]
+
 export function venueById(id: string): Venue | undefined {
-  return [...VENUES, ...SIDE_TABLES, ...RING_TABLES, KITCHEN_TABLE, THE_DAILY].find(
-    (v) => v.id === id,
-  )
+  return ALL_VENUES.find((v) => v.id === id)
 }
 
 /** Can the player afford this venue's buy-in? */

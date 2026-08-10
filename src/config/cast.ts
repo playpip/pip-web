@@ -18,6 +18,19 @@ export interface CharacterLines {
   win: readonly string[]
   /** Busting out of the tournament. */
   bust: readonly string[]
+  /**
+   * Waiting on the home screen with a standing challenge. One line, not an
+   * array: the other three rotate because you sit at those tables over and
+   * over, while a challenger appears once, so a second line would be seen by
+   * almost nobody.
+   *
+   * Optional on the type and required by the gate: `tests/challenge.test.ts`
+   * fails if any *challengeable* character lacks one. Making it required here
+   * instead would mean inventing invitations for Ray, Pearl and Sable, who are
+   * pinned to a venue and can never appear as a challenger: dead copy in the
+   * one file that is pure voice.
+   */
+  challenge?: string
 }
 
 export interface Character {
@@ -57,6 +70,7 @@ export const CAST: readonly Character[] = [
         'Doris sweeps the pot in like crumbs off a table.',
       ],
       bust: ['“Well, that’s the bus fare gone,” says Doris.', 'Doris heads home to feed the cat.'],
+      challenge: 'Doris has poured two cups. One of them is yours.',
     },
   },
   {
@@ -79,6 +93,7 @@ export const CAST: readonly Character[] = [
         'Frank leaves muttering about rigged decks.',
         '“One bad card,” says Frank. It was several.',
       ],
+      challenge: '“Heads-up, no funny business,” says Frank. Frank is the funny business.',
     },
   },
   {
@@ -98,6 +113,7 @@ export const CAST: readonly Character[] = [
         '“Patience,” says Marge, stacking quietly.',
       ],
       bust: ['Marge taps the table and heads home.', 'Marge leaves exactly as calmly as she came.'],
+      challenge: 'Marge has been waiting all evening. She would like it to be for you.',
     },
   },
   {
@@ -117,6 +133,7 @@ export const CAST: readonly Character[] = [
         'Benny wins one and updates his spreadsheet.',
       ],
       bust: ['Benny goes home to rewatch episode four.', '“Cooler,” says Benny, uncertainly.'],
+      challenge: 'Benny has a theory about you. He would like to test it heads-up.',
     },
   },
   {
@@ -133,6 +150,7 @@ export const CAST: readonly Character[] = [
         '“Nice hand,” says Priya, and means it.',
         'Priya leaves without a word. Somehow politely.',
       ],
+      challenge: 'Priya points at the empty chair. That is the whole invitation.',
     },
   },
   {
@@ -152,6 +170,7 @@ export const CAST: readonly Character[] = [
         'Gus wins and immediately re-racks everyone’s chips.',
       ],
       bust: ['Gus goes to find more folding chairs.', '“Lock up when you’re done,” says Gus.'],
+      challenge: '“My garage, my table, my chair,” says Gus. “Sit in it.”',
     },
   },
   {
@@ -171,6 +190,7 @@ export const CAST: readonly Character[] = [
         'Sofia shrugs and racks up the next game.',
         'Sofia is already lining up a long pot on the far table.',
       ],
+      challenge: 'Sofia has racked up. She is offering you the break.',
     },
   },
   {
@@ -193,6 +213,7 @@ export const CAST: readonly Character[] = [
         'Ted declares darts the superior game and leaves.',
         '“Same time next week,” says Ted, unbothered.',
       ],
+      challenge: 'Ted has bought two pints and only needs one.',
     },
   },
   {
@@ -212,6 +233,7 @@ export const CAST: readonly Character[] = [
         'Astrid decides this is technically bedtime.',
         'Astrid leaves at exactly caffeine o’clock.',
       ],
+      challenge: 'Astrid is on her fifth coffee and has decided this is your problem now.',
     },
   },
 
@@ -236,6 +258,7 @@ export const CAST: readonly Character[] = [
         'Vivienne leaves precisely as gracefully as she arrived.',
         '“Well played,” says Vivienne, meaning partly it.',
       ],
+      challenge: '“Heads-up you have position half the time,” says Vivienne. “I like those odds.”',
     },
   },
   {
@@ -254,6 +277,7 @@ export const CAST: readonly Character[] = [
         'Carlos is already texting the next table.',
         'Carlos leaves a tip anyway. Force of habit.',
       ],
+      challenge: 'Carlos has told everyone downtown he is playing you. Do not make him a liar.',
     },
   },
   {
@@ -270,6 +294,7 @@ export const CAST: readonly Character[] = [
       ],
       win: ['Jun stacks the pot like cargo. Efficiently.', '“Paid on delivery,” says Jun.'],
       bust: ['Jun clocks out early. The tide’s out.', 'Jun nods once and ships out.'],
+      challenge: 'Jun has your name written down. It is a short list.',
     },
   },
   {
@@ -286,6 +311,7 @@ export const CAST: readonly Character[] = [
         'Mo mutters something nautical and disembarks.',
         '“Wrong river,” says Mo, philosophically.',
       ],
+      challenge: '“One hand,” says Mo. “The river owes me and you are standing near it.”',
     },
   },
   {
@@ -305,6 +331,7 @@ export const CAST: readonly Character[] = [
         'Elaine leaves. Somewhere, an engine revs.',
         'Elaine pockets the timer. “Back in twenty.”',
       ],
+      challenge: 'Elaine has set the timer. It is not a long one.',
     },
   },
   {
@@ -327,6 +354,7 @@ export const CAST: readonly Character[] = [
         'Dmitri requests the hand history for later review.',
         '“Fascinating,” says Dmitri, meaning painful.',
       ],
+      challenge: 'Dmitri has worked out how this ends. He would like to check his working.',
     },
   },
   {
@@ -346,6 +374,7 @@ export const CAST: readonly Character[] = [
         'Rosa applauds the table and takes her leave.',
         'Rosa leaves the tower standing. A monument.',
       ],
+      challenge: 'Rosa does not think you have it. She never does.',
     },
   },
 
@@ -370,6 +399,7 @@ export const CAST: readonly Character[] = [
         'Laurent congratulates you in flawless understatement.',
         '“Refreshing,” says Laurent, departing.',
       ],
+      challenge: 'Laurent has cleared his evening. He does not expect to need it.',
     },
   },
   {
@@ -388,6 +418,7 @@ export const CAST: readonly Character[] = [
         '“Monaco calls,” says Ingrid, unbothered.',
         'Ingrid leaves; the table feels underdressed.',
       ],
+      challenge: '“Just the two of us,” says Ingrid. “I have given money back before.”',
     },
   },
   {
@@ -407,6 +438,7 @@ export const CAST: readonly Character[] = [
         '“Chapter six,” says Webb, raking it in.',
       ],
       bust: ['“Variance,” says Webb, almost fondly.', 'Webb closes the book on tonight.'],
+      challenge: 'Webb has left a chapter unfinished. He thinks you are in it.',
     },
   },
   {
@@ -426,6 +458,7 @@ export const CAST: readonly Character[] = [
         'Kenji bows slightly and vanishes into the night.',
         'Kenji leaves the towers perfectly level. Respect.',
       ],
+      challenge: 'Kenji has stacked chips for two. One stack is yours.',
     },
   },
   {
@@ -448,6 +481,7 @@ export const CAST: readonly Character[] = [
         'Celeste removes her sunglasses. Respect.',
         'Celeste leaves; the cameras follow, out of habit.',
       ],
+      challenge: 'Celeste has finally looked up. Make it worth her while.',
     },
   },
   {
@@ -467,6 +501,7 @@ export const CAST: readonly Character[] = [
         'Big Sal tips his hat. “Kid, that was poker.”',
         'Big Sal leaves laughing at a joke nobody told.',
       ],
+      challenge: 'Big Sal has a feeling about this one. He usually does.',
     },
   },
 

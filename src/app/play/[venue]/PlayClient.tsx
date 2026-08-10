@@ -7,6 +7,7 @@ import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
 import { venueById, canAfford, freerollOpen } from '@/config/venues'
+import { currentChallenge, isChallengeTable } from '@/lib/challenge'
 import { dailyDateKey } from '@/lib/daily'
 
 export function PlayClient() {
@@ -50,6 +51,15 @@ export function PlayClient() {
     // The freeroll is a safety net, not a farm — only when you can't afford the ladder.
     if (venue.freeroll && !freerollOpen(profile.roll)) {
       router.replace('/')
+      return
+    }
+    // A challenge table pays ~2.5x, so the only way in is the challenge you
+    // actually have standing: the route exists (it has to, or the card's link
+    // 404s under static export) but guessing `/play/challenge-high` gets you
+    // turned around rather than a repeatable heads-up farm two bands above
+    // your game.
+    if (isChallengeTable(venue) && currentChallenge(profile)?.venue.id !== venue.id) {
+      router.replace('/game')
       return
     }
 

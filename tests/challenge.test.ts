@@ -7,13 +7,15 @@ import test from 'ava'
 import {
   affordableBand,
   challengeable,
+  challengeBandOf,
+  challengerFor,
   challengeTableFor,
   currentChallenge,
   playerBand,
   selectChallenger,
 } from '@/lib/challenge'
 import { CAST, bandFor, type CastBand } from '@/config/cast'
-import { CHALLENGE_TABLES, VENUES } from '@/config/venues'
+import { ALL_VENUES, CHALLENGE_TABLES, KITCHEN_TABLE, VENUES, venueById } from '@/config/venues'
 import type { VenueRecord } from '@/store/profile'
 
 const BANDS: readonly CastBand[] = ['low', 'mid', 'high']
@@ -57,6 +59,23 @@ test('challenge buy-ins sit between the ladder rungs, not on them', (t) => {
   // On a rung, a table paying 2.5x would leave that rung with no reason to exist.
   const ladder = new Set(VENUES.map((v) => v.buyIn))
   for (const table of CHALLENGE_TABLES) t.false(ladder.has(table.buyIn))
+})
+
+test('every challenge table resolves and has a route generated for it', (t) => {
+  // Under static export an id `venueById` knows but `generateStaticParams`
+  // never emitted is a 404 with a green build, so both read `ALL_VENUES`.
+  for (const table of CHALLENGE_TABLES) {
+    t.is(venueById(table.id)?.id, table.id)
+    t.true(
+      ALL_VENUES.some((v) => v.id === table.id),
+      `${table.id} has no static route`,
+    )
+  }
+})
+
+test('challengeBandOf knows a challenge table from every other venue', (t) => {
+  for (const band of BANDS) t.is(challengeBandOf(challengeTableFor(band)), band)
+  for (const venue of [...VENUES, KITCHEN_TABLE]) t.is(challengeBandOf(venue), null)
 })
 
 // --- who can be challenged -------------------------------------------------
@@ -222,6 +241,38 @@ test('a busted high-band player gets a challenge they can actually sit at', (t) 
   })
   t.is(challenge?.band, 'low')
   t.true((challenge?.venue.buyIn ?? Number.POSITIVE_INFINITY) <= 900)
+})
+
+test('the table seats the same face the card offered', (t) => {
+  // The card reads `currentChallenge`, the sit-down reads `challengerFor` off
+  // the venue alone. If those two ever disagree, the player is invited by one
+  // character and sat down opposite another.
+  for (let played = 0; played < 30; played++) {
+    const state = {
+      roll: 60_000,
+      venueRecords: won('garage', 'cardroom', 'penthouse'),
+      challengeWins: ['laurent', 'webb'],
+      challengesPlayed: played,
+    }
+    const offered = currentChallenge(state)
+    t.is(challengerFor(offered!.venue, state)?.id, offered?.character.id)
+  }
+})
+
+test('challengerFor seats nobody at a table that is not a challenge', (t) => {
+  const state = { challengeWins: [], challengesPlayed: 0 }
+  for (const venue of [...VENUES, KITCHEN_TABLE]) t.is(challengerFor(venue, state), null)
+})
+
+test('every challengeable character has a challenge line', (t) => {
+  // A cast member with no invitation would appear on the home screen with a
+  // blank where their voice goes. The type keeps this optional so the three
+  // pinned characters need no dead copy; this is the thing that holds.
+  for (const band of BANDS) {
+    for (const ch of challengeable(band)) {
+      t.truthy(ch.lines.challenge, `${ch.id} has no challenge line`)
+    }
+  }
 })
 
 test('the rematch flag says whether this face is already on the shelf', (t) => {

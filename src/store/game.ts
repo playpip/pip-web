@@ -15,7 +15,7 @@ import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
 import { freerollOpen, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
-import { isChallengeTable } from '@/lib/challenge'
+import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import {
   startHand,
@@ -570,6 +570,7 @@ export const useGame = create<GameState>((set, get) => {
       clearTableSnapshot()
       const place = survivors.length + 1
       profile.recordVenueResult(venue.id, place, get().handIndex)
+      recordChallengeResult(venue, false)
       if (venue.daily && dailyDay) profile.recordDailyResult(dailyDay, place, get().handIndex)
       profile.recordRollPoint()
       // Busting back below the ladder resets the freeroll comeback story.
@@ -584,6 +585,7 @@ export const useGame = create<GameState>((set, get) => {
       profile.adjustRoll(venue.prize)
       profile.mergeStats({ tournamentsWon: 1 })
       profile.recordVenueResult(venue.id, 1, get().handIndex)
+      recordChallengeResult(venue, true)
       if (venue.daily && dailyDay) profile.recordDailyResult(dailyDay, 1, get().handIndex)
       profile.recordRollPoint()
       if (venue.freeroll) profile.setCameFromFreeroll(true)
@@ -711,6 +713,32 @@ export const useGame = create<GameState>((set, get) => {
     })
   }
 
+  /**
+   * Who the player is challenging, or undefined at every other table.
+   *
+   * At a challenge table the one opponent *is* the challenger, so the seat
+   * already carries the whole context. The scalp and the rotation both need
+   * no extra state, and a table resumed from a snapshot still knows.
+   */
+  function challengerAtTable(venue: Venue): string | undefined {
+    if (!isChallengeTable(venue)) return undefined
+    return get().seats.find((s) => !s.isHuman)?.characterId
+  }
+
+  /**
+   * A challenge is over. **Any completed one rotates the challenger; only a win
+   * records the scalp**, the rule that stops a character you cannot beat
+   * becoming a wall (technology#22).
+   *
+   * Standing up mid-tournament deliberately does not land here: an abandoned
+   * table is not a completed challenge, so the same face is still waiting, the
+   * same way an abandoned ladder run leaves that rung unbeaten.
+   */
+  function recordChallengeResult(venue: Venue, won: boolean) {
+    const challengerId = challengerAtTable(venue)
+    if (challengerId) useProfile.getState().recordChallenge(challengerId, won)
+  }
+
   /** Detect + persist chips earned on this hand; returns them for the UI. */
   function grantEarnedAwards(
     hand: HandState,
@@ -721,11 +749,7 @@ export const useGame = create<GameState>((set, get) => {
     eliminatedCount: number,
   ): AwardDef[] {
     const profile = useProfile.getState() // re-read: the prize may have just landed
-    // At a challenge table the one opponent *is* the challenger, so the scalp
-    // needs no extra state: the seat already says who is sitting there.
-    const challengerId = isChallengeTable(venue)
-      ? get().seats.find((s) => !s.isHuman)?.characterId
-      : undefined
+    const challengerId = challengerAtTable(venue)
     const earned = detectAwards(
       {
         venue,
@@ -795,11 +819,18 @@ export const useGame = create<GameState>((set, get) => {
         useProfile.getState().recordDailyStart(dailyDay, dailyNumber(dailyDay))
       }
       const aiCount = venue.seats - 1
-      const cast = draftCast(
-        venue,
-        aiCount,
-        dailyBase !== null ? mulberry32(dailyBase ^ 0x9e3779b9) : undefined,
-      )
+      // A challenge table seats no draw: the one chair opposite belongs to the
+      // standing challenger, derived here from the persisted profile rather
+      // than handed over by the card, so a deep link or a reload seats the
+      // same face the home screen offered (see lib/challenge).
+      const challenger = challengerFor(venue, useProfile.getState())
+      const cast = challenger
+        ? [challenger]
+        : draftCast(
+            venue,
+            aiCount,
+            dailyBase !== null ? mulberry32(dailyBase ^ 0x9e3779b9) : undefined,
+          )
       const aiSeats: SeatMeta[] = cast.map((ch, i) => {
         const ai = profileFor(venue, ch)
         return {
