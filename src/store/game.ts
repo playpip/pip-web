@@ -15,6 +15,7 @@ import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
 import { freerollOpen, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
+import { isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import {
   startHand,
@@ -720,9 +721,15 @@ export const useGame = create<GameState>((set, get) => {
     eliminatedCount: number,
   ): AwardDef[] {
     const profile = useProfile.getState() // re-read: the prize may have just landed
+    // At a challenge table the one opponent *is* the challenger, so the scalp
+    // needs no extra state: the seat already says who is sitting there.
+    const challengerId = isChallengeTable(venue)
+      ? get().seats.find((s) => !s.isHuman)?.characterId
+      : undefined
     const earned = detectAwards(
       {
         venue,
+        challengerId,
         heroWon,
         showdown: hand.result?.showdown === true,
         heroHand: hand.result?.evaluations?.[HUMAN_ID],

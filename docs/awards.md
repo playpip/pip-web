@@ -34,7 +34,7 @@ Unearned chips show as hollow outlines (the hatch pattern used for face-down car
 so the shelf reads as a collection with visible gaps — the pull is seeing what's
 missing, not a nag.
 
-## The set (55 chips)
+## The set (84 chips)
 
 ### Venue chips — one per rung, earned by **winning** the venue (10)
 
@@ -72,7 +72,7 @@ chip certifies a real moment, not a folded-out technicality.
 | `moment-comeback` | "The Comeback" | Win a ladder venue after falling to ≤10% of your starting stack |
 | `moment-chipandchair` | "Chip and a Chair" | Win a ladder venue after being ground down to ≤1 big blind |
 
-### Nickname chips — win a pot holding a folk-named starting hand (25)
+### Nickname chips — win a pot holding a folk-named starting hand (29)
 
 | id | Chip | Earned by |
 |----|------|-----------|
@@ -86,13 +86,38 @@ The Seven Deuce). Detection reuses `nicknameKeyFor` from `handNames`, so the
 whisper you see when dealt the hand and the chip you earn for winning with it
 are always the same set.
 
-### Journey chips — the story of the grind (6)
+### Scalp chips: beat a challenger heads-up (22)
+
+| id | Chip | Earned by |
+|----|------|-----------|
+| `scalp-doris` … `scalp-sal` | The character's name (violet) | Win the challenge duel against them |
+
+One chip per **challengeable** cast member, generated from `CHALLENGEABLE_CAST` in
+`src/lib/challenge.ts` so the collection tracks the cast one-to-one. That list is 22,
+not the cast's 25: Uncle Ray, Pearl and Sable are pinned to a venue and never appear
+as challengers, so giving them a chip would make the collection impossible to finish.
+
+A scalp needs a **win at a challenge table** (`CHALLENGE_TABLES`). Losing rotates the
+challenger and records nothing. That is the rule that stops a player who can't beat
+Doris from staring at Doris forever (technology#22).
+
+**The shelf renders scalps as one collection that fills**, showing only what you have
+earned, rather than 22 hollow outlines. Every other section shows its gaps because the
+gap is the goal; here the gap is a cast you haven't met, and 22 ghosts appearing on the
+first challenge win reads as a broken shelf.
+
+### Journey chips — the story of the grind (9)
 
 | id | Chip | Earned by |
 |----|------|-----------|
 | `journey-first` | "First Pot" | Win your first pot |
 | `journey-kitchen` | "Back From Broke" | Win the Kitchen Table freeroll, then **win any ladder venue** before going broke again |
 | `journey-regular` / `journey-shark` / `journey-pro` / `journey-legend` | Rank chips | Reach that rank (`peakRoll`) |
+| `journey-scalps-5` / `journey-scalps-13` / `journey-scalps-all` | Scalp rungs | Beat 5, 13, and every challenger |
+
+The top scalp rung's threshold is the collection's *size*, not a literal 22, so a 23rd
+challenger cannot put it out of reach; its id carries no number for the mirror-image
+reason, since a persisted `journey-scalps-22` would be orphaned the day the cast grew.
 
 "Back From Broke" is the flagship — it makes the freeroll loop a badge of honour
 instead of a walk of shame; "First Pot" gives every new player their first chip within
@@ -108,6 +133,11 @@ All triggers are observable at two seams — no engine changes:
 - "Back From Broke" uses one persisted flag (`cameFromFreeroll`): set on a Kitchen
   Table win, consumed when the comeback chip is earned, and cleared if you bust back
   below the Garage buy-in first.
+- **Scalps** need no new state: at a challenge table the single opponent *is* the
+  challenger, so the seat's `characterId` is the whole context. How many you have
+  beaten is counted off the scalp chips you already own rather than the profile's
+  `challengeWins`, which keeps detection independent of when the store records the
+  result.
 
 Persistence: `profile.awards: Record<string, number>` (id → epoch ms earned), plus the
 flag above (`PERSIST_VERSION` 6, with a migrate branch per the repo rule). Detection

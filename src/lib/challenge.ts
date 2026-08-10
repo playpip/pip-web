@@ -35,15 +35,23 @@ export interface ChallengeInput {
 }
 
 /**
- * Who can be challenged at all.
+ * Everyone who can be challenged, in cast order. This list *is* the scalp
+ * collection, so the chips in `lib/awards.ts` are generated from it.
  *
  * Pinned characters are out: the Kitchen host, the Chip Shop's Pearl and the
  * Vault's Sable belong to their venue, and `rosterFor` already keeps them out
  * of band rosters for the same reason. That makes the collection 22, not the
  * 25 of the whole cast.
  */
+export const CHALLENGEABLE_CAST: readonly Character[] = CAST.filter((ch) => !ch.only)
+
+/** Who can be challenged in a band. */
 export const challengeable = (band: CastBand): Character[] =>
-  CAST.filter((ch) => !ch.only && ch.bands.includes(band))
+  CHALLENGEABLE_CAST.filter((ch) => ch.bands.includes(band))
+
+/** Is this the table a challenge is played at? Scalps only count here. */
+export const isChallengeTable = (venue: Venue): boolean =>
+  CHALLENGE_TABLES.some((v) => v.id === venue.id)
 
 /**
  * The band the player has *demonstrated*, not the one they can afford.

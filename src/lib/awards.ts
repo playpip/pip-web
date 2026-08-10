@@ -6,9 +6,10 @@
 import { VENUES, type Venue } from '@/config/venues'
 import { RANKS } from '@/config/ranks'
 import { NICKNAMES, nicknameKeyFor } from '@/config/handNames'
+import { CHALLENGEABLE_CAST, isChallengeTable } from '@/lib/challenge'
 import type { Card } from '@/lib/poker/cards'
 
-export type AwardKind = 'venue' | 'hand' | 'moment' | 'nickname' | 'journey'
+export type AwardKind = 'venue' | 'hand' | 'moment' | 'nickname' | 'journey' | 'scalp'
 
 export interface AwardDef {
   id: string
@@ -27,6 +28,8 @@ const SUIT_RED = '#f0574e'
 const GOLD = '#e8b923'
 const AMBER = '#e0a458'
 const JADE = '#3fa78e'
+/** The challenge tables' accent, so a scalp reads as one collection on sight. */
+const VIOLET = '#9a7fd1'
 
 /** Venue chips — earned by *winning* the venue, not entering it. */
 const venueChips: AwardDef[] = VENUES.map((v, i) => ({
@@ -215,6 +218,36 @@ const nicknameChips: AwardDef[] = Object.entries(NICKNAMES)
     glyph: key.slice(0, 2),
   }))
 
+/**
+ * Scalp chips: one per challengeable cast member, earned by beating them
+ * heads-up at a challenge table. Generated from `CHALLENGEABLE_CAST` so the
+ * collection tracks the cast one-to-one; the glyph is the first two letters of
+ * the id, and a test keeps those unique so a new character cannot quietly ship
+ * a duplicate.
+ */
+const scalpChips: AwardDef[] = CHALLENGEABLE_CAST.map((ch) => ({
+  id: `scalp-${ch.id}`,
+  kind: 'scalp',
+  name: ch.name,
+  how: `Beat ${ch.name} in a challenge`,
+  color: VIOLET,
+  glyph: ch.id.slice(0, 2).toUpperCase(),
+}))
+
+/**
+ * The three journey rungs on the scalp collection.
+ *
+ * The top rung's threshold is the collection's size, not a literal 22: a 23rd
+ * challenger would otherwise put it permanently out of reach. Its id carries no
+ * number for the mirror-image reason: a persisted `journey-scalps-22` would be
+ * orphaned the day the cast grew.
+ */
+const SCALP_RUNGS: readonly { id: string; at: number }[] = [
+  { id: 'journey-scalps-5', at: 5 },
+  { id: 'journey-scalps-13', at: 13 },
+  { id: 'journey-scalps-all', at: CHALLENGEABLE_CAST.length },
+]
+
 const rankMin = (name: string) => RANKS.find((r) => r.name === name)!.min
 
 /** Journey chips — the story of the grind. */
@@ -267,6 +300,30 @@ const journeyChips: AwardDef[] = [
     color: PIP,
     glyph: '1M',
   },
+  {
+    id: 'journey-scalps-5',
+    kind: 'journey',
+    name: 'Five Down',
+    how: 'Beat five challengers',
+    color: PIP,
+    glyph: '5',
+  },
+  {
+    id: 'journey-scalps-13',
+    kind: 'journey',
+    name: 'Known Face',
+    how: 'Beat thirteen challengers',
+    color: PIP,
+    glyph: '13',
+  },
+  {
+    id: 'journey-scalps-all',
+    kind: 'journey',
+    name: 'The Whole Cast',
+    how: 'Beat every challenger',
+    color: PIP,
+    glyph: 'ALL',
+  },
 ]
 
 export const AWARDS: readonly AwardDef[] = [
@@ -274,8 +331,16 @@ export const AWARDS: readonly AwardDef[] = [
   ...handChips,
   ...momentChips,
   ...nicknameChips,
+  ...scalpChips,
   ...journeyChips,
 ]
+
+/** The scalp collection, in cast order. The shelf renders it as one block. */
+export const SCALPS: readonly AwardDef[] = scalpChips
+
+/** How many challengers a player has beaten, read off the chips they own. */
+export const scalpCount = (owned: Record<string, number>): number =>
+  SCALPS.filter((a) => owned[a.id] !== undefined).length
 
 const byId = new Map(AWARDS.map((a) => [a.id, a]))
 export const awardById = (id: string): AwardDef | undefined => byId.get(id)
@@ -307,6 +372,11 @@ export interface AwardContext {
   cameFromFreeroll: boolean
   /** Peak Roll AFTER any prize was added. */
   peakRoll: number
+  /**
+   * The cast member being challenged, when this is a challenge table. Undefined
+   * everywhere else, which is what keeps a scalp off a normal duel.
+   */
+  challengerId?: string
 }
 
 const isSevenDeuce = (hole?: readonly Card[]): boolean =>
@@ -367,6 +437,23 @@ export function detectAwards(ctx: AwardContext, owned: Record<string, number>): 
   if (ctx.tournamentWon && ctx.venue.freeroll !== true) {
     add(`venue-${ctx.venue.id}`)
     if (ctx.cameFromFreeroll) add('journey-kitchen')
+  }
+
+  // Scalps: taking the standing challenger's last chip. Only a win records one
+  // (a loss rotates the challenger and nothing else), and only at a challenge
+  // table, so the 2.5x duels are the one place a scalp can come from.
+  //
+  // The count is read off the chips already owned rather than the profile's
+  // `challengeWins`, so detection does not care whether the store recorded the
+  // win before or after it ran.
+  if (ctx.tournamentWon && ctx.challengerId && isChallengeTable(ctx.venue)) {
+    const scalpId = `scalp-${ctx.challengerId}`
+    // A pinned character has no scalp chip, so they move no rung either.
+    if (byId.has(scalpId)) {
+      add(scalpId)
+      const scalps = scalpCount(owned) + (owned[scalpId] === undefined ? 1 : 0)
+      for (const rung of SCALP_RUNGS) if (scalps >= rung.at) add(rung.id)
+    }
   }
 
   // The journey: first pot, then rank chips from the (already updated) peak Roll.

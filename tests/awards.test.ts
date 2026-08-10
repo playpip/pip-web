@@ -1,6 +1,7 @@
 import test from 'ava'
-import { AWARDS, awardById, detectAwards, type AwardContext } from '@/lib/awards'
-import { VENUES, KITCHEN_TABLE } from '@/config/venues'
+import { AWARDS, SCALPS, awardById, detectAwards, type AwardContext } from '@/lib/awards'
+import { CHALLENGEABLE_CAST } from '@/lib/challenge'
+import { VENUES, KITCHEN_TABLE, CHALLENGE_TABLES } from '@/config/venues'
 import { cardFromString } from '@/lib/poker/cards'
 
 const baseCtx = (over: Partial<AwardContext> = {}): AwardContext => ({
@@ -26,14 +27,15 @@ const ids = (ctx: AwardContext, owned: Record<string, number> = {}) =>
 const showdownWin = (name: string, description: string, over: Partial<AwardContext> = {}) =>
   baseCtx({ heroWon: true, showdown: true, heroHand: { name, description }, ...over })
 
-test('the set has 59 chips with unique ids', (t) => {
-  t.is(AWARDS.length, 59)
-  t.is(new Set(AWARDS.map((a) => a.id)).size, 59)
+test('the set has 84 chips with unique ids', (t) => {
+  t.is(AWARDS.length, 84)
+  t.is(new Set(AWARDS.map((a) => a.id)).size, 84)
   t.is(AWARDS.filter((a) => a.kind === 'venue').length, 10)
   t.is(AWARDS.filter((a) => a.kind === 'hand').length, 7)
   t.is(AWARDS.filter((a) => a.kind === 'moment').length, 7)
   t.is(AWARDS.filter((a) => a.kind === 'nickname').length, 29)
-  t.is(AWARDS.filter((a) => a.kind === 'journey').length, 6)
+  t.is(AWARDS.filter((a) => a.kind === 'scalp').length, 22)
+  t.is(AWARDS.filter((a) => a.kind === 'journey').length, 9)
   t.truthy(awardById('venue-garage'))
   t.truthy(awardById('nickname-QQ'))
 })
@@ -238,4 +240,75 @@ test('rank chips fire on peak Roll thresholds', (t) => {
     'journey-pro',
     'journey-legend',
   ])
+})
+
+// --- scalps ----------------------------------------------------------------
+
+const CHALLENGE = CHALLENGE_TABLES[0]
+
+/** The first `n` challengers already beaten. */
+const ownedScalps = (n: number): Record<string, number> =>
+  Object.fromEntries(SCALPS.slice(0, n).map((a) => [a.id, 1]))
+
+/** Who is up next when `n` are already on the shelf. */
+const nextChallenger = (n: number) => SCALPS[n].id.slice('scalp-'.length)
+
+const challengeWin = (challengerId: string) =>
+  baseCtx({ venue: CHALLENGE, tournamentWon: true, challengerId })
+
+test('the scalp collection is the challengeable cast, one chip each', (t) => {
+  t.is(SCALPS.length, CHALLENGEABLE_CAST.length)
+  t.deepEqual(
+    SCALPS.map((a) => a.id),
+    CHALLENGEABLE_CAST.map((ch) => `scalp-${ch.id}`),
+  )
+  // The venue-pinned three are not challengeable, so they have no chip: a
+  // collection that can never be completed is worse than a smaller one.
+  for (const id of ['ray', 'pearl', 'sable']) t.falsy(awardById(`scalp-${id}`))
+  // Glyphs are the first two letters of the id. A new character colliding
+  // with an existing one should fail here rather than ship a duplicate chip.
+  t.is(new Set(SCALPS.map((a) => a.glyph)).size, SCALPS.length)
+})
+
+test('beating a challenger earns their scalp, once', (t) => {
+  t.deepEqual(ids(challengeWin('doris')), ['scalp-doris'])
+  t.deepEqual(ids(challengeWin('doris'), { 'scalp-doris': 1 }), [])
+})
+
+test('only a win records a scalp: losing rotates the challenger and nothing else', (t) => {
+  t.deepEqual(ids(baseCtx({ venue: CHALLENGE, challengerId: 'doris', heroWon: true })), [
+    'journey-first',
+  ])
+})
+
+test('a scalp only comes from a challenge table', (t) => {
+  // Same character, same win, at a ladder venue: that is a tournament, not a
+  // challenge, and it must not fill the collection.
+  t.deepEqual(ids(baseCtx({ tournamentWon: true, challengerId: 'doris' })), ['venue-garage'])
+})
+
+test('the journey rungs fire at five, thirteen and the whole cast', (t) => {
+  const at = (n: number) => ids(challengeWin(nextChallenger(n)), ownedScalps(n))
+  t.false(at(3).includes('journey-scalps-5'))
+  t.true(at(4).includes('journey-scalps-5'))
+  t.false(at(4).includes('journey-scalps-13'))
+  t.true(at(12).includes('journey-scalps-13'))
+  t.false(at(12).includes('journey-scalps-all'))
+  // The top rung is the collection's size, so beating the last challenger
+  // completes it. A rung above the number of chips would be unreachable.
+  t.true(at(SCALPS.length - 1).includes('journey-scalps-all'))
+})
+
+test('a rung is never re-granted', (t) => {
+  t.false(
+    ids(challengeWin(nextChallenger(4)), { ...ownedScalps(4), 'journey-scalps-5': 1 }).includes(
+      'journey-scalps-5',
+    ),
+  )
+})
+
+test('a pinned character has no chip and moves no rung', (t) => {
+  // Nothing should ever pitch Uncle Ray as a challenger, but if something did,
+  // the fix is that he earns nothing, not that he nudges the collection along.
+  t.deepEqual(ids(challengeWin('ray'), ownedScalps(4)), [])
 })
