@@ -5,6 +5,7 @@
 
 import Link from 'next/link'
 import { LegalPage } from '@/components/marketing/LegalPage'
+import { PlayCta } from '@/components/marketing/PlayCta'
 import { type GuideArt, guideArtUrl, guideBySlug, relatedGuides } from '@/config/learn'
 
 const SITE = 'https://playpip.io'
@@ -159,12 +160,9 @@ export function TryIt({ children }: { children: React.ReactNode }) {
   return (
     <section className="mt-12 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-6">
       <div className="space-y-3 text-[15px] leading-relaxed text-muted-foreground">{children}</div>
-      <Link
-        href="/game"
-        className="mt-5 inline-flex rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
-      >
-        Play a hand
-      </Link>
+      <div className="mt-5">
+        <PlayCta />
+      </div>
     </section>
   )
 }

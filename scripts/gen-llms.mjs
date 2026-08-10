@@ -71,6 +71,7 @@ const FOOTER = `## Project
 const PAGES = [
   { route: '/', file: 'index.html' },
   { route: '/learn', file: 'learn.html' },
+  { route: '/play-poker-free-no-signup', file: 'play-poker-free-no-signup.html' },
   { route: '/blog', file: 'blog.html' },
   { route: '/credits', file: 'credits.html' },
   { route: '/privacy', file: 'privacy.html' },

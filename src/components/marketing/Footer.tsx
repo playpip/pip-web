@@ -16,6 +16,10 @@ const FOOTER_GROUPS: {
     title: 'Explore',
     links: [
       { label: 'Learn poker', href: '/learn' },
+      // The one internal link into the free-poker landing page. A page nothing
+      // links to is a page a crawler reaches only through the sitemap, and this
+      // is the label it would want to be found under anyway.
+      { label: 'Free poker, no signup', href: '/play-poker-free-no-signup' },
       { label: 'Blog', href: '/blog' },
       { label: 'Credits', href: '/credits' },
       // A quiet text link rather than an icon: we have exactly one social

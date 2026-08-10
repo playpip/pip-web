@@ -18,6 +18,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '',
     '/learn',
     '/tutorial',
+    '/play-poker-free-no-signup',
     '/blog',
     '/credits',
     '/privacy',
