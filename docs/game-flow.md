@@ -15,17 +15,19 @@ enough to afford higher buy-ins.
 ## Stores
 
 ### `profile` (persisted — localStorage)
-Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **8**) with a `migrate` hook.
+Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **12**) with a `migrate` hook.
 - `created`, `name`, `avatar`, `roll` (bankroll), **`peakRoll`** (drives rank title),
   `stats` (hands, showdowns, tournaments, biggest pot), **`rollHistory`** (Roll
   sampled at tournament results/cash-outs, capped ring buffer — feeds the stats
   graph), **`venueRecords`** (per-venue entries/wins/best finish/fastest win),
   `cardBack`, **`awards`** (earned chip ids → epoch ms), **`cameFromFreeroll`**
-  (the comeback flag — see docs/awards.md).
+  (the comeback flag, see docs/awards.md), **`challengeWins`** (cast ids beaten in a
+  challenge) and **`challengesPlayed`** (completed challenges, win or lose: the two
+  fields the standing challenger is derived from, see docs/venues.md).
 - Actions: `createProfile(name, avatar)`, `setName`, `setAvatar`, `setCardBack`,
   `adjustRoll`, `setRoll` (both also bump `peakRoll`), `grantAwards`,
   `setCameFromFreeroll`, `mergeStats`, `recordRollPoint`, `recordVenueEntry`,
-  `recordVenueResult`, `reset`.
+  `recordVenueResult`, `recordChallenge`, `reset`.
 - `STARTING_ROLL` (in `config/venues.ts`) = 200 (two Garage buy-ins — one bad run doesn’t force the freeroll).
 - **Backup**: Settings offers export/restore of the whole profile as
   `pip-profile.json` (`src/lib/backup.ts`) — validated, never partially applied,

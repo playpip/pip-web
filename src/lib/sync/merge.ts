@@ -63,6 +63,17 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     awards: mergeAwards(local.awards, remote.awards),
     owned: Array.from(new Set([...local.owned, ...remote.owned])),
 
+    // Challenges. `challengeWins` is a union like the awards it mirrors: you
+    // beat them, and a device that hasn't heard is not evidence you didn't.
+    // `challengesPlayed` is monotonic, so max() like `peakRoll`.
+    //
+    // The order is local's first, then remote's extras. It is meant to be
+    // earliest-beaten-first and there are no timestamps to reconstruct that
+    // across devices, so it is best-effort. It only steers which rematch comes
+    // up once a whole band is cleared, and never who is challengeable.
+    challengeWins: Array.from(new Set([...local.challengeWins, ...remote.challengeWins])),
+    challengesPlayed: Math.max(local.challengesPlayed, remote.challengesPlayed),
+
     // Union by timestamp, re-sorted, capped from the front like the store does.
     rollHistory: mergeRollHistory(local.rollHistory, remote.rollHistory),
 
@@ -271,6 +282,8 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'tableTalk',
     'cameFromFreeroll',
     'daily',
+    'challengeWins',
+    'challengesPlayed',
   ])
   const out: Record<string, unknown> = {}
   for (const key of new Set([...Object.keys(winner), ...Object.keys(loser)])) {

@@ -13,6 +13,7 @@ import {
 } from '../src/lib/sync/merge'
 import { emptySeatStats } from '../src/lib/reads'
 import { STARTING_ROLL } from '../src/config/venues'
+import { currentChallenge } from '../src/lib/challenge'
 
 function profile(over: Partial<ProfileData> = {}): ProfileData {
   return {
@@ -41,6 +42,8 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     owned: [],
     deckFace: 'classic',
     tableFinish: null,
+    challengeWins: [],
+    challengesPlayed: 0,
     ...over,
   } as ProfileData
 }
@@ -170,6 +173,48 @@ test('merge › cast records keep the higher knockout count', (t) => {
   const local = profile({ castRecords: { sable: { stats: emptySeatStats(), kos: 5 } } })
   const remote = profile({ castRecords: { sable: { stats: emptySeatStats(), kos: 2 } } })
   t.is(mergeProfiles(local, remote, 'remote').castRecords.sable.kos, 5)
+})
+
+test('merge › challenge scalps union, whichever side wins', (t) => {
+  const local = profile({ challengeWins: ['doris', 'frank'] })
+  const remote = profile({ challengeWins: ['frank', 'marge'] })
+
+  for (const side of ['local', 'remote'] as const) {
+    const merged = mergeProfiles(local, remote, side)
+    t.deepEqual([...merged.challengeWins].sort(), ['doris', 'frank', 'marge'])
+  }
+})
+
+test('merge › challenges played is monotonic, like the peak Roll', (t) => {
+  const local = profile({ challengesPlayed: 3 })
+  const remote = profile({ challengesPlayed: 11 })
+  t.is(mergeProfiles(local, remote, 'local').challengesPlayed, 11)
+  t.is(mergeProfiles(local, remote, 'remote').challengesPlayed, 11)
+})
+
+test('merge › two devices agree on who is waiting after a sync', (t) => {
+  // The current challenger is derived from these two fields alone, so merging
+  // them is the whole of the sync story for challengers. If this ever fails,
+  // one device is showing a challenger the other has already played.
+  const phone = profile({
+    roll: 5_000,
+    challengeWins: ['doris', 'frank'],
+    challengesPlayed: 4,
+  })
+  const laptop = profile({ roll: 5_000, challengeWins: ['marge'], challengesPlayed: 2 })
+
+  const onPhone = mergeProfiles(phone, laptop, 'local')
+  const onLaptop = mergeProfiles(laptop, phone, 'local')
+
+  const seat = (p: ProfileData) =>
+    currentChallenge({
+      roll: p.roll,
+      venueRecords: p.venueRecords,
+      challengeWins: p.challengeWins,
+      challengesPlayed: p.challengesPlayed,
+    })?.character.id
+
+  t.is(seat(onPhone), seat(onLaptop))
 })
 
 test('merge › a created profile on either side wins', (t) => {

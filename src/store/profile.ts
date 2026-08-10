@@ -112,6 +112,14 @@ export interface ProfileState {
   deckFace: string
   /** Equipped table finish (an owned finish id), or null for the plain table. */
   tableFinish: string | null
+  /** Cast characters beaten in a challenge, earliest first: the scalp collection. */
+  challengeWins: string[]
+  /**
+   * Challenges completed, win or lose. Drives who is up next: rotating on
+   * *played* rather than *won* is what stops a character you can't beat
+   * becoming a wall (see lib/challenge).
+   */
+  challengesPlayed: number
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -126,6 +134,8 @@ export interface ProfileState {
   mergeCastStats: (deltas: Record<string, Partial<SeatStats>>) => void
   /** You took this character's last chip. */
   recordCastKnockout: (characterId: string) => void
+  /** A challenge finished. Any outcome rotates the challenger; only a win records the scalp. */
+  recordChallenge: (characterId: string, won: boolean) => void
   setTableTalk: (value: boolean) => void
   /** Buy a Chip Shop item: deducts the price, records ownership. No-op if owned or short. */
   buyItem: (id: string, price: number) => void
@@ -145,7 +155,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 11
+export const PERSIST_VERSION = 12
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -169,6 +179,8 @@ export const useProfile = create<ProfileState>()(
       owned: [],
       deckFace: 'classic',
       tableFinish: null,
+      challengeWins: [],
+      challengesPlayed: 0,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -219,6 +231,14 @@ export const useProfile = create<ProfileState>()(
           const rec = s.castRecords[characterId] ?? emptyCastRecord()
           return { castRecords: { ...s.castRecords, [characterId]: { ...rec, kos: rec.kos + 1 } } }
         }),
+      recordChallenge: (characterId, won) =>
+        set((s) => ({
+          challengesPlayed: s.challengesPlayed + 1,
+          challengeWins:
+            won && !s.challengeWins.includes(characterId)
+              ? [...s.challengeWins, characterId]
+              : s.challengeWins,
+        })),
       setTableTalk: (value) => set({ tableTalk: value }),
       buyItem: (id, price) =>
         set((s) => {
@@ -285,6 +305,8 @@ export const useProfile = create<ProfileState>()(
           owned: [],
           deckFace: 'classic',
           tableFinish: null,
+          challengeWins: [],
+          challengesPlayed: 0,
         }),
     }),
     {
@@ -351,6 +373,13 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   if (fromVersion < 11) {
     const freed = ['ocean', 'slate', 'midnight']
     s.owned = Array.from(new Set([...(s.owned ?? []), ...freed]))
+  }
+  // v11 -> v12: challengers. Both fields start empty. An existing player has
+  // beaten nobody yet, and starting `challengesPlayed` at 0 puts everyone on
+  // the same first challenger rather than a position derived from old play.
+  if (fromVersion < 12) {
+    s.challengeWins = []
+    s.challengesPlayed = 0
   }
   return s
 }

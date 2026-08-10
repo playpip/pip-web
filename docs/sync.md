@@ -63,6 +63,8 @@ Field by field:
 | `owned` | union |
 | `rollHistory` | union by timestamp, sorted, capped at 300 |
 | `venueRecords`, `castRecords` | per key, the better of the two |
+| `challengeWins` | union: you beat them, and a device that hasn't heard isn't evidence you didn't |
+| `challengesPlayed` | `max()`, monotonic, like `peakRoll` |
 | `created` | either side saying yes wins |
 | cosmetics (`name`, `avatar`, `cardBack`, `deckFace`, `tableFinish`, `tableTalk`) | chosen side |
 | `daily` | later day; same day, a played run beats an abandoned one |

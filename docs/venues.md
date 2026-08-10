@@ -86,6 +86,33 @@ cashes out nothing**; only the winner's prize pays.
 
 See [game-flow.md](./game-flow.md) for the economy, ranks, and blind escalation.
 
+## Challenge tables (partially built)
+
+**`CHALLENGE_TABLES`** is where a cast member's standing challenge gets played out:
+one heads-up table per band, `seats: 2`, paying **~2.5x** where a ladder duel pays 2x.
+
+| id | Buy-in | Blinds | Prize | AI skill |
+|----|-------:|-------:|------:|:--:|
+| `challenge-low` | 500 | 5/10 | 1,250 | 0.40 |
+| `challenge-mid` | 8,000 | 60/120 | 20,000 | 0.62 |
+| `challenge-high` | 50,000 | 350/700 | 125,000 | 0.80 |
+
+Buy-ins deliberately sit **between** the ladder rungs. On a rung, a table paying 2.5x
+would leave that rung with nothing to offer. Putting `challenge-low` at 750 would
+retire The Duel.
+
+**The character is not in the venue config.** `lib/challenge.ts` derives who is waiting
+from two persisted fields (`challengeWins`, `challengesPlayed`, `PERSIST_VERSION` 12)
+and nothing stores the current challenger, so two devices compute the same one with no
+coordination and there is no pending-challenge object for sync to reconcile. The band
+comes from the highest ladder venue you have actually **won**, stepped down if your Roll
+can't cover the buy-in.
+
+> **Not yet wired.** These tables are deliberately **absent from `venueById` and
+> `generateStaticParams`**, so `/play/challenge-low` is a 404. Registering them lands
+> with the card that puts a challenger in the seat: a 2.5x table reachable by guessing
+> a URL, with nobody sitting opposite, is a grind waiting to be found.
+
 ## The `Venue` shape
 
 ```ts

@@ -410,6 +410,63 @@ export const RING_TABLES: readonly Venue[] = [
   },
 ] as const
 
+// Challenge tables: where a cast member's standing challenge is played out.
+// One per band, heads-up, and the character is NOT part of the config: the
+// venue supplies the stakes and the difficulty, `lib/challenge` supplies who is
+// sitting opposite. Same split as everywhere else: skill is venue-owned, the
+// character brings their delta and their face (see docs/venues.md).
+//
+// Buy-ins deliberately sit *between* the ladder rungs rather than on them. A
+// challenge pays ~2.5x where a ladder duel pays 2x, so putting one at The
+// Duel's 750 would leave The Duel with no reason to exist. Stacks are 50-75bb,
+// the same depth as the other heads-up tables.
+//
+// NOTE: not yet in `venueById`, so `/play/challenge-low` is deliberately
+// unreachable. Registering them is one line and it lands with the wiring that
+// puts a challenger in the seat (technology#22). A 2.5x table reachable by
+// guessing a URL, with no challenger attached, is a grind waiting to be found.
+export const CHALLENGE_TABLES: readonly Venue[] = [
+  {
+    id: 'challenge-low',
+    name: 'The Challenge',
+    tagline: 'Heads-up. They asked for this.',
+    buyIn: 500,
+    smallBlind: 5,
+    bigBlind: 10,
+    seats: 2,
+    prize: 1_250,
+    format: 'duel',
+    accent: '#9A7FD1',
+    ai: { tightness: 0.28, aggression: 0.42, bluff: 0.08, iterations: 500, skill: 0.4 },
+  },
+  {
+    id: 'challenge-mid',
+    name: 'The Challenge',
+    tagline: 'Heads-up. They asked for this.',
+    buyIn: 8_000,
+    smallBlind: 60,
+    bigBlind: 120,
+    seats: 2,
+    prize: 20_000,
+    format: 'duel',
+    accent: '#8F6FE8',
+    ai: { tightness: 0.42, aggression: 0.55, bluff: 0.12, iterations: 850, skill: 0.62 },
+  },
+  {
+    id: 'challenge-high',
+    name: 'The Challenge',
+    tagline: 'Heads-up. They asked for this.',
+    buyIn: 50_000,
+    smallBlind: 350,
+    bigBlind: 700,
+    seats: 2,
+    prize: 125_000,
+    format: 'duel',
+    accent: '#C049D4',
+    ai: { tightness: 0.52, aggression: 0.65, bluff: 0.16, iterations: 1_200, skill: 0.8 },
+  },
+] as const
+
 // Two Garage buy-ins: losing your first tournament stings but doesn't send a
 // brand-new player straight to the freeroll.
 export const STARTING_ROLL = 200
