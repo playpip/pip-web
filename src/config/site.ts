@@ -29,3 +29,81 @@ export function contentAlternates(path: string): Metadata['alternates'] {
     types: { 'application/rss+xml': RSS_URL },
   }
 }
+
+/**
+ * The `openGraph` + `twitter` blocks a page needs to preview as itself.
+ *
+ * Same trap as `contentAlternates`, one field along. A route that sets only
+ * `title` and `description` keeps the root layout's `openGraph.title`, so the
+ * tab said "Pip, for readers who aren't people" while every share of that link
+ * unfurled as "Poker without the casino." — the home page's card, on a post
+ * about something else. The Learn guides carry their own block for this reason;
+ * the blog never got one.
+ *
+ * Declaring `openGraph` replaces the root block whole, so everything that is not
+ * per-page — siteName, locale, the Twitter handles, **the image** — is repeated
+ * here rather than inherited. The image is the part that bites: the root card
+ * comes from `app/opengraph-image.tsx`, and a page that declares `openGraph`
+ * without naming an image ships a `summary_large_image` card with no image in
+ * it. Two Learn guides are live in exactly that state today.
+ *
+ * @param path Route path with a leading slash.
+ * @param title Bare page title, no " · Pip" suffix — the card says Pip already.
+ * @param image The page's own card, if it has one; otherwise Pip's.
+ */
+export function contentSocial({
+  path,
+  title,
+  description,
+  type = 'article',
+  image = SITE_CARD,
+}: {
+  path: string
+  title: string
+  description: string
+  type?: 'article' | 'website'
+  image?: SocialImage
+}): Pick<Metadata, 'openGraph' | 'twitter'> {
+  const images = [image]
+  return {
+    openGraph: {
+      type,
+      siteName: 'Pip',
+      locale: 'en_GB',
+      url: `${SITE_URL}${path}`,
+      title,
+      description,
+      images,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@playpipio',
+      creator: '@playpipio',
+      title,
+      description,
+      images,
+    },
+  }
+}
+
+export interface SocialImage {
+  /** Absolute — relative image URLs are dropped by most unfurlers. */
+  url: string
+  width: number
+  height: number
+  alt: string
+}
+
+/**
+ * Pip's own card, for pages without art of their own. The URL is the static
+ * export of `app/opengraph-image.tsx`; Next adds a cache-busting query to its
+ * own copy of the link, and the bare path serves the same PNG. Size matches
+ * `ogSize` in src/lib/og.tsx, written out rather than imported so that a page's
+ * metadata does not pull `next/og` in behind it.
+ */
+const SITE_CARD: SocialImage = {
+  url: `${SITE_URL}/opengraph-image`,
+  width: 1200,
+  height: 630,
+  alt: 'Pip — poker without the casino',
+}

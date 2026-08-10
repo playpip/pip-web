@@ -1,3 +1,6 @@
+import type { Metadata } from 'next'
+import { contentAlternates, contentSocial } from './site'
+
 // The blog's table of contents. Each post is a static page under
 // src/app/blog/<slug>/ — this registry drives the index page, the sitemap, and
 // per-post metadata, so a new post is one folder plus one entry here.
@@ -58,6 +61,25 @@ const MONTHS = [
   'November',
   'December',
 ] as const
+
+/**
+ * Everything a post's page needs to head itself: title, description, canonical,
+ * feed link and share card, all from the registry entry.
+ *
+ * It is a helper rather than four hand-written blocks because hand-written is
+ * where it went wrong. Each post declared its own title and description and
+ * stopped there, which left all four unfurling as the home page's card, and the
+ * next post would have made the same omission in the same place.
+ */
+export function postMetadata(post: BlogPost): Metadata {
+  const path = `/blog/${post.slug}`
+  return {
+    title: `${post.title} · Pip`,
+    description: post.description,
+    alternates: contentAlternates(path),
+    ...contentSocial({ path, title: post.title, description: post.description }),
+  }
+}
 
 /** '2026-07-25' -> '25 July 2026'. Fixed format — no locale or timezone involved. */
 export function formatPostDate(date: string): string {

@@ -5,7 +5,7 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { LegalPage } from '@/components/marketing/LegalPage'
 import { characterById } from '@/config/cast'
 import { LEARN_GUIDES } from '@/config/learn'
-import { contentAlternates } from '@/config/site'
+import { contentAlternates, contentSocial } from '@/config/site'
 
 // The Learn hub: the three-minute tour and every written guide, in one place.
 //
@@ -13,11 +13,19 @@ import { contentAlternates } from '@/config/site'
 // and this became the index, so that the URL people arrive at from a search is
 // a page that lists what we have rather than a pager they have to sit through.
 
+const DESCRIPTION =
+  'Learn Texas Hold’em properly: a three-minute interactive tour, plus written guides on hand rankings and the rest. Free, no signup, nothing to install.'
+
 export const metadata: Metadata = {
   title: 'Learn poker · Pip',
-  description:
-    'Learn Texas Hold’em properly: a three-minute interactive tour, plus written guides on hand rankings and the rest. Free, no signup, nothing to install.',
+  description: DESCRIPTION,
   alternates: contentAlternates('/learn'),
+  ...contentSocial({
+    path: '/learn',
+    title: 'Learn poker',
+    description: DESCRIPTION,
+    type: 'website',
+  }),
 }
 
 export default function LearnPage() {

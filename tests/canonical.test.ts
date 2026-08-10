@@ -55,3 +55,49 @@ test('declaring a canonical does not drop the RSS link', async (t) => {
     t.is(types?.['application/rss+xml'], RSS_URL, `feed link: ${url}`)
   }
 })
+
+// The routes we hand to other people: posts get pasted into X, Reddit threads
+// and directory submissions, so what the link unfurls into is the first thing
+// most readers see of them. Metadata merges a field at a time here too, so a
+// page that sets `title` and `description` and stops there keeps the root
+// layout's `openGraph` — right title in the tab, home page's card in the
+// timeline. All four blog posts shipped that way and nothing failed.
+//
+// The guides under /learn/<slug> are the same kind of link but not yet the same
+// code: they hand-write a block each and build the image from the Learn
+// registry's art. Route them through contentSocial() and this widens to
+// startsWith('/learn') on its own.
+const isShared = (url: string) => url.startsWith(`${SITE_URL}/blog`) || url === `${SITE_URL}/learn`
+
+test('every shared content route previews as itself, not as the home page', async (t) => {
+  const shared = sitemap().filter((entry) => isShared(entry.url))
+  t.true(shared.length > 0)
+  for (const { url } of shared) {
+    const meta = await metadataFor(pathOf(url))
+    const og = meta.openGraph as
+      | { title?: string; description?: string; url?: string | URL; images?: Card[] }
+      | undefined
+    const twitter = meta.twitter as
+      | { title?: string; description?: string; images?: Card[] }
+      | undefined
+    t.truthy(og, `openGraph block: ${url}`)
+    t.true((og?.title?.length ?? 0) > 0, `og:title: ${url}`)
+    t.is(og?.description, meta.description ?? undefined, `og:description is the page's own: ${url}`)
+    t.is(String(og?.url), url, `og:url points at itself: ${url}`)
+    t.is(twitter?.title, og?.title, `twitter:title matches og:title: ${url}`)
+    t.is(twitter?.description, og?.description, `twitter:description matches: ${url}`)
+    // The image has to be named here too. It does not come along with the rest
+    // of the root layout's block, and a summary_large_image card with nothing
+    // to show is a worse share than the generic picture it replaced.
+    const [image] = og?.images ?? []
+    t.truthy(image, `og:image: ${url}`)
+    t.true(image?.url.startsWith(`${SITE_URL}/`), `og:image is absolute: ${url}`)
+    t.true((image?.alt.length ?? 0) > 0, `og:image:alt: ${url}`)
+    t.deepEqual(twitter?.images, og?.images, `twitter image matches: ${url}`)
+  }
+})
+
+interface Card {
+  url: string
+  alt: string
+}

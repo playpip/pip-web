@@ -1,16 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
-import { BLOG_POSTS, formatPostDate } from '@/config/blog'
-import { contentAlternates } from '@/config/site'
+import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'launch-week')!
 
-export const metadata: Metadata = {
-  title: `${post.title} · Pip`,
-  description: post.description,
-  alternates: contentAlternates(`/blog/${post.slug}`),
-}
+export const metadata: Metadata = postMetadata(post)
 
 export default function LaunchWeekPost() {
   return (
