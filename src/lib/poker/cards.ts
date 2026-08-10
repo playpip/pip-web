@@ -99,6 +99,13 @@ const RANK_WORD: Record<Rank, string> = {
   A: 'ace',
 }
 
+/**
+ * The card-face glyphs. Here rather than in the component that draws a card,
+ * because the guides write cards out in prose from the same strings the tests
+ * enumerate, and two copies of this map is one copy too many.
+ */
+export const SUIT_GLYPH: Record<Suit, string> = { c: '♣', d: '♦', h: '♥', s: '♠' }
+
 const SUIT_WORD: Record<Suit, string> = {
   c: 'clubs',
   d: 'diamonds',

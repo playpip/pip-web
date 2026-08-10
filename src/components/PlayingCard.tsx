@@ -2,11 +2,9 @@
 
 import { motion } from 'framer-motion'
 import type { Card, Suit } from '@/lib/poker/cards'
-import { isRed } from '@/lib/poker/cards'
+import { SUIT_GLYPH, isRed } from '@/lib/poker/cards'
 import { useProfile } from '@/store/profile'
 import { cn } from '@/lib/utils'
-
-const SUIT_GLYPH: Record<Suit, string> = { c: '♣', d: '♦', h: '♥', s: '♠' }
 
 // The four-colour deck (a Chip Shop purchase): hearts red, spades black,
 // diamonds blue, clubs green — the poker-room standard for misreading nothing.

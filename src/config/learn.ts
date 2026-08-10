@@ -146,6 +146,33 @@ export const LEARN_GUIDES: LearnGuide[] = [
     // would be the same chart twice and the worse one of the two. The image is
     // built for somewhere else: a forum post, a reply, somebody else's article.
   },
+  {
+    slug: 'pot-odds',
+    title: 'How to calculate pot odds',
+    metaTitle: 'Pot odds: how to work out whether a call makes money',
+    description:
+      'Pot odds in one formula, with the price every common bet size sets, how many outs each draw really has, and the mistake that makes most pot-odds advice wrong. No signup, and you can practise straight away.',
+    date: '2026-08-10',
+    related: ['hand-rankings', 'starting-hands', 'position', 'bet-sizing'],
+  },
+  {
+    slug: 'position',
+    title: 'Position in poker',
+    metaTitle: 'Position in poker: why the button is the best seat at the table',
+    description:
+      'What position means, the six seats in the order they act, and why the same two cards are a fold in one seat and a raise in another. With the numbers behind it. No signup, and you can practise straight away.',
+    date: '2026-08-10',
+    related: ['starting-hands', 'how-to-play-texas-holdem', 'pot-odds'],
+  },
+  {
+    slug: 'bet-sizing',
+    title: 'How much to bet',
+    metaTitle: 'Poker bet sizing: how much to bet, and what each size costs you',
+    description:
+      'Every bet sets two prices, one for the other player and one for you. The four sizes worth using, what each one charges a draw, and why a pot-sized bluff has to work half the time. No signup, and you can practise straight away.',
+    date: '2026-08-10',
+    related: ['pot-odds', 'position', 'starting-hands'],
+  },
 ]
 
 export function guideBySlug(slug: string): LearnGuide | undefined {
