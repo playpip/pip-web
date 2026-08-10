@@ -26,6 +26,7 @@ import {
   type ProfileData,
   type SideSummary,
 } from '@/lib/sync/merge'
+import { friendly } from '@/lib/sync/errors'
 import { migrateProfile, PERSIST_VERSION, useProfile } from '@/store/profile'
 import { track } from '@/lib/analytics'
 import type { Json } from '@/types/supabase-types'
@@ -440,15 +441,4 @@ async function push(
 /** Fold a merged profile back into the live store (persist writes it through). */
 function applyMerged(merged: ProfileData) {
   useProfile.setState(merged as Partial<ReturnType<typeof useProfile.getState>>)
-}
-
-/** Supabase's auth errors are developer-facing. These are not. */
-function friendly(message: string): string {
-  const m = message.toLowerCase()
-  if (m.includes('invalid login')) return 'That email and password don’t match.'
-  if (m.includes('already registered')) return 'There’s already an account on that email.'
-  if (m.includes('password')) return 'Passwords need to be at least 8 characters.'
-  if (m.includes('email')) return 'That doesn’t look like a valid email address.'
-  if (m.includes('rate limit') || m.includes('too many')) return 'Too many tries. Give it a minute.'
-  return 'Something went wrong. Your progress is safe on this device.'
 }

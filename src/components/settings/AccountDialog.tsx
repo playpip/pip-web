@@ -32,8 +32,12 @@ const field =
   'w-full rounded-xl bg-foreground/[0.04] px-3 py-3 text-base outline-none ring-primary/40 focus:ring-2'
 const primaryButton =
   'min-h-11 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40'
-const secondaryButton =
-  'min-h-11 flex-1 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12]'
+const secondaryButtonBase =
+  'min-h-11 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12] disabled:opacity-40'
+// The row variants share a line; the full-width one must not also grow
+// vertically, which is what `flex-1` would do to a child of the column.
+const secondaryButton = `flex-1 ${secondaryButtonBase}`
+const wideSecondaryButton = `w-full ${secondaryButtonBase}`
 // A quiet link is still a tap target: 11px text in a 15px-tall box was the
 // worst thing in here on a phone.
 const textLink =
@@ -53,7 +57,10 @@ const COPY: Record<AccountMode, { title: string; description: string }> = {
     title: 'Reset your password',
     description: 'We’ll email you a link. Your progress on this device is untouched either way.',
   },
-  manage: { title: 'Your account', description: 'Sync, sign out, or delete it entirely.' },
+  manage: {
+    title: 'Your account',
+    description: 'Sync, change your password, sign out, or delete it entirely.',
+  },
 }
 
 export function AccountDialog({
@@ -218,7 +225,10 @@ function AuthForm({
 
 function Manage({ onDone }: { onDone: () => void }) {
   const [confirming, setConfirming] = useState(false)
-  const { email, busy, dirty, lastSyncedAt, error, signOut, syncNow, deleteAccount } = useSync()
+  const [changing, setChanging] = useState(false)
+  const [changed, setChanged] = useState(false)
+  const { email, busy, dirty, lastSyncedAt, error, signOut, syncNow, deleteAccount, clearError } =
+    useSync()
 
   return (
     <>
@@ -259,6 +269,36 @@ function Manage({ onDone }: { onDone: () => void }) {
         Signing out leaves your profile on this device exactly as it is.
       </p>
 
+      {changing ? (
+        <ChangePassword
+          onCancel={() => setChanging(false)}
+          onSaved={() => {
+            setChanged(true)
+            setChanging(false)
+          }}
+        />
+      ) : (
+        <button
+          onClick={() => {
+            sound.play('tap')
+            clearError()
+            setChanged(false)
+            setConfirming(false)
+            setChanging(true)
+          }}
+          disabled={busy}
+          className={wideSecondaryButton}
+        >
+          Change password
+        </button>
+      )}
+
+      {changed && !changing && (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Password changed. You’re still signed in here.
+        </p>
+      )}
+
       {confirming ? (
         <div className="flex flex-col gap-2 rounded-xl bg-foreground/[0.04] p-3">
           <p className="text-xs leading-relaxed">
@@ -290,6 +330,7 @@ function Manage({ onDone }: { onDone: () => void }) {
         <button
           onClick={() => {
             sound.play('tap')
+            setChanging(false)
             setConfirming(true)
           }}
           className={cn(textLink, 'w-full')}
@@ -298,8 +339,95 @@ function Manage({ onDone }: { onDone: () => void }) {
         </button>
       )}
 
-      {error && <p className="text-xs leading-relaxed text-suit-red">{error}</p>}
+      {/* The password form shows its own errors, so this would be a duplicate. */}
+      {error && !changing && <p className="text-xs leading-relaxed text-suit-red">{error}</p>}
     </>
+  )
+}
+
+// No current-password field, deliberately. Supabase's updateUser takes the
+// session as the proof, so asking for the old one adds a step on a device that
+// already holds a valid session and buys no security. Typing it twice is here
+// for a different reason: nothing echoes a password back, so a typo would lock
+// the player out of a password they think they know.
+function ChangePassword({ onCancel, onSaved }: { onCancel: () => void; onSaved: () => void }) {
+  const [next, setNext] = useState('')
+  const [again, setAgain] = useState('')
+  const [mismatch, setMismatch] = useState(false)
+  const { busy, error, updatePassword, clearError } = useSync()
+
+  const submit = async () => {
+    sound.play('tap')
+    if (next.length < 8) return
+    if (next !== again) {
+      setMismatch(true)
+      return
+    }
+    if (await updatePassword(next)) onSaved()
+  }
+
+  /** Any edit is a fresh attempt: drop whatever the last one complained about. */
+  const clearComplaints = () => {
+    setMismatch(false)
+    if (error) clearError()
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-foreground/[0.04] p-3">
+      <input
+        type="password"
+        value={next}
+        onChange={(e) => {
+          setNext(e.target.value)
+          clearComplaints()
+        }}
+        placeholder="New password"
+        autoComplete="new-password"
+        aria-label="New password"
+        className={field}
+      />
+      <input
+        type="password"
+        value={again}
+        onChange={(e) => {
+          setAgain(e.target.value)
+          clearComplaints()
+        }}
+        onKeyDown={(e) => e.key === 'Enter' && void submit()}
+        placeholder="New password again"
+        autoComplete="new-password"
+        aria-label="New password again"
+        className={field}
+      />
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            sound.play('tap')
+            clearError()
+            onCancel()
+          }}
+          disabled={busy}
+          className={secondaryButton}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={submit}
+          disabled={busy || next.length < 8 || again.length < 8}
+          className={secondaryButton}
+        >
+          Save it
+        </button>
+      </div>
+
+      <p className="text-xs leading-relaxed text-muted-foreground/70">
+        At least 8 characters. You stay signed in on this device.
+      </p>
+
+      {mismatch && <p className="text-xs leading-relaxed text-suit-red">Those two don’t match.</p>}
+      {error && <p className="text-xs leading-relaxed text-suit-red">{error}</p>}
+    </div>
   )
 }
 
