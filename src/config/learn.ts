@@ -63,6 +63,24 @@ export function guideArtUrl(art: GuideArt): string {
 }
 
 /**
+ * The `images` fragment for a guide's Open Graph and Twitter cards, spread into
+ * both by the page. Without it a shared guide link previews as the site's
+ * generic card, so what arrives in the chat looks like Pip in general rather
+ * than the page somebody meant to send.
+ *
+ * It lives here rather than in each page because it is the same eight lines
+ * every time, and the failure mode is silent: a guide that forgets it still
+ * builds, still ships, and still previews as something plausible.
+ */
+export function guideCard(guide: LearnGuide) {
+  if (!guide.hero) return {}
+  const { hero } = guide
+  return {
+    images: [{ url: guideArtUrl(hero), width: hero.width, height: hero.height, alt: hero.alt }],
+  }
+}
+
+/**
  * Ranked, not dated — the index renders this order as-is. The ranking is by
  * query intent (see the marketing plan), and it is explicitly not settled:
  * once Search Console has a few months of real impressions, it should be
@@ -98,6 +116,12 @@ export const LEARN_GUIDES: LearnGuide[] = [
       'The rules of Texas Hold’em in the order you meet them at a table: the blinds, the four betting rounds, what you can do on your turn, and a full hand played out. No signup, and you can practise straight away.',
     date: '2026-08-09',
     related: ['hand-rankings', 'starting-hands', 'position'],
+    hero: {
+      src: '/learn/how-to-play-texas-holdem-hero.png',
+      alt: 'Five community cards face up in a row: the king of diamonds, the eight of spades, the three of hearts, the five of clubs and the queen of hearts.',
+      width: 2400,
+      height: 1260,
+    },
   },
   {
     slug: 'starting-hands',
@@ -107,6 +131,17 @@ export const LEARN_GUIDES: LearnGuide[] = [
       'All 169 starting hands in one chart, sorted by the earliest position you should open them from. Plus how often each one arrives and what suitedness is actually worth. No signup, and you can practise straight away.',
     date: '2026-08-09',
     related: ['hand-rankings', 'how-to-play-texas-holdem', 'position'],
+    hero: {
+      src: '/learn/starting-hands-hero.png',
+      alt: 'Two hole cards face up: the ace of spades and the king of spades.',
+      width: 2400,
+      height: 1260,
+    },
+    // No `chart` on purpose, and the file exists anyway:
+    // /learn/starting-hands-chart.png is the whole 13x13 grid as one picture.
+    // The chart on this page is interactive, so a static copy of it in the body
+    // would be the same chart twice and the worse one of the two. The image is
+    // built for somewhere else: a forum post, a reply, somebody else's article.
   },
 ]
 

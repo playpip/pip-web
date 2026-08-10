@@ -2,11 +2,13 @@ import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { StartingHandChart } from '@/components/learn/StartingHandChart'
 import { Section } from '@/components/marketing/LegalPage'
-import { guideBySlug } from '@/config/learn'
+import { guideBySlug, guideCard } from '@/config/learn'
 import { contentAlternates } from '@/config/site'
 import { cumulativeShare } from '@/config/startingHands'
 
 const guide = guideBySlug('starting-hands')!
+// The hero doubles as this page's share card.
+const card = guideCard(guide)
 
 export const metadata: Metadata = {
   title: `${guide.metaTitle} · Pip`,
@@ -17,11 +19,13 @@ export const metadata: Metadata = {
     url: `https://playpip.io/learn/${guide.slug}`,
     title: guide.metaTitle,
     description: guide.description,
+    ...card,
   },
   twitter: {
     card: 'summary_large_image',
     title: guide.metaTitle,
     description: guide.description,
+    ...card,
   },
 }
 

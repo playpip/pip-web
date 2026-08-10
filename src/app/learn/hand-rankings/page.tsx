@@ -3,26 +3,12 @@ import { AceRuns } from '@/components/learn/AceRuns'
 import { GuideChart, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
-import { guideArtUrl, guideBySlug } from '@/config/learn'
+import { guideBySlug, guideCard } from '@/config/learn'
 import { contentAlternates } from '@/config/site'
 
 const guide = guideBySlug('hand-rankings')!
-
-// The hero doubles as this page's share card. Without it a shared guide link
-// previews as the site's generic card, so the thing being shared looks like
-// Pip in general rather than the page somebody meant to send.
-const card = guide.hero
-  ? {
-      images: [
-        {
-          url: guideArtUrl(guide.hero),
-          width: guide.hero.width,
-          height: guide.hero.height,
-          alt: guide.hero.alt,
-        },
-      ],
-    }
-  : {}
+// The hero doubles as this page's share card.
+const card = guideCard(guide)
 
 export const metadata: Metadata = {
   title: `${guide.metaTitle} · Pip`,

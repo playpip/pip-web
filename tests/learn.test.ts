@@ -1,6 +1,6 @@
-import { readdirSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import test from 'ava'
-import { LEARN_GUIDES, guideBySlug, relatedGuides } from '@/config/learn'
+import { type GuideArt, LEARN_GUIDES, guideBySlug, relatedGuides } from '@/config/learn'
 
 test('every guide has a valid slug, ISO date, and non-empty copy', (t) => {
   for (const guide of LEARN_GUIDES) {
@@ -57,6 +57,24 @@ test('relatedGuides preserves the order the guide asked for', (t) => {
       relatedGuides(guide.slug).map((s) => s.slug),
       published,
     )
+  }
+})
+
+// A filename is not a spec. The registry's width and height are what the
+// browser reserves before the file lands, so a wrong pair is a page that jumps
+// under whoever is reading it, and nothing else in the build ever compares the
+// two. Read straight out of the PNG header: width and height are the eight
+// bytes after the 8-byte signature, the IHDR length and the IHDR tag.
+test('every piece of art exists and is the size the registry claims', (t) => {
+  const art = LEARN_GUIDES.flatMap((guide) => [guide.hero, guide.chart]).filter(
+    (piece): piece is GuideArt => piece !== undefined,
+  )
+  t.true(art.length > 0)
+  for (const piece of art) {
+    const header = readFileSync(new URL(`../public${piece.src}`, import.meta.url)).subarray(16, 24)
+    t.is(header.readUInt32BE(0), piece.width, `${piece.src} width`)
+    t.is(header.readUInt32BE(4), piece.height, `${piece.src} height`)
+    t.true(piece.alt.length > 0, `${piece.src} has no alt text`)
   }
 })
 

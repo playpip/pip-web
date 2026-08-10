@@ -3,10 +3,12 @@ import { BestFive } from '@/components/learn/BestFive'
 import { CanYouCheck } from '@/components/learn/CanYouCheck'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { Section } from '@/components/marketing/LegalPage'
-import { guideBySlug } from '@/config/learn'
+import { guideBySlug, guideCard } from '@/config/learn'
 import { contentAlternates } from '@/config/site'
 
 const guide = guideBySlug('how-to-play-texas-holdem')!
+// The hero doubles as this page's share card.
+const card = guideCard(guide)
 
 export const metadata: Metadata = {
   title: `${guide.metaTitle} · Pip`,
@@ -17,11 +19,13 @@ export const metadata: Metadata = {
     url: `https://playpip.io/learn/${guide.slug}`,
     title: guide.metaTitle,
     description: guide.description,
+    ...card,
   },
   twitter: {
     card: 'summary_large_image',
     title: guide.metaTitle,
     description: guide.description,
+    ...card,
   },
 }
 
