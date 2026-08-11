@@ -171,7 +171,7 @@ export function Table() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ delay: 0.6, duration: 0.4 }}
-          className="text-[11px] italic leading-snug text-muted-foreground/80"
+          className="text-2xs italic leading-snug text-muted-foreground/80"
         >
           {talk}
         </motion.span>
@@ -233,7 +233,7 @@ export function Table() {
         title={
           <>
             <span className="text-sm font-medium text-muted-foreground">{venue.name}</span>
-            <span className="text-[11px] tabular-nums text-muted-foreground/60">
+            <span className="text-2xs tabular-nums text-muted-foreground/60">
               Blinds {smallBlind.toLocaleString()}/{bigBlind.toLocaleString()}
               {blindLevel > 0 && ` · L${blindLevel + 1}`}
             </span>
@@ -280,7 +280,7 @@ export function Table() {
               <div className="flex items-end justify-between gap-3 px-2">
                 <div className="min-w-0 flex-1">{talkLine}</div>
                 <div className="flex shrink-0 items-baseline gap-2">
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
                     Pot
                   </span>
                   <CountUp
@@ -357,7 +357,7 @@ export function Table() {
               <div className="flex w-full items-end justify-between gap-6">
                 <div className="min-w-0 flex-1">{talkLine}</div>
                 <div className="flex shrink-0 items-baseline gap-2">
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
                     Pot
                   </span>
                   <CountUp
@@ -571,7 +571,7 @@ function Seat({
         {isDealer && !folded && (
           <span
             className={cn(
-              'absolute -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground',
+              'absolute -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.5625rem] font-bold text-primary-foreground',
               dealerSide,
             )}
           >
@@ -593,7 +593,7 @@ function Seat({
               transition={{ type: 'spring', stiffness: 500, damping: 16 }}
               className="pointer-events-none absolute inset-0 flex items-center justify-center"
             >
-              <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-[12px] font-semibold uppercase tracking-[0.18em] text-foreground backdrop-blur-[1px]">
+              <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-[0.18em] text-foreground backdrop-blur-[1px]">
                 fold
               </span>
             </motion.div>
@@ -625,7 +625,7 @@ function Seat({
       <span
         className={cn(
           'max-w-full truncate',
-          row ? 'text-[11px]' : 'text-xs',
+          row ? 'text-2xs' : 'text-xs',
           folded ? 'text-muted-foreground/50' : 'text-muted-foreground',
         )}
       >
@@ -645,7 +645,7 @@ function Seat({
           justify-evenly column on mobile). */}
       <span className="flex h-[18px] items-center justify-center">
         {player.committedThisStreet > 0 && (
-          <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium tabular-nums">
+          <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-3xs font-medium tabular-nums">
             {money(player.committedThisStreet)}
           </span>
         )}
@@ -705,7 +705,7 @@ function HeroCards({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-[11px] text-muted-foreground/70"
+          className="text-2xs text-muted-foreground/70"
         >
           {nickname}
         </motion.span>
@@ -774,14 +774,14 @@ function HeroPanel({
                   <PlayerAvatar spec={avatar} size={36} dimmed={folded} />
                 </div>
                 {isButton && (
-                  <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+                  <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.5625rem] font-bold text-primary-foreground">
                     D
                   </span>
                 )}
               </div>
               <span className="text-xs font-semibold tabular-nums">{money(hero.stack)}</span>
               {hero.committedThisStreet > 0 && (
-                <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium tabular-nums">
+                <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-3xs font-medium tabular-nums">
                   {money(hero.committedThisStreet)}
                 </span>
               )}
@@ -795,13 +795,11 @@ function HeroPanel({
               transition={{ duration: 0.16 }}
               className="pointer-events-none flex flex-col items-center"
             >
-              <span className="text-[11px] text-muted-foreground">{label ?? '—'}</span>
+              <span className="text-2xs text-muted-foreground">{label ?? '—'}</span>
               <span className="text-2xl font-semibold tabular-nums">
                 {equity !== null ? `${Math.round(equity * 100)}%` : '—'}
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                win
-              </span>
+              <span className="text-3xs uppercase tracking-wider text-muted-foreground">win</span>
             </motion.div>
           )}
         </AnimatePresence>

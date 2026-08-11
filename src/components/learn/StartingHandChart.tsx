@@ -56,7 +56,7 @@ export function StartingHandChart() {
       {/* Scrolls inside its own box rather than pushing the page sideways,
           which is the whole difficulty of 13 columns on a phone. */}
       <div className="-mx-6 mt-4 overflow-x-auto px-6 md:mx-0 md:px-0">
-        <table className="w-full min-w-md border-separate border-spacing-[2px] text-center text-[11px] leading-none sm:text-[13px]">
+        <table className="w-full min-w-md border-separate border-spacing-[2px] text-center text-2xs leading-none sm:text-[0.8125rem]">
           <thead>
             <tr>
               <th scope="col" className="w-5">
@@ -96,7 +96,7 @@ export function StartingHandChart() {
                           <>
                             {/* The symbol is a key a screen reader cannot use,
                                 so the band is spelled out and the glyph hidden. */}
-                            <span className="ml-0.5 text-[9px]" aria-hidden="true">
+                            <span className="ml-0.5 text-[0.5625rem]" aria-hidden="true">
                               {BAND_SYMBOL[band]}
                             </span>
                             {/* Dropped from the Markdown mirror: 169 repeats of
@@ -129,7 +129,7 @@ export function StartingHandChart() {
 function Legend() {
   const bands: Band[] = ['any', 'middle', 'late']
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-muted-foreground">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[0.8125rem] text-muted-foreground">
       {bands.map((band) => (
         <li key={band} className="flex items-center gap-1.5">
           <span
@@ -163,7 +163,7 @@ function Detail({ hand }: { hand: string | null }) {
       className="mt-4 min-h-28 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5"
     >
       {hand === null ? (
-        <p className="text-[15px] leading-relaxed text-muted-foreground">
+        <p className="text-md leading-relaxed text-muted-foreground">
           Tap any hand for what it is, when it plays and how often it turns up.
         </p>
       ) : (
@@ -192,7 +192,7 @@ function HandDetail({ hand }: { hand: string }) {
           {hand}
           <span className="ml-2 text-sm font-normal text-muted-foreground">{shape}</span>
         </p>
-        <p className="mt-1 text-[15px] leading-relaxed">
+        <p className="mt-1 text-md leading-relaxed">
           {band ? (
             <>
               <span aria-hidden="true">{BAND_SYMBOL[band]} </span>
@@ -202,10 +202,10 @@ function HandDetail({ hand }: { hand: string }) {
             <span className="font-medium">Fold it, from every seat</span>
           )}
         </p>
-        <p className="mt-1 text-[15px] text-muted-foreground tabular-nums">
+        <p className="mt-1 text-md text-muted-foreground tabular-nums">
           Dealt {pct.toFixed(2)}% of the time, about once in {oneIn} hands.
         </p>
-        {note && <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{note}</p>}
+        {note && <p className="mt-2 text-md leading-relaxed text-muted-foreground">{note}</p>}
       </div>
     </div>
   )

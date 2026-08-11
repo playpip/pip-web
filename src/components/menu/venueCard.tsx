@@ -36,7 +36,7 @@ function CornerTag({ venue, tier }: { venue: Venue; tier?: number }) {
   if (!venue.format) return null
   return (
     <span
-      className="rounded-md bg-black/45 px-2 py-1 text-[11px] font-semibold backdrop-blur-sm"
+      className="rounded-md bg-black/45 px-2 py-1 text-2xs font-semibold backdrop-blur-sm"
       style={{ color: venue.accent }}
     >
       {FORMAT_LABELS[venue.format]}

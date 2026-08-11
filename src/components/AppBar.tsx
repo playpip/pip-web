@@ -73,7 +73,7 @@ export function AppBar({
             {avatar && <PlayerAvatar spec={avatar} size={40} />}
             <div className="text-left leading-tight">
               <div className="text-sm font-medium text-muted-foreground">{name}</div>
-              <div className="text-[11px] text-muted-foreground/70">{rankFor(peakRoll).name}</div>
+              <div className="text-2xs text-muted-foreground/70">{rankFor(peakRoll).name}</div>
             </div>
           </button>
         ) : leading === 'back' ? (

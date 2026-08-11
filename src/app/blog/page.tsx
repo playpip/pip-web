@@ -33,7 +33,7 @@ export default function BlogIndexPage() {
               <h2 className="mt-1 text-lg font-semibold tracking-tight transition group-hover:text-foreground/80">
                 {post.title}
               </h2>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+              <p className="mt-1.5 text-md leading-relaxed text-muted-foreground">
                 {post.description}
               </p>
             </Link>
@@ -41,7 +41,7 @@ export default function BlogIndexPage() {
         ))}
       </ul>
 
-      <p className="mt-12 text-[15px] leading-relaxed text-muted-foreground">
+      <p className="mt-12 text-md leading-relaxed text-muted-foreground">
         <span className="font-medium text-foreground">Follow along:</span>{' '}
         <A href="/rss.xml">RSS</A>. No email, no account, no unsubscribe link to hunt for.
       </p>

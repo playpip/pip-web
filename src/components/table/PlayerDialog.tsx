@@ -96,7 +96,7 @@ export function PlayerDialog({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-foreground/[0.04] px-3 py-2.5 text-center">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-2xs uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm font-semibold tabular-nums">{value}</div>
     </div>
   )

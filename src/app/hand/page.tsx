@@ -104,7 +104,7 @@ function Replay({ record }: { record: HandRecord }) {
   return (
     <Shell>
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        <p className="text-center text-[11px] uppercase tracking-[0.25em] text-muted-foreground/60 tabular-nums">
+        <p className="text-center text-2xs uppercase tracking-[0.25em] text-muted-foreground/60 tabular-nums">
           Hand #{record.handNo} · Blinds {money(record.smallBlind)}/{money(record.bigBlind)}
         </p>
 
@@ -115,7 +115,7 @@ function Replay({ record }: { record: HandRecord }) {
           {community.length > 0 ? (
             community.map((card, i) => <CardTag key={i} index={i} card={card} size="sm" />)
           ) : (
-            <span className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground/40">
+            <span className="text-2xs uppercase tracking-[0.3em] text-muted-foreground/40">
               Pre-flop
             </span>
           )}
@@ -129,7 +129,7 @@ function Replay({ record }: { record: HandRecord }) {
                 <PlayingCard key={i} card={card} size="sm" />
               ))}
             </div>
-            <span className="text-[11px] text-muted-foreground/70">
+            <span className="text-2xs text-muted-foreground/70">
               {heroReveal.playerName}
               {nickname && ` · ${nickname}`}
             </span>
@@ -164,7 +164,7 @@ function Replay({ record }: { record: HandRecord }) {
         {/* the curious can read the whole thing */}
         {total > 0 && (
           <details className="group mt-6 rounded-2xl bg-foreground/[0.03]">
-            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground/70 transition hover:text-foreground">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-2xs uppercase tracking-[0.2em] text-muted-foreground/70 transition hover:text-foreground">
               Play-by-play
               <ChevronRight className="size-4 transition group-open:rotate-90" />
             </summary>
@@ -217,7 +217,7 @@ function OutcomeHeadline({ outcome, finished }: { outcome: Outcome | null; finis
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground/50"
+            className="text-2xs uppercase tracking-[0.3em] text-muted-foreground/50"
           >
             Shared hand
           </motion.span>
@@ -310,7 +310,7 @@ function StickyCta({ eyebrow }: { eyebrow: string }) {
         >
           Play your first hand — free
         </Link>
-        <p className="text-[11px] text-muted-foreground/70">
+        <p className="text-2xs text-muted-foreground/70">
           No account needed · Runs in your browser · Open source
         </p>
       </div>

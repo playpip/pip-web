@@ -107,7 +107,7 @@ export function Tutorial() {
             </div>
             <div className="max-w-sm text-center">
               <h1 className="text-2xl font-semibold tracking-tight">{lesson.title}</h1>
-              <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+              <p className="mt-3 text-md leading-relaxed text-muted-foreground text-pretty">
                 {lesson.body}
               </p>
             </div>

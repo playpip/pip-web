@@ -38,7 +38,7 @@ export function CanYouCheck() {
         </span>
       </div>
 
-      <p className="mt-3 text-[15px] leading-relaxed">{example.situation}</p>
+      <p className="mt-3 text-md leading-relaxed">{example.situation}</p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <Choice
@@ -59,7 +59,7 @@ export function CanYouCheck() {
 
       {revealed && (
         <div className="mt-5 border-t border-foreground/10 pt-4">
-          <p className="flex items-start gap-2.5 text-[15px] leading-relaxed text-muted-foreground">
+          <p className="flex items-start gap-2.5 text-md leading-relaxed text-muted-foreground">
             <span
               className={cn(
                 'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full',

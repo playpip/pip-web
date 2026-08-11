@@ -56,7 +56,7 @@ export function StatsPage() {
         <div className="flex items-center gap-4">
           {avatar && <PlayerAvatar spec={avatar} size={64} />}
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
               The story so far
             </p>
             <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{name}</h1>
@@ -64,7 +64,7 @@ export function StatsPage() {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Peak Roll</p>
+          <p className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">Peak Roll</p>
           <CountUp
             value={peakRoll}
             format={money}
@@ -146,7 +146,7 @@ export function StatsPage() {
                   className="h-40 w-full"
                   accent={accent}
                 />
-                <div className="mt-1 flex justify-between text-[11px] tabular-nums text-muted-foreground/70">
+                <div className="mt-1 flex justify-between text-2xs tabular-nums text-muted-foreground/70">
                   <span>low {money(min!)}</span>
                   <span>high {money(max!)}</span>
                 </div>
@@ -245,7 +245,7 @@ function CardLabel({ children }: { children: React.ReactNode }) {
 function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="flex flex-col justify-center rounded-2xl bg-foreground/[0.04] p-4">
-      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums">
         {value}
         {detail && (
@@ -260,8 +260,8 @@ function Mini({ label, value, sub }: { label: string; value: string; sub: string
   return (
     <div className="rounded-xl bg-foreground/[0.04] px-2 py-2.5 text-center">
       <p className="text-lg font-semibold tabular-nums leading-none">{value}</p>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
-      <p className="text-[10px] text-muted-foreground/60">{sub}</p>
+      <p className="mt-1 text-3xs uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
+      <p className="text-3xs text-muted-foreground/60">{sub}</p>
     </div>
   )
 }

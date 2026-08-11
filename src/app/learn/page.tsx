@@ -43,7 +43,7 @@ export default function LearnPage() {
           <PlayerAvatar spec={webb.avatar} size={56} />
           <div className="min-w-0">
             <p className="font-medium">Webb</p>
-            <p className="text-[15px] leading-relaxed text-muted-foreground">
+            <p className="text-md leading-relaxed text-muted-foreground">
               Wrote the book. This is the shelf.
             </p>
           </div>
@@ -58,7 +58,7 @@ export default function LearnPage() {
           Start here
         </p>
         <h2 className="mt-2 text-lg font-semibold tracking-tight">Learn poker in three minutes</h2>
-        <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+        <p className="mt-1.5 text-md leading-relaxed text-muted-foreground">
           An interactive tour of the basics in eight short pages, built from the real game. No quiz,
           nothing to sign up for, and you can skip out at any point.
         </p>
@@ -71,7 +71,7 @@ export default function LearnPage() {
       {LEARN_GUIDES.length > 0 && (
         <section className="mt-12">
           <h2 className="text-lg font-semibold tracking-tight">Written guides</h2>
-          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+          <p className="mt-2 text-md leading-relaxed text-muted-foreground">
             One topic each, in plain English. Read them in any order.
           </p>
           {/* Cards, not bare headings: a guide sitting under the section's own
@@ -84,11 +84,11 @@ export default function LearnPage() {
                   href={`/learn/${guide.slug}`}
                   className="group block rounded-2xl border border-foreground/10 p-5 transition hover:border-foreground/20 hover:bg-foreground/[0.02]"
                 >
-                  <h3 className="flex items-center gap-1.5 text-[17px] font-semibold tracking-tight">
+                  <h3 className="flex items-center gap-1.5 text-[1.0625rem] font-semibold tracking-tight">
                     {guide.title}
                     <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
                   </h3>
-                  <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+                  <p className="mt-1.5 text-md leading-relaxed text-muted-foreground">
                     {guide.description}
                   </p>
                 </Link>

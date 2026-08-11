@@ -59,7 +59,7 @@ export function AceRuns() {
         >
           {run.isStraight ? <Check className="size-3.5" /> : <X className="size-3.5" />}
         </span>
-        <p className="text-[15px] leading-relaxed text-muted-foreground">{run.verdict}</p>
+        <p className="text-md leading-relaxed text-muted-foreground">{run.verdict}</p>
       </div>
     </div>
   )

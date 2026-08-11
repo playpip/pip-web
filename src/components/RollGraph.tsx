@@ -186,9 +186,7 @@ export function RollGraph({
               <div className="text-sm font-semibold tabular-nums leading-none">
                 {format(activePt.roll)}
               </div>
-              <div className="mt-0.5 text-[10px] text-muted-foreground">
-                {shortDate(activePt.t)}
-              </div>
+              <div className="mt-0.5 text-3xs text-muted-foreground">{shortDate(activePt.t)}</div>
             </div>
           </div>
         </>

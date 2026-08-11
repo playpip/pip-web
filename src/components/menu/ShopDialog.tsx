@@ -201,7 +201,7 @@ function ItemArt({ item }: { item: ShopItem }) {
     return (
       <span
         className={cn(
-          'flex w-8 flex-wrap items-center justify-center text-[11px] leading-tight',
+          'flex w-8 flex-wrap items-center justify-center text-2xs leading-tight',
           bold && 'font-black',
         )}
       >

@@ -57,7 +57,7 @@ function EventRow({ event }: { event: HandEvent }) {
   if (event.kind === 'board') {
     return (
       <div className="mt-2 flex items-center gap-2.5 first:mt-0">
-        <span className="w-14 shrink-0 text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+        <span className="w-14 shrink-0 text-2xs uppercase tracking-[0.15em] text-muted-foreground">
           {event.label}
         </span>
         <div className="flex gap-1">

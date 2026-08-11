@@ -72,9 +72,7 @@ export function Section({ title, children }: { title: string; children: React.Re
   return (
     <section className="mt-9 first:mt-0">
       <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-      <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
-        {children}
-      </div>
+      <div className="mt-3 space-y-3 text-md leading-relaxed text-muted-foreground">{children}</div>
     </section>
   )
 }

@@ -51,6 +51,22 @@ to avoid SSR flashes.
 - Numbers use `tabular-nums` (stacks, pot, Roll) so they don't jitter when animating.
 - Headings are tight (`tracking-tight`), lowercase for the `pip` wordmark.
 
+### Type scale: never size text in px
+
+**Font sizes written in pixels are banned and a test enforces it** (`tests/textScale.test.ts`). Settings has a
+text size control that reaches 200% (WCAG 1.4.4, and pinch-zoom is off by ruling), and it works
+by multiplying the root font size. Anything in `rem` follows; anything in `px` is frozen, so one
+caption left in px stays small while the paragraph around it doubles.
+
+- Tailwind's own sizes (`text-xs` up) are rem already. Use them first.
+- Below `text-xs` the app has three tokens, in `globals.css`:
+  `text-2xs` (11px), `text-3xs` (10px), plus `text-md` (15px, the reading size on `/learn`).
+- A genuine one-off gets an arbitrary **rem** value: `text-[0.8125rem]`, never the px equivalent.
+- **The one exception is the card face** (`PlayingCard`). A rank has to stay proportional to
+  the card it is drawn on, so the rule there is: rem box -> rem type, `vw` box (the mobile table)
+  -> type capped in `vw` via `min()`. The caps are the size the type already has on the narrowest
+  phone, so nothing moves at 100%.
+
 ## Motion (Framer Motion)
 
 Subtle, physical, purposeful:

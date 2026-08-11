@@ -133,7 +133,7 @@ export function VenueInfoDialog({
               {venue.name}
               {venue.format && (
                 <span
-                  className="rounded bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold"
+                  className="rounded bg-white/15 px-1.5 py-0.5 text-2xs font-semibold"
                   style={{ color: venue.accent }}
                 >
                   {FORMAT_LABELS[venue.format]}

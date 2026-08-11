@@ -177,7 +177,7 @@ function HoleCardsVisual() {
             </motion.div>
           ))}
         </div>
-        <span className="text-[11px] text-muted-foreground/70">everyone else</span>
+        <span className="text-2xs text-muted-foreground/70">everyone else</span>
       </div>
 
       <div className="flex flex-col items-center gap-1.5">
@@ -199,7 +199,7 @@ function HoleCardsVisual() {
             <PlayingCard card={FAN_HOLE[1]} size="md" />
           </motion.div>
         </div>
-        <span className="text-[11px] text-muted-foreground/70">you</span>
+        <span className="text-2xs text-muted-foreground/70">you</span>
       </div>
     </div>
   )
@@ -475,7 +475,7 @@ function ShowdownVisual() {
             ),
           )}
         </motion.div>
-        <span className="h-4 text-[11px] text-muted-foreground/70">{theirLabel}</span>
+        <span className="h-4 text-2xs text-muted-foreground/70">{theirLabel}</span>
       </div>
 
       <motion.div animate={{ y: step >= 2 ? 26 : 0 }} transition={spring}>
@@ -492,7 +492,7 @@ function ShowdownVisual() {
             ),
           )}
         </div>
-        <span className="h-4 text-[11px] text-muted-foreground/70">{yourLabel}</span>
+        <span className="h-4 text-2xs text-muted-foreground/70">{yourLabel}</span>
       </div>
     </div>
   )
@@ -527,7 +527,7 @@ function RollVisual() {
           />
           <span className="text-sm font-medium text-muted-foreground">chips</span>
         </div>
-        <p className="mt-1 text-[11px] text-muted-foreground/70 tabular-nums">
+        <p className="mt-1 text-2xs text-muted-foreground/70 tabular-nums">
           buy in 100 · take the table down · win 400
         </p>
       </div>

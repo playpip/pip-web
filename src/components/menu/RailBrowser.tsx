@@ -99,7 +99,7 @@ function RailCard({
         <div className="relative aspect-[16/10] w-full">
           <CategoryArt id={room.id} accent={room.accent} className="absolute inset-0 size-full" />
           <span
-            className="absolute left-2 top-2 rounded-md bg-black/45 px-2 py-1 text-[11px] font-semibold tabular-nums backdrop-blur-sm"
+            className="absolute left-2 top-2 rounded-md bg-black/45 px-2 py-1 text-2xs font-semibold tabular-nums backdrop-blur-sm"
             style={{ color: room.accent }}
           >
             {room.smallBlind.toLocaleString()}/{room.bigBlind.toLocaleString()}

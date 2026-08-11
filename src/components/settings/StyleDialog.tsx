@@ -203,7 +203,7 @@ export function StyleDialog({
                     : 'hover:ring-2 hover:ring-foreground/25',
                 )}
               >
-                <span className="text-[10px] text-muted-foreground">—</span>
+                <span className="text-3xs text-muted-foreground">—</span>
               </button>
               {TABLE_FINISHES.map((finish) => {
                 const owned = ownedSet.has(finish.id)

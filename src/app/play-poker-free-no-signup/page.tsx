@@ -270,7 +270,7 @@ export default function PlayPokerFreeNoSignupPage() {
         <div className="space-y-6">
           {FAQ.map((entry) => (
             <div key={entry.q}>
-              <h3 className={`text-[15px] ${strong}`}>{entry.q}</h3>
+              <h3 className={`text-md ${strong}`}>{entry.q}</h3>
               <div className="mt-2 space-y-3">
                 {entry.a.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
@@ -308,7 +308,7 @@ export default function PlayPokerFreeNoSignupPage() {
       </Section>
 
       <section className="mt-12 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-6">
-        <div className="space-y-3 text-[15px] leading-relaxed text-muted-foreground">
+        <div className="space-y-3 text-md leading-relaxed text-muted-foreground">
           <p>
             That is the whole pitch. This is a page about not having to do anything before you play,
             so the most useful thing it can do now is end.

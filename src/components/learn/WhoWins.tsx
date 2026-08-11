@@ -102,7 +102,7 @@ export function WhoWins() {
                 : `Hand ${example.answer.toUpperCase()} takes it.`}
             </span>
           </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{example.why}</p>
+          <p className="mt-2 text-md leading-relaxed text-muted-foreground">{example.why}</p>
           <button
             type="button"
             onClick={next}

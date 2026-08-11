@@ -25,12 +25,19 @@ function inkFor(suit: Suit, deckFace: string): string {
 // Ten displays as "10" on the face; the engine keeps 'T' internally.
 const rankLabel = (rank: string): string => (rank === 'T' ? '10' : rank)
 
+// A card face has to stay proportional to the card, whatever the text size
+// setting is doing (lib/textScale). The rule for every entry below: if the box
+// is sized in rem the type is too, so the two grow together; if the box is
+// sized in vw (the mobile table, where the card is a fraction of the screen)
+// the type is capped in vw so it can never outgrow the card it is drawn on.
+// The caps are the size the type already has on the narrowest phone we support,
+// so nothing moves at 100%.
 export const SIZES = {
   xs: {
     w: 'w-8',
     h: 'h-11',
-    rank: 'text-[13px]',
-    suit: 'text-[11px]',
+    rank: 'text-[0.8125rem]',
+    suit: 'text-[0.6875rem]',
     pad: 'p-0.5',
     r: 'rounded-[5px]',
   },
@@ -42,9 +49,9 @@ export const SIZES = {
   board: {
     w: 'w-[18vw] sm:w-20',
     h: 'h-[25.2vw] sm:h-28',
-    rank: 'text-3xl sm:text-4xl',
-    suit: 'text-xl sm:text-2xl',
-    pad: 'p-2 sm:p-2.5',
+    rank: 'text-[min(1.875rem,9.4vw)] sm:text-4xl',
+    suit: 'text-[min(1.25rem,6.3vw)] sm:text-2xl',
+    pad: 'p-[min(0.5rem,2.5vw)] sm:p-2.5',
     r: 'rounded-xl',
   },
   // Hero hole cards — oversized on mobile so they anchor the bottom of the
@@ -52,9 +59,9 @@ export const SIZES = {
   hero: {
     w: 'w-[23vw] sm:w-20',
     h: 'h-[32.2vw] sm:h-28',
-    rank: 'text-4xl',
-    suit: 'text-2xl',
-    pad: 'p-2.5',
+    rank: 'text-[min(2.25rem,11.3vw)] sm:text-4xl',
+    suit: 'text-[min(1.5rem,7.5vw)] sm:text-2xl',
+    pad: 'p-[min(0.625rem,3.2vw)] sm:p-2.5',
     r: 'rounded-xl',
   },
 } as const

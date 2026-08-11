@@ -382,7 +382,7 @@ const tierBadge = (v: Venue) => (
 const formatBadge = (v: Venue) =>
   v.format ? (
     <span
-      className="rounded-md bg-black/45 px-2 py-1 text-[11px] font-semibold backdrop-blur-sm"
+      className="rounded-md bg-black/45 px-2 py-1 text-2xs font-semibold backdrop-blur-sm"
       style={{ color: v.accent }}
     >
       {FORMAT_LABELS[v.format]}
@@ -585,7 +585,7 @@ function FeatureCard({
     >
       <FeatureIcon icon={icon} />
       <h3 className="mt-5 text-xl font-semibold tracking-tight">{title}</h3>
-      <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">{body}</p>
+      <p className="mt-2.5 text-md leading-relaxed text-muted-foreground">{body}</p>
       <div className="mt-auto pt-7">{children}</div>
     </motion.div>
   )
@@ -596,7 +596,7 @@ function EquityReadout() {
   return (
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
           Your equity
         </span>
         <span className="text-2xl font-semibold tabular-nums leading-none text-pip">72%</span>
@@ -818,7 +818,7 @@ function GuideShowpiece({ webb }: { webb?: Character }) {
                       // so content-sized tiles put every row's columns in a
                       // different place.
                       className={cn(
-                        'inline-flex h-6 w-9 items-center justify-center rounded border border-foreground/10 bg-foreground/[0.02] text-[11px] leading-none font-medium tabular-nums',
+                        'inline-flex h-6 w-9 items-center justify-center rounded border border-foreground/10 bg-foreground/[0.02] text-2xs leading-none font-medium tabular-nums',
                         card.includes('♥') || card.includes('♦')
                           ? 'text-suit-red'
                           : 'text-foreground',

@@ -131,15 +131,13 @@ function RungLabels({ name, amount, current }: { name: string; amount: string; c
     <>
       <p
         className={cn(
-          'mt-3 whitespace-nowrap text-[11px]',
+          'mt-3 whitespace-nowrap text-2xs',
           current ? 'font-semibold text-foreground' : 'text-muted-foreground',
         )}
       >
         {name}
       </p>
-      <p className="whitespace-nowrap text-[10px] tabular-nums text-muted-foreground/60">
-        {amount}
-      </p>
+      <p className="whitespace-nowrap text-3xs tabular-nums text-muted-foreground/60">{amount}</p>
     </>
   )
 }

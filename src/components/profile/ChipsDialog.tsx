@@ -56,7 +56,7 @@ function ChipTile({
       <AwardChip award={award} earned={earned} size={48} />
       <span
         className={cn(
-          'w-full truncate text-center text-[10px] leading-tight',
+          'w-full truncate text-center text-3xs leading-tight',
           earned ? 'text-foreground' : 'text-muted-foreground/60',
         )}
       >

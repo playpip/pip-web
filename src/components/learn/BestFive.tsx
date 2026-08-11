@@ -90,7 +90,7 @@ export function BestFive() {
             {correct ? 'That’s it.' : 'Not those five.'}{' '}
             <span className="font-normal text-muted-foreground">{spot.hand}.</span>
           </p>
-          <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{spot.why}</p>
+          <p className="mt-2 text-md leading-relaxed text-muted-foreground">{spot.why}</p>
           <button
             type="button"
             onClick={next}

@@ -101,7 +101,7 @@ export function GuidePage({ slug, children }: { slug: string; children: React.Re
               <li key={sibling.slug}>
                 <Link
                   href={`/learn/${sibling.slug}`}
-                  className="text-[15px] text-muted-foreground underline decoration-foreground/20 underline-offset-2 transition hover:text-foreground hover:decoration-foreground"
+                  className="text-md text-muted-foreground underline decoration-foreground/20 underline-offset-2 transition hover:text-foreground hover:decoration-foreground"
                 >
                   {sibling.title}
                 </Link>
@@ -148,7 +148,7 @@ export function Lead({ children }: { children: React.ReactNode }) {
 export function GuideTable({ children }: { children: React.ReactNode }) {
   return (
     <div className="-mx-6 mt-5 overflow-x-auto px-6 md:mx-0 md:px-0">
-      <table className="w-full min-w-md border-collapse text-left text-[15px] [&_td]:border-t [&_td]:border-foreground/10 [&_td]:py-2.5 [&_td]:pr-4 [&_td]:align-top [&_th]:pb-2 [&_th]:pr-4 [&_th]:font-medium [&_th]:text-foreground">
+      <table className="w-full min-w-md border-collapse text-left text-md [&_td]:border-t [&_td]:border-foreground/10 [&_td]:py-2.5 [&_td]:pr-4 [&_td]:align-top [&_th]:pb-2 [&_th]:pr-4 [&_th]:font-medium [&_th]:text-foreground">
         {children}
       </table>
     </div>
@@ -159,7 +159,7 @@ export function GuideTable({ children }: { children: React.ReactNode }) {
 export function TryIt({ children }: { children: React.ReactNode }) {
   return (
     <section className="mt-12 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-6">
-      <div className="space-y-3 text-[15px] leading-relaxed text-muted-foreground">{children}</div>
+      <div className="space-y-3 text-md leading-relaxed text-muted-foreground">{children}</div>
       <div className="mt-5">
         <PlayCta />
       </div>

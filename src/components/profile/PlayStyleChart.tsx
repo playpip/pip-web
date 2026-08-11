@@ -66,16 +66,16 @@ export function PlayStyleChart({
       })}
 
       {/* axis captions */}
-      <span className="absolute left-1/2 top-2 -translate-x-1/2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/45">
+      <span className="absolute left-1/2 top-2 -translate-x-1/2 text-3xs uppercase tracking-[0.18em] text-muted-foreground/45">
         Loose
       </span>
-      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/45">
+      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 text-3xs uppercase tracking-[0.18em] text-muted-foreground/45">
         Tight
       </span>
-      <span className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/45">
+      <span className="absolute left-2 top-1/2 -translate-y-1/2 -rotate-90 text-3xs uppercase tracking-[0.18em] text-muted-foreground/45">
         Passive
       </span>
-      <span className="absolute right-2 top-1/2 -translate-y-1/2 rotate-90 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/45">
+      <span className="absolute right-2 top-1/2 -translate-y-1/2 rotate-90 text-3xs uppercase tracking-[0.18em] text-muted-foreground/45">
         Aggressive
       </span>
 
