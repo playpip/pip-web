@@ -127,6 +127,11 @@ successful deploy:
 - **Version** auto-bumps — **patch by default**; put `#minor` or `#major` in the
   commit **subject** (first line only — the body is ignored, so prose mentioning
   the tokens can't trigger a bump) to bump harder (`#major` wins if both appear).
+- **Every subject since the last release tag is read**, not just the tip and not
+  just the pushed range. The workflow's concurrency group cancels in-progress
+  runs, so a burst of merges leaves only the last run alive — anchoring on the
+  tag means the surviving run still picks up the markers from the merges whose
+  runs were killed. It is the same range the release notes are generated from.
 - The bump is **committed before the build**, so the deployed PWA reports the new
   version and its build id is the release commit.
 - Then it **tags `vX.Y.Z`, pushes it, and publishes a GitHub Release** with
@@ -134,14 +139,18 @@ successful deploy:
 
 Notes:
 
-- No infinite loop: the bump commit is pushed with the default `GITHUB_TOKEN`
-  (which doesn't retrigger workflows) and carries `[skip ci]` as belt-and-braces.
-  The workflow declares `permissions: contents: write` and checks out with
-  `fetch-depth: 0` (needed to push and to diff release notes).
+- No infinite loop, but **`[skip ci]` on the release commit is load-bearing**: the
+  commit is pushed with a GitHub App token (it has to clear the ruleset on `main`),
+  and App pushes _do_ retrigger workflows. Without the marker the deploy re-runs
+  itself on its own release commit, forever. The workflow declares
+  `permissions: contents: write` and checks out with `fetch-depth: 0` (needed to
+  push, to read the last tag, and to diff release notes).
 - A manual `workflow_dispatch` run **redeploys the current version** — no bump, no
   release (the release steps are gated to `push` events).
-- This pushes **directly to `main`** — if you add branch protection that blocks
-  everyone, exempt the `github-actions` bot or move to a Release-PR model.
+- This pushes **directly to `main`**, which a ruleset otherwise blocks. `GITHUB_TOKEN`
+  cannot be a bypass actor, so the release commit is pushed as a dedicated GitHub App
+  whose credentials live only in this repo's secrets. It is deliberately not the app
+  any other automation uses — sharing it would hand that automation a bypass too.
 
 ### Versioning & cache-busting
 

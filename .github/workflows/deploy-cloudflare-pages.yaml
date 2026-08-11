@@ -89,18 +89,42 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           level=patch
-          # Read every subject in the pushed range, not just the tip. A feature
-          # is rarely the last commit on a branch: sync's #minor was thirteen
-          # commits down when it landed and shipped as a patch. See technology#18.
+          # Read every subject since the LAST RELEASE TAG, not just the tip. A
+          # feature is rarely the last commit on a branch: sync's #minor was
+          # thirteen commits down when it landed and shipped as a patch
+          # (technology#18).
+          #
+          # The anchor is the tag rather than github.event.before because this
+          # workflow's concurrency group cancels in-progress runs. When several
+          # merges land inside a minute, every run but the last dies seconds in,
+          # and `before..sha` for the survivor covers ONLY the last merge — every
+          # #minor in a cancelled run's range is never read. Nothing fails and
+          # nothing warns; the site is right and the number is wrong. It ate a
+          # #minor twice (shipped as v1.8.5 and v1.8.11; technology#41).
+          #
+          # A cancelled run leaves no tag behind, so anchoring here makes the
+          # next surviving run's range automatically cover everything the
+          # cancelled ones would have. It is also the range `--generate-notes`
+          # already uses below, so the bump and the notes can no longer disagree.
           before='${{ github.event.before }}'
-          if git rev-parse --quiet --verify "$before^{commit}" >/dev/null 2>&1; then
-            subjects=$(git log --pretty=%s "$before..${{ github.sha }}")
+          last_tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)
+          if [ -n "$last_tag" ]; then
+            range="$last_tag..${{ github.sha }}"
+          elif git rev-parse --quiet --verify "$before^{commit}" >/dev/null 2>&1; then
+            # No release tag reachable yet (first release, or tags unfetched).
+            # The pushed range is the next best anchor.
+            range="$before..${{ github.sha }}"
+          else
+            range=''
+          fi
+          if [ -n "$range" ]; then
+            subjects=$(git log --pretty=%s "$range")
           else
             # First push to the branch or a force-push: no usable range, so the
             # tip is the honest answer rather than an error.
             subjects=$(git log -1 --pretty=%s)
           fi
-          echo "Subjects in range:"
+          echo "Subjects in range (${range:-tip only}):"
           echo "$subjects"
           if echo "$subjects" | grep -qi '#minor'; then level=minor; fi
           if echo "$subjects" | grep -qi '#major'; then level=major; fi
