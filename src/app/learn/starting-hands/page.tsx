@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { ReuseChart } from '@/components/learn/ReuseChart'
 import { StartingHandChart } from '@/components/learn/StartingHandChart'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
@@ -236,6 +237,11 @@ export default function StartingHandsGuide() {
           its own, several times a minute.
         </p>
       </TryIt>
+
+      {/* After the CTA on purpose: whoever wants to repost the grid has already
+          read the page, and somebody learning poker should not have to scroll
+          past a block of HTML to reach the end of it. */}
+      <ReuseChart slug="starting-hands" />
     </GuidePage>
   )
 }

@@ -57,6 +57,18 @@ export interface LearnGuide {
    * some guides have both, and the page decides where the chart sits.
    */
   chart?: GuideArt
+  /**
+   * A chart we explicitly offer for reposting, rendered as an offer and a
+   * copy-paste credit snippet by components/learn/ReuseChart.tsx.
+   *
+   * Separate from `chart` because the jobs differ: `chart` is the picture that
+   * illustrates this page, this is the picture that goes on somebody else's.
+   * A guide can have one, the other, both or neither. Registering it here is
+   * also what puts the file under the size check in tests/learn.test.ts: an
+   * offered image that nothing on the site renders is otherwise the one asset
+   * no part of the build ever looks at.
+   */
+  reusable?: GuideArt
 }
 
 /** Absolute URL for an image, which is what OG and Twitter cards require. */
@@ -140,11 +152,16 @@ export const LEARN_GUIDES: LearnGuide[] = [
       width: 2400,
       height: 1260,
     },
-    // No `chart` on purpose, and the file exists anyway:
-    // /learn/starting-hands-chart.png is the whole 13x13 grid as one picture.
-    // The chart on this page is interactive, so a static copy of it in the body
-    // would be the same chart twice and the worse one of the two. The image is
-    // built for somewhere else: a forum post, a reply, somebody else's article.
+    // No `chart` on purpose. The chart on this page is interactive, so a static
+    // copy of it in the body would be the same chart twice and the worse one of
+    // the two. The picture is built for somewhere else: a forum post, a reply,
+    // somebody else's article. That is what `reusable` is for.
+    reusable: {
+      src: '/learn/starting-hands-chart.png',
+      alt: 'Texas Hold’em starting hand chart: all 169 starting hands in a 13x13 grid, each marked with the earliest position it is worth opening from.',
+      width: 2400,
+      height: 3262,
+    },
   },
 ]
 

@@ -66,7 +66,7 @@ test('relatedGuides preserves the order the guide asked for', (t) => {
 // two. Read straight out of the PNG header: width and height are the eight
 // bytes after the 8-byte signature, the IHDR length and the IHDR tag.
 test('every piece of art exists and is the size the registry claims', (t) => {
-  const art = LEARN_GUIDES.flatMap((guide) => [guide.hero, guide.chart]).filter(
+  const art = LEARN_GUIDES.flatMap((guide) => [guide.hero, guide.chart, guide.reusable]).filter(
     (piece): piece is GuideArt => piece !== undefined,
   )
   t.true(art.length > 0)

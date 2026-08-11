@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import test from 'ava'
 import {
   BAND_LISTS,
@@ -130,4 +131,23 @@ test('a few hands the copy names by hand are in the band the copy puts them in',
   t.is(HAND_BANDS.AA, 'any')
   t.false('72o' in HAND_BANDS, 'the worst hand in Hold’em folds everywhere')
   t.is(HAND_BANDS.J9s, 'middle', 'the copy calls J9s a fold from the first seat')
+})
+
+// public/learn/starting-hands-chart.png is a flat picture of this grid,
+// generated in the marketing repo from these same lists and offered to anyone
+// who wants to repost it (components/learn/ReuseChart.tsx). Nothing in this
+// build can see inside a PNG, so editing a band here would leave the one image
+// we actively invite the internet to take showing the old grid, while every
+// page on the site still looked right. Pinning the bands turns that silence
+// into a failing test with the regenerate step written in it.
+test('the bands are pinned, because a standalone chart image ships from them', (t) => {
+  const fingerprint = createHash('sha256')
+    .update(JSON.stringify(Object.entries(HAND_BANDS).sort()))
+    .digest('hex')
+    .slice(0, 12)
+  t.is(
+    fingerprint,
+    '5b5da858de29',
+    'The bands changed. Regenerate public/learn/starting-hands-chart.png with the marketing repo’s assets/capture-harness/learn-art.mjs, put the new file’s real dimensions into config/learn.ts, then update this fingerprint.',
+  )
 })
