@@ -12,6 +12,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { useTheme } from '@/components/theme-provider'
+import { useTextScale } from '@/components/text-scale-provider'
+import { TEXT_SCALES, textScaleLabel } from '@/lib/textScale'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
@@ -39,11 +41,12 @@ export function SettingsDialog({
 
         <div className="flex min-w-0 flex-col gap-6 pt-1">
           <AppearanceSection />
+          <TextSizeSection />
           <SoundSection />
           <TableTalkSection />
           <TransferSection />
           <ResetSection />
-          <div className="flex flex-col items-center gap-1 text-[11px] tracking-wide text-muted-foreground/70">
+          <div className="flex flex-col items-center gap-1 text-2xs tracking-wide text-muted-foreground/70">
             <a
               href="/credits"
               className="underline-offset-2 transition hover:text-foreground hover:underline"
@@ -117,6 +120,69 @@ function AppearanceSection() {
         setTheme(isDark ? 'light' : 'dark')
       }}
     />
+  )
+}
+
+/**
+ * Text size: four steps up to 200%, which is what WCAG 1.4.4 asks for.
+ *
+ * Pinch-zoom is off by ruling (technology#6), so this is the route to a reader
+ * who needs bigger text, and it is the better one anyway: a setting rather than
+ * a gesture that pans you off the table mid-hand.
+ *
+ * Percentages rather than "Large / Larger": they are honest, they say what the
+ * step actually does, and 200% is a number some readers already know to look
+ * for. The labels are all one size on purpose. Drawing each button at its own
+ * scale previews the choice nicely and makes the row four times wider than the
+ * dialog at the top step, which is the wrong trade in a 384px sheet.
+ */
+function TextSizeSection() {
+  const { scale, setScale } = useTextScale()
+  const hydrated = useHydrated()
+  return (
+    <div>
+      <p className="text-sm font-medium">Text size</p>
+      <p className="text-xs text-muted-foreground">
+        Everything gets bigger, the table included. Your cards keep their shape.
+      </p>
+      {/* Real radios, visually hidden. A segmented control built from buttons
+          would need role="radio" and hand-rolled arrow-key handling; this gets
+          both from the browser, and it is the one control on the page a reader
+          who needs it may be driving with the keyboard. */}
+      <fieldset className="mt-2.5 flex items-stretch gap-1.5 rounded-xl bg-foreground/[0.06] p-1">
+        <legend className="sr-only">Text size</legend>
+        {TEXT_SCALES.map((step) => {
+          // Before hydration nothing is selected, for the same reason dark mode
+          // waits: the stored value is not readable during the server render.
+          const active = hydrated && scale === step
+          return (
+            <label
+              key={step}
+              className={cn(
+                'flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg text-sm font-medium tabular-nums transition',
+                'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+                active
+                  ? 'bg-background text-foreground shadow'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <input
+                type="radio"
+                name="text-size"
+                value={step}
+                checked={active}
+                onChange={() => {
+                  sound.play('tap')
+                  setScale(step)
+                }}
+                className="sr-only"
+              />
+              {textScaleLabel(step)}
+            </label>
+          )
+        })}
+      </fieldset>
+    </div>
   )
 }
 

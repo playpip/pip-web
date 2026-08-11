@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { THEME_BOOT_SCRIPT, ThemeProvider } from '@/components/theme-provider'
+import { TEXT_SCALE_BOOT_SCRIPT, TextScaleProvider } from '@/components/text-scale-provider'
 import { AppBoot } from '@/components/AppBoot'
 import { SyncConflictDialog } from '@/components/settings/SyncConflictDialog'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
@@ -82,7 +83,13 @@ export default function RootLayout({
             (and React never sees a client-rendered script). */}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-        <ThemeProvider>{children}</ThemeProvider>
+        {/* Same trick for the text size setting: root font size before first
+            paint, or every rem in the app reflows after hydration. */}
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}
+        <script dangerouslySetInnerHTML={{ __html: TEXT_SCALE_BOOT_SCRIPT }} />
+        <ThemeProvider>
+          <TextScaleProvider>{children}</TextScaleProvider>
+        </ThemeProvider>
         <AppBoot />
         <SyncConflictDialog />
         <UpdatePrompt />
