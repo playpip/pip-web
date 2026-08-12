@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { TheOrder } from '@/components/learn/TheOrder'
 import { Section } from '@/components/marketing/LegalPage'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import { guideBySlug, guideCardImage } from '@/config/learn'
@@ -110,6 +111,7 @@ export default function PositionGuide() {
           They pay for one and then hand back the other. That trade is the whole reason the blinds
           are the seats where money is lost.
         </p>
+        <TheOrder />
       </Section>
 
       <Section title="Why acting last is worth so much">

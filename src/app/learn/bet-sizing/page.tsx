@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { TwoPrices } from '@/components/learn/TwoPrices'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import {
@@ -113,6 +114,7 @@ export default function BetSizingGuide() {
           treat it as the worst case rather than the whole story. It is still the number that should
           stop you betting twice the pot with nothing.
         </p>
+        <TwoPrices />
       </Section>
 
       <Section title="Sizing when you have the best hand">

@@ -16,6 +16,8 @@ export interface Seat {
   id: string
   /** The name people use, which is what the page's table is keyed on. */
   name: string
+  /** The same seat with the table's own shorthand, for the ring diagram. */
+  short: string
   /**
    * Seats to the left of the button, so the button is 0 and the small blind
    * is 1. Both betting orders are a rotation of this and nothing else.
@@ -27,12 +29,12 @@ export interface Seat {
 
 /** In the order the page's table lists them, which is the preflop order. */
 export const SEATS: readonly Seat[] = [
-  { id: 'utg', name: 'Under the gun', offset: 3, opens: 'any' },
-  { id: 'mp', name: 'Middle', offset: 4, opens: 'middle' },
-  { id: 'co', name: 'Cutoff', offset: 5, opens: 'late' },
-  { id: 'btn', name: 'Button', offset: 0, opens: 'late' },
-  { id: 'sb', name: 'Small blind', offset: 1, opens: null },
-  { id: 'bb', name: 'Big blind', offset: 2, opens: null },
+  { id: 'utg', name: 'Under the gun', short: 'UTG', offset: 3, opens: 'any' },
+  { id: 'mp', name: 'Middle', short: 'MP', offset: 4, opens: 'middle' },
+  { id: 'co', name: 'Cutoff', short: 'CO', offset: 5, opens: 'late' },
+  { id: 'btn', name: 'Button', short: 'BTN', offset: 0, opens: 'late' },
+  { id: 'sb', name: 'Small blind', short: 'SB', offset: 1, opens: null },
+  { id: 'bb', name: 'Big blind', short: 'BB', offset: 2, opens: null },
 ]
 
 /**

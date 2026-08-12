@@ -113,6 +113,42 @@ export function betSizes(ids: readonly BetSizeId[]): BetSize[] {
   return BET_SIZES.filter((size) => ids.includes(size.id))
 }
 
+export interface SizeNote {
+  id: BetSizeId
+  /** One line, shown under the pair of figures the size sets. */
+  note: string
+}
+
+/**
+ * The sizes the TwoPrices widget offers, in the order it offers them, with the
+ * line each one earns. Ids only: the label and the fraction stay in BET_SIZES,
+ * so the widget and the table above it cannot print different numbers for the
+ * same size. The five are the four worth having plus the overbet, which is the
+ * one that shows what the trade costs when you push it.
+ */
+export const TWO_PRICE_SIZES: readonly SizeNote[] = [
+  {
+    id: 'third',
+    note: 'The best bluff size. It only has to work a quarter of the time.',
+  },
+  {
+    id: 'half',
+    note: 'The default. If you have not got a reason for another number, use this one.',
+  },
+  {
+    id: 'twothirds',
+    note: 'Where most value bets belong, and enough to make any single draw a losing call.',
+  },
+  {
+    id: 'pot',
+    note: 'Now the bluff has to work half the time. Rare, on purpose.',
+  },
+  {
+    id: 'overbet',
+    note: 'Charges them 40% and needs two folds in three. Everything worse than you folds, which is the wrong half of the table to lose.',
+  },
+]
+
 export interface Draw {
   id: string
   /** How the outs table names it. */
@@ -148,6 +184,15 @@ export interface WorkedSpot {
    * the evaluator by tests/guideClaims.test.ts. Not an estimate.
    */
   equity: number
+  /**
+   * The bet the spot faces, as a fraction of the pot. The pot is 100 in every
+   * spot, so this is the only number the ThePrice widget needs to draw a price
+   * bar, and requiredEquity() turns it into one. Typing the price instead is
+   * how a spot gets added with the wrong one in it.
+   */
+  betFraction: number
+  /** One line, shown under the bars. Says what the count misses in this spot. */
+  note: string
 }
 
 /**
@@ -170,6 +215,8 @@ export const WORKED_SPOTS: readonly WorkedSpot[] = [
     outsLabel: '9, a flush draw',
     countsOvercards: false,
     equity: 39.29,
+    betFraction: 0.5,
+    note: 'The count says nine outs. The runouts say 39.3%, because running straights and running pairs are worth something the count ignores. It is still a fold to this bet for one card.',
   },
   {
     id: 'flush-vs-set',
@@ -180,6 +227,8 @@ export const WORKED_SPOTS: readonly WorkedSpot[] = [
     outsLabel: '9, a flush draw',
     countsOvercards: false,
     equity: 27.37,
+    betFraction: 0.5,
+    note: 'The same nine outs, worth a third less. Every card that pairs the board makes the set a full house, and your flush arrives second.',
   },
   {
     id: 'monster-draw',
@@ -190,6 +239,8 @@ export const WORKED_SPOTS: readonly WorkedSpot[] = [
     outsLabel: '15, flush and overcards',
     countsOvercards: true,
     equity: 55.05,
+    betFraction: 1,
+    note: 'Fifteen outs is the one draw that is genuinely a favourite by the river, and still not quite priced in for one card. This is the hand people stack off with, and against a pot-sized bet they are close to right.',
   },
   {
     id: 'open-ended',
@@ -200,6 +251,8 @@ export const WORKED_SPOTS: readonly WorkedSpot[] = [
     outsLabel: '8, open-ended',
     countsOvercards: false,
     equity: 34.24,
+    betFraction: 0.5,
+    note: 'Eight outs. The rule of 4 says 32% by the river and the truth is 34.2%, so the shortcut is fine here. It is the one-card number that decides the call.',
   },
   {
     id: 'gutshot',
@@ -210,5 +263,7 @@ export const WORKED_SPOTS: readonly WorkedSpot[] = [
     outsLabel: '4, a gutshot',
     countsOvercards: false,
     equity: 20.3,
+    betFraction: 0.5,
+    note: 'A gutshot needs a bet under about a tenth of the pot before the immediate price works. It almost never is.',
   },
 ]

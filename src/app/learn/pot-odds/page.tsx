@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { ThePrice } from '@/components/learn/ThePrice'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import {
@@ -172,6 +173,7 @@ export default function PotOddsGuide() {
           There is a real defence of that call, and it is not the {pct(byRiverChance(FLUSH_OUTS))}%.
           It is implied odds, below.
         </p>
+        <ThePrice />
       </Section>
 
       <Section title="Outs are an estimate, and here is how wrong they get">
