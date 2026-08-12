@@ -100,7 +100,7 @@ export default function BetSizingGuide() {
           </tbody>
         </GuideTable>
         <p>
-          The two columns move in opposite directions and that is the whole trade.{' '}
+          Both columns climb together, and the trade is who each one costs.{' '}
           <strong className={strong}>
             Betting more charges them more and puts you further out on a limb.
           </strong>{' '}

@@ -1,5 +1,12 @@
 import test from 'ava'
-import { UNSEEN_AFTER_FLOP, WORKED_SPOTS, type WorkedSpot } from '@/config/potOdds'
+import {
+  UNSEEN_AFTER_FLOP,
+  WORKED_SPOTS,
+  type WorkedSpot,
+  betSizes,
+  breakevenFolds,
+  requiredEquity,
+} from '@/config/potOdds'
 import { RANKS, SUITS, cardFromString, cardToString, createDeck } from '@/lib/poker/cards'
 import { determineWinners, evaluateHand } from '@/lib/poker/handEval'
 
@@ -46,6 +53,34 @@ test('the worked hand: the villain has one pair, and his jack plays', (t) => {
 test('the worked hand deals no card twice', (t) => {
   const all = [...BOARD, ...HERO, ...VILLAIN]
   t.is(new Set(all).size, all.length)
+})
+
+// /learn/bet-sizing, "The two prices in every bet". The page shipped saying the
+// two columns move in opposite directions, which is wrong: bet/(pot + 2*bet)
+// and bet/(pot + bet) both rise with the bet. Nothing on the page was a wrong
+// number, so no check on this file could have caught it, and the sentence sat
+// live for a day. Pinned here because the corrected line still makes a claim
+// about the shape of the table, and the next person to add a size or reword the
+// paragraph needs the claim to argue back.
+test('both prices in the bet-sizing table climb together, they do not diverge', (t) => {
+  const sizes = betSizes(['third', 'half', 'twothirds', 'pot', 'overbet'])
+  for (let i = 1; i < sizes.length; i++) {
+    const previous = sizes[i - 1]
+    const size = sizes[i]
+    t.true(
+      requiredEquity(size.fraction) > requiredEquity(previous.fraction),
+      `${size.id}: the price you give them fell`,
+    )
+    t.true(
+      breakevenFolds(size.fraction) > breakevenFolds(previous.fraction),
+      `${size.id}: the price you pay fell`,
+    )
+  }
+  // And the pair the sentence is about: the bluff's price is the harder of the
+  // two at every size, which is why the paragraph reads as a warning.
+  for (const size of sizes) {
+    t.true(breakevenFolds(size.fraction) > requiredEquity(size.fraction), size.id)
+  }
 })
 
 // /learn/pot-odds, "Outs are an estimate, and here is how wrong they get".
