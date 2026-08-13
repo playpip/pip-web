@@ -64,6 +64,7 @@ export function Table() {
     blindLevel,
     newAwards,
     lastBounty,
+    lastRead,
     seatStats,
     talk,
     cashInvested,
@@ -430,6 +431,14 @@ export function Table() {
             <span>{message}</span>
             {lastBounty > 0 && (
               <span className="text-xs font-medium opacity-95">Bounty +{money(lastBounty)}</span>
+            )}
+            {/* The post-hand read (lib/coach). Most hands have none, so this is
+                usually absent. Width-capped because it is the only line here
+                that runs to a sentence, and the banner sits over the felt. */}
+            {lastRead && (
+              <span className="max-w-[min(26rem,78vw)] text-balance text-center text-xs font-medium leading-snug opacity-95">
+                {lastRead.text}
+              </span>
             )}
             {newAwards.map((a) => (
               <span key={a.id} className="flex items-center gap-1.5 text-xs font-medium opacity-95">
