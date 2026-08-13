@@ -44,6 +44,7 @@ export function SettingsDialog({
           <TextSizeSection />
           <SoundSection />
           <TableTalkSection />
+          <HandCoachingSection />
           <TransferSection />
           <ResetSection />
           <div className="flex flex-col items-center gap-1 text-2xs tracking-wide text-muted-foreground/70">
@@ -216,6 +217,23 @@ function TableTalkSection() {
       onChange={() => {
         sound.play('tap')
         setTableTalk(!tableTalk)
+      }}
+    />
+  )
+}
+
+/** The post-hand read (lib/coach). On by default, and quiet even then. */
+function HandCoachingSection() {
+  const handCoaching = useProfile((s) => s.handCoaching)
+  const setHandCoaching = useProfile((s) => s.setHandCoaching)
+  return (
+    <ToggleRow
+      label="Hand coaching"
+      hint="After a hand, one line on the call that mattered."
+      checked={handCoaching}
+      onChange={() => {
+        sound.play('tap')
+        setHandCoaching(!handCoaching)
       }}
     />
   )

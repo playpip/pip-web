@@ -78,6 +78,16 @@ test('a migrated profile can be handed straight to the challenge rules', (t) => 
   t.is(challenge?.rematch, false)
 })
 
+test('v12 → v13 turns per-hand coaching on for an existing player', (t) => {
+  // On rather than off: the read is quiet by design (most hands have none), and
+  // a player who does not want it will find the toggle long before they would
+  // find a setting that shipped silently off.
+  const v12 = { ...v11(), challengeWins: ['doris'], challengesPlayed: 2 }
+  const after = migrateProfile(v12, 12)
+  t.true(after.handCoaching)
+  t.deepEqual(after.challengeWins, ['doris'], 'nothing else moved')
+})
+
 test('an ancient profile survives the whole chain', (t) => {
   // A v1 save is a name, a Roll and nothing else. Every branch has to fire.
   const ancient = { created: true, name: 'Player', avatar: null, roll: 800 }
@@ -89,6 +99,7 @@ test('an ancient profile survives the whole chain', (t) => {
   t.deepEqual(p.castRecords, {})
   t.deepEqual(p.challengeWins, [])
   t.is(p.challengesPlayed, 0)
+  t.true(p.handCoaching)
   // v10 → v11 grandfathers the three card backs that moved into the Chip Shop.
   t.deepEqual([...p.owned].sort(), ['midnight', 'ocean', 'slate'])
 })

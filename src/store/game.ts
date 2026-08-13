@@ -17,6 +17,7 @@ import { freerollOpen, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
+import { readHand, type HandRead, type HeroDecision } from '@/lib/coach'
 import {
   startHand,
   applyAction,
@@ -71,6 +72,21 @@ export interface HandActionEvent {
   type: Action['type']
   /** Chips: the call size, or the total a bet/raise was to. */
   amount?: number
+  /**
+   * What the hero could see as they made this call. The hero's actions only,
+   * and only while the hand is live. Feeds the post-hand read (see lib/coach).
+   *
+   * Recorded here rather than worked out afterwards on purpose: the pot at a
+   * given moment can be rebuilt from the event list, but only by replaying
+   * blinds and per-street totals, and that arithmetic would go wrong silently.
+   * Taken from the live `HandState`, it cannot. It is also the guardrail: the
+   * snapshot holds what was on screen, so a read built from it cannot reach
+   * for a card the player never saw.
+   *
+   * Not carried by the `/hand` permalink wire format, so a decoded hand has
+   * none of these and gets no read. That is the intended behaviour.
+   */
+  decision?: HeroDecision
 }
 
 export interface HandBoardEvent {
@@ -118,6 +134,12 @@ interface GameState {
   handIndex: number
   /** Timeline of the previous completed hand (for the history dialog). */
   lastHand: HandRecord | null
+  /**
+   * One honest line on the hand just finished, or null when it had no lesson
+   * in it (most hands) or the player has the setting off. Shown on the handover
+   * banner and replaced at the end of the next hand.
+   */
+  lastRead: HandRead | null
   /** Award chips earned on the just-finished hand (for the quiet earn line). */
   newAwards: AwardDef[]
   /** Bounty chips collected on the just-finished hand (bounty tables). */
@@ -291,6 +313,29 @@ let vpipThisHand = new Set<string>()
 
 const statsFor = (id: string): SeatStats => (seatStatsLive[id] ??= emptySeatStats())
 
+/**
+ * Freeze what the hero can see at the moment they act, for the post-hand read.
+ *
+ * Everything here is already on their screen: the pot, the price, the board,
+ * and the same range tightness the ambient win% readout uses. Nothing about
+ * anyone's cards.
+ */
+function heroDecision(prev: HandState, toCall: number): HeroDecision | undefined {
+  const hero = prev.players.find((p) => p.id === HUMAN_ID)
+  if (!hero || hero.hole.length < 2) return undefined
+  const opponents = prev.players.filter(
+    (p) => p.id !== HUMAN_ID && p.status !== 'folded' && p.status !== 'out',
+  )
+  if (opponents.length === 0) return undefined
+  return {
+    pot: potSize(prev),
+    toCall,
+    opponents: opponents.length,
+    selectivity: opponents.map((p) => opponentSelectivity(prev, p)),
+    board: prev.community.slice(),
+  }
+}
+
 /** Record one action (and any board cards it dealt) into the running timeline. */
 function recordStep(prev: HandState, action: Action, next: HandState) {
   const actor = prev.players[prev.toActIndex]
@@ -308,6 +353,7 @@ function recordStep(prev: HandState, action: Action, next: HandState) {
       playerName: actor.name,
       type: action.type,
       amount,
+      decision: actor.id === HUMAN_ID ? heroDecision(prev, legal?.callAmount ?? 0) : undefined,
     })
 
     // Tendencies (feeds the reads in the player dialog).
@@ -480,7 +526,14 @@ export const useGame = create<GameState>((set, get) => {
         if (p.status !== 'folded' && p.status !== 'out') statsFor(p.id).showdowns++
       }
     }
-    set({ lastHand: buildHandRecord(hand, get()), seatStats: { ...seatStatsLive } })
+    // The read runs here rather than in the render path: it is several Monte
+    // Carlo estimates and the hand is already over, so nobody is waiting on it.
+    const record = buildHandRecord(hand, get())
+    set({
+      lastHand: record,
+      lastRead: useProfile.getState().handCoaching ? readHand(record) : null,
+      seatStats: { ...seatStatsLive },
+    })
     const heroWon = !!result && (result.payouts[HUMAN_ID] ?? 0) > 0
     const pot = potSize(hand)
 
@@ -798,6 +851,7 @@ export const useGame = create<GameState>((set, get) => {
     blindLevel: 0,
     handIndex: 0,
     lastHand: null,
+    lastRead: null,
     newAwards: [],
     lastBounty: 0,
     seatStats: {},
@@ -879,6 +933,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        lastRead: null,
         newAwards: [],
         lastBounty: 0,
         seatStats: {},
@@ -920,6 +975,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: snapshot.handIndex,
         lastHand: null,
+        lastRead: null,
         newAwards: [],
         lastBounty: 0,
         talk: null,
@@ -1002,6 +1058,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        lastRead: null,
         newAwards: [],
         lastBounty: 0,
         seatStats: {},
