@@ -93,6 +93,7 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     tableFinish: winner.tableFinish,
     tableTalk: winner.tableTalk,
     handCoaching: winner.handCoaching,
+    haptics: winner.haptics,
     cameFromFreeroll: winner.cameFromFreeroll,
 
     // The Daily is once per UTC day and abandoning counts as played, so the
@@ -282,6 +283,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'tableFinish',
     'tableTalk',
     'handCoaching',
+    'haptics',
     'cameFromFreeroll',
     'daily',
     'challengeWins',

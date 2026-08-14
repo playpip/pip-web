@@ -17,6 +17,7 @@ import { TEXT_SCALES, textScaleLabel } from '@/lib/textScale'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
+import { haptics } from '@/lib/haptics'
 import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +44,7 @@ export function SettingsDialog({
           <AppearanceSection />
           <TextSizeSection />
           <SoundSection />
+          <HapticsSection />
           <TableTalkSection />
           <HandCoachingSection />
           <TransferSection />
@@ -217,6 +219,39 @@ function TableTalkSection() {
       onChange={() => {
         sound.play('tap')
         setTableTalk(!tableTalk)
+      }}
+    />
+  )
+}
+
+/**
+ * Vibration on the physical moments (lib/haptics). Off by default, because a
+ * buzz nobody asked for is exactly the casino tell the app is built against.
+ *
+ * The row hides itself where the browser cannot vibrate at all, which is every
+ * iPhone and every Safari. A toggle that provably does nothing is worse than no
+ * toggle: it reads as a broken feature rather than an absent one. It is gated
+ * on `useHydrated` because the server cannot know, and rendering the row and
+ * then removing it is a hydration mismatch.
+ *
+ * Turning it on fires one buzz, deliberately. You should feel the thing you
+ * just switched on, and it is the only way to check it works on your device.
+ */
+function HapticsSection() {
+  const hydrated = useHydrated()
+  const enabled = useProfile((s) => s.haptics)
+  const setHaptics = useProfile((s) => s.setHaptics)
+  if (!hydrated || !haptics.supported()) return null
+  return (
+    <ToggleRow
+      label="Vibration"
+      hint="A short tap on the deal, your chips going in, and a pot won."
+      checked={enabled}
+      onChange={() => {
+        const next = !enabled
+        sound.play('tap')
+        setHaptics(next)
+        if (next) haptics.fire('commit')
       }}
     />
   )

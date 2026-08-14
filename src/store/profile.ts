@@ -106,6 +106,8 @@ export interface ProfileState {
   tableTalk: boolean
   /** One honest read on the hand you just played (see lib/coach). On by default. */
   handCoaching: boolean
+  /** Short vibration on the physical moments (see lib/haptics). Off by default. */
+  haptics: boolean
   /** The most recent Daily Deal played (only today's gates anything). */
   daily: DailyRecord | null
   /** Chip Shop purchases (item ids). Style, never edge — see docs/shop.md. */
@@ -140,6 +142,7 @@ export interface ProfileState {
   recordChallenge: (characterId: string, won: boolean) => void
   setTableTalk: (value: boolean) => void
   setHandCoaching: (value: boolean) => void
+  setHaptics: (value: boolean) => void
   /** Buy a Chip Shop item: deducts the price, records ownership. No-op if owned or short. */
   buyItem: (id: string, price: number) => void
   setDeckFace: (id: string) => void
@@ -158,7 +161,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 13
+export const PERSIST_VERSION = 14
 const PERSIST_KEY = 'pip.profile'
 
 export const useProfile = create<ProfileState>()(
@@ -179,6 +182,7 @@ export const useProfile = create<ProfileState>()(
       castRecords: {},
       tableTalk: true,
       handCoaching: true,
+      haptics: false,
       daily: null,
       owned: [],
       deckFace: 'classic',
@@ -245,6 +249,7 @@ export const useProfile = create<ProfileState>()(
         })),
       setTableTalk: (value) => set({ tableTalk: value }),
       setHandCoaching: (value) => set({ handCoaching: value }),
+      setHaptics: (value) => set({ haptics: value }),
       buyItem: (id, price) =>
         set((s) => {
           // Spending never moves peakRoll — rank is about winnings, not thrift.
@@ -307,6 +312,7 @@ export const useProfile = create<ProfileState>()(
           castRecords: {},
           tableTalk: true,
           handCoaching: true,
+          haptics: false,
           daily: null,
           owned: [],
           deckFace: 'classic',
@@ -392,6 +398,10 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // not want it will find the toggle faster than they would find the setting
   // that was silently off.
   if (fromVersion < 13) s.handCoaching = true
+  // v13 -> v14: haptics. Off, for everyone. Sound and table talk both default
+  // on because neither can startle you; a vibration can, and one that nobody
+  // asked for reads as a casino tell in an app whose whole pitch is calm.
+  if (fromVersion < 14) s.haptics = false
   return s
 }
 

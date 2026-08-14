@@ -88,6 +88,15 @@ test('v12 → v13 turns per-hand coaching on for an existing player', (t) => {
   t.deepEqual(after.challengeWins, ['doris'], 'nothing else moved')
 })
 
+test('v13 → v14 leaves haptics off for an existing player', (t) => {
+  // Off, and not "off unless they seem like the type". A vibration nobody
+  // asked for is the one thing in this build that can startle someone.
+  const v13 = { ...v11(), challengeWins: [], challengesPlayed: 0, handCoaching: true }
+  const after = migrateProfile(v13, 13)
+  t.false(after.haptics)
+  t.true(after.handCoaching, 'the post-hand read was not disturbed')
+})
+
 test('an ancient profile survives the whole chain', (t) => {
   // A v1 save is a name, a Roll and nothing else. Every branch has to fire.
   const ancient = { created: true, name: 'Player', avatar: null, roll: 800 }
@@ -100,6 +109,7 @@ test('an ancient profile survives the whole chain', (t) => {
   t.deepEqual(p.challengeWins, [])
   t.is(p.challengesPlayed, 0)
   t.true(p.handCoaching)
+  t.false(p.haptics)
   // v10 → v11 grandfathers the three card backs that moved into the Chip Shop.
   t.deepEqual([...p.owned].sort(), ['midnight', 'ocean', 'slate'])
 })

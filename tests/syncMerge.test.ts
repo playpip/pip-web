@@ -39,6 +39,7 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     castRecords: {},
     tableTalk: true,
     handCoaching: true,
+    haptics: false,
     daily: null,
     owned: [],
     deckFace: 'classic',
