@@ -104,8 +104,8 @@ export interface ProfileState {
   castRecords: Record<string, CastRecord>
   /** Rare one-line character flavour at the table (see docs/cast.md). */
   tableTalk: boolean
-  /** One honest read on the hand you just played (see lib/coach). On by default. */
-  handCoaching: boolean
+  /** "Second opinion": one read on the hand you just played (lib/coach). On by default. */
+  secondOpinion: boolean
   /** The most recent Daily Deal played (only today's gates anything). */
   daily: DailyRecord | null
   /** Chip Shop purchases (item ids). Style, never edge — see docs/shop.md. */
@@ -139,7 +139,7 @@ export interface ProfileState {
   /** A challenge finished. Any outcome rotates the challenger; only a win records the scalp. */
   recordChallenge: (characterId: string, won: boolean) => void
   setTableTalk: (value: boolean) => void
-  setHandCoaching: (value: boolean) => void
+  setSecondOpinion: (value: boolean) => void
   /** Buy a Chip Shop item: deducts the price, records ownership. No-op if owned or short. */
   buyItem: (id: string, price: number) => void
   setDeckFace: (id: string) => void
@@ -178,7 +178,7 @@ export const useProfile = create<ProfileState>()(
       cameFromFreeroll: false,
       castRecords: {},
       tableTalk: true,
-      handCoaching: true,
+      secondOpinion: true,
       daily: null,
       owned: [],
       deckFace: 'classic',
@@ -244,7 +244,7 @@ export const useProfile = create<ProfileState>()(
               : s.challengeWins,
         })),
       setTableTalk: (value) => set({ tableTalk: value }),
-      setHandCoaching: (value) => set({ handCoaching: value }),
+      setSecondOpinion: (value) => set({ secondOpinion: value }),
       buyItem: (id, price) =>
         set((s) => {
           // Spending never moves peakRoll — rank is about winnings, not thrift.
@@ -306,7 +306,7 @@ export const useProfile = create<ProfileState>()(
           cameFromFreeroll: false,
           castRecords: {},
           tableTalk: true,
-          handCoaching: true,
+          secondOpinion: true,
           daily: null,
           owned: [],
           deckFace: 'classic',
@@ -387,11 +387,11 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
     s.challengeWins = []
     s.challengesPlayed = 0
   }
-  // v12 -> v13: per-hand coaching. On for everyone, new and existing: it is
+  // v12 -> v13: the second opinion. On for everyone, new and existing: it is
   // quiet by design (most hands have no read in them) and a player who does
   // not want it will find the toggle faster than they would find the setting
   // that was silently off.
-  if (fromVersion < 13) s.handCoaching = true
+  if (fromVersion < 13) s.secondOpinion = true
   return s
 }
 

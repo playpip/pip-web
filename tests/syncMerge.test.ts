@@ -38,7 +38,7 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     cameFromFreeroll: false,
     castRecords: {},
     tableTalk: true,
-    handCoaching: true,
+    secondOpinion: true,
     daily: null,
     owned: [],
     deckFace: 'classic',

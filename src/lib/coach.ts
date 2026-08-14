@@ -1,5 +1,12 @@
 /**
- * Per-hand coaching: one honest read on the hand you just played.
+ * One honest read on the hand you just played. Shipped as **"Second opinion"**;
+ * this module keeps the shorter internal name, and the two are one feature.
+ *
+ * The label is deliberate (CMO, technology#46). A coach is someone whose job is
+ * to correct you, and this is a peer looking over your shoulder. It also has to
+ * survive being silent most hands: a coach who says nothing for twenty hands
+ * has stopped doing their job, whereas someone with no second opinion to offer
+ * simply had nothing to add, which is exactly what `null` means below.
  *
  * Not a report card on every action. One moment, named, with the arithmetic
  * that makes it true, or nothing at all. A hand where you folded 72o preflop

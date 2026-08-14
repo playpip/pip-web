@@ -531,7 +531,7 @@ export const useGame = create<GameState>((set, get) => {
     const record = buildHandRecord(hand, get())
     set({
       lastHand: record,
-      lastRead: useProfile.getState().handCoaching ? readHand(record) : null,
+      lastRead: useProfile.getState().secondOpinion ? readHand(record) : null,
       seatStats: { ...seatStatsLive },
     })
     const heroWon = !!result && (result.payouts[HUMAN_ID] ?? 0) > 0

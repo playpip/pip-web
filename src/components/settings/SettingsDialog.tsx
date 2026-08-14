@@ -44,7 +44,7 @@ export function SettingsDialog({
           <TextSizeSection />
           <SoundSection />
           <TableTalkSection />
-          <HandCoachingSection />
+          <SecondOpinionSection />
           <TransferSection />
           <ResetSection />
           <div className="flex flex-col items-center gap-1 text-2xs tracking-wide text-muted-foreground/70">
@@ -222,18 +222,24 @@ function TableTalkSection() {
   )
 }
 
-/** The post-hand read (lib/coach). On by default, and quiet even then. */
-function HandCoachingSection() {
-  const handCoaching = useProfile((s) => s.handCoaching)
-  const setHandCoaching = useProfile((s) => s.setHandCoaching)
+/**
+ * The post-hand read (lib/coach). On by default, and quiet even then.
+ *
+ * The hint's second sentence is load-bearing: it puts "most hands do not get
+ * one" on the surface where a player meets the feature, so silence reads as
+ * normal rather than as a bug.
+ */
+function SecondOpinionSection() {
+  const secondOpinion = useProfile((s) => s.secondOpinion)
+  const setSecondOpinion = useProfile((s) => s.setSecondOpinion)
   return (
     <ToggleRow
-      label="Hand coaching"
-      hint="After a hand, one line on the call that mattered."
-      checked={handCoaching}
+      label="Second opinion"
+      hint="After a hand, one line on the call that mattered. Most hands do not get one."
+      checked={secondOpinion}
       onChange={() => {
         sound.play('tap')
-        setHandCoaching(!handCoaching)
+        setSecondOpinion(!secondOpinion)
       }}
     />
   )
