@@ -222,14 +222,27 @@ function TableTalkSection() {
   )
 }
 
-/** The post-hand read (lib/coach). On by default, and quiet even then. */
+/**
+ * The post-hand read (lib/coach). On by default, and quiet even then.
+ *
+ * **The label is "Second opinion" and the store field is `handCoaching`.** They
+ * disagree on purpose. The rename was worth doing while `PERSIST_VERSION` 13
+ * was unshipped; it shipped on 14 Aug in v1.11.0, so renaming the field now
+ * costs a migration, and a v13 profile that came through the shallow persist
+ * merge without one would quietly get the setting switched back on. An
+ * internal name is not worth flipping a preference somebody chose.
+ *
+ * The hint's second sentence is load-bearing: it puts "most hands do not get
+ * one" on the surface where a player meets the feature, so silence reads as
+ * normal rather than as a bug.
+ */
 function HandCoachingSection() {
   const handCoaching = useProfile((s) => s.handCoaching)
   const setHandCoaching = useProfile((s) => s.setHandCoaching)
   return (
     <ToggleRow
-      label="Hand coaching"
-      hint="After a hand, one line on the call that mattered."
+      label="Second opinion"
+      hint="After a hand, one line on the call that mattered. Most hands do not get one."
       checked={handCoaching}
       onChange={() => {
         sound.play('tap')
