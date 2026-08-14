@@ -2,17 +2,23 @@ import { createHash } from 'node:crypto'
 import test from 'ava'
 import {
   BAND_LISTS,
+  BOARDS_BY_SUIT_HELP,
   CHART_RANKS,
   chartHand,
   comboCount,
   cumulativeShare,
   dealtOdds,
+  FLOPS_BY_PAIR_HELP,
+  FLUSH_BY_THE_RIVER,
+  groupOdds,
   HAND_BANDS,
   HAND_NOTES,
   handCards,
+  POCKET_PAIRS,
+  SET_OR_BETTER_ON_THE_FLOP,
   TOTAL_COMBOS,
 } from '@/config/startingHands'
-import { cardToString } from '@/lib/poker/cards'
+import { cardToString, createDeck } from '@/lib/poker/cards'
 
 // The chart on /learn/starting-hands is 169 cells, and the prose above it says
 // the bands cover 13%, 20% and 41% of hands. A reader cannot check either. So
@@ -99,6 +105,81 @@ test('every cell quotes a share of the deck, and the 169 of them add to all of i
     CHART_RANKS.map((__, col) => dealtOdds(chartHand(row, col)).pct),
   ).reduce((sum, pct) => sum + pct, 0)
   t.is(total.toFixed(4), '100.0000')
+})
+
+// The five rows of the "How often you actually get the good stuff" table name a
+// group of cells each. The page used to type the ten figures out; it now names
+// the cells and derives both, which is checkable, and this is the check.
+
+test('a group of cells covering the whole grid is all of the deck, once', (t) => {
+  const all = groupOdds([...ALL_HANDS])
+  t.is(all.pct, 100)
+  t.is(all.oneIn, 1)
+})
+
+test('the frequency table quotes the share the cells it names actually cover', (t) => {
+  const rows: [readonly string[], string, number][] = [
+    [POCKET_PAIRS, '5.88', 17],
+    [['AA', 'KK', 'QQ'], '1.36', 74],
+    [['AKs', 'AKo'], '1.21', 83],
+    [['AA'], '0.45', 221],
+    [['AKs'], '0.30', 332],
+  ]
+  for (const [hands, pct, oneIn] of rows) {
+    const odds = groupOdds(hands)
+    t.is(odds.pct.toFixed(2), pct, hands.join('/'))
+    t.is(odds.oneIn, oneIn, hands.join('/'))
+  }
+  t.is(POCKET_PAIRS.length, 13)
+})
+
+// The two run-out figures. Each bucket list has to account for every board
+// there is, which is why they are counts and not the percentages that used to
+// sit in the page: a percentage is not a claim you can check by construction.
+
+test('the flop buckets for a pocket pair account for every flop', (t) => {
+  t.is(
+    FLOPS_BY_PAIR_HELP.reduce((a, b) => a + b, 0),
+    (50 * 49 * 48) / 6,
+  )
+  t.is((SET_OR_BETTER_ON_THE_FLOP * 100).toFixed(1), '11.8')
+  // The copy also says "once in every eight and a half hands", in words, and
+  // HAND_NOTES['22'] prints the same figure as a number.
+  t.is((1 / SET_OR_BETTER_ON_THE_FLOP).toFixed(1), '8.5')
+  t.true(HAND_NOTES['22'].includes('once in 8.5 hands'))
+})
+
+test('counting the flops one at a time agrees with the buckets', (t) => {
+  // Independent of the binomials above: deal 2♠2♥ and walk all 19,600 flops.
+  // "A set or better" means a flop carrying one of the two 2s left, which is
+  // not the same as the evaluator's "three of a kind": on a board of three aces
+  // you hold a full house you did not make. The 11.8% is the first thing.
+  const rest = createDeck().filter((c) => cardToString(c) !== '2s' && cardToString(c) !== '2h')
+  t.is(rest.length, 50)
+  let flops = 0
+  let helped = 0
+  for (let a = 0; a < rest.length; a++) {
+    for (let b = a + 1; b < rest.length; b++) {
+      for (let c = b + 1; c < rest.length; c++) {
+        flops++
+        if ([rest[a], rest[b], rest[c]].some((card) => card.rank === '2')) helped++
+      }
+    }
+  }
+  t.is(
+    flops,
+    FLOPS_BY_PAIR_HELP.reduce((x, y) => x + y, 0),
+  )
+  t.is(helped, FLOPS_BY_PAIR_HELP[1] + FLOPS_BY_PAIR_HELP[2])
+})
+
+test('the board buckets for a suited hand account for every board', (t) => {
+  const boards = BOARDS_BY_SUIT_HELP.reduce((a, b) => a + b, 0)
+  t.is(boards, (50 * 49 * 48 * 47 * 46) / 120)
+  t.is((FLUSH_BY_THE_RIVER * 100).toFixed(1), '6.4')
+  // Nothing in the eleven remaining cards of your suit can make a flush with
+  // fewer than three on the board, so the first three buckets are not flushes.
+  t.is(BOARDS_BY_SUIT_HELP.length, 6)
 })
 
 test('a cell shows two real cards of the shape its notation claims', (t) => {

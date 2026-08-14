@@ -5,7 +5,14 @@ import { StartingHandChart } from '@/components/learn/StartingHandChart'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
-import { cumulativeShare } from '@/config/startingHands'
+import {
+  FLUSH_BY_THE_RIVER,
+  POCKET_PAIRS,
+  SET_OR_BETTER_ON_THE_FLOP,
+  SUITED_MATCHUPS,
+  cumulativeShare,
+  groupOdds,
+} from '@/config/startingHands'
 
 const guide = guideBySlug('starting-hands')!
 
@@ -29,20 +36,37 @@ const SHARE = {
   late: Math.round(cumulativeShare('late')),
 }
 
-const SUITED_PREMIUM = [
-  { hand: 'A♠K♠ against Q♣Q♦', equity: '46.2%', note: '' },
-  { hand: 'A♠K♥ against Q♣Q♦', equity: '42.8%', note: '3.4 points for the suits' },
-  { hand: '7♠6♠ against T♣T♦', equity: '21.6%', note: '' },
-  { hand: '7♠6♥ against T♣T♦', equity: '17.8%', note: '3.8 points for the suits' },
-] as const
+// The suited row, then the offsuit one, and the note beside the offsuit row is
+// the difference between the two cells above it rather than a typed 3.4, so a
+// change to either equity moves the note with it.
+const SUITED_PREMIUM = SUITED_MATCHUPS.flatMap(({ cards, against, equity }) =>
+  cards.map((hand, i) => ({
+    hand: `${hand} against ${against}`,
+    equity: `${equity[i].toFixed(1)}%`,
+    note: i === 0 ? '' : `${(equity[0] - equity[i]).toFixed(1)} points for the suits`,
+  })),
+)
 
-const DEALT = [
-  { what: 'Any pocket pair', pct: '5.88%', roughly: '1 in 17 hands' },
-  { what: 'Aces, kings or queens', pct: '1.36%', roughly: '1 in 74' },
-  { what: 'Ace-king, suited or not', pct: '1.21%', roughly: '1 in 83' },
-  { what: 'A named pair, say aces', pct: '0.45%', roughly: '1 in 221' },
-  { what: 'A named suited hand, say ace-king suited', pct: '0.30%', roughly: '1 in 332' },
-] as const
+// Named as the cells they cover rather than as five typed percentages. Both
+// figures in each row fall out of the combination counts, and those have to add
+// to 1,326 across the whole grid, which is a test. A typed 5.88% is a promise.
+const DEALT_GROUPS: { what: string; hands: readonly string[]; suffix?: string }[] = [
+  { what: 'Any pocket pair', hands: POCKET_PAIRS, suffix: ' hands' },
+  { what: 'Aces, kings or queens', hands: ['AA', 'KK', 'QQ'] },
+  { what: 'Ace-king, suited or not', hands: ['AKs', 'AKo'] },
+  { what: 'A named pair, say aces', hands: ['AA'] },
+  { what: 'A named suited hand, say ace-king suited', hands: ['AKs'] },
+]
+
+const DEALT = DEALT_GROUPS.map(({ what, hands, suffix }) => {
+  const { pct, oneIn } = groupOdds(hands)
+  return { what, pct: `${pct.toFixed(2)}%`, roughly: `1 in ${oneIn}${suffix ?? ''}` }
+})
+
+// The three figures the prose quotes in its own sentences, same rule.
+const PAIR_PCT = groupOdds(POCKET_PAIRS).pct.toFixed(1)
+const SET_PCT = (SET_OR_BETTER_ON_THE_FLOP * 100).toFixed(1)
+const FLUSH_PCT = (FLUSH_BY_THE_RIVER * 100).toFixed(1)
 
 const strong = 'font-medium text-foreground'
 
@@ -117,10 +141,10 @@ export default function StartingHandsGuide() {
         </p>
         <p>
           <strong className={strong}>Being a pair already.</strong> You start with a made hand
-          nobody has to help you find. Pocket pairs are rare, at 5.9% of hands, and small ones are
-          worth playing mostly because of what they can become: a pocket pair flops a set or better{' '}
-          <strong className={strong}>11.8% of the time</strong>, which is once in every eight and a
-          half hands. That is the whole business case for playing 44.
+          nobody has to help you find. Pocket pairs are rare, at {PAIR_PCT}% of hands, and small
+          ones are worth playing mostly because of what they can become: a pocket pair flops a set
+          or better <strong className={strong}>{SET_PCT}% of the time</strong>, which is once in
+          every eight and a half hands. That is the whole business case for playing 44.
         </p>
         <p>
           <strong className={strong}>Cards that work together.</strong> Connected cards make
@@ -131,8 +155,8 @@ export default function StartingHandsGuide() {
         <p>
           <strong className={strong}>Being suited.</strong> This one is real and it is smaller than
           people think. Two suited cards make a flush by the river{' '}
-          <strong className={strong}>6.4% of the time</strong>, so a flush is not the plan, it is a
-          bonus. Priced properly:
+          <strong className={strong}>{FLUSH_PCT}% of the time</strong>, so a flush is not the plan,
+          it is a bonus. Priced properly:
         </p>
         <GuideTable>
           <thead>
@@ -175,7 +199,7 @@ export default function StartingHandsGuide() {
           it is <GuideLink slug="hand-rankings">kickers</GuideLink> doing the damage.
         </p>
         <p>
-          <strong className={strong}>Any two suited cards.</strong> 6.4%. See above.
+          <strong className={strong}>Any two suited cards.</strong> {FLUSH_PCT}%. See above.
         </p>
         <p>
           <strong className={strong}>Face cards that do not match.</strong> KJo, QJo and JTo look

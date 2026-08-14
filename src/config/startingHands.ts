@@ -182,13 +182,77 @@ export function cumulativeShare(band: Band): number {
 }
 
 /**
+ * How often a group of cells is dealt, as a percentage and as a "1 in n". The
+ * prose table quotes five of these, and it names the cells rather than typing
+ * the percentages, because the combination counts have an identity behind them
+ * (all 169 of them add to 1,326) and a typed percentage has nothing.
+ */
+export function groupOdds(hands: readonly string[]): { pct: number; oneIn: number } {
+  const combos = hands.reduce((sum, hand) => sum + comboCount(hand), 0)
+  return { pct: (combos / TOTAL_COMBOS) * 100, oneIn: Math.round(TOTAL_COMBOS / combos) }
+}
+
+/**
  * How often a hand is dealt. Computed from the combination count rather than
  * written out, so there is no table of 169 numbers to keep correct.
  */
 export function dealtOdds(hand: string): { pct: number; oneIn: number } {
-  const combos = comboCount(hand)
-  return { pct: (combos / TOTAL_COMBOS) * 100, oneIn: Math.round(TOTAL_COMBOS / combos) }
+  return groupOdds([hand])
 }
+
+/** The thirteen pairs, in chart order. Quoted as a group by the copy. */
+export const POCKET_PAIRS = CHART_RANKS.map((rank) => `${rank}${rank}`)
+
+// --- what a starting hand becomes ------------------------------------------
+//
+// Two facts the copy quotes about the run-out rather than the deal. Same rule
+// as everything above: they are counts of boards, not typed percentages. Each
+// board falls in exactly one bucket, so a bucket list has to add to the number
+// of boards there are, and that sum is the test. Retyping "11.8%" into a test
+// would have checked nothing.
+
+/** n choose k, for the small n these two facts need. */
+function choose(n: number, k: number): number {
+  let result = 1
+  for (let i = 0; i < k; i++) result = (result * (n - i)) / (i + 1)
+  return Math.round(result)
+}
+
+const sum = (counts: readonly number[]): number => counts.reduce((a, b) => a + b, 0)
+
+/**
+ * The 19,600 flops you can see holding a pocket pair, split by how many of the
+ * three cards match your rank: none, one (a set), both (quads). Two or more of
+ * the 48 that miss can still pair the board, but that is the board's pair and
+ * not yours, which is the distinction the copy is drawing.
+ */
+export const FLOPS_BY_PAIR_HELP = [0, 1, 2].map((k) => choose(2, k) * choose(48, 3 - k))
+
+/**
+ * The 2,118,760 five-card boards you can see holding two of a suit, split by
+ * how many of the board's cards share it. Three or more is a flush.
+ */
+export const BOARDS_BY_SUIT_HELP = [0, 1, 2, 3, 4, 5].map((k) => choose(11, k) * choose(39, 5 - k))
+
+/** How often a pocket pair flops a set or better. */
+export const SET_OR_BETTER_ON_THE_FLOP = sum(FLOPS_BY_PAIR_HELP.slice(1)) / sum(FLOPS_BY_PAIR_HELP)
+
+/** How often two suited cards make a flush by the river. */
+export const FLUSH_BY_THE_RIVER = sum(BOARDS_BY_SUIT_HELP.slice(3)) / sum(BOARDS_BY_SUIT_HELP)
+
+/**
+ * The suited-versus-offsuit table on the page: the same two cards suited and
+ * then offsuit, against the same opponent. The equities are simulation output
+ * and nothing here can check them (the repo's equity module is Monte-Carlo, so
+ * an exact answer would mean enumerating C(48,5) boards in the gate). What is
+ * checked is the claim the page makes *about* the table (that suitedness is
+ * worth three to four points), in tests/guideClaims.test.ts. The right-hand
+ * note is the pair's own subtraction, so it cannot disagree with the cells.
+ */
+export const SUITED_MATCHUPS = [
+  { cards: ['A♠K♠', 'A♠K♥'], against: 'Q♣Q♦', equity: [46.2, 42.8] },
+  { cards: ['7♠6♠', '7♠6♥'], against: 'T♣T♦', equity: [21.6, 17.8] },
+] as const
 
 // Suits are arbitrary here (a hand is "AKs", not "A♠K♠"), so the detail panel
 // picks a fixed pair rather than a random one, and reads the same every visit.
@@ -217,7 +281,7 @@ export const HAND_NOTES: Record<string, string> = {
     'The worst hand in Hold’em: the lowest two cards that cannot make a straight together, and unsuited.',
   A5s: 'Better than it looks. The ace still plays as the highest card, and A-2-3-4-5 is a straight, so the gap between the two cards is not the dead weight it appears to be.',
   KJo: 'Looks like a raise and behaves like a trap. It makes second-best pairs against the hands that raise.',
-  '22': 'Worth playing for what it becomes, not what it is. Flops a set once in 8.5 hands.',
+  '22': `Worth playing for what it becomes, not what it is. Flops a set once in ${(1 / SET_OR_BETTER_ON_THE_FLOP).toFixed(1)} hands.`,
   JTs: 'The most connected hand on the chart. Straights, flushes and two decent pairs.',
   ATo: 'The most overplayed hand in poker. Top pair, bad kicker, wins small and loses big.',
 }

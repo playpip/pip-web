@@ -7,6 +7,7 @@ import {
   breakevenFolds,
   requiredEquity,
 } from '@/config/potOdds'
+import { SUITED_MATCHUPS } from '@/config/startingHands'
 import { RANKS, SUITS, cardFromString, cardToString, createDeck } from '@/lib/poker/cards'
 import { determineWinners, evaluateHand } from '@/lib/poker/handEval'
 
@@ -80,6 +81,28 @@ test('both prices in the bet-sizing table climb together, they do not diverge', 
   // two at every size, which is why the paragraph reads as a warning.
   for (const size of sizes) {
     t.true(breakevenFolds(size.fraction) > requiredEquity(size.fraction), size.id)
+  }
+})
+
+// /learn/starting-hands, "Being suited". Four equities against a fixed hand,
+// and the bold sentence under them says suitedness is "worth about three to
+// four points" and is "a tiebreaker, not a transformation". That is a claim
+// about the shape of the table, the same class as the one above and the same
+// class as the rarity sentence on /learn/hand-rankings.
+//
+// The four equities are simulation output. Nothing here can settle them: the
+// repo's equity module is Monte-Carlo, and an exact answer means enumerating
+// C(48,5) boards per row inside the gate. So this pins what the prose asserts,
+// which is the difference between the rows, not the rows themselves.
+test('suitedness is worth three to four points in every row of the table', (t) => {
+  for (const { cards, equity } of SUITED_MATCHUPS) {
+    const [suited, offsuit] = equity
+    const gain = suited - offsuit
+    t.true(gain > 0, `${cards[0]}: the suited hand is not ahead of the offsuit one`)
+    t.true(gain >= 3 && gain <= 4, `${cards[0]}: ${gain.toFixed(1)} points is not "three to four"`)
+    // "A tiebreaker, not a transformation": the suits never turn a hand that is
+    // behind into one that is ahead. Both rows are underdogs to the pair.
+    t.true(suited < 50, `${cards[0]}: suited, this is no longer the underdog the passage says`)
   }
 })
 
