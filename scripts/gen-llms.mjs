@@ -72,6 +72,7 @@ const PAGES = [
   { route: '/', file: 'index.html' },
   { route: '/learn', file: 'learn.html' },
   { route: '/play-poker-free-no-signup', file: 'play-poker-free-no-signup.html' },
+  { route: '/poker-odds-calculator', file: 'poker-odds-calculator.html' },
   { route: '/blog', file: 'blog.html' },
   { route: '/credits', file: 'credits.html' },
   { route: '/privacy', file: 'privacy.html' },
@@ -192,7 +193,9 @@ function decodeEntities(text) {
 /** The page's <title> without the site suffix, and its meta description. */
 function readMeta(html) {
   const title = decodeEntities(html.match(/<title>([^<]*)<\/title>/)?.[1] ?? '')
-    .replace(/\s*[·—-]\s*Pip\s*$/u, '')
+    // Pages separate the site name with ·, an em dash or a pipe, depending on
+    // whether the title is prose or a search-result headline.
+    .replace(/\s*[·—|-]\s*Pip\s*$/u, '')
     .trim()
   const description = decodeEntities(
     html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? '',
