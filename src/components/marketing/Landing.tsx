@@ -64,6 +64,12 @@ function Header() {
     <header className="sticky top-0 z-40 border-b border-foreground/5 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 md:px-10">
         <Wordmark />
+        {/* On a phone this bar is the wordmark, one wayfinding link and the CTA,
+            and nothing else: six controls across 357px was the crowding Will
+            reported. Blog, GitHub and the theme toggle are hidden below `sm`
+            rather than removed, so they stay in the DOM for crawlers, and every
+            one of them is in the footer of this same page. Learn is the one
+            that stays because it is the content hub we send people to. */}
         <nav className="flex items-center gap-1">
           <a
             href="#features"
@@ -85,7 +91,7 @@ function Header() {
           </Link>
           <Link
             href="/blog"
-            className="rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+            className="hidden rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:block"
           >
             Blog
           </Link>
@@ -94,11 +100,11 @@ function Header() {
             target="_blank"
             rel="noreferrer"
             aria-label="Pip on GitHub"
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+            className="hidden rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground sm:block"
           >
             <FaGithub className="size-4" />
           </a>
-          <ThemeToggle />
+          <ThemeToggle className="hidden sm:block" />
           <PlayButton size="sm" className="ml-1" />
         </nav>
       </div>

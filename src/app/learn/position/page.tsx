@@ -13,7 +13,7 @@ import {
   preflopPlace,
 } from '@/config/positions'
 import { contentAlternates, contentSocial } from '@/config/site'
-import { type Band, cumulativeShare } from '@/config/startingHands'
+import { BAND_ROUGHLY, type Band, cumulativeShare } from '@/config/startingHands'
 
 const guide = guideBySlug('position')!
 
@@ -40,9 +40,9 @@ const SHARE: Record<Band, number> = {
 }
 
 const OPENING = [
-  { seat: 'Early', band: 'any' as const, roughly: 'one hand in eight' },
-  { seat: 'Middle', band: 'middle' as const, roughly: 'one in five' },
-  { seat: 'Late, the cutoff or the button', band: 'late' as const, roughly: 'two in five' },
+  { seat: 'Early', band: 'any' as const },
+  { seat: 'Middle', band: 'middle' as const },
+  { seat: 'Late, the cutoff or the button', band: 'late' as const },
 ]
 
 const ordinal = (place: number): string =>
@@ -121,8 +121,9 @@ export default function PositionGuide() {
         </p>
         <p>
           <strong className={strong}>You see their decision before you make yours.</strong> From the
-          button, five players have already told you something by the time it is your turn. From the
-          first seat you are guessing, and everyone behind you gets to react to your guess.
+          button, three players have already told you something before the flop, and after it
+          everyone still in the hand acts before you do, on every street. From the first seat you
+          are guessing, and everyone behind you gets to react to your guess.
         </p>
         <p>
           <strong className={strong}>You choose whether there is a bet at all.</strong> Checked to
@@ -167,7 +168,7 @@ export default function PositionGuide() {
               <tr key={row.band}>
                 <td className={strong}>{row.seat}</td>
                 <td className={strong}>{SHARE[row.band]}%</td>
-                <td>{row.roughly}</td>
+                <td>{BAND_ROUGHLY[row.band].text}</td>
               </tr>
             ))}
           </tbody>

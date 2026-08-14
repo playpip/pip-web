@@ -152,6 +152,24 @@ export const BAND_LISTS: Record<Band, readonly string[]> = {
 }
 
 /**
+ * The plain-English version of each band's share, for the copy that says it in
+ * words rather than as a percentage.
+ *
+ * It lives here because two guides quote it and they disagreed for four days:
+ * /learn/starting-hands opened by saying a hand in seven from the first seat
+ * and /learn/position's table said a hand in eight, for the same computed 13%.
+ * Both pages were drawing the percentage from cumulativeShare() and writing the
+ * fraction out by hand, which is the half of a claim no computation was
+ * touching. tests/guideClaims.test.ts now pins each fraction to within a point
+ * of the share it describes, and checks no simpler fraction fits better.
+ */
+export const BAND_ROUGHLY: Record<Band, { text: string; fraction: number }> = {
+  any: { text: 'one hand in eight', fraction: 1 / 8 },
+  middle: { text: 'one in five', fraction: 1 / 5 },
+  late: { text: 'two in five', fraction: 2 / 5 },
+}
+
+/**
  * The hand in row `row`, column `col` of the grid. Suited hands sit above the
  * diagonal and offsuit below it, which is the convention every printed chart
  * uses, so a reader who has seen one before can read this one without a key.

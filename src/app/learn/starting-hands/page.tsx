@@ -6,6 +6,7 @@ import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
 import {
+  BAND_ROUGHLY,
   FLUSH_BY_THE_RIVER,
   POCKET_PAIRS,
   SET_OR_BETTER_ON_THE_FLOP,
@@ -75,10 +76,10 @@ export default function StartingHandsGuide() {
     <GuidePage slug="starting-hands">
       <Lead>
         <p>
-          Play about one hand in seven when you are first to act, and about two in five when you are
-          last. There are 169 distinct starting hands in Texas Hold’em and most of them are not
-          worth playing, but which ones qualify depends on where you are sitting, because acting
-          last is worth more than almost any pair of cards.
+          Play about {BAND_ROUGHLY.any.text} when you are first to act, and about{' '}
+          {BAND_ROUGHLY.late.text} when you are last. There are 169 distinct starting hands in Texas
+          Hold’em and most of them are not worth playing, but which ones qualify depends on where
+          you are sitting, because acting last is worth more than almost any pair of cards.
         </p>
         <p>
           That is the answer, and it is why the chart below is arranged by position rather than by

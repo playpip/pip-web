@@ -107,6 +107,11 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
   Rail, Venues, Side Tables, the Chip Shop). Tapping a section opens its own page
   (`/game/ladder`, `/game/rail`, `/game/side`) via `SectionScreen` — an iOS-style back
   header; venue pages show a responsive grid on desktop, a vertical list on mobile.
+- **The marketing header is wordmark + one link + CTA on a phone.** Everything else in
+  `Landing`'s nav (Features, Venues, Blog, GitHub, the theme toggle) is `hidden ... sm:block`,
+  because six controls at 357px wide is a crowded bar, not a nav. Hide, don't remove: the
+  links stay in the HTML for crawlers, and each one is repeated in the footer. Anything new
+  added to that bar needs a breakpoint and a reason to be the exception.
 - **Table:** opponents arranged around a minimal arc (computed via ellipse math in
   `Table.tsx`), community + pot dead-center, the hero anchored bottom-center with the
   action bar. No felt, no table graphic — just the players and cards on the canvas.
