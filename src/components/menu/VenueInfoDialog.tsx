@@ -9,8 +9,10 @@ import {
 } from '@/components/ui/dialog'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { CategoryArt } from '@/components/menu/CategoryArt'
+import { ChallengerFace } from '@/components/menu/ChallengerFace'
 import { Lock, XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
+import type { Character } from '@/config/cast'
 import { FORMAT_LABELS, VENUES, type Venue } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
@@ -78,11 +80,19 @@ function formatNote(venue: Venue): string | null {
 /** The little "about this table" dialog — structure, format, difficulty. */
 export function VenueInfoDialog({
   venue,
+  challenger,
   playable,
   onOpenChange,
   onPlay,
 }: {
   venue: Venue | null
+  /**
+   * Who is sitting opposite, at a challenge table. Their face becomes the cover
+   * and their invitation the strapline: the challenge tables share one name and
+   * one tagline across three bands, so without this the dialog would open on
+   * "The Challenge" and say nothing about the person who asked for the game.
+   */
+  challenger?: Character
   playable: boolean
   onOpenChange: (open: boolean) => void
   onPlay: (venue: Venue) => void
@@ -104,7 +114,11 @@ export function VenueInfoDialog({
         <header className="relative shrink-0 overflow-hidden">
           {/* Softly blurred + scaled so the flat art reads as a cover photo and
               melts into the dialog; scale hides the blur's transparent edges. */}
-          {venue.cash || venue.daily ? (
+          {/* A face is not scenery: it gets no blur and no scale, because the
+              point of the challenger's cover is that you can see who it is. */}
+          {challenger ? (
+            <ChallengerFace character={challenger} accent={venue.accent} className="h-40 w-full" />
+          ) : venue.cash || venue.daily ? (
             <CategoryArt
               id={venue.id}
               accent={venue.accent}
@@ -130,7 +144,7 @@ export function VenueInfoDialog({
           </DialogClose>
           <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 p-4">
             <DialogTitle className="flex items-center gap-2 text-lg text-white">
-              {venue.name}
+              {challenger?.name ?? venue.name}
               {venue.format && (
                 <span
                   className="rounded bg-white/15 px-1.5 py-0.5 text-2xs font-semibold"
@@ -141,7 +155,7 @@ export function VenueInfoDialog({
               )}
             </DialogTitle>
             <DialogDescription className="leading-snug text-white/75">
-              {venue.tagline}
+              {challenger?.lines.challenge ?? venue.tagline}
             </DialogDescription>
           </div>
         </header>
@@ -218,7 +232,7 @@ export function VenueInfoDialog({
             >
               {venue.freeroll
                 ? 'Play — free'
-                : venue.cash
+                : venue.cash || challenger
                   ? `Sit down — ${money(venue.buyIn)}`
                   : `Play — ${money(venue.buyIn)}`}
             </button>

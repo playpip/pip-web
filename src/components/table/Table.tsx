@@ -428,10 +428,16 @@ export function Table() {
       <AnimatePresence>
         {status === 'handover' && message && (
           <Banner key="ho">
-            <span>{message}</span>
-            {lastBounty > 0 && (
-              <span className="text-xs font-medium opacity-95">Bounty +{money(lastBounty)}</span>
-            )}
+            {/* Three separate things, so three blocks: the result (the bounty
+                belongs to it), the read, and any chips won. Tight inside a
+                block, loose between them. One flat gap ran all three together
+                into a single paragraph. */}
+            <span className="flex flex-col items-center gap-0.5">
+              <span>{message}</span>
+              {lastBounty > 0 && (
+                <span className="text-xs font-medium opacity-95">Bounty +{money(lastBounty)}</span>
+              )}
+            </span>
             {/* The post-hand read (lib/coach). Most hands have none, so this is
                 usually absent. Width-capped because it is the only line here
                 that runs to a sentence, and the banner sits over the felt. */}
@@ -440,12 +446,19 @@ export function Table() {
                 {lastRead.text}
               </span>
             )}
-            {newAwards.map((a) => (
-              <span key={a.id} className="flex items-center gap-1.5 text-xs font-medium opacity-95">
-                <AwardChip award={a} earned size={18} />
-                New chip — {a.name}
+            {newAwards.length > 0 && (
+              <span className="flex flex-col items-center gap-1.5">
+                {newAwards.map((a) => (
+                  <span
+                    key={a.id}
+                    className="flex items-center gap-1.5 text-xs font-medium opacity-95"
+                  >
+                    <AwardChip award={a} earned size={18} />
+                    New chip — {a.name}
+                  </span>
+                ))}
               </span>
-            ))}
+            )}
           </Banner>
         )}
         {status === 'busted' &&
@@ -841,7 +854,11 @@ function Banner({ children }: { children: React.ReactNode }) {
       exit={{ opacity: 0, y: 20 }}
       className="pointer-events-none absolute inset-x-0 top-1/3 z-30 flex justify-center"
     >
-      <span className="flex flex-col items-center gap-0.5 rounded-3xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-2xl">
+      {/* The gap is between *blocks*, not lines: with a read and a chip win on
+          screen the banner is three separate statements and it has to look like
+          it. Callers keep related lines in a nested span with their own tight
+          gap. A one-line banner (most hands) is unaffected. */}
+      <span className="flex flex-col items-center gap-3 rounded-3xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-2xl">
         {children}
       </span>
     </motion.div>

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import test from 'ava'
 import { readHand, type HeroDecision } from '@/lib/coach'
 import { cardFromString } from '@/lib/poker/cards'
@@ -191,4 +192,31 @@ test('the largest swing is the one that gets talked about', (t) => {
   const read = readHand(record)
   t.truthy(read)
   t.regex(read!.text, /^The river fold\./)
+})
+
+// ---------------------------------------------------------------------------
+// The label, pinned. Not arithmetic, but a settled claim, and technology#44's
+// convention is that a settled claim ships with a check.
+
+test('the setting is labelled "Second opinion" and says it is usually quiet', (t) => {
+  // technology#46 (CMO). "Coaching" was the wrong register: a coach is someone
+  // whose job is to correct you, and this is a peer looking over your shoulder.
+  // It also has to survive being silent most hands, which a coach label cannot.
+  //
+  // The hint's second sentence is the load-bearing half. "Most hands do not get
+  // one" puts the design decision on the surface where a player meets it, so
+  // silence reads as normal instead of as a bug. Losing it turns the quietest
+  // feature in the app into a suspected broken one.
+  const source = readFileSync(
+    new URL('../src/components/settings/SettingsDialog.tsx', import.meta.url),
+    'utf-8',
+  )
+  const body = source.split('function HandCoachingSection')[1] ?? ''
+  // Only what the player reads. The store field is still called handCoaching,
+  // deliberately, so the whole function body would fail this on its own name.
+  const row = body.split('<ToggleRow')[1]?.split('checked=')[0] ?? ''
+  t.true(row.includes('label='), 'the section stopped rendering a labelled toggle')
+  t.true(row.includes('label="Second opinion"'), 'the label moved')
+  t.true(row.includes('Most hands do not get one.'), 'the hint lost its second sentence')
+  t.false(/coach/i.test(row), 'the word the CMO ruled out is back in the label or hint')
 })

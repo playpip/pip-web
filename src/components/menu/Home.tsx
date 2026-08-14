@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { BookOpen, ChevronRight, Lock, Moon, MoonStar, Store, Sun, Sunrise } from 'lucide-react'
+import { BookOpen, Moon, MoonStar, Store, Sun, Sunrise } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
@@ -13,7 +13,7 @@ import { useProfile } from '@/store/profile'
 import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
 import { ChallengeCard } from './ChallengeCard'
-import { CategoryArt } from './CategoryArt'
+import { CategoryCard } from './CategoryCard'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
 import {
@@ -25,6 +25,7 @@ import {
   freerollOpen,
 } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
+import { currentChallenge } from '@/lib/challenge'
 import { characterById } from '@/config/cast'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
@@ -43,13 +44,22 @@ const PERIOD_ICONS: Record<DayPeriod, LucideIcon> = {
 
 export function Home() {
   const router = useRouter()
-  const { name, roll, avatar, rollHistory } = useProfile()
+  const { name, roll, avatar, rollHistory, venueRecords, challengeWins, challengesPlayed } =
+    useProfile()
   const money = useMoney()
   const [shopOpen, setShopOpen] = useState(false)
 
   const broke = freerollOpen(roll)
   // Clock-derived copy renders client-side only (SSR has no local hour).
   const hydrated = useHydrated()
+  // Who is waiting, derived here rather than inside the tile: the grid has to
+  // know whether there is a fifth tile before it can pick its column count.
+  // Client-only for the same reason the Daily is — it comes from the persisted
+  // profile, which the prerender doesn't have, so the first client render has
+  // to match the server's and produce the four-tile grid.
+  const challenge = hydrated
+    ? currentChallenge({ roll, venueRecords, challengeWins, challengesPlayed })
+    : null
   const hour = hydrated ? new Date().getHours() : 12
   // The player's own colour — worn by the ambient backdrop and the sparkline.
   const accent = avatar ? accentFromSwatch(avatar.backgroundColor) : 'var(--color-pip)'
@@ -111,13 +121,6 @@ export function Home() {
 
       {/* the main menu — one tap into each corner, then the two side rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
-        {/* Somebody is waiting. First on the menu because it is the one item
-            here that is a person rather than a place, and because it is the
-            only card whose contents change on their own, and under the Roll is
-            where the eye already is. Client-only: who is waiting comes from
-            the persisted profile, which the prerender doesn't have. */}
-        {hydrated && <ChallengeCard delay={0} />}
-
         {/* The two side rooms, paired: the shop and Learn are both places you
             step out of the game into, so they read better as a shelf than as
             two full-width bands. Sitting directly under the Roll puts Pearl's
@@ -134,15 +137,26 @@ export function Home() {
           <LearnCard delay={0.05} />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-          {hydrated && <DailyTile roll={roll} delay={0.1} />}
+        {/* The tables. The challenger leads it: they are a table you sit at
+            like any other, so they read as a place here rather than as the
+            banner they used to be, and they stay first because they are the one
+            tile whose contents change on their own. The row widens to hold
+            them instead of stranding a fifth tile on a row of its own. */}
+        <div
+          className={cn(
+            'grid grid-cols-2 gap-3 md:gap-4',
+            challenge ? 'md:grid-cols-5' : 'md:grid-cols-4',
+          )}
+        >
+          {challenge && <ChallengeCard challenge={challenge} delay={0.1} />}
+          {hydrated && <DailyTile roll={roll} delay={0.15} />}
           <CategoryCard
             art="rail"
             accent="#4FB477"
             title="The Rail"
             subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
             onClick={() => go('/game/rail')}
-            delay={0.15}
+            delay={0.2}
           />
           <CategoryCard
             art="venues"
@@ -150,7 +164,7 @@ export function Home() {
             title="Venues"
             subtitle={`${VENUES.length} rungs · from ${money(VENUES[0].buyIn)}`}
             onClick={() => go('/game/ladder')}
-            delay={0.2}
+            delay={0.25}
           />
           <CategoryCard
             art="side"
@@ -158,7 +172,7 @@ export function Home() {
             title="Side Tables"
             subtitle={`${SIDE_TABLES.length} formats`}
             onClick={() => go('/game/side')}
-            delay={0.25}
+            delay={0.3}
           />
         </div>
       </div>
@@ -232,72 +246,6 @@ function GreetingLine({ hour, name }: { hour: number; name: string }) {
       {greetingFor(hour)}, {name} <Icon className="mb-0.5 inline size-3.5" aria-hidden /> — your
       Roll
     </>
-  )
-}
-
-/**
- * A main-menu tile: a flat-geometric art panel over a title and hint. Taps into
- * one corner of the game. When `locked` it dims the label and shows a padlock in
- * the art corner, so it never reads as a dead button.
- */
-function CategoryCard({
-  art,
-  accent,
-  title,
-  badge,
-  subtitle,
-  onClick,
-  locked = false,
-  delay = 0,
-}: {
-  art: string
-  accent: string
-  title: string
-  badge?: string
-  subtitle: string
-  onClick: () => void
-  locked?: boolean
-  delay?: number
-}) {
-  return (
-    // The rise animates a plain wrapper, not the card itself: animating
-    // opacity/transform on an element that also clips (overflow-hidden +
-    // rounded) makes iOS WebKit re-rasterise the rounded mask each frame and
-    // flicker. Keeping the clipped card a static child sidesteps it — the same
-    // structure the venue tiles use.
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.35, ease: 'easeOut' }}
-      className="w-full"
-    >
-      <button
-        onClick={onClick}
-        className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
-      >
-        <div className="relative aspect-[16/10] w-full">
-          <CategoryArt id={art} accent={accent} className="absolute inset-0 size-full" />
-          <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/40 backdrop-blur-sm">
-            {locked ? (
-              <Lock className="size-3.5 text-white/85" />
-            ) : (
-              <ChevronRight className="size-4 text-white/85 transition group-hover:translate-x-0.5" />
-            )}
-          </span>
-        </div>
-        <div className={cn('p-3 md:p-4', locked && 'opacity-60')}>
-          <h3 className="flex items-center gap-1.5 font-semibold">
-            {title}
-            {badge && (
-              <span className="text-xs font-medium tabular-nums text-muted-foreground/70">
-                {badge}
-              </span>
-            )}
-          </h3>
-          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-      </button>
-    </motion.div>
   )
 }
 

@@ -7,6 +7,9 @@ import {
   breakevenFolds,
   requiredEquity,
 } from '@/config/potOdds'
+import { FIVE_CARD_HANDS, HAND_FREQUENCIES, SEVEN_CARD_HANDS } from '@/config/handFrequencies'
+import { SEATS, SEATS_AT_A_TABLE, preflopPlace } from '@/config/positions'
+import { BAND_ROUGHLY, type Band, cumulativeShare } from '@/config/startingHands'
 import { RANKS, SUITS, cardFromString, cardToString, createDeck } from '@/lib/poker/cards'
 import { determineWinners, evaluateHand } from '@/lib/poker/handEval'
 
@@ -172,4 +175,106 @@ test('every spot that claims a flush draw actually has four of a suit', (t) => {
     const most = Math.max(...SUITS.map((suit) => suits.filter((s) => s === suit).length))
     t.is(most, 4, spot.id)
   }
+})
+
+// /learn/hand-rankings, "The order is not arbitrary". The page shipped saying
+// every hand is rarer than the one below it and that this "holds exactly, all
+// the way down the list", directly above its own table showing one pair at
+// 43.8% and high card at 17.4%. Every figure in that table was right. The
+// sentence describing its shape was not, which is the same failure as the
+// bet-sizing columns above and the reason this file exists.
+test('the ranking order is exactly five-card rarity, top to bottom', (t) => {
+  for (let i = 1; i < HAND_FREQUENCIES.length; i++) {
+    const above = HAND_FREQUENCIES[i - 1]
+    const below = HAND_FREQUENCIES[i]
+    t.true(above.five < below.five, `${above.hand} is not rarer than ${below.hand} on five cards`)
+  }
+})
+
+test('seven cards break that rule in exactly one place, and it is the last one', (t) => {
+  const inversions = HAND_FREQUENCIES.filter(
+    (row, i) => i > 0 && HAND_FREQUENCIES[i - 1].seven >= row.seven,
+  )
+  t.is(inversions.length, 1)
+  t.is(inversions[0].hand, 'High card')
+})
+
+// The reason the counts are counts and not the ten percentages the page prints:
+// a wrong percentage is invisible, and a wrong count fails this.
+test('the hand counts add up to every five-card and seven-card hand there is', (t) => {
+  t.is(
+    HAND_FREQUENCIES.reduce((sum, row) => sum + row.five, 0),
+    FIVE_CARD_HANDS,
+  )
+  t.is(
+    HAND_FREQUENCIES.reduce((sum, row) => sum + row.seven, 0),
+    SEVEN_CARD_HANDS,
+  )
+})
+
+test('the ranking is numbered in the order it is listed', (t) => {
+  t.deepEqual(
+    HAND_FREQUENCIES.map((row) => row.n),
+    HAND_FREQUENCIES.map((_, i) => i + 1),
+  )
+})
+
+// /learn/starting-hands and /learn/position both put each band's share into
+// words. They disagreed about the first seat for four days - a hand in seven on
+// one page, a hand in eight on the other - because both were computing the
+// percentage and writing the fraction by hand. The fraction is now shared, and
+// this is the check the computation never covered.
+const BANDS: Band[] = ['any', 'middle', 'late']
+
+test('each band’s plain-English fraction is within a point of its real share', (t) => {
+  for (const band of BANDS) {
+    const share = cumulativeShare(band)
+    const said = BAND_ROUGHLY[band].fraction * 100
+    t.true(Math.abs(share - said) < 1, `${band}: "${BAND_ROUGHLY[band].text}" against ${share}%`)
+  }
+})
+
+test('and no simpler fraction describes the share better', (t) => {
+  for (const band of BANDS) {
+    const share = cumulativeShare(band)
+    const error = Math.abs(share - BAND_ROUGHLY[band].fraction * 100)
+    for (let denominator = 2; denominator <= 10; denominator++) {
+      for (let numerator = 1; numerator < denominator; numerator++) {
+        const other = Math.abs(share - (numerator / denominator) * 100)
+        t.true(other >= error - 1e-9, `${band}: ${numerator}/${denominator} beats it`)
+      }
+    }
+  }
+})
+
+// Both pages say the playable set "roughly triples" between the first seat and
+// the last. Nothing computed it; it is a ratio between two numbers that are.
+test('the playable set roughly triples from the first seat to the last', (t) => {
+  const ratio = cumulativeShare('late') / cumulativeShare('any')
+  t.true(ratio > 2.5 && ratio < 3.5, `${ratio}`)
+})
+
+// /learn/position, "the action folds around to the button about four times in
+// ten". That is the three seats before the button all folding, at the rates the
+// chart on the other page sets, and it moves if any band is edited.
+test('the action folds round to the button about four times in ten', (t) => {
+  const button = SEATS.find((seat) => seat.id === 'btn')!
+  const opensBefore = SEATS.filter(
+    (seat) => seat.opens !== null && preflopPlace(seat) < preflopPlace(button),
+  )
+  t.is(opensBefore.length, 3)
+  const folded = opensBefore.reduce(
+    (odds, seat) => odds * (1 - cumulativeShare(seat.opens!) / 100),
+    1,
+  )
+  t.is(Math.round(folded * 10), 4)
+})
+
+// ...and the sentence above it, which said five players had acted before the
+// button. Three have. The other two are the blinds, who have posted and not yet
+// acted, and the page's own table says so two sections earlier.
+test('three players act before the button before the flop', (t) => {
+  const button = SEATS.find((seat) => seat.id === 'btn')!
+  t.is(preflopPlace(button) - 1, 3)
+  t.is(SEATS_AT_A_TABLE - preflopPlace(button), 2)
 })

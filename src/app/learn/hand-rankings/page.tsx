@@ -3,6 +3,7 @@ import { AceRuns } from '@/components/learn/AceRuns'
 import { GuideChart, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
+import { HAND_FREQUENCIES, formatShare, sevenCardShare } from '@/config/handFrequencies'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
 
@@ -19,85 +20,6 @@ export const metadata: Metadata = {
     image: guideCardImage(guide),
   }),
 }
-
-const HANDS = [
-  {
-    n: 1,
-    hand: 'Royal flush',
-    what: 'Ace to ten, all one suit. The best hand in poker, and it’s just the top straight flush with a nicer name.',
-    example: 'A♠ K♠ Q♠ J♠ 10♠',
-  },
-  {
-    n: 2,
-    hand: 'Straight flush',
-    what: 'Five cards in sequence, all one suit.',
-    example: '9♥ 8♥ 7♥ 6♥ 5♥',
-  },
-  {
-    n: 3,
-    hand: 'Four of a kind',
-    what: 'All four cards of one rank.',
-    example: 'Q♣ Q♦ Q♥ Q♠ 4♦',
-  },
-  {
-    n: 4,
-    hand: 'Full house',
-    what: 'Three of one rank, two of another.',
-    example: '7♠ 7♦ 7♣ K♥ K♠',
-  },
-  {
-    n: 5,
-    hand: 'Flush',
-    what: 'Five cards of one suit, in any order.',
-    example: 'A♦ J♦ 8♦ 5♦ 2♦',
-  },
-  {
-    n: 6,
-    hand: 'Straight',
-    what: 'Five cards in sequence, any suits.',
-    example: '10♣ 9♦ 8♠ 7♥ 6♣',
-  },
-  {
-    n: 7,
-    hand: 'Three of a kind',
-    what: 'Three cards of one rank.',
-    example: '5♥ 5♠ 5♦ K♣ 2♥',
-  },
-  {
-    n: 8,
-    hand: 'Two pair',
-    what: 'Two cards of one rank, two of another.',
-    example: 'J♦ J♣ 4♠ 4♥ 9♦',
-  },
-  {
-    n: 9,
-    hand: 'One pair',
-    what: 'Two cards of the same rank.',
-    example: '10♠ 10♦ A♣ 7♥ 3♠',
-  },
-  {
-    n: 10,
-    hand: 'High card',
-    what: 'None of the above. Your highest card plays.',
-    example: 'A♥ Q♦ 9♠ 6♣ 3♦',
-  },
-] as const
-
-// The standard seven-card distribution over all 133,784,560 combinations from a
-// 52-card deck. Not the same thing as how often each hand wins a pot, which the
-// copy below is careful to say.
-const FREQUENCIES = [
-  { hand: 'Royal flush', chance: '0.0032%' },
-  { hand: 'Straight flush', chance: '0.028%' },
-  { hand: 'Four of a kind', chance: '0.17%' },
-  { hand: 'Full house', chance: '2.6%' },
-  { hand: 'Flush', chance: '3.0%' },
-  { hand: 'Straight', chance: '4.6%' },
-  { hand: 'Three of a kind', chance: '4.8%' },
-  { hand: 'Two pair', chance: '23.5%' },
-  { hand: 'One pair', chance: '43.8%' },
-  { hand: 'High card', chance: '17.4%' },
-] as const
 
 const strong = 'font-medium text-foreground'
 
@@ -128,7 +50,7 @@ export default function HandRankingsGuide() {
             </tr>
           </thead>
           <tbody>
-            {HANDS.map((row) => (
+            {HAND_FREQUENCIES.map((row) => (
               <tr key={row.hand}>
                 <td>{row.n}</td>
                 <td className={`whitespace-nowrap ${strong}`}>{row.hand}</td>
@@ -148,9 +70,14 @@ export default function HandRankingsGuide() {
           <strong className={strong}>
             Every hand beats the one below it because it is rarer than the one below it
           </strong>
-          , and that holds exactly, all the way down the list. If you ever forget whether a flush
-          beats a straight, the question you’re really asking is which one is harder to make. It’s
-          the flush.
+          , counted over five cards, and on five cards that holds exactly, all the way down the
+          list. If you ever forget whether a flush beats a straight, the question you’re really
+          asking is which one is harder to make. It’s the flush.
+        </p>
+        <p>
+          Deal seven cards instead of five, which is what Hold’em does, and the rule breaks in
+          exactly one place. It is at the bottom of the list, it is the most useful thing on this
+          page, and it has its own paragraph further down.
         </p>
       </Section>
 
@@ -213,10 +140,10 @@ export default function HandRankingsGuide() {
             </tr>
           </thead>
           <tbody>
-            {FREQUENCIES.map((row) => (
+            {HAND_FREQUENCIES.map((row) => (
               <tr key={row.hand}>
                 <td className={`whitespace-nowrap ${strong}`}>{row.hand}</td>
-                <td>{row.chance}</td>
+                <td>{formatShare(sevenCardShare(row.hand))}%</td>
               </tr>
             ))}
           </tbody>
@@ -227,13 +154,25 @@ export default function HandRankingsGuide() {
             a showdown.
           </strong>{' '}
           Real play is not random, because people fold. But the shape of the table is the useful
-          bit, and the shape says two things.
+          bit, and the shape says three things.
         </p>
         <p>
           <strong className={strong}>A single pair is a real hand.</strong> Nearly half of all
           seven-card holdings end up as exactly one pair, and pairs win an enormous number of pots.
           New players routinely fold winners because a pair “doesn’t feel like enough”. It usually
           is.
+        </p>
+        <p>
+          <strong className={strong}>
+            One pair is commoner than no pair at all, which is the one place the ranking’s own logic
+            turns over.
+          </strong>{' '}
+          One pair beats high card because on five cards it is rarer. Deal seven and it stops being
+          rarer, because missing every pair across seven cards is harder than hitting one: high card
+          arrives {formatShare(sevenCardShare('High card'))}% of the time and one pair{' '}
+          {formatShare(sevenCardShare('One pair'))}%. The order above is not wrong, it is settled on
+          five cards and this table is seven. What it means at a table is that having nothing is
+          rarer, and worse, than a rankings chart makes it look.
         </p>
         <p>
           <strong className={strong}>
