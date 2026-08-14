@@ -16,6 +16,7 @@ import { HandHistoryDialog } from './HandHistoryDialog'
 import { HandsHelpDialog } from './HandsHelpDialog'
 import { LeaveDialog } from './LeaveDialog'
 import { PlayerDialog } from './PlayerDialog'
+import { RunRecap } from './RunRecap'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
 import { potSize, type HandState, type Player } from '@/lib/poker/engine'
@@ -24,6 +25,7 @@ import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
+import { ordinal } from '@/lib/recap'
 import { KITCHEN_TABLE, freerollOpen } from '@/config/venues'
 import { nicknameFor } from '@/config/handNames'
 import { tableFinishById } from '@/config/shop'
@@ -66,6 +68,7 @@ export function Table() {
     lastBounty,
     lastRead,
     seatStats,
+    recap,
     talk,
     cashInvested,
     nextHand,
@@ -498,6 +501,7 @@ export function Table() {
               key="bust"
               title="Knocked out"
               subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
+              detail={recap && <RunRecap recap={recap} />}
               onHome={goHome}
               primaryLabel={freerollOpen(roll) ? 'Play the freeroll' : undefined}
               onPrimary={
@@ -525,16 +529,19 @@ export function Table() {
             title="Champion"
             subtitle={`You took it down — +${money(venue.prize + lastBounty)} to your Roll`}
             detail={
-              newAwards.length > 0 && (
-                <div className="mt-4 flex flex-col items-center gap-2">
-                  {newAwards.map((a) => (
-                    <span key={a.id} className="flex items-center gap-2 text-sm text-white/80">
-                      <AwardChip award={a} earned size={22} />
-                      New chip — {a.name}
-                    </span>
-                  ))}
-                </div>
-              )
+              <>
+                {newAwards.length > 0 && (
+                  <div className="mt-4 flex flex-col items-center gap-2">
+                    {newAwards.map((a) => (
+                      <span key={a.id} className="flex items-center gap-2 text-sm text-white/80">
+                        <AwardChip award={a} earned size={22} />
+                        New chip — {a.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {recap && <RunRecap recap={recap} />}
+              </>
             }
             onHome={goHome}
             celebrate
@@ -887,52 +894,51 @@ function EndOverlay({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-6 bg-black/85 px-6 backdrop-blur-sm"
+      className="absolute inset-0 z-40 overflow-y-auto bg-black/85 backdrop-blur-sm"
     >
-      <motion.div
-        initial={{ scale: 0.85, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-        className="text-center"
-      >
-        {/* The overlay is always dark, so text is white regardless of theme. */}
-        <h2
-          className={cn(
-            'text-5xl font-semibold tracking-tight sm:text-6xl',
-            celebrate ? 'text-pip' : 'text-white',
-          )}
+      {/* Centred while it fits, scrollable when it doesn't. The recap card put
+          real content in here, and a centred box with no way to scroll runs
+          off the top *and* the bottom at 200% text (docs/design.md). */}
+      <div className="flex min-h-full flex-col items-center justify-center gap-6 px-6 py-10">
+        <motion.div
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 240, damping: 20 }}
+          className="w-full max-w-md text-center"
         >
-          {title}
-        </h2>
-        <p className="mt-3 text-white/60">{subtitle}</p>
-        {detail}
-      </motion.div>
-      <div className="flex flex-col items-center gap-3">
-        {primaryLabel && onPrimary && (
-          <button
-            onClick={onPrimary}
-            className="rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]"
+          {/* The overlay is always dark, so text is white regardless of theme. */}
+          <h2
+            className={cn(
+              'text-5xl font-semibold tracking-tight sm:text-6xl',
+              celebrate ? 'text-pip' : 'text-white',
+            )}
           >
-            {primaryLabel}
-          </button>
-        )}
-        <button
-          onClick={onHome}
-          className={cn(
-            primaryLabel
-              ? 'text-sm text-white/60 transition hover:text-white'
-              : 'rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]',
+            {title}
+          </h2>
+          <p className="mt-3 text-white/60">{subtitle}</p>
+          {detail}
+        </motion.div>
+        <div className="flex flex-col items-center gap-3">
+          {primaryLabel && onPrimary && (
+            <button
+              onClick={onPrimary}
+              className="rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]"
+            >
+              {primaryLabel}
+            </button>
           )}
-        >
-          Back to venues
-        </button>
+          <button
+            onClick={onHome}
+            className={cn(
+              primaryLabel
+                ? 'text-sm text-white/60 transition hover:text-white'
+                : 'rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]',
+            )}
+          >
+            Back to venues
+          </button>
+        </div>
       </div>
     </motion.div>
   )
-}
-
-function ordinal(n: number): string {
-  const s = ['th', 'st', 'nd', 'rd']
-  const v = n % 100
-  return n + (s[(v - 20) % 10] || s[v] || s[0])
 }

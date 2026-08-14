@@ -19,6 +19,7 @@ import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { readHand, type HandRead, type HeroDecision } from '@/lib/coach'
+import { buildRecap, type Recap } from '@/lib/recap'
 import {
   startHand,
   applyAction,
@@ -147,6 +148,12 @@ interface GameState {
   lastBounty: number
   /** Observed tendencies per seat this tournament (feeds the reads in the player dialog). */
   seatStats: Record<string, SeatStats>
+  /**
+   * The recap of the run that just ended, or null at every other moment.
+   * Tournaments only: a cash table has no finish and no run to sum up.
+   * Derived at tournament end and never persisted (see lib/recap).
+   */
+  recap: Recap | null
   /** One quiet line of character flavour, heavily rationed (see docs/cast.md). */
   talk: string | null
   /** Chips bought in this session — the sit-in plus any rebuys. Drives the cash
@@ -219,6 +226,12 @@ export interface TableSnapshot {
   /** Which day's Daily this table is — keeps the seed stable across midnight. */
   dailyDate?: string
   /**
+   * The run's recap tally so far. Optional: a snapshot written by an older
+   * build has none, and a run resumed from one simply gets a recap built from
+   * the hands it can still see.
+   */
+  run?: RunTally
+  /**
    * Set between the deal and the hand ending; absent between hands. Present
    * means "play this hand on", absent means "deal hand `handIndex`".
    */
@@ -253,6 +266,38 @@ let currentEvents: HandEvent[] = []
 
 /** Hero's lowest between-hands stack this tournament (drives The Comeback chip). */
 let heroLowTide = Infinity
+
+/**
+ * What the end-of-run recap needs that no single hand can see: the run's best
+ * moment, its knockouts, and the bounties banked along the way.
+ *
+ * Tallied hand by hand rather than reconstructed at the end, for the reason the
+ * `HeroDecision` snapshot exists: the numbers are exact where they happen and
+ * only approximable afterwards. Carried in the refresh-resume snapshot so a
+ * reload mid-tournament does not silently produce a recap of half a run.
+ */
+export interface RunTally {
+  /** Bounties banked this run (already added to the Roll, hand by hand). */
+  bounty: number
+  /** The biggest pot the hero has won this run, in chips. */
+  biggestPot: number
+  /** What the hero showed for it, when that pot went to showdown. */
+  bigPotHand: { name: string; description: string } | null
+  /** Who that pot busted, if anyone. */
+  bigPotKos: string[]
+  /** peakRoll as the run started, so "a new best" is a claim about the run. */
+  peakAtStart: number
+}
+
+const emptyRunTally = (peakAtStart: number): RunTally => ({
+  bounty: 0,
+  biggestPot: 0,
+  bigPotHand: null,
+  bigPotKos: [],
+  peakAtStart,
+})
+
+let runTally: RunTally = emptyRunTally(0)
 
 /** Live tendency counters (mirrored into state at hand boundaries). */
 let seatStatsLive: Record<string, SeatStats> = {}
@@ -415,6 +460,7 @@ export const useGame = create<GameState>((set, get) => {
       heroLow: heroLowTide,
       cashInvested,
       dailyDate: dailyDay ?? undefined,
+      run: { ...runTally },
       live: {
         hand,
         events: currentEvents.slice(),
@@ -615,6 +661,17 @@ export const useGame = create<GameState>((set, get) => {
     const bountyWon = knockedOut && venue.bounty ? eliminatedCount * venue.bounty : 0
     if (bountyWon > 0) profile.adjustRoll(bountyWon)
 
+    // Tally what the end-of-run recap will want. The highlight is one moment,
+    // not three: the biggest pot the hero won, plus what they showed for it and
+    // whose chips it took, which is usually the same hand anyway.
+    runTally.bounty += bountyWon
+    if (heroWon && pot > runTally.biggestPot) {
+      const shown = result?.showdown ? result.evaluations?.[HUMAN_ID] : undefined
+      runTally.biggestPot = pot
+      runTally.bigPotHand = shown ? { name: shown.name, description: shown.description } : null
+      runTally.bigPotKos = knockedOut ? eliminated.map((s) => s.name) : []
+    }
+
     // Career scalps: you took a character's last chip.
     if (knockedOut) {
       for (const s of eliminated) {
@@ -626,6 +683,7 @@ export const useGame = create<GameState>((set, get) => {
     if (!humanAlive) {
       clearTableSnapshot()
       const place = survivors.length + 1
+      const bestFinishBefore = useProfile.getState().venueRecords[venue.id]?.bestFinish ?? null
       profile.recordVenueResult(venue.id, place, get().handIndex)
       recordChallengeResult(venue, false)
       if (venue.daily && dailyDay) profile.recordDailyResult(dailyDay, place, get().handIndex)
@@ -635,13 +693,22 @@ export const useGame = create<GameState>((set, get) => {
         profile.setCameFromFreeroll(false)
       }
       buzz('bust')
-      set({ seats: nextSeats, hand, status: 'busted', place, aiThinkingId: null, message: null })
+      set({
+        seats: nextSeats,
+        hand,
+        status: 'busted',
+        place,
+        aiThinkingId: null,
+        message: null,
+        recap: makeRecap(venue, place, bestFinishBefore),
+      })
       return
     }
     if (tournamentWon) {
       clearTableSnapshot()
       profile.adjustRoll(venue.prize)
       profile.mergeStats({ tournamentsWon: 1 })
+      const bestFinishBefore = useProfile.getState().venueRecords[venue.id]?.bestFinish ?? null
       profile.recordVenueResult(venue.id, 1, get().handIndex)
       recordChallengeResult(venue, true)
       if (venue.daily && dailyDay) profile.recordDailyResult(dailyDay, 1, get().handIndex)
@@ -658,6 +725,7 @@ export const useGame = create<GameState>((set, get) => {
         message: null,
         newAwards,
         lastBounty: bountyWon,
+        recap: makeRecap(venue, 1, bestFinishBefore),
       })
       return
     }
@@ -687,6 +755,7 @@ export const useGame = create<GameState>((set, get) => {
       handIndex: get().handIndex,
       heroLow: heroLowTide,
       dailyDate: dailyDay ?? undefined,
+      run: { ...runTally },
     })
     set({
       seats: nextSeats,
@@ -798,6 +867,38 @@ export const useGame = create<GameState>((set, get) => {
     if (challengerId) useProfile.getState().recordChallenge(challengerId, won)
   }
 
+  /**
+   * Sum the finished tournament up for the recap (see lib/recap).
+   *
+   * Called at the two tournament endings, *after* the prize, the bounties and
+   * the last hand's tendencies have landed on the profile and *before*
+   * `recordVenueResult` overwrites the venue best this run is measured against
+   * (hence `bestFinishBefore` coming in as an argument rather than being read
+   * here). Nothing is persisted: the lifetime figure this run is compared with
+   * is the current one minus this run, which is exact because the run's hands
+   * are flushed into it one at a time.
+   */
+  function makeRecap(venue: Venue, place: number, bestFinishBefore: number | null): Recap {
+    const profile = useProfile.getState() // re-read: the prize has just landed
+    const runStats = seatStatsLive[HUMAN_ID] ?? emptySeatStats()
+    return buildRecap({
+      venueName: venue.name,
+      place,
+      seats: venue.seats,
+      hands: get().handIndex,
+      rollDelta: (place === 1 ? venue.prize : 0) + runTally.bounty - venue.buyIn,
+      runStats,
+      lifetimeBefore: subtractStats(profile.tendencies, runStats),
+      lifetimeAfter: profile.tendencies,
+      biggestPot: runTally.biggestPot,
+      bigPotHand: runTally.bigPotHand,
+      bigPotKos: runTally.bigPotKos,
+      newPeak: profile.peakRoll > runTally.peakAtStart,
+      peakRoll: profile.peakRoll,
+      bestFinishBefore,
+    })
+  }
+
   /** Detect + persist chips earned on this hand; returns them for the UI. */
   function grantEarnedAwards(
     hand: HandState,
@@ -861,6 +962,7 @@ export const useGame = create<GameState>((set, get) => {
     newAwards: [],
     lastBounty: 0,
     seatStats: {},
+    recap: null,
     talk: null,
     cashInvested: 0,
 
@@ -868,6 +970,7 @@ export const useGame = create<GameState>((set, get) => {
       clearTimers()
       const stack = venue.startingStack ?? venue.buyIn
       heroLowTide = stack
+      runTally = emptyRunTally(useProfile.getState().peakRoll)
       seatStatsLive = {}
       heroTendencyFlushed = emptySeatStats()
       castFlushed = {}
@@ -943,6 +1046,7 @@ export const useGame = create<GameState>((set, get) => {
         newAwards: [],
         lastBounty: 0,
         seatStats: {},
+        recap: null,
         talk: null,
         cashInvested: venue.buyIn,
       })
@@ -957,6 +1061,9 @@ export const useGame = create<GameState>((set, get) => {
       clearTimers()
       const live = snapshot.live
       heroLowTide = snapshot.heroLow
+      // A snapshot written before the recap shipped carries no tally, so the
+      // resumed run reports what it can still see rather than nothing.
+      runTally = snapshot.run ? { ...snapshot.run } : emptyRunTally(useProfile.getState().peakRoll)
       // Mid-hand, the counters and their flush baselines both come back, so the
       // hand's actions so far still count and the hands before it don't count
       // twice.
@@ -984,6 +1091,7 @@ export const useGame = create<GameState>((set, get) => {
         lastRead: null,
         newAwards: [],
         lastBounty: 0,
+        recap: null,
         talk: null,
         cashInvested: snapshot.cashInvested ?? venue.buyIn,
       })
@@ -1073,6 +1181,7 @@ export const useGame = create<GameState>((set, get) => {
         newAwards: [],
         lastBounty: 0,
         seatStats: {},
+        recap: null,
         talk: null,
         cashInvested: 0,
       })
@@ -1081,6 +1190,23 @@ export const useGame = create<GameState>((set, get) => {
 })
 
 // --- helpers ---------------------------------------------------------------
+
+/**
+ * Lifetime tendencies as they stood before this run: the current totals minus
+ * the run itself. Exact rather than approximate, because the run's hands are
+ * flushed onto the lifetime totals one at a time from the same counter.
+ */
+function subtractStats(total: SeatStats, part: SeatStats): SeatStats {
+  return {
+    handsDealt: total.handsDealt - part.handsDealt,
+    vpipHands: total.vpipHands - part.vpipHands,
+    raises: total.raises - part.raises,
+    calls: total.calls - part.calls,
+    betsFaced: total.betsFaced - part.betsFaced,
+    foldsToBet: total.foldsToBet - part.foldsToBet,
+    showdowns: total.showdowns - part.showdowns,
+  }
+}
 
 function computeHeroEquity(hand: HandState): number | null {
   const hero = hand.players.find((p) => p.id === HUMAN_ID)

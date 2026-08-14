@@ -47,7 +47,8 @@ see docs/cast.md), and `seatStats` — observed per-opponent tendencies (VPIP,
 aggression, folds to pressure) that become the plain-English **reads** in the
 player dialog after ~8 hands (`src/lib/reads.ts`, unit-tested). Opponents are
 cast characters (`config/cast.ts`); their tendencies also flush into the
-profile's `castRecords`, so reads are career-long.
+profile's `castRecords`, so reads are career-long. `recap` holds the summary of
+the run that just ended (tournaments only) and is null at every other moment.
 
 ## The turn loop
 
@@ -100,7 +101,31 @@ decode to null and get a friendly empty state.
 **Refresh-proofing**: the live table is snapshotted to localStorage (`pip.table`)
 at every deal and hand end; the play page resumes an interrupted table instead of
 buying in again (a mid-hand refresh re-deals that hand from its start). The
-snapshot is cleared on leave, bust, and win.
+snapshot is cleared on leave, bust, and win. It also carries the run's recap
+tally (`RunTally`), so a reload does not produce a recap of half a run.
+
+## The end-of-run recap
+
+A tournament that ends (win or bust) shows a **recap card** on the end overlay:
+the finish, hands lasted and Roll change, the run's one highlight, one read on
+how it was played, and any career number it moved. Built by `buildRecap` in
+`src/lib/recap.ts` (pure, unit-tested) from a `RunSummary` the store assembles in
+`finishHand`; `RunRecap` renders it. Cash tables get none: there is no finish to
+report. Standing up mid-tournament gets none either, on purpose, because a
+player who has said they are done does not want a card in the way.
+
+Three rules hold it in shape:
+
+- **Nothing new is persisted.** Every figure is derived at tournament end from
+  the game store and the existing profile, so the recap adds no `PERSIST_VERSION`
+  traffic. The lifetime figures it compares a run against are the current totals
+  minus the run itself, which is exact.
+- **Noise floors, or silence.** The style read needs `STYLE_MIN_HANDS` hands (the
+  floor `/stats` uses) and a comparison needs that much history behind it too. A
+  three-hand run says less rather than saying something confident and wrong.
+- **One run, reported once.** No streaks, no history, nothing asking for
+  tomorrow. Coaching *across* runs is the membership's surface, so widening this
+  into a trend is a monetisation decision rather than a copy change.
 
 ## The economy & progression
 
@@ -197,5 +222,6 @@ profile required — the route is standalone and shareable.
 | Venue buy-ins / blinds / prizes / AI | `config/venues.ts` |
 | Blind escalation speed / curve | `config/blinds.ts` (+ tests) |
 | Ranks | `config/ranks.ts` |
+| What the end-of-run recap says | `lib/recap.ts` (+ tests) |
 | Persisted profile shape | `store/profile.ts` (bump `PERSIST_VERSION`, add migration) |
 | How a hand looks on screen | `components/table/` |
