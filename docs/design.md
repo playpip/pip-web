@@ -67,6 +67,24 @@ caption left in px stays small while the paragraph around it doubles.
   -> type capped in `vw` via `min()`. The caps are the size the type already has on the narrowest
   phone, so nothing moves at 100%.
 
+### The table stops at 150%
+
+**Reading surfaces go to 200%. `/play/*` caps at 150%** (`TABLE_MAX_TEXT_SCALE` in
+`lib/textScale.ts`). Will played a hand at 200% on a phone and it does not hold: 150% is just
+about playable, 200% is not. The felt is the one screen that cannot reflow, because nine seats,
+a board, a pot and an action row all have to be visible at once and in a fixed spatial
+relationship, so type that doubles has nowhere to push except off the screen.
+
+- **The cap is at the root, not on a container.** Every `rem` is measured against the root font
+  size, and the table's dialogs render in a portal on `<body>`, outside anything the table wraps.
+  `TextScaleProvider` watches the pathname and applies `effectiveTextScale()`.
+- **The boot script applies it too.** A hard refresh on `/play/kitchen` resumes the table, and the
+  provider's effect runs after paint, so without the cap in the inline script the felt draws once
+  at 200% and jumps.
+- **The stored setting is never rewritten.** Walking off the table restores 200%.
+- **Do not fix a table overflow by widening the cap**, and do not fix one by dropping the 200%
+  step: that would take the WCAG 1.4.4 answer away from every reading surface to fix one screen.
+
 ### Dialogs are capped and scroll, never clipped
 
 A dialog is centred with a transform, so content taller than the viewport spills off **both**

@@ -41,3 +41,47 @@ export function rootFontSize(scale: TextScale): string {
 export function textScaleLabel(scale: TextScale): string {
   return `${scale}%`
 }
+
+// ---------------------------------------------------------------------------
+// The table cap
+//
+// Will played a hand at 200% on his phone and the table does not hold: "150% is
+// just about playable but not 200%" (technology#57). The felt is the one screen
+// in the app that cannot reflow. Nine seats, a board, a pot and an action row
+// all have to be visible at once and in their fixed spatial relationship, so
+// type that doubles has nowhere to push the layout except off the screen.
+//
+// So the table stops at 150% and the rest of the app still reaches 200%. The
+// alternative was to drop the 200% step altogether, which would take the WCAG
+// 1.4.4 answer away from every reading surface in the app to fix one screen.
+// A setting a player can pick that then breaks the main surface is worse than
+// no setting at all, and capping it where it stops working is the narrower fix.
+//
+// The cap lives at the root, not on a container, because rem is measured
+// against the root font size and the table's own dialogs render in a portal on
+// <body>, outside any wrapper the table could set.
+
+/** The table's ceiling. Above this the seats and the board stop fitting on a phone. */
+export const TABLE_MAX_TEXT_SCALE = 150 satisfies TextScale
+
+/** Route prefix for the felt. The lobby, Learn and the rest are not capped. */
+export const TABLE_ROUTE_PREFIX = '/play/'
+
+/** Is this path the table itself? `/play/kitchen`, with or without a trailing slash. */
+export function isTableRoute(pathname: string | null | undefined): boolean {
+  return typeof pathname === 'string' && pathname.startsWith(TABLE_ROUTE_PREFIX)
+}
+
+/**
+ * The scale to actually apply, given where the reader is standing.
+ *
+ * Everywhere but the table this is the setting untouched. On the table it is
+ * the setting or 150%, whichever is smaller. The choice is remembered at full
+ * size, so walking off the table restores it.
+ */
+export function effectiveTextScale(
+  scale: TextScale,
+  pathname: string | null | undefined,
+): TextScale {
+  return isTableRoute(pathname) && scale > TABLE_MAX_TEXT_SCALE ? TABLE_MAX_TEXT_SCALE : scale
+}

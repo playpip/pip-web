@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { RotateCcw } from 'lucide-react'
 import { SyncSection } from '@/components/settings/SyncSection'
 import { TransferDialog } from '@/components/settings/TransferDialog'
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { useTheme } from '@/components/theme-provider'
 import { useTextScale } from '@/components/text-scale-provider'
-import { TEXT_SCALES, textScaleLabel } from '@/lib/textScale'
+import { isTableRoute, TABLE_MAX_TEXT_SCALE, TEXT_SCALES, textScaleLabel } from '@/lib/textScale'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
@@ -138,16 +139,31 @@ function AppearanceSection() {
  * for. The labels are all one size on purpose. Drawing each button at its own
  * scale previews the choice nicely and makes the row four times wider than the
  * dialog at the top step, which is the wrong trade in a 384px sheet.
+ *
+ * The table stops at 150% (technology#57, and lib/textScale.ts says why), so
+ * the copy says so. Settings opens from the table's own bar, which means a
+ * reader can pick 200% mid-hand and watch nothing happen; the second line only
+ * shows up in exactly that moment, rather than nagging everyone else about it.
  */
 function TextSizeSection() {
   const { scale, setScale } = useTextScale()
   const hydrated = useHydrated()
+  const pathname = usePathname()
+  // Hydration: `scale` is read from localStorage, so the server render always
+  // thinks it is 100 and this line would mismatch without the gate.
+  const cappedHere = hydrated && isTableRoute(pathname) && scale > TABLE_MAX_TEXT_SCALE
   return (
     <div>
       <p className="text-sm font-medium">Text size</p>
       <p className="text-xs text-muted-foreground">
-        Everything gets bigger, the table included. Your cards keep their shape.
+        Everything gets bigger. The table stops at {textScaleLabel(TABLE_MAX_TEXT_SCALE)}, because
+        past that the seats and the board stop fitting on the screen. Your cards keep their shape.
       </p>
+      {cappedHere && (
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          You are at the table, so this screen is showing {textScaleLabel(TABLE_MAX_TEXT_SCALE)}.
+        </p>
+      )}
       {/* Real radios, visually hidden. A segmented control built from buttons
           would need role="radio" and hand-rolled arrow-key handling; this gets
           both from the browser, and it is the one control on the page a reader

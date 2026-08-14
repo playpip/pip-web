@@ -2,11 +2,15 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import test from 'ava'
 import {
   DEFAULT_TEXT_SCALE,
+  effectiveTextScale,
+  isTableRoute,
   parseTextScale,
   rootFontSize,
+  TABLE_MAX_TEXT_SCALE,
   TEXT_SCALES,
   textScaleLabel,
 } from '@/lib/textScale'
+import { TEXT_SCALE_BOOT_SCRIPT } from '@/components/text-scale-provider'
 
 test('the scale reaches 200%, which is what WCAG 1.4.4 requires', (t) => {
   t.true(TEXT_SCALES.includes(200))
@@ -34,6 +38,67 @@ test('the root font size is a percentage, never px', (t) => {
     t.false(rootFontSize(step).includes('px'))
   }
   t.is(textScaleLabel(200), '200%')
+})
+
+// --- the table cap ---------------------------------------------------------
+
+test('the table caps at 150%, and nothing else does', (t) => {
+  // Will played a hand at 200% on a phone: "150% is just about playable but not
+  // 200%" (technology#57). The felt cannot reflow (nine seats, a board and an
+  // action row have to be on screen at once), so it stops where it stops
+  // working, and every reading surface still reaches the 200% WCAG 1.4.4 asks
+  // for. Dropping the top step instead would have cost the whole app that.
+  t.is(TABLE_MAX_TEXT_SCALE, 150)
+  t.true(
+    (TEXT_SCALES as readonly number[]).includes(TABLE_MAX_TEXT_SCALE),
+    'the cap is a real step',
+  )
+  t.true(TABLE_MAX_TEXT_SCALE < 200, 'a cap at the top step would not be a cap')
+
+  for (const path of ['/play/kitchen', '/play/kitchen/', '/play/challenge-high']) {
+    t.true(isTableRoute(path))
+    t.is(effectiveTextScale(200, path), TABLE_MAX_TEXT_SCALE)
+    // Below the cap the table is left alone.
+    t.is(effectiveTextScale(125, path), 125)
+    t.is(effectiveTextScale(150, path), 150)
+  }
+
+  for (const path of [
+    '/',
+    '/game',
+    '/learn/starting-hands',
+    '/stats',
+    '/tutorial',
+    '/play',
+    null,
+  ]) {
+    t.false(isTableRoute(path))
+    t.is(effectiveTextScale(200, path), 200)
+  }
+})
+
+test('the boot script applies the cap before first paint', (t) => {
+  // The provider's effect runs after paint, so a hard refresh straight on to a
+  // resumed table would draw the felt at 200% and then jump. The inline script
+  // has to know about the cap itself.
+  const run = (stored: string | null, pathname: string): string => {
+    const style: { fontSize: string } = { fontSize: '' }
+    new Function('localStorage', 'location', 'document', TEXT_SCALE_BOOT_SCRIPT)(
+      { getItem: () => stored },
+      { pathname },
+      { documentElement: { style } },
+    )
+    return style.fontSize
+  }
+
+  t.is(run('200', '/play/kitchen'), '150%')
+  t.is(run('200', '/game'), '200%')
+  t.is(run('150', '/play/kitchen'), '150%')
+  t.is(run('125', '/play/kitchen'), '125%')
+  // 100 and junk are left alone, so the reader's own browser default stands.
+  t.is(run('100', '/game'), '')
+  t.is(run(null, '/game'), '')
+  t.is(run('175', '/game'), '')
 })
 
 // ---------------------------------------------------------------------------
