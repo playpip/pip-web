@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { TwoPrices } from '@/components/learn/TwoPrices'
+import { WhatItChargesADraw } from '@/components/learn/WhatItChargesADraw'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import {
@@ -180,6 +181,7 @@ export default function BetSizingGuide() {
           you have made a losing call happen, which is the second best outcome and often the
           likelier one.
         </p>
+        <WhatItChargesADraw />
       </Section>
 
       <Section title="What the size does to the pot three streets later">

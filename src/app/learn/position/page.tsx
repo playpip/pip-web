@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { SameHandThreeSeats } from '@/components/learn/SameHandThreeSeats'
 import { TheOrder } from '@/components/learn/TheOrder'
 import { Section } from '@/components/marketing/LegalPage'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
@@ -191,6 +192,7 @@ export default function PositionGuide() {
           often you win the blinds without a flop. That is not a trick, it is just what happens to
           whoever is sitting in the good seat.
         </p>
+        <SameHandThreeSeats />
       </Section>
 
       <Section title="The other half: who is left behind you">

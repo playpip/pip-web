@@ -32,6 +32,14 @@ export const CHART_RANKS = [
 /** The earliest seat a hand is worth opening from, when it folds round to you. */
 export type Band = 'any' | 'middle' | 'late'
 
+/**
+ * The bands from the earliest seat that opens them to the latest, which is the
+ * order the whole chart is arranged by. A seat opens its own band and every
+ * band above it, so this is the list any "does this seat play this hand?"
+ * question is answered against.
+ */
+export const BAND_ORDER: readonly Band[] = ['any', 'middle', 'late']
+
 /** The symbol printed in the cell. Unbanded hands get nothing, and fold. */
 export const BAND_SYMBOL: Record<Band, string> = {
   any: '●',
@@ -193,8 +201,7 @@ export const TOTAL_COMBOS = 1326
 
 /** The share of hands a band covers, cumulatively with the bands above it. */
 export function cumulativeShare(band: Band): number {
-  const order: Band[] = ['any', 'middle', 'late']
-  const upTo = order.slice(0, order.indexOf(band) + 1)
+  const upTo = BAND_ORDER.slice(0, BAND_ORDER.indexOf(band) + 1)
   const combos = upTo.flatMap((b) => BAND_LISTS[b]).reduce((sum, hand) => sum + comboCount(hand), 0)
   return (combos / TOTAL_COMBOS) * 100
 }

@@ -149,6 +149,24 @@ export const TWO_PRICE_SIZES: readonly SizeNote[] = [
   },
 ]
 
+/**
+ * The sizes the WhatItCosts widget lights one at a time. Ids only, so a tap and
+ * the table row above it cannot print different prices for the same size.
+ *
+ * Six of the table's seven. Three-quarters is left out because it sets a price
+ * 1.4 points from two-thirds, and a tap whose answer is its neighbour's answer
+ * teaches nothing. It stays in the table, where a reader is scanning a column
+ * rather than choosing a button.
+ */
+export const PRICE_TAP_SIZES: readonly BetSizeId[] = [
+  'quarter',
+  'third',
+  'half',
+  'twothirds',
+  'pot',
+  'overbet',
+]
+
 export interface Draw {
   id: string
   /** How the outs table names it. */
@@ -163,6 +181,42 @@ export const DRAWS: readonly Draw[] = [
   { id: 'flush', label: 'Flush', outs: 9 },
   { id: 'combo', label: 'Flush and open-ended straight', outs: 15 },
 ]
+
+export interface ChargedDraw extends Draw {
+  /** Two hole cards, as "Js"/"Th" strings. */
+  hero: readonly string[]
+  /** The flop they are drawing on. */
+  board: readonly string[]
+}
+
+/**
+ * A board for four of the five draws, so the widget on /learn/bet-sizing shows
+ * the hand rather than naming it. Keyed by DRAWS id: the out count stays in
+ * DRAWS, which is the list the pot-odds table prints, and only the picture is
+ * here. A draw whose cards and whose count live in two files is a draw that can
+ * be drawn with one number and counted with another.
+ *
+ * The fifteen-out board is the one to check rather than trust. J♠T♠ on 9♠8♠2♦
+ * is nine spades, plus the queens and the sevens, less the two of those already
+ * counted as spades. tests/guideWidgets.test.ts counts every one of the 47
+ * unseen cards through the evaluator instead of adding 9 and 8, because 9 and 8
+ * is 17, and the same draw written on 9♠8♣2♦ is not a flush draw at all.
+ *
+ * Two overcards is not here on purpose: the six-out count depends on both
+ * overcards being live, which is a fact about the other hand and not about the
+ * board, so any picture of it would be making a claim the cards cannot show.
+ */
+const DRAW_CARDS: Record<string, { hero: readonly string[]; board: readonly string[] }> = {
+  gutshot: { hero: ['Jh', 'Th'], board: ['9s', '7c', '2d'] },
+  oesd: { hero: ['Jh', 'Th'], board: ['9s', '8c', '2d'] },
+  flush: { hero: ['8s', '7s'], board: ['9s', '4s', '2h'] },
+  combo: { hero: ['Js', 'Ts'], board: ['9s', '8s', '2d'] },
+}
+
+/** The four draws with a board, in the order the outs table lists them. */
+export const CHARGED_DRAWS: readonly ChargedDraw[] = DRAWS.filter(
+  (draw) => draw.id in DRAW_CARDS,
+).map((draw) => ({ ...draw, ...DRAW_CARDS[draw.id] }))
 
 export interface WorkedSpot {
   id: string

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { ThePrice } from '@/components/learn/ThePrice'
+import { WhatItCosts } from '@/components/learn/WhatItCosts'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import {
@@ -104,6 +105,7 @@ export default function PotOddsGuide() {
           It makes every price look better than it is, which is a direction of error that costs
           money.
         </p>
+        <WhatItCosts />
       </Section>
 
       <Section title="The other half: counting outs">
