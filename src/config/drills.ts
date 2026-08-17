@@ -21,6 +21,12 @@ import type { DrillKindId } from '@/lib/drills/types'
 // interstitial. The one kind that exists is free forever by ruling
 // (technology#38) and unlimited is the half of that which is easiest to erode
 // for a good reason.
+//
+// **A kind is free or it is the membership's, and there is no third thing.**
+// `membersOnly` is the whole of it: no sampling, no "three a week", no trial
+// that ends mid-session. That shape is not available to us on purpose, because
+// metered puzzles are the exact behaviour this app is positioned against. What
+// we sell is another whole kind, never a slice of this one.
 
 export interface DrillKind {
   /** URL segment under /game/drills, and the kind's id in the engine. */
@@ -33,6 +39,17 @@ export interface DrillKind {
   question: string
   /** What settles the answer, said once in small print under the drill. */
   gradedBy: string
+  /**
+   * Part of the membership rather than free.
+   *
+   * Absent means free forever, and that is not a default anyone may change
+   * later: rule #8 says we never charge for something that shipped free, so a
+   * kind that ships without this flag has given itself away. **A new kind that
+   * is meant to be paid must carry it in the same commit that registers it**,
+   * or it is free by accident and the box the membership is priced from empties
+   * itself on the way to being sold (technology#55).
+   */
+  membersOnly?: boolean
 }
 
 // **No seed lives here.** It used to: a `firstSeed` per kind, fixed so that the
@@ -51,6 +68,24 @@ export const DRILL_KINDS: DrillKind[] = [
     gradedBy: 'Settled by the same code that settles a showdown at the table, card by card.',
   },
 ]
+
+/**
+ * May this player open this kind?
+ *
+ * One function, read by the room and by the screen, so the two cannot come to
+ * different answers about the same kind. `member` comes from `useEntitlement()`
+ * and nothing here knows where that got it.
+ *
+ * **The route still exists for every kind, member or not**, and that is
+ * deliberate: the app is a static export, so a route that is not generated is a
+ * 404 rather than a refusal, and a 404 is what a member sees too if their row
+ * has not come back yet. The registered tables made the same call for the same
+ * reason (see the note on ALL_VENUES). The refusal is a screen, not a missing
+ * page.
+ */
+export function canPlayDrill(kind: DrillKind, member: boolean): boolean {
+  return member || !kind.membersOnly
+}
 
 /**
  * A kind's entry, or a failure. Throwing rather than returning undefined
