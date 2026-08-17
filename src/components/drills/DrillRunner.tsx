@@ -6,13 +6,14 @@ import { motion } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { PageShell } from '@/components/PageShell'
 import { PlayingCard } from '@/components/PlayingCard'
-import type { DrillKind } from '@/config/drills'
+import { type DrillKind, canPlayDrill } from '@/config/drills'
 import { gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import type { Drill, DrillChoice } from '@/lib/drills/types'
 import { type Card, cardName } from '@/lib/poker/cards'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
+import { useEntitlement, useMembership } from '@/store/entitlement'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { cn } from '@/lib/utils'
 
@@ -53,21 +54,64 @@ import { cn } from '@/lib/utils'
 export function DrillRunner({ kind }: { kind: DrillKind }) {
   const router = useRouter()
   const hydrated = useHydrated()
+  const member = useEntitlement()
+  const settled = useMembership((state) => state.checked)
+
+  // A free kind never waits on anything. A kind that comes with the membership
+  // waits for a real answer before it draws either screen, because the frame
+  // where a member is told this is not theirs is worse than a frame of card
+  // backs. `checked` is true immediately for anyone signed out, so the only
+  // people who ever see the extra frame are the ones with an account.
+  const known = !kind.membersOnly || settled
+  const allowed = canPlayDrill(kind, member)
 
   return (
     <PageShell leading="back" backLabel="Drills" onBack={() => router.push('/game/drills')}>
       <div className="flex flex-1 flex-col">
-        {hydrated ? <Run kind={kind} /> : <Dealing kind={kind} />}
+        {!hydrated || !known ? (
+          <Dealing kind={kind} />
+        ) : allowed ? (
+          <Run kind={kind} />
+        ) : (
+          <WithTheMembership kind={kind} />
+        )}
 
         {/* Small print, at the foot of the screen where it belongs. Both halves
             are load-bearing: what settles the answer, and what happens to the
             number. Never a cap, never a countdown. */}
-        <p className="mt-auto pt-8 text-center text-xs text-muted-foreground/80">
-          {kind.gradedBy} Your rating is yours, it never expires, and there is no limit on how many
-          you play.
-        </p>
+        {allowed && (
+          <p className="mt-auto pt-8 text-center text-xs text-muted-foreground/80">
+            {kind.gradedBy} Your rating is yours, it never expires, and there is no limit on how
+            many you play.
+          </p>
+        )}
       </div>
     </PageShell>
+  )
+}
+
+/**
+ * What a kind that comes with the membership says to somebody it is not for.
+ *
+ * A plain line of text, at the same weight as any other sentence on the screen.
+ * No prompt, no modal, no CTA styling, and nothing that follows you back to the
+ * room: the landing page promises no pop-ups and no nagging, and this is the
+ * surface where that promise is either kept or quietly broken. The honest
+ * version is telling somebody what the thing is and letting them leave, which
+ * the back arrow above already does.
+ *
+ * **The line gains a text link to /membership when that page exists**
+ * (technology#52 item F), and the wording is the CMO's to set at that point.
+ * There is no paid kind registered today, so nothing renders this yet.
+ */
+function WithTheMembership({ kind }: { kind: DrillKind }) {
+  return (
+    <div className="mt-10 text-center">
+      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{kind.title}</h1>
+      <p className="mx-auto mt-3 max-w-sm text-sm text-muted-foreground">
+        {kind.blurb} This one comes with the membership.
+      </p>
+    </div>
   )
 }
 

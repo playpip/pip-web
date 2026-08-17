@@ -8,6 +8,49 @@ export type Database = {
   }
   public: {
     Tables: {
+      // Hand-written, unlike everything else in this file, and it stays that
+      // way until `supabase db push` has run against the linked project:
+      // `pnpm supabase:generate-types` reads the live schema, so a table that
+      // exists only as a migration file cannot be generated from anything.
+      // It mirrors supabase/migrations/20260817090000_memberships.sql exactly.
+      // Regenerate over the top once the migration is applied.
+      //
+      // Insert and Update are typed for completeness. Nothing in this app may
+      // use them: the row is written by the Stripe webhook with the service
+      // role, and RLS grants the client select and nothing else.
+      memberships: {
+        Row: {
+          cancel_at_period_end: boolean
+          current_period_end: string | null
+          price_id: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          price_id?: string | null
+          status: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          price_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           device_id: string | null

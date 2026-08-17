@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useMembership } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
 
@@ -11,6 +12,7 @@ import { useSync } from '@/store/sync'
  *   the real protection is installing the PWA)
  * - seeds a Roll-graph origin point for profiles that predate stat recording
  * - restores a sync session if there is one, and pulls
+ * - watches that session for a membership, which costs nothing until there is one
  *
  * The service worker is registered separately in UpdatePrompt's hook, which also
  * watches for new deploys (see lib/useServiceWorker).
@@ -25,6 +27,10 @@ export function AppBoot() {
     // No-op unless the player has an account: with no stored session this
     // reads localStorage, finds nothing and stops. No request, no identity.
     void useSync.getState().init()
+
+    // Subscribes to that session rather than going looking for one, so a
+    // player with no account still makes no request of its own.
+    useMembership.getState().start()
   }, [])
   return null
 }

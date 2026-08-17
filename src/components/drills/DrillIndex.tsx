@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { SectionScreen } from '@/components/menu/SectionScreen'
-import { DRILL_KINDS, type DrillKind } from '@/config/drills'
+import { DRILL_KINDS, type DrillKind, canPlayDrill } from '@/config/drills'
 import { nextDrill, randomSeed } from '@/lib/drills'
 import { PlayingCard } from '@/components/PlayingCard'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
+import { useEntitlement } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 
 /**
@@ -23,15 +24,27 @@ import { useProfile } from '@/store/profile'
  * what makes this room worth walking back into. It carries no cap, no
  * countdown and nothing you can be behind on — see the note at the top of
  * lib/drills/rating.ts.
+ *
+ * **A kind that comes with the membership is not on the shelf until there is
+ * somewhere to read about it.** Every kind registered today is free, so this
+ * filter changes nothing for anybody as it stands. When the first paid kind
+ * lands, the honest surface is the tile still being here with a plain line
+ * saying what it is: you cannot buy what you cannot see, and hiding it is
+ * dishonest by omission. That needs /membership to exist to point at, and it
+ * does not yet (technology#52 item F), so for now the seam hides rather than
+ * pointing at a 404.
  */
 export function DrillIndex() {
+  const member = useEntitlement()
+  const kinds = DRILL_KINDS.filter((kind) => canPlayDrill(kind, member))
+
   return (
     <SectionScreen
       title="Drills"
       subtitle="Short spots with a right answer. Your rating moves with every one, and there is no limit on how many you play."
     >
       <div className="grid gap-4 md:grid-cols-2">
-        {DRILL_KINDS.map((kind, i) => (
+        {kinds.map((kind, i) => (
           <DrillTile key={kind.id} kind={kind} delay={i * 0.05} />
         ))}
       </div>
