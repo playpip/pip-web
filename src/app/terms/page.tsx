@@ -32,8 +32,8 @@ export default function TermsPage() {
           Pip is free and provided as-is. We build it with care, but we can’t promise it will always
           work perfectly, never lose your local data, or suit any particular purpose. To the extent
           the law allows, we’re not liable for anything that comes of using it. If your progress
-          matters to you, back your profile up from Settings — it lives only on your device, so it’s
-          yours to keep and yours to lose.
+          matters to you, back your profile up from Settings. Unless you switch sync on, it lives
+          only on your device, so it’s yours to keep and yours to lose.
         </p>
       </Section>
 

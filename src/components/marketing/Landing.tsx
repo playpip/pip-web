@@ -554,8 +554,8 @@ function Features() {
             Clean SFX synthesised in the browser — quiet blips, no coin-clatter or jingles.
           </MiniFeature>
           <MiniFeature icon={WifiOff} title="Yours & offline">
-            Fully local. Install it, pull the plug, keep playing — your profile never leaves your
-            device.
+            Fully local. Install it, pull the plug, keep playing — nothing leaves your device unless
+            you ask it to.
           </MiniFeature>
           <MiniFeature icon={Sparkles} title="A shelf worth filling">
             Earn one-off award chips for heroic hands — and buy souvenir chips of every venue you

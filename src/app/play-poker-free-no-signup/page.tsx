@@ -83,7 +83,10 @@ const CHECKLIST: { thing: string; answer: string }[] = [
   { thing: 'Ads', answer: 'None.' },
   { thing: 'Chips for sale', answer: 'None. Run out and a free table opens instead.' },
   { thing: 'Pop-ups and daily-reward guilt', answer: 'None.' },
-  { thing: 'Where your progress lives', answer: 'Your browser, on your device. Not our server.' },
+  {
+    thing: 'Where your progress lives',
+    answer: 'Your browser, on your device. Ours only if you switch sync on, and it ships off.',
+  },
   { thing: 'What it costs', answer: 'Nothing.' },
 ]
 
