@@ -9,6 +9,9 @@ import { PlayStyleChart } from './PlayStyleChart'
 import { RankLadder } from './RankLadder'
 import { useProfile } from '@/store/profile'
 import { VENUES, SIDE_TABLES, KITCHEN_TABLE } from '@/config/venues'
+import { DRILL_KINDS } from '@/config/drills'
+import type { DrillKindId } from '@/lib/drills/types'
+import { drillAccuracy, standingLine } from '@/lib/drills/standing'
 import { rankFor } from '@/config/ranks'
 import { derivePlayStyle } from '@/lib/playStyle'
 import { accentFromSwatch } from '@/lib/avatar'
@@ -19,7 +22,7 @@ const ALL_VENUES = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE]
 
 /** Lifetime stats — a full-page bento, the play-style quadrant at its centre. */
 export function StatsPage() {
-  const { name, avatar, roll, peakRoll, stats, rollHistory, venueRecords, tendencies } =
+  const { name, avatar, roll, peakRoll, stats, rollHistory, venueRecords, tendencies, drills } =
     useProfile()
   const money = useMoney()
 
@@ -39,6 +42,14 @@ export function StatsPage() {
 
   const min = rollHistory.length > 0 ? Math.min(...rollHistory.map((p) => p.roll)) : null
   const max = rollHistory.length > 0 ? Math.max(...rollHistory.map((p) => p.roll)) : null
+
+  // A kind you have answered at least one spot in. Absent otherwise, so the
+  // whole section is missing for a player who has never opened a drill rather
+  // than sitting there full of zeros. Driven off the registry rather than off
+  // the profile's keys so that the order matches the drills room, and so that a
+  // record left behind by a kind we later withdrew does not resurface here with
+  // no title to put on it.
+  const playedDrills = DRILL_KINDS.filter((kind) => (drills[kind.id]?.answered ?? 0) > 0)
 
   const playedVenues = ALL_VENUES.filter((v) => (venueRecords[v.id]?.entered ?? 0) > 0)
   const favourite = playedVenues
@@ -224,7 +235,76 @@ export function StatsPage() {
           </Card>
         </motion.section>
       )}
+
+      {/* drills: the practice room's side of the story, under the table's */}
+      {playedDrills.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12, duration: 0.4, ease: 'easeOut' }}
+          className="mt-4"
+        >
+          <Card>
+            <div className="mb-3 flex items-baseline justify-between gap-4">
+              <CardLabel>Drills</CardLabel>
+              {/* The one thing worth saying about these numbers, and it is the
+                  opposite of what a streak says. No count of what is left, no
+                  date, nothing to be behind on. */}
+              <p className="text-xs text-muted-foreground/70">Yours. None of it expires</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {playedDrills.map((kind) => (
+                <DrillStanding key={kind.id} kindId={kind.id} title={kind.title} />
+              ))}
+            </div>
+          </Card>
+        </motion.section>
+      )}
     </PageShell>
+  )
+}
+
+/**
+ * One drill kind's record: the rating, what it means, and the arithmetic under
+ * it.
+ *
+ * The rating is the big number because it is the one that moves and the one
+ * worth coming back for, but on its own it is four digits with no unit, and
+ * until now four digits with no unit on a tile was the only place any of this
+ * could be seen. The sentence under it is the unit: the rating sits on the same
+ * scale as the spots, so it can name which shapes of spot it clears (see
+ * lib/drills/standing.ts).
+ *
+ * A record exists here because you answered a spot in that kind, which is a
+ * fact about what you did rather than about what you can currently open. Should
+ * a kind ever stop being available to somebody, their history of it stays.
+ */
+function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }) {
+  const record = useProfile((s) => s.drills[kindId])
+  if (!record || record.answered === 0) return null
+
+  const accuracy = drillAccuracy(record)
+  const line = standingLine(kindId, record.rating)
+  // Facts, quietest first. `bestRun` only once it is a run: "best 1" is not a
+  // personal best, it is one right answer.
+  const facts = [
+    accuracy !== null ? `${accuracy}% of ${record.answered.toLocaleString()}` : null,
+    record.bestRun > 1 ? `best run ${record.bestRun}` : null,
+  ].filter(Boolean)
+
+  return (
+    <div className="rounded-2xl bg-foreground/[0.04] p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h3>
+        <p className="shrink-0 text-2xl font-semibold tabular-nums leading-none">
+          {record.rating.toLocaleString()}
+        </p>
+      </div>
+      {facts.length > 0 && (
+        <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">{facts.join(' · ')}</p>
+      )}
+      {line && <p className="mt-2 text-sm leading-snug text-muted-foreground">{line}</p>}
+    </div>
   )
 }
 
