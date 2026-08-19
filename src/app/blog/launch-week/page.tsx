@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
+import { LegalPage, Section, Correction, A } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'launch-week')!
@@ -14,6 +14,25 @@ export default function LaunchWeekPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="19 August 2026">
+        <p>
+          Below, this post says “there is still no account behind any of it”. That held for nine
+          days. An account arrived on 3 August: optional, free, off by default, and good for exactly
+          one thing, which is carrying a profile to a second device. The QR code described below
+          still works and still needs no account, as promised.
+        </p>
+        <p>
+          The reasoning, and what gets stored, is in{' '}
+          <Link
+            href="/blog/two-devices-two-chip-counts"
+            className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
+          >
+            Two devices, two chip counts
+          </Link>
+          .
+        </p>
+      </Correction>
+
       <Section title="The short version">
         <p>
           Pip launched on the 23rd. The plan for week one was to fix whatever broke. What actually

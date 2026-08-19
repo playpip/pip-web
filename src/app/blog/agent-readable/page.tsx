@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
+import { LegalPage, Section, Correction, A } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'agent-readable')!
@@ -13,6 +13,20 @@ export default function AgentReadablePost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="19 August 2026">
+        <p>
+          There are <strong className="font-medium text-foreground">ten content routes</strong> with
+          a Markdown mirror now, not six. The learn guides, the odds calculator and the no-signup
+          page were all written after this post, and each one arrived with its mirror.
+        </p>
+        <p>
+          Which makes the last paragraph below exactly backwards: it names the learn pages as part
+          of the plain static half, and they are the largest set of mirrors on the site. You can
+          read one at <code>/learn/hand-rankings.md</code>. The shared module is still 57 lines. The
+          per-route files are still four lines each, except the two learn routes, which are seven.
+        </p>
+      </Correction>
+
       <Section title="The short version">
         <p>
           Every content page on this site now comes in two versions. Ask for one the way a browser

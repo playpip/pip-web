@@ -77,6 +77,24 @@ export function Section({ title, children }: { title: string; children: React.Re
   )
 }
 
+/**
+ * A dated note on a post whose subject has since moved. A post is a snapshot
+ * with a date on it, so the original sentence stays exactly as it shipped and
+ * this says what is true now. It is the same thing the sync post does in prose
+ * when it says an old line will not be left to stand. Correcting in place and
+ * saying so is the house voice; quietly editing history is not.
+ */
+export function Correction({ date, children }: { date: string; children: React.ReactNode }) {
+  return (
+    <aside className="mt-9 border-l-2 border-foreground/15 pl-4 first:mt-0">
+      <h2 className="text-sm font-medium tracking-tight text-foreground">
+        Since this was written (corrected {date})
+      </h2>
+      <div className="mt-2 space-y-2 text-sm leading-relaxed text-muted-foreground">{children}</div>
+    </aside>
+  )
+}
+
 /** A quiet dash-bulleted list. */
 export function List({ children }: { children: React.ReactNode }) {
   return <ul className="space-y-2">{children}</ul>

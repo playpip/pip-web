@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
+import { LegalPage, Section, Correction, A } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'pip-is-live')!
@@ -14,6 +14,26 @@ export default function PipIsLivePost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="19 August 2026">
+        <p>
+          This post says “no accounts”. Pip has one now: optional, free, added on 3 August, and
+          there to carry your progress to a second device. It is off unless you turn it on and
+          nothing in the game asks for it, so <em>no account needed</em> still describes the way in.
+          “No accounts” stopped being true after nine days. The sentence below is left as it
+          shipped, because the date on this post is part of what it says.
+        </p>
+        <p>
+          What we store, and what we do not, is in{' '}
+          <Link
+            href="/blog/two-devices-two-chip-counts"
+            className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
+          >
+            Two devices, two chip counts
+          </Link>
+          .
+        </p>
+      </Correction>
+
       <Section title="The short version">
         <p>
           Pip is single-player Texas Hold’em in the browser: real poker, against AI opponents with
