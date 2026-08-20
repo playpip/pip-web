@@ -18,6 +18,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'verify-todays-deal',
+    title: 'Verify today’s deal yourself',
+    description:
+      'Everyone playing the Daily gets the same shuffle. Here are the six steps that produce it, a snippet that runs anywhere, and one day’s deck to check yourself against.',
+    date: '2026-08-20',
+  },
+  {
     slug: 'two-devices-two-chip-counts',
     title: 'Two devices, two chip counts',
     description:
