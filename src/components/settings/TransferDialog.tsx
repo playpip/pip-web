@@ -22,6 +22,7 @@ import { RestoreConfirm } from '@/components/settings/RestoreConfirm'
 import { applyBackup, exportProfile, type ParsedBackup, readBackup } from '@/lib/backup'
 import { decodeCode, profileCode, profileQrUrl } from '@/lib/transfer'
 import { sound } from '@/lib/sound'
+import { useCopied } from '@/lib/useCopied'
 
 type View = 'menu' | 'qr' | 'paste'
 
@@ -42,15 +43,17 @@ export function TransferDialog({
   const fileInput = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<View>('menu')
   const [pending, setPending] = useState<ParsedBackup | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copied, copy] = useCopied()
   const [qrUrl, setQrUrl] = useState<string | null>(null)
   const [pasteText, setPasteText] = useState('')
 
+  // No `copied` reset here any more: it clears itself after a couple of
+  // seconds, so coming back to the menu inside that window and still seeing
+  // the tick is accurate rather than stale.
   const backToMenu = () => {
     sound.play('tap')
     setView('menu')
     setPending(null)
-    setCopied(false)
     setPasteText('')
   }
 
@@ -60,7 +63,7 @@ export function TransferDialog({
     if (!code) return
     try {
       await navigator.clipboard.writeText(code)
-      setCopied(true)
+      copy()
     } catch {
       // Clipboard blocked (rare, non-secure context) — the QR and file still work.
     }

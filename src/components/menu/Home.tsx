@@ -31,6 +31,7 @@ import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { greetingFor, periodFor, type DayPeriod } from '@/lib/timeOfDay'
 import { useHydrated } from '@/lib/useHydrated'
+import { useCopied } from '@/lib/useCopied'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -322,7 +323,10 @@ function DailyTile({ roll, delay }: { roll: number; delay: number }) {
   const router = useRouter()
   const money = useMoney()
   const daily = useProfile((s) => s.daily)
-  const [copied, setCopied] = useState(false)
+  // Worst of the three #20 sites: 'Copied' sat in place of the finishing
+  // position for the rest of the session, so a tile that had real information
+  // on it lost it to a confirmation.
+  const [copied, copy] = useCopied()
   const [infoOpen, setInfoOpen] = useState(false)
 
   const today = dailyDateKey()
@@ -351,7 +355,7 @@ function DailyTile({ roll, delay }: { roll: number; delay: number }) {
       sound.play('tap')
       void navigator.clipboard
         ?.writeText(dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands))
-        .then(() => setCopied(true))
+        .then(() => copy())
       return
     }
     sound.play('tap')

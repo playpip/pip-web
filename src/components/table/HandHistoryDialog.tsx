@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Link2 } from 'lucide-react'
 import {
   Dialog,
@@ -14,6 +13,7 @@ import { useGame } from '@/store/game'
 import { encodeHand } from '@/lib/handLink'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
+import { useCopied } from '@/lib/useCopied'
 
 /** Reviewable timeline of the last completed hand. */
 export function HandHistoryDialog({
@@ -25,24 +25,20 @@ export function HandHistoryDialog({
 }) {
   const record = useGame((s) => s.lastHand)
   const money = useMoney()
-  const [copied, setCopied] = useState(false)
+  const [copied, copy] = useCopied()
 
   // The hand is IN the link — no server, no account, just a URL fragment.
   const share = () => {
     if (!record) return
     sound.play('tap')
     const url = `${location.origin}/hand#${encodeHand(record)}`
-    void navigator.clipboard?.writeText(url).then(() => setCopied(true))
+    void navigator.clipboard?.writeText(url).then(() => copy())
   }
 
+  // The close handler used to be the only thing that put this label back.
+  // It clears itself now, so closing is just closing.
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) setCopied(false)
-        onOpenChange(o)
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Last hand</DialogTitle>
