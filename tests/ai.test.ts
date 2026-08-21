@@ -202,3 +202,164 @@ test('looseness scales preflop range: a loose table plays far more hands than a 
   // And nobody plays a cartoonishly wide "any two cards" range.
   t.true(looseVpip < 0.45, `loose VPIP ${looseVpip.toFixed(2)} unrealistically high`)
 })
+
+// --- preflop aggression (pip-web #2) ---------------------------------------
+// The report was "unrealistically aggressive bots". Measured across the shipped
+// venue ladder the bots were the opposite of aggressive: they called their way
+// into pots and almost never raised preflop, opening 1.9%-7.8% of hands where a
+// real player opens 12%-25%, with a VPIP three to ten times their PFR. That
+// pairing is the signature of a calling station, and a table of them is what
+// "these don't play like people" looks like from the other side. These tests
+// hold the shipped profiles to a band rather than to each other, because the
+// relative tests above all passed while every rung sat outside it.
+
+/** Preflop VPIP and PFR for a profile, as fractions of preflop seats seen. */
+function measurePreflop(
+  profile: AiProfile,
+  seats: number,
+  hands = 18,
+): { vpip: number; pfr: number } {
+  let seen = 0
+  let voluntary = 0
+  let raised = 0
+  for (let h = 0; h < hands; h++) {
+    const rng = mulberry32(h * 7919 + 5)
+    let s = startHand({
+      seats: makeSeats(seats),
+      buttonIndex: h % seats,
+      smallBlind: 5,
+      bigBlind: 10,
+      rng,
+    })
+    const seatsSeen = new Set<string>()
+    const put = new Set<string>()
+    const opened = new Set<string>()
+    let guard = 0
+    while (!isHandComplete(s) && guard++ < 2000) {
+      const p = s.players[s.toActIndex]
+      const a = decideAction(s, profile, rng)
+      if (s.street === 'preflop') {
+        seatsSeen.add(p.id)
+        if (a.type === 'call' || a.type === 'bet' || a.type === 'raise') put.add(p.id)
+        if (a.type === 'bet' || a.type === 'raise') opened.add(p.id)
+      }
+      s = applyAction(s, a)
+    }
+    seen += seatsSeen.size
+    voluntary += put.size
+    raised += opened.size
+  }
+  return { vpip: voluntary / seen, pfr: raised / seen }
+}
+
+// The shipped ladder's tightness/aggression, with iterations cut to keep the
+// suite quick. Preflop raising now keys off holding quality rather than the
+// Monte-Carlo estimate, so the sample size does not move these numbers much.
+const LADDER: ReadonlyArray<{ name: string; seats: number; ai: AiProfile }> = [
+  {
+    name: 'garage',
+    seats: 3,
+    ai: { tightness: 0.15, aggression: 0.25, bluff: 0.05, iterations: 90, skill: 0.28 },
+  },
+  {
+    name: 'cardroom',
+    seats: 6,
+    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 90, skill: 0.54 },
+  },
+  {
+    name: 'penthouse',
+    seats: 6,
+    ai: { tightness: 0.52, aggression: 0.66, bluff: 0.16, iterations: 90, skill: 0.84 },
+  },
+]
+
+test('every rung of the ladder opens pots instead of limping its whole range', (t) => {
+  for (const rung of LADDER) {
+    const { vpip, pfr } = measurePreflop(rung.ai, rung.seats)
+    const seen = `${rung.name}: VPIP ${(vpip * 100).toFixed(1)} PFR ${(pfr * 100).toFixed(1)}`
+    // The floor is the bug: at 2% the seat is a calling station, not a player.
+    t.true(pfr > 0.05, `${seen}: barely raises preflop`)
+    // And the ceiling, so a future tuning pass cannot overshoot into a maniac.
+    t.true(pfr < 0.4, `${seen}: opens an unrealistic share of hands`)
+    // You cannot raise more hands than you play.
+    t.true(vpip >= pfr, seen)
+    // A real seat calls more than it raises, but not ten times more.
+    t.true(vpip < pfr * 8, `${seen}: calls far more than it raises`)
+  }
+})
+
+test('the ladder gets more aggressive preflop as the stakes climb', (t) => {
+  // Both at six seats on purpose: table size moves PFR more than personality
+  // does, so the shipped garage at three seats against the penthouse at six
+  // would measure the seat count.
+  //
+  // And the measure is PFR as a share of VPIP, not raw PFR. A loose-passive
+  // seat enters more pots than a tight-aggressive one and so can out-raise it
+  // in absolute terms while still being the passive player at the table. What
+  // separates them is what they do *when they come in*: the garage limps, the
+  // penthouse raises.
+  const garage = measurePreflop(LADDER[0].ai, 6)
+  const penthouse = measurePreflop(LADDER[2].ai, 6)
+  const ratio = (m: { vpip: number; pfr: number }): number => m.pfr / m.vpip
+  t.true(
+    ratio(penthouse) > ratio(garage),
+    `garage ${(ratio(garage) * 100).toFixed(0)}% of entries raised vs penthouse ${(ratio(penthouse) * 100).toFixed(0)}%`,
+  )
+})
+
+// Six-handed, P3 is UTG and acts first (button 0 → SB 1, BB 2, UTG 3). Cards go
+// one per seat per round, so P3's are pop positions 3 and 9.
+function dealSixHanded(utg: [string, string]): HandState {
+  const order = ['2c', '3d', '4h', utg[0], '5s', '6c', '7d', '8h', '9s', utg[1], 'Tc', 'Jd']
+  return startHand({
+    seats: makeSeats(6),
+    buttonIndex: 0,
+    smallBlind: 5,
+    bigBlind: 10,
+    deck: makeDeck(order),
+  })
+}
+
+test('aces get raised six-handed, not limped (the #2 regression)', (t) => {
+  // This is the exact hole the fix closes. Against five live opponents even AA
+  // is worth only ~0.49 equity, so an absolute 0.78 raise gate could never fire
+  // and this seat used to call every single time.
+  const profile: AiProfile = { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 200 }
+  const s = dealSixHanded(['As', 'Ad'])
+  t.deepEqual(
+    s.players[s.toActIndex].hole.map((c) => `${c.rank}${c.suit}`).sort(),
+    ['Ad', 'As'],
+    'UTG should be the seat holding aces',
+  )
+  let raises = 0
+  for (let seed = 0; seed < 40; seed++) {
+    const a = decideAction(s, profile, mulberry32(seed + 3))
+    t.not(a.type, 'fold', 'never folds aces')
+    if (a.type === 'raise') raises++
+  }
+  t.true(raises > 10, `raised aces ${raises}/40 times`)
+})
+
+test('junk still gets folded six-handed, so the fix did not just loosen everything', (t) => {
+  const profile: AiProfile = { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 200 }
+  const s = dealSixHanded(['2h', '7c'])
+  for (let seed = 0; seed < 30; seed++) {
+    t.is(decideAction(s, profile, mulberry32(seed + 3)).type, 'fold')
+  }
+})
+
+test('a preflop open is a real raise, not a min-raise', (t) => {
+  // Sized off the pot, a 0.7-pot raise over a 10-chip big blind is a raise to
+  // 20, and a table of min-raises reads as timid. Real opens are 2.5-3x.
+  const profile: AiProfile = { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 200 }
+  const s = dealSixHanded(['As', 'Ad'])
+  const sizes: number[] = []
+  for (let seed = 0; seed < 40; seed++) {
+    const a = decideAction(s, profile, mulberry32(seed + 3))
+    if (a.type === 'raise' && a.amount !== undefined) sizes.push(a.amount)
+  }
+  t.true(sizes.length > 0)
+  const avg = sizes.reduce((x, y) => x + y, 0) / sizes.length
+  t.true(avg > s.bigBlind * 2, `average open ${avg.toFixed(1)} into a ${s.bigBlind} blind`)
+  t.true(avg < s.bigBlind * 4.5, `average open ${avg.toFixed(1)} is too big`)
+})
