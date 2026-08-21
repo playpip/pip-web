@@ -1,6 +1,13 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import test from 'ava'
-import { type GuideArt, LEARN_GUIDES, guideBySlug, relatedGuides } from '@/config/learn'
+import {
+  ANSWER_PAGES,
+  type GuideArt,
+  LEARN_GUIDES,
+  PILLAR_GUIDES,
+  guideBySlug,
+  relatedGuides,
+} from '@/config/learn'
 import { breakevenFolds, pct } from '@/config/potOdds'
 
 test('every guide has a valid slug, ISO date, and non-empty copy', (t) => {
@@ -93,6 +100,16 @@ test('the bet-sizing hero repeats the break-even numbers the page computes', (t)
     const figure = `${pct(breakevenFolds(fraction))}%`
     t.true(alt?.includes(figure), `hero alt text is missing ${figure}`)
   }
+})
+
+// The /learn index renders the two lists and nothing else, so a page that falls
+// out of both is in the sitemap with no link to it from anywhere on the site.
+// That is the silent failure this partition exists to make loud: add a third
+// `kind` and this goes red before the page ships.
+test('every registered page is on the index exactly once', (t) => {
+  const listed = [...PILLAR_GUIDES, ...ANSWER_PAGES].map((page) => page.slug).sort()
+  t.deepEqual(listed, LEARN_GUIDES.map((guide) => guide.slug).sort())
+  t.is(new Set(listed).size, listed.length)
 })
 
 test('an unknown slug resolves to nothing rather than throwing', (t) => {

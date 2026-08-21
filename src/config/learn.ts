@@ -30,6 +30,18 @@ export interface GuideArt {
 export interface LearnGuide {
   /** URL segment — must match the guide's folder under src/app/learn/. */
   slug: string
+  /**
+   * What sort of page this is, which only the /learn index cares about.
+   *
+   * A `guide` is a pillar: one broad subject, eight sections, artwork. An
+   * `answer` is one narrow question, one number and where the number came from,
+   * and it exists because the pillars sit at search positions 73 to 97 while
+   * the narrow queries are the ones a young domain might actually rank for
+   * (marketing#83). They share this registry, and therefore the sitemap, the
+   * Markdown mirrors and the page chrome, because the only thing that differs
+   * is the writing. Absent means `guide`.
+   */
+  kind?: 'guide' | 'answer'
   /** The page's H1 and its heading on the index. The query, near-verbatim. */
   title: string
   /** The <title> tag — carries the qualifier the H1 leaves off. */
@@ -145,7 +157,12 @@ export const LEARN_GUIDES: LearnGuide[] = [
     description:
       'All 169 starting hands in one chart, sorted by the earliest position you should open them from. Plus how often each one arrives and what suitedness is actually worth. No signup, and you can practise straight away.',
     date: '2026-08-09',
-    related: ['hand-rankings', 'how-to-play-texas-holdem', 'position'],
+    related: [
+      'hand-rankings',
+      'how-to-play-texas-holdem',
+      'position',
+      'how-often-do-you-flop-a-set',
+    ],
     hero: {
       src: '/learn/starting-hands-hero.png',
       alt: 'Two hole cards face up: the ace of spades and the king of spades.',
@@ -208,7 +225,29 @@ export const LEARN_GUIDES: LearnGuide[] = [
       height: 1260,
     },
   },
+  {
+    slug: 'how-often-do-you-flop-a-set',
+    kind: 'answer',
+    title: 'How often do you flop a set?',
+    metaTitle: 'How often do you flop a set with a pocket pair?',
+    description:
+      'About 11.8% of the time, or one flop in 8.5. All 19,600 flops a pocket pair can meet, graded, including the 48 that hand you a full house without a card of your rank in them.',
+    date: '2026-08-21',
+    related: ['pot-odds', 'starting-hands', 'hand-rankings'],
+    // No hero and no chart, on purpose. The artwork is the expensive half of a
+    // pillar guide and the whole argument for answer pages is that they cost
+    // nearly nothing to write. If the format works, sixty of them should not
+    // need sixty renders.
+  },
 ]
+
+/** Pillar guides: one broad subject each, in the order the index lists them. */
+export const PILLAR_GUIDES: LearnGuide[] = LEARN_GUIDES.filter(
+  (guide) => (guide.kind ?? 'guide') === 'guide',
+)
+
+/** Answer pages: one narrow question each. */
+export const ANSWER_PAGES: LearnGuide[] = LEARN_GUIDES.filter((guide) => guide.kind === 'answer')
 
 export function guideBySlug(slug: string): LearnGuide | undefined {
   return LEARN_GUIDES.find((guide) => guide.slug === slug)

@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { LegalPage } from '@/components/marketing/LegalPage'
 import { characterById } from '@/config/cast'
-import { LEARN_GUIDES } from '@/config/learn'
+import { ANSWER_PAGES, type LearnGuide, PILLAR_GUIDES } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
 
 // The Learn hub: the three-minute tour and every written guide, in one place.
@@ -26,6 +26,38 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     type: 'website',
   }),
+}
+
+/**
+ * A titled list of content pages. Cards, not bare headings: a guide sitting
+ * under the section's own heading-and-paragraph looked like more prose, and
+ * nothing said it could be clicked.
+ */
+function PageList({ title, blurb, pages }: { title: string; blurb: string; pages: LearnGuide[] }) {
+  return (
+    <section className="mt-12">
+      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      <p className="mt-2 text-md leading-relaxed text-muted-foreground">{blurb}</p>
+      <ul className="mt-6 space-y-3">
+        {pages.map((page) => (
+          <li key={page.slug}>
+            <Link
+              href={`/learn/${page.slug}`}
+              className="group block rounded-2xl border border-foreground/10 p-5 transition hover:border-foreground/20 hover:bg-foreground/[0.02]"
+            >
+              <h3 className="flex items-center gap-1.5 text-[1.0625rem] font-semibold tracking-tight">
+                {page.title}
+                <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+              </h3>
+              <p className="mt-1.5 text-md leading-relaxed text-muted-foreground">
+                {page.description}
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
 }
 
 export default function LearnPage() {
@@ -68,34 +100,23 @@ export default function LearnPage() {
         </span>
       </Link>
 
-      {LEARN_GUIDES.length > 0 && (
-        <section className="mt-12">
-          <h2 className="text-lg font-semibold tracking-tight">Written guides</h2>
-          <p className="mt-2 text-md leading-relaxed text-muted-foreground">
-            One topic each, in plain English. Read them in any order.
-          </p>
-          {/* Cards, not bare headings: a guide sitting under the section's own
-              heading-and-paragraph looked like more prose, and nothing said it
-              could be clicked. */}
-          <ul className="mt-6 space-y-3">
-            {LEARN_GUIDES.map((guide) => (
-              <li key={guide.slug}>
-                <Link
-                  href={`/learn/${guide.slug}`}
-                  className="group block rounded-2xl border border-foreground/10 p-5 transition hover:border-foreground/20 hover:bg-foreground/[0.02]"
-                >
-                  <h3 className="flex items-center gap-1.5 text-[1.0625rem] font-semibold tracking-tight">
-                    {guide.title}
-                    <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
-                  </h3>
-                  <p className="mt-1.5 text-md leading-relaxed text-muted-foreground">
-                    {guide.description}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {PILLAR_GUIDES.length > 0 && (
+        <PageList
+          title="Written guides"
+          blurb="One topic each, in plain English. Read them in any order."
+          pages={PILLAR_GUIDES}
+        />
+      )}
+
+      {/* Separate section rather than more cards in the list above, because
+          they are a different promise: a guide is a sitting-down read, an
+          answer page is one number and the working behind it. */}
+      {ANSWER_PAGES.length > 0 && (
+        <PageList
+          title="Quick answers"
+          blurb="One question, one number, and where the number came from."
+          pages={ANSWER_PAGES}
+        />
       )}
 
       {/* The practice half, which is in the app rather than on this side of the
