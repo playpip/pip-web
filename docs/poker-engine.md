@@ -81,8 +81,9 @@ equity + pot odds + a personality.
   and folds to any bet, and it scales how far the continue decision discounts (loose,
   station-y) or demands a premium over (nit) the pot odds. Raw equity vs random cards
   flatters junk — 2-3o still wins ~⅓ heads-up — so without this an equity-only bot
-  limps and cheap-peels hands a real player mucks. Net effect: a loose low-stakes table
-  plays ~30% of hands (6-max), a Main-Event nit ~15%, matching real VPIP ranges. Never
+  limps and cheap-peels hands a real player mucks. Net effect, measured six-handed in
+  `tests/ai.test.ts`: the Garage plays ~35% of hands, the Main Event ~19%, and the fall
+  is monotone in between — roughly real VPIP ranges. Never
   overrides checking for free — a limped big blind still sees the flop with anything.
 - `opponentSelectivity(state, opp)` is exported and shared with the store's hero
   "win %" read, so both sides model opponent ranges identically.
@@ -94,6 +95,16 @@ equity + pot odds + a personality.
   random AI-vs-AI 6-handed hands in `tests/ai.test.ts`).
 - **AI only ever returns legal actions** (else `applyAction` throws — asserted).
 - **AI never folds when it can check for free.**
+- **Every table in `ALL_VENUES` sits inside a real preflop band** — PFR above 5% and
+  below 40%, and never calling more than 8x as often as it raises. The bands are
+  measured against the profiles imported from `config/venues.ts`, so a table added or
+  retuned there is covered without touching the test. Only `iterations` is overridden
+  (down to 90, for suite time); read the note above `MEASURED_ITERATIONS` before
+  changing that or the hand count, because both move the numbers more than they look.
+- **The ladder's difficulty curve**: VPIP falls rung by rung from the Garage to the
+  Main Event, and the top of the ladder raises a far greater share of the pots it
+  enters than the bottom. A public claim rides on the second one — relaxing it is a
+  copy change first.
 - Blinds/first-to-act correct heads-up and multiway; min-raise rejection; all-in
   run-outs; side pots; kickers; ties. See `tests/*.test.ts`.
 

@@ -172,7 +172,16 @@ test('no explanation names a hand other than the one that won', (t) => {
 // are worth holding: the filter has to actually reject, and the reason it
 // rejects for has to stay the one we meant.
 test('the filter throws away one-sided spots, and only those', (t) => {
-  const counts: Record<RejectReason, number> = { 'one-sided': 0, unexplainable: 0 }
+  // Exhaustive rather than partial, so a new reject reason anywhere in the
+  // vocabulary stops this file compiling and somebody has to decide whether
+  // this kind can emit it.
+  const counts: Record<RejectReason, number> = {
+    'one-sided': 0,
+    unexplainable: 0,
+    'already-ahead': 0,
+    'chop-possible': 0,
+    'drawing-dead': 0,
+  }
   let kept = 0
   for (let seed = 1; seed <= 5_000; seed++) {
     const { drill, rejected } = drillAt(KIND, seed)
@@ -181,6 +190,12 @@ test('the filter throws away one-sided spots, and only those', (t) => {
   }
   t.true(counts['one-sided'] > 100, `the filter is not biting: ${counts['one-sided']} rejected`)
   t.true(kept > counts['one-sided'], 'more spots are thrown away than kept')
+  // The three reasons that belong to "count your outs". This kind has no turn,
+  // no chop rule and no draw to be dead on, so seeing one here would mean the
+  // generators had got crossed.
+  for (const reason of ['already-ahead', 'chop-possible', 'drawing-dead'] as const) {
+    t.is(counts[reason], 0, `${reason} is not this kind's vocabulary`)
+  }
   // Not a tuning knob. This fires when the sentence and the grade came from
   // different readings of the same hand, which would mean the drill had gone
   // quiet about spots it cannot explain instead of us hearing about it.

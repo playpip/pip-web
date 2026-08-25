@@ -1,3 +1,4 @@
+import { generateCountYourOuts } from './countYourOuts'
 import type { Drill, DrillKindId, Generated, Grade } from './types'
 import { generateWhichHandWins } from './whichHandWins'
 
@@ -14,6 +15,7 @@ export * from './rating'
 
 const GENERATORS: Record<DrillKindId, (seed: number) => Generated> = {
   'which-hand-wins': generateWhichHandWins,
+  'count-your-outs': generateCountYourOuts,
 }
 
 /**
