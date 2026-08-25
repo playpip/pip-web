@@ -9,6 +9,7 @@ import {
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity, type AiProfile } from '@/lib/poker/ai/policy'
 import { mulberry32, type Rng } from '@/lib/poker/cards'
+import { ALL_VENUES, VENUES, type Venue } from '@/config/venues'
 import { makeDeck } from './helpers'
 
 type Player = HandState['players'][number]
@@ -213,12 +214,48 @@ test('looseness scales preflop range: a loose table plays far more hands than a 
 // hold the shipped profiles to a band rather than to each other, because the
 // relative tests above all passed while every rung sat outside it.
 
-/** Preflop VPIP and PFR for a profile, as fractions of preflop seats seen. */
-function measurePreflop(
-  profile: AiProfile,
-  seats: number,
-  hands = 18,
-): { vpip: number; pfr: number } {
+// The subject is `src/config/venues.ts` itself — every table in `ALL_VENUES`,
+// imported, never retyped. An earlier version of this block held a local copy of
+// three rungs' tightness/aggression numbers, which fails the same way synthetic
+// profiles did one step later: change a venue in `venues.ts` and the test keeps
+// asserting against the stale copy, green. If you add a table, it is measured
+// here the moment it lands in `ALL_VENUES`, and nothing needs editing.
+
+/** Everything the bands are asserted against: ladder, side, ring, challenge, kitchen, daily. */
+const CATALOGUE = ALL_VENUES
+
+/**
+ * Monte-Carlo iterations is the one knob overridden off the shipped profile,
+ * because the shipped values (80-1800) put a full-catalogue pass into the
+ * minutes. **It is not a free knob.** The same `rng` feeds the equity sims and
+ * the decision jitter, so changing the iteration count re-rolls the whole
+ * stream rather than just sharpening an estimate: the same profile measured at
+ * 60 / 90 / 120 / 200 / 400 iterations over 18 hands returned PFR 18.4 / 3.4 /
+ * 10.7 / 6.0 / 4.8. That spread is sampling noise, not behaviour.
+ *
+ * The fix is hands, not iterations. At 150 hands the same five settings land in
+ * 9.0-12.9. `MEASURED_HANDS = 60` is where the spread is small enough that
+ * every table clears the band with room, and it costs about a second a table.
+ * **Do not trim either number to speed the suite up** — at 18 hands these
+ * assertions measure the seed, and one shipped table (The Study) reads anywhere
+ * from 3.4% to 18.4% depending on nothing.
+ */
+const MEASURED_ITERATIONS = 90
+const MEASURED_HANDS = 60
+
+interface Preflop {
+  vpip: number
+  pfr: number
+}
+
+/**
+ * Preflop VPIP and PFR for a profile, as fractions of preflop seats seen.
+ *
+ * Stops the moment the preflop betting round closes: nothing after it is
+ * recorded, every hand gets its own seeded `rng`, so the numbers are identical
+ * to playing the hand out and about a third cheaper.
+ */
+function measurePreflop(profile: AiProfile, seats: number, hands = MEASURED_HANDS): Preflop {
   let seen = 0
   let voluntary = 0
   let raised = 0
@@ -235,14 +272,12 @@ function measurePreflop(
     const put = new Set<string>()
     const opened = new Set<string>()
     let guard = 0
-    while (!isHandComplete(s) && guard++ < 2000) {
+    while (!isHandComplete(s) && s.street === 'preflop' && guard++ < 2000) {
       const p = s.players[s.toActIndex]
       const a = decideAction(s, profile, rng)
-      if (s.street === 'preflop') {
-        seatsSeen.add(p.id)
-        if (a.type === 'call' || a.type === 'bet' || a.type === 'raise') put.add(p.id)
-        if (a.type === 'bet' || a.type === 'raise') opened.add(p.id)
-      }
+      seatsSeen.add(p.id)
+      if (a.type === 'call' || a.type === 'bet' || a.type === 'raise') put.add(p.id)
+      if (a.type === 'bet' || a.type === 'raise') opened.add(p.id)
       s = applyAction(s, a)
     }
     seen += seatsSeen.size
@@ -252,31 +287,27 @@ function measurePreflop(
   return { vpip: voluntary / seen, pfr: raised / seen }
 }
 
-// The shipped ladder's tightness/aggression, with iterations cut to keep the
-// suite quick. Preflop raising now keys off holding quality rather than the
-// Monte-Carlo estimate, so the sample size does not move these numbers much.
-const LADDER: ReadonlyArray<{ name: string; seats: number; ai: AiProfile }> = [
-  {
-    name: 'garage',
-    seats: 3,
-    ai: { tightness: 0.15, aggression: 0.25, bluff: 0.05, iterations: 90, skill: 0.28 },
-  },
-  {
-    name: 'cardroom',
-    seats: 6,
-    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 90, skill: 0.54 },
-  },
-  {
-    name: 'penthouse',
-    seats: 6,
-    ai: { tightness: 0.52, aggression: 0.66, bluff: 0.16, iterations: 90, skill: 0.84 },
-  },
-]
+// Measuring a table is the expensive part and two tests want the same numbers
+// (the ladder's six-handed rungs are measured at their own seat count as well),
+// so cache by venue and seat count. Everything is seeded, so a cache hit is the
+// same answer, not an approximation of it.
+const cache = new Map<string, Preflop>()
+function preflopFor(venue: Venue, seats: number = venue.seats): Preflop {
+  const key = `${venue.id}@${seats}`
+  const hit = cache.get(key)
+  if (hit) return hit
+  const measured = measurePreflop({ ...venue.ai, iterations: MEASURED_ITERATIONS }, seats)
+  cache.set(key, measured)
+  return measured
+}
 
-test('every rung of the ladder opens pots instead of limping its whole range', (t) => {
-  for (const rung of LADDER) {
-    const { vpip, pfr } = measurePreflop(rung.ai, rung.seats)
-    const seen = `${rung.name}: VPIP ${(vpip * 100).toFixed(1)} PFR ${(pfr * 100).toFixed(1)}`
+/** What a seat does when it comes in: the share of its entries that were raises. */
+const entriesRaised = (m: Preflop): number => m.pfr / m.vpip
+
+test('every table in the catalogue opens pots instead of limping its whole range', (t) => {
+  for (const venue of CATALOGUE) {
+    const { vpip, pfr } = preflopFor(venue)
+    const seen = `${venue.id} (${venue.seats} seats): VPIP ${(vpip * 100).toFixed(1)} PFR ${(pfr * 100).toFixed(1)}`
     // The floor is the bug: at 2% the seat is a calling station, not a player.
     t.true(pfr > 0.05, `${seen}: barely raises preflop`)
     // And the ceiling, so a future tuning pass cannot overshoot into a maniac.
@@ -289,22 +320,112 @@ test('every rung of the ladder opens pots instead of limping its whole range', (
 })
 
 test('the ladder gets more aggressive preflop as the stakes climb', (t) => {
-  // Both at six seats on purpose: table size moves PFR more than personality
-  // does, so the shipped garage at three seats against the penthouse at six
-  // would measure the seat count.
+  // All ten rungs at six seats on purpose: table size moves PFR more than
+  // personality does, so the shipped garage at three seats against the
+  // penthouse at six would measure the seat count.
   //
   // And the measure is PFR as a share of VPIP, not raw PFR. A loose-passive
   // seat enters more pots than a tight-aggressive one and so can out-raise it
   // in absolute terms while still being the passive player at the table. What
   // separates them is what they do *when they come in*: the garage limps, the
-  // penthouse raises.
-  const garage = measurePreflop(LADDER[0].ai, 6)
-  const penthouse = measurePreflop(LADDER[2].ai, 6)
-  const ratio = (m: { vpip: number; pfr: number }): number => m.pfr / m.vpip
+  // Main Event raises.
+  //
+  // What the ladder actually measures, entries-raised at six seats:
+  //   garage 32%  pub 41%  poolhall 46%  cardroom 48%  casino 40%
+  //   riverboat 42%  penthouse 43%  montecarlo 45%  vegas 51%  mainevent 60%
+  //
+  // The climb is real end to end and by tier, and it is NOT monotone step by
+  // step: the casino and the riverboat come in less often as raisers than the
+  // pool hall and the card room do. So this asserts the shape the ladder has
+  // (bottom softest, top hardest, tiers ordered) and deliberately does not
+  // assert rung-by-rung ordering, which is false today. **A public claim rides
+  // on this test — if it has to be relaxed, that is a copy change, and the
+  // sentence has to move before the assertion does.**
+  const ladder = VENUES.map((v) => ({ id: v.id, raised: entriesRaised(preflopFor(v, 6)) }))
+  const pct = (r: number): string => `${(r * 100).toFixed(0)}%`
+  const table = ladder.map((r) => `${r.id} ${pct(r.raised)}`).join(', ')
+
+  const garage = ladder[0]
+  const top = ladder[ladder.length - 1]
+
+  // The original guard, kept verbatim in meaning: the penthouse out-raises the
+  // garage. It is the comparison the ladder claim was first written against.
+  const penthouse = ladder.find((r) => r.id === 'penthouse')
+  t.truthy(penthouse, 'the penthouse is still on the ladder')
+  t.true(penthouse!.raised > garage.raised, table)
+
+  // The bottom rung is the softest thing on the ladder, and the top rung is the
+  // hardest. This is the half of the claim a stranger is actually invited to
+  // test: "up to The Main Event".
   t.true(
-    ratio(penthouse) > ratio(garage),
-    `garage ${(ratio(garage) * 100).toFixed(0)}% of entries raised vs penthouse ${(ratio(penthouse) * 100).toFixed(0)}%`,
+    ladder.every((r) => r === garage || r.raised > garage.raised),
+    `garage ${pct(garage.raised)} is not the least aggressive rung: ${table}`,
   )
+  t.true(
+    ladder.every((r) => r === top || r.raised < top.raised),
+    `${top.id} ${pct(top.raised)} is not the most aggressive rung: ${table}`,
+  )
+  t.true(top.raised > garage.raised * 1.5, `top of the ladder is barely above the bottom: ${table}`)
+
+  // And the trend holds across tiers, which is the honest form of "as the
+  // stakes climb" given the step-by-step wobble above.
+  const mean = (rs: typeof ladder): number => rs.reduce((a, r) => a + r.raised, 0) / rs.length
+  t.true(mean(ladder.slice(7)) > mean(ladder.slice(0, 3)), table)
+})
+
+test('the ladder gets tighter as the stakes climb, rung by rung', (t) => {
+  // The other half of the difficulty curve, and the half that really is ordered
+  // all the way up: every rung enters fewer pots than the rung below it, 35%
+  // down to 19%. Measured at six seats for the same reason as above.
+  const ladder = VENUES.map((v) => ({ id: v.id, vpip: preflopFor(v, 6).vpip }))
+  const table = ladder.map((r) => `${r.id} ${(r.vpip * 100).toFixed(1)}%`).join(', ')
+
+  // Adjacent rungs get a one-point tolerance, because two neighbours only 0.05
+  // of tightness apart can land on the same number of entries: the casino and
+  // the riverboat both voluntarily enter 77 pots here, and separate by 0.06 of
+  // a point only because the riverboat saw one fewer preflop seat. A real
+  // reversal is much bigger than that, and the gap check below catches it.
+  for (let i = 1; i < ladder.length; i++) {
+    t.true(
+      ladder[i].vpip <= ladder[i - 1].vpip + 0.01,
+      `${ladder[i].id} plays materially more hands than the rung below it: ${table}`,
+    )
+  }
+  // Two rungs apart, there is no tolerance and no tie: the curve is real.
+  for (let i = 2; i < ladder.length; i++) {
+    t.true(
+      ladder[i].vpip < ladder[i - 2].vpip,
+      `${ladder[i].id} is not tighter than ${ladder[i - 2].id}: ${table}`,
+    )
+  }
+  const top = ladder[ladder.length - 1]
+  t.true(
+    top.vpip < ladder[0].vpip * 0.7,
+    `the top of the ladder is barely tighter than the bottom: ${table}`,
+  )
+})
+
+test('every table declares its AI skill explicitly', (t) => {
+  // `skill` is optional on AiProfile and defaults to 1, so a venue that omits it
+  // reads as the AI's best game by accident rather than by decision. The Main
+  // Event was the one table doing that. An omission is indistinguishable from an
+  // intent here, so require the number.
+  for (const venue of CATALOGUE) {
+    t.is(typeof venue.ai.skill, 'number', `${venue.id} does not declare ai.skill`)
+    t.true(venue.ai.skill! > 0 && venue.ai.skill! <= 1, `${venue.id} skill out of range`)
+  }
+})
+
+test('declared skill never goes backwards up the ladder', (t) => {
+  // Configuration, not behaviour — cheap, and the two are not the same thing
+  // (that is the whole reason the tests above exist). This one only catches a
+  // rung typed in out of order.
+  for (let i = 1; i < VENUES.length; i++) {
+    t.true(
+      VENUES[i].ai.skill! > VENUES[i - 1].ai.skill!,
+      `${VENUES[i].id} is declared less skilled than ${VENUES[i - 1].id}`,
+    )
+  }
 })
 
 // Six-handed, P3 is UTG and acts first (button 0 → SB 1, BB 2, UTG 3). Cards go

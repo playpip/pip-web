@@ -6,9 +6,10 @@ const config = {
   // the run doesn't flake under load. This is AVA's inactivity timer, not a
   // per-test budget and not an assertion: it only decides how long a silent run
   // is allowed to be before AVA gives up on it. tests/ai.test.ts sits around
-  // 50s on this machine now that the AI plays more hands to a flop, which is
-  // close enough to 60s to flake on a busy runner without anything being wrong.
-  timeout: '150s',
+  // 85s on this machine now that the preflop bands are measured against every
+  // table in `ALL_VENUES` rather than three hand-copied rungs, and a busy runner
+  // is comfortably slower than this one. Raising this weakens nothing.
+  timeout: '300s',
   files: ['tests/**/*.test.ts'],
 }
 

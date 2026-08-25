@@ -179,7 +179,11 @@ export const VENUES: readonly Venue[] = [
     seats: 6,
     prize: 6_000_000,
     accent: '#F0574E',
-    ai: { tightness: 0.6, aggression: 0.75, bluff: 0.2, iterations: 1_800 },
+    // skill 1 is the top of the scale and the only rung that gets it: the final
+    // boss plays its best game. It was previously left off, which meant the same
+    // thing by way of AiProfile's default — stated here because an omission and a
+    // decision are indistinguishable in a config file (technology#68).
+    ai: { tightness: 0.6, aggression: 0.75, bluff: 0.2, iterations: 1_800, skill: 1 },
   },
 ] as const
 
