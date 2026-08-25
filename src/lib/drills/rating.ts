@@ -32,9 +32,13 @@ export const STARTING_RATING = 1000
  * Not a kindness, an honesty: below the floor the number stops carrying
  * information (it only means "answered a lot at random") and starts being a
  * thing to feel bad about. The ceiling is left open on purpose because the
- * spots supply their own: the hardest spot this kind can deal is rated
- * {@link HARDEST_SPOT}, so gains shrink to nothing above it on their own rather
- * than by a rule.
+ * spots supply their own: each kind's hardest spot is rated ({@link
+ * HARDEST_SPOT} for the ranking spots, {@link HARDEST_OUTS} for counting), so
+ * gains shrink to nothing above it on their own rather than by a rule.
+ *
+ * The floor is shared across kinds and the ceilings are not, which is the right
+ * way round: the floor is a statement about a number carrying no information
+ * any more, and that is true of any rating whatever earned it.
  */
 export const RATING_FLOOR = 400
 
@@ -51,6 +55,32 @@ export const RATING_FLOOR = 400
  * - `split`: neither is higher. The one people do not think to look for.
  */
 export type SettledBy = 'category' | 'rank' | 'kicker' | 'split'
+
+/**
+ * How a "count your outs" spot is shaped, easiest first. Read off the same
+ * enumeration that counted the outs and wrote the sentence, so, as above, the
+ * difficulty cannot disagree with the grade.
+ *
+ * What makes counting hard is not how many outs there are, it is how many
+ * different ways there are to get there. Nine hearts is one thing to see; nine
+ * hearts *and* three sevens is two things to see and then add up without
+ * counting a card twice.
+ *
+ * - `one-draw`: every card that wins makes you the same hand.
+ * - `two-draws`: two different hands get you there, and they may overlap.
+ * - `many-draws`: three or more. Rare, and the one nobody counts correctly.
+ */
+export type OutsShape = 'one-draw' | 'two-draws' | 'many-draws'
+
+/**
+ * Any spot's shape, whichever kind dealt it.
+ *
+ * One union rather than a field per kind, because everything downstream of a
+ * spot (the rating arithmetic, the ladder, the record on the profile) cares
+ * only that a spot has a shape and a number, never which kind's vocabulary the
+ * shape is drawn from.
+ */
+export type SpotKind = SettledBy | OutsShape
 
 /**
  * What each shape is rated.
@@ -83,11 +113,59 @@ export const EASIEST_SPOT = BASE.category
 export const HARDEST_SPOT = BASE.split
 
 /**
+ * What each shape of an outs spot is rated.
+ *
+ * The same judgement, with the same caveat as {@link BASE}: the ordering is
+ * defensible and the numbers are not measured, because nobody has answered one
+ * of these yet. Re-derive them from real accuracy per shape once there is any.
+ *
+ * Pitched above the ranking spots on purpose. "Which hand wins" asks you to
+ * read two finished hands; this asks you to read every card that has not come
+ * yet and decide, one at a time, whether it wins. The floor here sits above the
+ * floor there because there is no version of counting outs that is settled by
+ * looking.
+ */
+const OUTS_BASE: Record<OutsShape, number> = {
+  'one-draw': 950,
+  'two-draws': 1180,
+  'many-draws': 1380,
+}
+
+/**
+ * Added when the cards that improve your hand and still lose are at least twice
+ * as many as the cards that win.
+ *
+ * The one adjustment, and the same rule as {@link DECOY}: computed from the
+ * cards rather than asserted about them. It is the miscount that actually costs
+ * money at a table (counting every card that pairs you as an out when most of
+ * them leave you second best), so a spot full of those is genuinely harder than
+ * one where everything that helps you wins.
+ *
+ * **Twice is a judgement and it was measured before it was chosen.** Over 4,000
+ * seeds the ratio of improve-but-lose cards to real outs has a median of 1.8, so
+ * this threshold fires on about 44% of accepted spots. A looser rule fires on
+ * nearly all of them and stops carrying information: "any card that improves you
+ * and loses" is true of 99% of spots, which is a constant, not a difficulty.
+ */
+const TRAP = 140
+
+/** The least an outs spot can be rated. One draw, and nothing much to mislead you. */
+export const EASIEST_OUTS = OUTS_BASE['one-draw']
+
+/** The most an outs spot can be rated. */
+export const HARDEST_OUTS = OUTS_BASE['many-draws'] + TRAP
+
+/**
  * What this spot is worth. Splits take no decoy adjustment: with two winners
  * there is no losing hand to be misled by.
  */
 export function spotDifficulty(settledBy: SettledBy, decoy: boolean): number {
   return BASE[settledBy] + (decoy && settledBy !== 'split' ? DECOY : 0)
+}
+
+/** What an outs spot is worth: its shape, plus the trap adjustment if it has one. */
+export function outsDifficulty(shape: OutsShape, trap: boolean): number {
+  return OUTS_BASE[shape] + (trap ? TRAP : 0)
 }
 
 /** Elo's expectation: the share of spots at this difficulty you should get right. */

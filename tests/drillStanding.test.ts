@@ -4,6 +4,8 @@ import {
   HARDEST_SPOT,
   RATING_FLOOR,
   STARTING_RATING,
+  type SettledBy,
+  type SpotKind,
   drillAt,
   expectedScore,
   spotDifficulty,
@@ -23,11 +25,22 @@ import { drillAccuracy, spotLadder, standingFor, standingLine } from '@/lib/dril
 
 const KIND = 'which-hand-wins'
 
+/** The shapes this kind settles by, as a guard rather than a cast. */
+const SETTLED_BY: SpotKind[] = ['category', 'rank', 'kicker', 'split']
+const isSettledBy = (shape: SpotKind): shape is SettledBy => SETTLED_BY.includes(shape)
+
 test('the ladder is the spots, in order, and it reads their difficulty rather than repeating it', (t) => {
   const ladder = spotLadder(KIND)
   if (!ladder) return t.fail('the free kind has no ladder')
 
   for (const shape of ladder) {
+    // Also the assertion that this kind's ladder holds only this kind's shapes.
+    // `SpotKind` spans every kind now, so a ladder carrying "one-draw" would
+    // type-check here and describe the wrong drill to a player.
+    if (!isSettledBy(shape.settledBy)) {
+      t.fail(`${shape.settledBy} is not a shape "which hand wins" deals`)
+      continue
+    }
     t.is(
       shape.rating,
       spotDifficulty(shape.settledBy, false),

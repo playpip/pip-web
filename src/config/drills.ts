@@ -18,9 +18,10 @@ import type { DrillKindId } from '@/lib/drills/types'
 // A rating, a best run and an accuracy per kind live on the profile and follow
 // the account (see lib/drills/rating.ts). What may never exist is a number you
 // run out of: no counter of how many you have left, no lockout, no
-// interstitial. The one kind that exists is free forever by ruling
-// (technology#38) and unlimited is the half of that which is easiest to erode
-// for a good reason.
+// interstitial. "Which hand wins" is free forever by ruling (technology#38) and
+// unlimited is the half of that which is easiest to erode for a good reason.
+// **Unmetered applies to the paid kind too**: what the membership buys is
+// another whole kind, played as often as you like, not an allowance of spots.
 //
 // **A kind is free or it is the membership's, and there is no third thing.**
 // `membersOnly` is the whole of it: no sampling, no "three a week", no trial
@@ -39,6 +40,16 @@ export interface DrillKind {
   question: string
   /** What settles the answer, said once in small print under the drill. */
   gradedBy: string
+  /**
+   * How many community cards this kind's spots deal.
+   *
+   * Here rather than measured off a generated spot, because the one place it is
+   * needed is the frame *before* a spot exists: the runner and the room both
+   * draw card backs until the client has dealt, and a placeholder of the wrong
+   * width makes the spot arriving a jump rather than a deal. A finished board
+   * is five; a spot with a card still to come is four.
+   */
+  boardCards: number
   /**
    * Part of the membership rather than free.
    *
@@ -66,6 +77,17 @@ export const DRILL_KINDS: DrillKind[] = [
     blurb: 'Two hands, a finished board, one question. Harder spots are worth more.',
     question: 'Which hand takes it?',
     gradedBy: 'Settled by the same code that settles a showdown at the table, card by card.',
+    boardCards: 5,
+  },
+  {
+    id: 'count-your-outs',
+    title: 'Count your outs',
+    blurb: 'Both hands face up on the turn, one card to come. How many of them win it for you?',
+    question: 'How many cards left win it for you?',
+    gradedBy:
+      'Settled by dealing all 44 cards you cannot see, one at a time, and reading the showdown.',
+    boardCards: 4,
+    membersOnly: true,
   },
 ]
 
