@@ -51,21 +51,57 @@ test('dates are ISO, and a fix never precedes the claim', (t) => {
  */
 const isPost = (c: (typeof CORRECTIONS)[number]) => c.where.every((p) => p.startsWith('/blog/'))
 
-test('an open row has no fix date and no guard, a fixed row has both', (t) => {
+test('an open row has no fix date and no guard, a fixed row accounts for both', (t) => {
   for (const c of CORRECTIONS) {
     if (c.fixedOn === null) {
       t.is(c.guard, null, `${c.id}: open rows cannot claim a guard that has not shipped`)
       t.is(c.gone, null, `${c.id}: open rows are still saying it`)
+      t.falsy(c.guardNote, `${c.id}: an open row explains itself in "wrong", not in "guardNote"`)
       t.is(daysLive(c), null, `${c.id}: an open row has no duration`)
       continue
     }
-    t.truthy(c.guard, `${c.id}: a fixed row names the test that stops it recurring`)
-    if (isPost(c)) {
-      t.is(c.gone, null, `${c.id}: a post keeps its sentence, so nothing is banned from the source`)
+    t.truthy(
+      c.guard ?? c.guardNote,
+      `${c.id}: a fixed row names the test that stops it recurring, or says why there is none`,
+    )
+    t.false(
+      Boolean(c.guard && c.guardNote),
+      `${c.id}: a row with a guard does not also explain its absence`,
+    )
+    if (isPost(c) || c.fixedInProduct) {
+      t.is(
+        c.gone,
+        null,
+        `${c.id}: the sentence was kept, so nothing about it is banned from the source`,
+      )
     } else {
       t.truthy(c.gone, `${c.id}: a fixed row names the words that must not come back`)
     }
   }
+})
+
+/**
+ * The account row is the only one where the words were right and the product
+ * was missing, and it is the only one with no guard. Both are deliberate and
+ * both are the kind of thing a later tidy-up quietly "fixes" by inventing a
+ * guard that does not run. Pinned so that has to be an argument.
+ */
+test('the account row is fixed in the product and admits it has no guard', (t) => {
+  const account = CORRECTIONS.find((c) => c.id === 'privacy-account-section')
+  t.truthy(account, 'the account row has been dropped from the registry')
+  if (!account) return
+  t.true(account.fixedInProduct === true)
+  t.is(account.gone, null)
+  t.is(account.guard, null)
+  t.truthy(account.guardNote)
+  t.is(daysLive(account), 1)
+  // The note names a file. Naming one that does not exist is exactly the shape
+  // of claim this page is about.
+  t.true(
+    existsSync(repoFile('scripts/assert-sync-config.mjs')),
+    'the note names a script that is not in the repository',
+  )
+  t.true((account.guardNote ?? '').includes('scripts/assert-sync-config.mjs'))
 })
 
 test('a corrected post carries its correction note', (t) => {
@@ -124,6 +160,22 @@ test('the suitedness row: KT spans two bands and AT spans one', (t) => {
 
 test('the post is registered on the blog', (t) => {
   t.truthy(BLOG_POSTS.find((p) => p.slug === 'what-we-got-wrong'))
+})
+
+/**
+ * The post went live with a typed claim about how many of its own rows were
+ * open, and it was false by seven hours: the thing it was about had been fixed
+ * that afternoon and the post did not publish until after midnight. The claim
+ * is now read off the registry at build time. That is the whole fix, so it is
+ * pinned rather than left as a habit somebody tidies away.
+ */
+test('the post never types its own live state', (t) => {
+  const source = readFileSync(repoFile('src/app/blog/what-we-got-wrong/page.tsx'), 'utf-8')
+  t.true(
+    source.includes('open.length'),
+    'the open-row count is no longer derived from the registry',
+  )
+  t.false(source.includes('as this goes up'), 'the publication-day tense is back in the post')
 })
 
 // Everything below walks the source. The registry quotes the false sentences and

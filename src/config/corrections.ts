@@ -20,6 +20,14 @@
 // rarity claim, for instance, still contains "holds exactly, all the way down
 // the list" in its corrected form, and what was wrong was saying it without
 // "on five cards" in front.
+//
+// Two rows do not work that way, and both are marked rather than excused.
+// A blog post is a dated record, so a wrong one keeps its sentence and gains a
+// correction note. And a row can be `fixedInProduct`, meaning the words were
+// right and the thing they described was missing: the fix was a deploy, the
+// sentence is the one we want to keep saying, and banning a fragment of it
+// would ban the correction. Both carry `gone: null` on purpose, and the test
+// knows the difference between that and a row nobody finished.
 
 export interface Correction {
   /** Stable handle. Used as the anchor and the test's failure message. */
@@ -39,30 +47,58 @@ export interface Correction {
   /** How it was found. Never "a test", because no test has ever found one. */
   caught: string
   /**
+   * Set when the sentence was right and the product was not, so the fix was a
+   * deploy rather than an edit. Such a row keeps `gone` null: the words this
+   * row is about are the ones we now want to go on saying.
+   */
+  fixedInProduct?: true
+  /**
    * A fragment of the false sentence that must not appear in the site's source
    * again. Null only while the claim is still live.
    */
   gone: string | null
   /** The test that fails if it comes back, as a path in this repository. */
   guard: string | null
+  /**
+   * Why a fixed row has no guard, in one sentence, for the page to print. A
+   * fixed row names a guard or says why it has none; "we did not get round to
+   * it" is an answer, and a silent null is not.
+   */
+  guardNote?: string
 }
 
 /** Open first, then fixed, newest correction first. Pinned by the test. */
 export const CORRECTIONS: readonly Correction[] = [
   {
+    id: 'corrections-post-open-row',
+    where: ['/blog/what-we-got-wrong'],
+    said: 'One of them is still wrong as this goes up.',
+    wrong:
+      'It was not. This post was written on the morning of 24 August, when the row below it was open. The site was republished with its database configuration at 17:44 that afternoon and the post did not go live until 01:03 the next morning, so the page listing our false claims opened with one, seven hours stale. The sentence was typed rather than read off this list, which is the only way it could have been.',
+    liveFrom: '2026-08-25',
+    fixedOn: null,
+    caught:
+      'Checking the live site against the row below, the next morning. The post was the thing doing the checking and it turned out to be the thing that was wrong.',
+    gone: null,
+    guard: null,
+  },
+  {
     id: 'privacy-account-section',
     where: ['/privacy'],
     said: 'Sync is "off unless you turn it on, in Settings, under Account".',
     wrong:
-      'The build serving playpip.io was made without its database configuration, so the app decides at load time that accounts are unavailable and removes every account surface from itself. There is no Account section in Settings to turn anything on with, and nobody can sign in.',
-    liveFrom: '2026-08-03',
+      'The site was serving a build made without its database configuration, so the app decided at load time that accounts were unavailable and removed every account surface from itself. There was no Account section in Settings to turn anything on with, and nobody could sign in.',
+    liveFrom: '2026-08-23',
     liveFromNote:
-      'We cannot date the start. The bundle currently served is from 23 August; whether earlier builds carried the configuration is not something we can see from outside. 3 August is the day accounts shipped, which is the worst case.',
-    fixedOn: null,
+      "This row said 3 August when it went up, on the reasoning that we could not see from outside which earlier builds carried the configuration. We could, and we should have looked before writing a date down: every deployment this repository has ever published keeps a permanent address, and the ones from 9, 14 and 15 August all carry it. What actually happened is narrower and worse. Something other than this repository's deploy published to playpip.io on 23 August, without the configuration, over a build that had it.",
+    fixedOn: '2026-08-24',
     caught:
-      'A check that downloads the JavaScript playpip.io actually serves and reads the configuration out of it. Every test passed and every build was green throughout: the fault is in the machine that builds the site, not in the code, so nothing in the repository disagreed with anything else in the repository.',
+      'A check that downloads the JavaScript playpip.io actually serves and reads the configuration out of it. Every test passed and every build was green throughout, and both were telling the truth: the build this repository makes was correct and it was not the one being served.',
+    fixedInProduct: true,
     gone: null,
     guard: null,
+    guardNote:
+      'None. The check that reads the configuration out of a bundle is scripts/assert-sync-config.mjs, and it can only inspect a build made by the deploy it is attached to, which is not the deploy that went wrong. Nothing in a repository can watch a publisher the repository does not know about.',
   },
   {
     id: 'data-never-leaves',
