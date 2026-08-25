@@ -90,7 +90,7 @@ export const CORRECTIONS: readonly Correction[] = [
       'The site was serving a build made without its database configuration, so the app decided at load time that accounts were unavailable and removed every account surface from itself. There was no Account section in Settings to turn anything on with, and nobody could sign in.',
     liveFrom: '2026-08-23',
     liveFromNote:
-      "This row said 3 August when it went up, on the reasoning that we could not see from outside which earlier builds carried the configuration. We could, and we should have looked before writing a date down: every deployment this repository has ever published keeps a permanent address, and the ones from 9, 14 and 15 August all carry it. What actually happened is narrower and worse. Something other than this repository's deploy published to playpip.io on 23 August, without the configuration, over a build that had it.",
+      'This row said 3 August when it went up, on the reasoning that we could not see from outside which earlier builds carried the configuration. We could, and we should have looked before writing a date down: every deployment this repository has ever published keeps a permanent address, and the ones from 9, 14 and 15 August all carry it. What actually happened is narrower, and it now has a name. Two different things were publishing this site: our own deploy, which runs the test suite first and supplies the configuration, and a hosting-side integration nobody had accounted for, which builds every push by itself and does neither. On 23 August our deploy stopped at its security-audit step at 16:51:03, the other one finished at 16:51:57, and its build is the one that served playpip.io for the next day.',
     fixedOn: '2026-08-24',
     caught:
       'A check that downloads the JavaScript playpip.io actually serves and reads the configuration out of it. Every test passed and every build was green throughout, and both were telling the truth: the build this repository makes was correct and it was not the one being served.',
@@ -98,7 +98,7 @@ export const CORRECTIONS: readonly Correction[] = [
     gone: null,
     guard: null,
     guardNote:
-      'None. The check that reads the configuration out of a bundle is scripts/assert-sync-config.mjs, and it can only inspect a build made by the deploy it is attached to, which is not the deploy that went wrong. Nothing in a repository can watch a publisher the repository does not know about.',
+      'None. The check that reads the configuration out of a bundle is scripts/assert-sync-config.mjs, and it can only inspect a build made by the deploy it is attached to, which is not the deploy that went wrong. The fix that would actually hold is for one thing to publish this site rather than two, and that is a setting in the hosting account rather than a line in this repository.',
   },
   {
     id: 'data-never-leaves',
