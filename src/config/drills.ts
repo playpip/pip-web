@@ -89,6 +89,17 @@ export const DRILL_KINDS: DrillKind[] = [
     boardCards: 4,
     membersOnly: true,
   },
+  {
+    id: 'pot-odds',
+    title: 'Pot odds',
+    blurb:
+      'They have bet the turn. Both hands are face up, one card is to come: is the price right?',
+    question: 'Call or fold?',
+    gradedBy:
+      'Settled by dealing all 44 cards you cannot see and holding what gets there against what the pot is charging.',
+    boardCards: 4,
+    membersOnly: true,
+  },
 ]
 
 /**

@@ -163,6 +163,7 @@ test('the filter rejects for the reasons this kind has, and no others', (t) => {
     'already-ahead': 0,
     'chop-possible': 0,
     'drawing-dead': 0,
+    ambiguous: 0,
   }
   let kept = 0
   for (let seed = 1; seed <= 4_000; seed++) {
@@ -179,6 +180,7 @@ test('the filter rejects for the reasons this kind has, and no others', (t) => {
   // knob: it fires when a winning river makes a hand we cannot name, which
   // would mean the sentence and the count came from different readings.
   t.is(counts['one-sided'], 0, "one-sided is not this kind's vocabulary")
+  t.is(counts.ambiguous, 0, 'the count is exact, so no spot here is ever too close to ask')
   t.is(counts.unexplainable, 0, 'a spot could not be explained from its own enumeration')
 })
 

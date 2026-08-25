@@ -1,7 +1,8 @@
-import { type Card, type Rng, mulberry32, shuffledDeck } from '@/lib/poker/cards'
+import { type Card, type Rng, mulberry32 } from '@/lib/poker/cards'
 import { determineWinners, evaluateHand, handPhrase } from '@/lib/poker/handEval'
 import { type OutsShape, outsDifficulty } from './rating'
-import { type DrillChoice, type DrillHand, type Generated, accept, reject } from './types'
+import { HERO, UNSEEN, VILLAIN, dealTurn, faceUpHands } from './turnSpot'
+import { type DrillChoice, type Generated, accept, reject } from './types'
 
 // The membership's first kind: two hands face up on the turn, one card to come,
 // how many of the cards left win it for you.
@@ -22,28 +23,6 @@ import { type DrillChoice, type DrillHand, type Generated, accept, reject } from
 // that registered this kind** (technology#55). A paid kind that ships without
 // it is free forever by rule #8, and the box the membership is priced from
 // empties itself on the way to being sold.
-
-const HERO = 'hero'
-const VILLAIN = 'villain'
-
-/**
- * Cards nobody has seen: 52, less two hole cards each and the four on the turn.
- *
- * A constant rather than `rest.length` in the sentence, so that a change to the
- * deal has to come past this line. The tests assert the deck arithmetic holds.
- */
-const UNSEEN = 44
-
-/** Two hands and a turn board, dealt from one seeded deck. */
-function deal(seed: number): { hero: Card[]; villain: Card[]; board: Card[]; rest: Card[] } {
-  const deck = shuffledDeck(mulberry32(seed))
-  return {
-    hero: deck.slice(0, 2),
-    villain: deck.slice(2, 4),
-    board: deck.slice(4, 8),
-    rest: deck.slice(8),
-  }
-}
 
 /** What one river card does for the hero. */
 type RiverOutcome = 'wins' | 'chops' | 'loses'
@@ -179,7 +158,7 @@ function pick(pool: number[], count: number, rng: Rng): number[] {
  * that trips it is not worth asking.
  */
 export function generateCountYourOuts(seed: number): Generated {
-  const { hero, villain, board, rest } = deal(seed)
+  const { hero, villain, board, rest } = dealTurn(seed)
   const contenders = [
     { id: HERO, hole: hero },
     { id: VILLAIN, hole: villain },
@@ -209,6 +188,10 @@ export function generateCountYourOuts(seed: number): Generated {
     label: String(n),
     cards: [],
     winning: n === count,
+    // The unit belongs to the kind that asks for it. A bare "6" on a button is
+    // read out as a bare six, and the question above the board is not read out
+    // again with it.
+    spoken: `${n} cards`,
   }))
 
   return accept({
@@ -216,36 +199,13 @@ export function generateCountYourOuts(seed: number): Generated {
     seed,
     board,
     choices,
-    hands: showHands(hero, villain, board),
+    hands: faceUpHands(hero, villain, board),
     answer: String(count),
     settledBy: shape,
     difficulty: outsDifficulty(shape, trap),
     explanation: explain(outs, traps, trap),
   })
 }
-
-/**
- * Both holdings, with what each one is right now.
- *
- * The villain's made hand is named from the start rather than at the reveal,
- * and that is the drill: you cannot count what beats you without being told
- * what you are up against. Hiding it would make this a guessing game about the
- * opponent rather than an exercise in counting.
- */
-function showHands(hero: Card[], villain: Card[], board: Card[]): DrillHand[] {
-  const name = (hole: Card[]) => {
-    const phrase = handPhrase(evaluateHand(hole, board))
-    return phrase ? capitalise(phrase) : undefined
-  }
-  return [
-    { label: 'You', cards: hero, ...withDetail(name(hero)) },
-    { label: 'They have', cards: villain, ...withDetail(name(villain)) },
-  ]
-}
-
-const withDetail = (detail?: string) => (detail ? { detail } : {})
-
-const capitalise = (phrase: string): string => phrase[0].toUpperCase() + phrase.slice(1)
 
 /**
  * The one sentence, out of the same enumeration that set the answer.

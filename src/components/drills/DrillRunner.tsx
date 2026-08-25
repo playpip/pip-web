@@ -8,8 +8,9 @@ import { PageShell } from '@/components/PageShell'
 import { PlayingCard } from '@/components/PlayingCard'
 import { type DrillKind, canPlayDrill } from '@/config/drills'
 import { gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
-import type { Drill, DrillChoice, DrillHand } from '@/lib/drills/types'
+import type { Drill, DrillChoice, DrillHand, DrillStakes } from '@/lib/drills/types'
 import { type Card, cardName } from '@/lib/poker/cards'
+import { formatChips } from '@/lib/useMoney'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
@@ -219,6 +220,14 @@ function Dealing({ kind }: { kind: DrillKind }) {
 }
 
 /**
+ * Keys bound to the choice they name, for the kinds that have one: a and b are
+ * the two hands, s is the split, c and f are the call and the fold. A key whose
+ * choice this kind does not deal does nothing, which is why they are ids rather
+ * than positions — the digits already cover positions.
+ */
+const LETTERS: Record<string, string> = { a: 'a', b: 'b', s: 'split', c: 'call', f: 'fold' }
+
+/**
  * The run itself. Mounted only on the client, so the state initialiser below is
  * the first spot of this visit and not a spot from build time.
  */
@@ -292,11 +301,10 @@ function Run({ kind }: { kind: DrillKind }) {
         return
       }
       // A digit picks the nth choice, which is what the badge on the button
-      // says. The letters stay bound to the ids they have always meant on the
-      // free kind rather than to positions, so they do nothing on a kind that
-      // has no Hand A.
+      // says. The letters stay bound to choice ids rather than to positions, so
+      // each one does nothing at all on a kind that has no choice by that name.
       const digit = Number(key)
-      const byLetter = key === 'a' ? 'a' : key === 'b' ? 'b' : key === 's' ? 'split' : null
+      const byLetter = LETTERS[key] ?? null
       const choice =
         Number.isInteger(digit) && digit >= 1 && digit <= drill.choices.length
           ? drill.choices[digit - 1]
@@ -331,6 +339,7 @@ function Run({ kind }: { kind: DrillKind }) {
         transition={{ duration: 0.25, ease: 'easeOut' }}
       >
         <p className="text-center text-sm text-muted-foreground">{kind.question}</p>
+        {drill.stakes && <Stakes stakes={drill.stakes} />}
         <div className="mt-3 flex items-center justify-center gap-1 sm:gap-2">
           {drill.board.map((card) => (
             <PlayingCard key={cardKey(card)} card={card} size="drill" />
@@ -367,7 +376,11 @@ function Run({ kind }: { kind: DrillKind }) {
             an answer set in their own right, and stacking four full-width bars
             would bury the cards they are about. */}
         {outcomes.length > 1 ? (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          // Four counts want a row of four on a wide screen; two words want two
+          // buttons you can hit rather than two quarters of a row.
+          <div
+            className={cn('mt-6 grid grid-cols-2 gap-3', outcomes.length > 2 && 'sm:grid-cols-4')}
+          >
             {outcomes.map((choice) => (
               <CountChoice
                 key={choice.id}
@@ -436,6 +449,29 @@ function Run({ kind }: { kind: DrillKind }) {
 }
 
 /**
+ * The money, on a kind whose question is about a price.
+ *
+ * Two numbers, in the order the decision needs them, and in the same words the
+ * table uses. Nothing here is a hint: what the pot is charging as a percentage
+ * is the thing being asked for, so it appears in the sentence after the answer
+ * and never before it.
+ */
+function Stakes({ stakes }: { stakes: DrillStakes }) {
+  const pot = formatChips(stakes.pot)
+  const toCall = formatChips(stakes.toCall)
+  return (
+    <p className="mt-1.5 text-center text-sm tabular-nums text-muted-foreground">
+      <span className="sr-only">{`Pot ${pot} chips, ${toCall} to call.`}</span>
+      <span aria-hidden>
+        Pot <span className="font-semibold text-foreground">{pot}</span>
+        {' · '}
+        <span className="font-semibold text-foreground">{toCall}</span> to call
+      </span>
+    </p>
+  )
+}
+
+/**
  * A holding the spot shows and does not ask about.
  *
  * Deliberately not a button and deliberately not styled like one: on a kind
@@ -500,7 +536,9 @@ function CountChoice({
       onClick={onPick}
       disabled={revealed}
       aria-pressed={chosen}
-      aria-label={`${choice.label} cards`}
+      // "6" on its own is read out as a bare six, so a kind whose labels need a
+      // unit says what it is (`spoken`). "Call" needs nothing adding to it.
+      aria-label={choice.spoken ?? choice.label}
       className={cn(
         'relative rounded-2xl border py-4 text-center text-lg font-semibold tabular-nums transition',
         revealed && choice.winning
