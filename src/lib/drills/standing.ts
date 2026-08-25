@@ -1,5 +1,11 @@
 import type { DrillKindId } from './types'
-import { type SettledBy, spotDifficulty } from './rating'
+import {
+  type OutsShape,
+  type SettledBy,
+  type SpotKind,
+  outsDifficulty,
+  spotDifficulty,
+} from './rating'
 
 // What the rating means, said in words.
 //
@@ -26,7 +32,7 @@ import { type SettledBy, spotDifficulty } from './rating'
 /** One shape a spot can come in, and what that shape is worth. */
 export interface SpotShape {
   /** How the engine settled it. The shape's id. */
-  settledBy: SettledBy
+  settledBy: SpotKind
   /**
    * What the shape is called in a sentence to a player.
    *
@@ -68,6 +74,26 @@ const WHICH_HAND_WINS: SpotShape[] = [
   shape('split', 'split pots'),
 ]
 
+const outsShape = (settledBy: OutsShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: outsDifficulty(settledBy, false),
+})
+
+/**
+ * The shapes "count your outs" deals, easiest first.
+ *
+ * The ladder here is how many different hands get you there rather than how
+ * many cards do, for the reason set out on {@link OutsShape}: counting nine
+ * hearts is one thing to see, and counting nine hearts plus three sevens is two
+ * things to see and then add up without counting a card twice.
+ */
+const COUNT_YOUR_OUTS: SpotShape[] = [
+  outsShape('one-draw', 'spots with one way to get there'),
+  outsShape('two-draws', 'spots with two draws at once'),
+  outsShape('many-draws', 'spots with three or more draws at once'),
+]
+
 /**
  * Every kind's ladder, or an explicit `null` for a kind that has none.
  *
@@ -79,6 +105,7 @@ const WHICH_HAND_WINS: SpotShape[] = [
  */
 const LADDERS: Record<DrillKindId, SpotShape[] | null> = {
   'which-hand-wins': WHICH_HAND_WINS,
+  'count-your-outs': COUNT_YOUR_OUTS,
 }
 
 /** The shapes this kind deals, easiest first, or null if it has no ladder. */
@@ -130,7 +157,13 @@ export function standingLine(kind: DrillKindId, rating: number): string | null {
     return standing.next ? `Next up: ${standing.next.label}.` : null
   }
   if (!standing.next) {
-    return `You read every shape these spots come in more often than not, split pots included.`
+    // The hardest shape is named from the ladder rather than written into the
+    // sentence. It used to say "split pots included", which was true of the only
+    // kind there was and quietly wrong for the second one: a player at the top
+    // of the outs ladder has never been asked about a split pot. Reading it off
+    // `hardest` keeps the free kind's sentence identical, word for word, which
+    // is what the pinned test in tests/drillStanding.test.ts is there to prove.
+    return `You read every shape these spots come in more often than not, ${hardest.label} included.`
   }
   return `Better than even on ${hardest.label}. Next up: ${standing.next.label}.`
 }

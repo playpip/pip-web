@@ -81,7 +81,7 @@ function DrillTile({ kind, delay }: { kind: DrillKind; delay: number }) {
           {hydrated ? (
             <TileBoard kind={kind} />
           ) : (
-            [0, 1, 2, 3, 4].map((i) => <PlayingCard key={i} size="sm" />)
+            Array.from({ length: kind.boardCards }, (_, i) => <PlayingCard key={i} size="sm" />)
           )}
           <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/30 backdrop-blur-sm">
             <ChevronRight className="size-4 text-white/85 transition group-hover:translate-x-0.5" />

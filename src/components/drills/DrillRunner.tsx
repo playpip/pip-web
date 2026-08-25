@@ -8,7 +8,7 @@ import { PageShell } from '@/components/PageShell'
 import { PlayingCard } from '@/components/PlayingCard'
 import { type DrillKind, canPlayDrill } from '@/config/drills'
 import { gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
-import type { Drill, DrillChoice } from '@/lib/drills/types'
+import type { Drill, DrillChoice, DrillHand } from '@/lib/drills/types'
 import { type Card, cardName } from '@/lib/poker/cards'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
@@ -200,7 +200,7 @@ function Dealing({ kind }: { kind: DrillKind }) {
       <Header title={kind.title} />
       <p className="text-center text-sm text-muted-foreground">{kind.question}</p>
       <div className="mt-3 flex items-center justify-center gap-1 sm:gap-2" aria-hidden>
-        {[0, 1, 2, 3, 4].map((i) => (
+        {Array.from({ length: kind.boardCards }, (_, i) => (
           <PlayingCard key={i} size="drill" />
         ))}
       </div>
@@ -237,8 +237,19 @@ function Run({ kind }: { kind: DrillKind }) {
   const progress = record ?? emptyDrillRecord()
 
   const grade = picked === null ? null : gradeDrill(drill, picked)
-  const hands = drill.choices.filter((choice) => choice.cards.length > 0)
+  // Choices that are hands you pick ("which hand wins") against choices that
+  // are an outcome or a number ("count your outs"). Read off the choice rather
+  // than off the kind, so a kind that mixes them needs no change here.
+  const handChoices = drill.choices.filter((choice) => choice.cards.length > 0)
   const outcomes = drill.choices.filter((choice) => choice.cards.length === 0)
+  // Holdings the spot shows without asking about. Never clickable: the runner
+  // is told which they are rather than inferring it from whether they carry
+  // cards, which is the thing a numeric kind breaks.
+  const shown = drill.hands ?? []
+  // The keyboard number is the choice's place in the spot's own list, so
+  // 1 / 2 / 3 keep meaning Hand A / Hand B / they split it on the free kind and
+  // mean the four counts, in the order they are drawn, on the paid one.
+  const shortcutOf = (id: string) => String(drill.choices.findIndex((c) => c.id === id) + 1)
   // A personal best worth saying out loud: strictly beaten, and at least three.
   // "Best run yet" on your first correct answer is a participation trophy, and
   // equalling your best is not a best.
@@ -280,15 +291,19 @@ function Run({ kind }: { kind: DrillKind }) {
         }
         return
       }
-      const answers = drill.choices.filter((choice) => choice.cards.length > 0)
-      const split = drill.choices.find((choice) => choice.cards.length === 0)
-      const index = key === '1' || key === 'a' ? 0 : key === '2' || key === 'b' ? 1 : -1
-      if (index >= 0 && answers[index]) {
+      // A digit picks the nth choice, which is what the badge on the button
+      // says. The letters stay bound to the ids they have always meant on the
+      // free kind rather than to positions, so they do nothing on a kind that
+      // has no Hand A.
+      const digit = Number(key)
+      const byLetter = key === 'a' ? 'a' : key === 'b' ? 'b' : key === 's' ? 'split' : null
+      const choice =
+        Number.isInteger(digit) && digit >= 1 && digit <= drill.choices.length
+          ? drill.choices[digit - 1]
+          : drill.choices.find((c) => c.id === byLetter)
+      if (choice) {
         event.preventDefault()
-        pick(answers[index].id)
-      } else if ((key === '3' || key === 's') && split) {
-        event.preventDefault()
-        pick(split.id)
+        pick(choice.id)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -322,48 +337,78 @@ function Run({ kind }: { kind: DrillKind }) {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          {hands.map((choice, index) => (
-            <HandChoice
-              key={choice.id}
-              choice={choice}
-              shortcut={String(index + 1)}
-              revealed={grade !== null}
-              won={choice.winning}
-              chosen={picked === choice.id}
-              onPick={() => pick(choice.id)}
-            />
-          ))}
-        </div>
+        {/* Holdings the spot shows and does not ask about. Above the buttons,
+            because on this kind they are what the question is about. */}
+        {shown.length > 0 && (
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {shown.map((hand) => (
+              <ShownHand key={hand.label} hand={hand} />
+            ))}
+          </div>
+        )}
 
-        {outcomes.map((choice) => (
-          <button
-            key={choice.id}
-            type="button"
-            onClick={() => pick(choice.id)}
-            disabled={grade !== null}
-            className={cn(
-              'mt-3 flex w-full items-center justify-between gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition',
-              grade !== null && choice.winning
-                ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground'
-                : 'border-foreground/10 text-muted-foreground',
-              grade === null &&
-                'hover:border-foreground/25 hover:text-foreground active:scale-[0.99]',
-              grade !== null && !choice.winning && picked === choice.id && 'opacity-60',
-            )}
-          >
-            <span>{choice.label}</span>
-            {grade !== null && choice.winning ? (
-              <Check className="size-4 shrink-0 text-emerald-500" />
-            ) : (
-              grade === null && (
-                <span className="hidden size-6 shrink-0 place-items-center rounded-md bg-foreground/[0.06] text-xs font-medium sm:grid">
-                  3
-                </span>
-              )
-            )}
-          </button>
-        ))}
+        {handChoices.length > 0 && (
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {handChoices.map((choice) => (
+              <HandChoice
+                key={choice.id}
+                choice={choice}
+                shortcut={shortcutOf(choice.id)}
+                revealed={grade !== null}
+                won={choice.winning}
+                chosen={picked === choice.id}
+                onPick={() => pick(choice.id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* One outcome is a row under the hands ("they split it"). Several are
+            an answer set in their own right, and stacking four full-width bars
+            would bury the cards they are about. */}
+        {outcomes.length > 1 ? (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {outcomes.map((choice) => (
+              <CountChoice
+                key={choice.id}
+                choice={choice}
+                shortcut={shortcutOf(choice.id)}
+                revealed={grade !== null}
+                chosen={picked === choice.id}
+                onPick={() => pick(choice.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          outcomes.map((choice) => (
+            <button
+              key={choice.id}
+              type="button"
+              onClick={() => pick(choice.id)}
+              disabled={grade !== null}
+              className={cn(
+                'mt-3 flex w-full items-center justify-between gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition',
+                grade !== null && choice.winning
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground'
+                  : 'border-foreground/10 text-muted-foreground',
+                grade === null &&
+                  'hover:border-foreground/25 hover:text-foreground active:scale-[0.99]',
+                grade !== null && !choice.winning && picked === choice.id && 'opacity-60',
+              )}
+            >
+              <span>{choice.label}</span>
+              {grade !== null && choice.winning ? (
+                <Check className="size-4 shrink-0 text-emerald-500" />
+              ) : (
+                grade === null && (
+                  <span className="hidden size-6 shrink-0 place-items-center rounded-md bg-foreground/[0.06] text-xs font-medium sm:grid">
+                    {shortcutOf(choice.id)}
+                  </span>
+                )
+              )}
+            </button>
+          ))
+        )}
       </motion.div>
 
       {grade && (
@@ -387,6 +432,95 @@ function Run({ kind }: { kind: DrillKind }) {
         </motion.div>
       )}
     </>
+  )
+}
+
+/**
+ * A holding the spot shows and does not ask about.
+ *
+ * Deliberately not a button and deliberately not styled like one: on a kind
+ * where the answer is a number, a hand panel that looks pressable is an
+ * invitation to answer the wrong question. Same card sizes as the choice
+ * panels so the two read as one row of information.
+ *
+ * What each hand *is* right now is shown from the start rather than at the
+ * reveal. You cannot count what beats you without being told what you are up
+ * against, so hiding it would make counting outs a guess about the opponent.
+ */
+function ShownHand({ hand }: { hand: DrillHand }) {
+  return (
+    <div className="rounded-2xl border border-foreground/10 p-3">
+      {/* `PlayingCard` is aria-hidden, so the cards do not read at all. The
+          pickable panels solve that with an aria-label on the button; there is
+          no button here, so the readout is a visually hidden line and the
+          visual half is hidden from the reader to stop it being said twice. */}
+      <span className="sr-only">
+        {`${hand.label}: ${hand.cards.map(cardName).join(' and ')}${
+          hand.detail ? `, ${hand.detail}` : ''
+        }`}
+      </span>
+      <span className="flex items-center gap-3" aria-hidden>
+        <span className="flex gap-1.5">
+          {hand.cards.map((card) => (
+            <PlayingCard key={cardKey(card)} card={card} size="md" />
+          ))}
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-sm font-medium">{hand.label}</span>
+          {hand.detail && <span className="text-xs text-muted-foreground">{hand.detail}</span>}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+/**
+ * One of the counts on offer.
+ *
+ * The number is the control, so it is the biggest thing on the button and
+ * everything else is out of its way. No "outs" after it: the question above the
+ * board already asked, and four buttons each repeating the unit is noise.
+ */
+function CountChoice({
+  choice,
+  shortcut,
+  revealed,
+  chosen,
+  onPick,
+}: {
+  choice: DrillChoice
+  shortcut: string
+  revealed: boolean
+  chosen: boolean
+  onPick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      disabled={revealed}
+      aria-pressed={chosen}
+      aria-label={`${choice.label} cards`}
+      className={cn(
+        'relative rounded-2xl border py-4 text-center text-lg font-semibold tabular-nums transition',
+        revealed && choice.winning
+          ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground'
+          : 'border-foreground/10',
+        revealed && !choice.winning && 'opacity-60',
+        !revealed && 'hover:border-foreground/25 active:scale-[0.99]',
+      )}
+    >
+      {choice.label}
+      {revealed && choice.winning ? (
+        <Check className="absolute right-2 top-2 size-4 text-emerald-500" />
+      ) : (
+        !revealed && (
+          <span className="absolute right-2 top-2 hidden size-5 place-items-center rounded-md bg-foreground/[0.06] text-[0.65rem] font-medium text-muted-foreground sm:grid">
+            {shortcut}
+          </span>
+        )
+      )}
+    </button>
   )
 }
 

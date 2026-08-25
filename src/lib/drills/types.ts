@@ -1,5 +1,5 @@
 import type { Card } from '@/lib/poker/cards'
-import type { SettledBy } from './rating'
+import type { SpotKind } from './rating'
 
 // The drill contract. A drill is a generated spot, a decision, and a grade that
 // can explain itself in one sentence from our own engine.
@@ -10,17 +10,24 @@ import type { SettledBy } from './rating'
 // and the one at the top of rating.ts.
 
 /**
- * The kinds. One today, and it is free forever and unmetered: "which hand
- * wins" was ruled the free kind on 2026-08-14 (technology#38) and that
- * commitment cannot be taken back.
+ * The kinds.
  *
+ * **`which-hand-wins` is free forever and unmetered**: it was ruled the free
+ * kind on 2026-08-14 (technology#38) and that commitment cannot be taken back.
  * It is that kind because `determineWinners` grades it exactly rather than by
  * simulation, so the drill a stranger meets first is the one we can never mark
  * wrong. **Never meter it**: no counter, no "you have used N", no interstitial.
  * If we ever want to sample more of the practice layer, we make another whole
  * thing free rather than slicing this one.
+ *
+ * **`count-your-outs` comes with the membership**, and carries `membersOnly` in
+ * `config/drills.ts` from the commit that registered it (technology#55: a paid
+ * kind that ships without the flag is free by accident and cannot be taken
+ * back). It is graded by dealing all 44 remaining cards one at a time and
+ * reading the showdown, so it is exact in the same way the free kind is: no
+ * simulation, nothing to sample, nothing that can mark a correct count wrong.
  */
-export type DrillKindId = 'which-hand-wins'
+export type DrillKindId = 'which-hand-wins' | 'count-your-outs'
 
 /** One of the answers on offer. */
 export interface DrillChoice {
@@ -42,6 +49,24 @@ export interface DrillChoice {
   plays?: Card[]
 }
 
+/**
+ * A holding the spot shows but does not ask about.
+ *
+ * "Which hand wins" has none: there, the hands *are* the choices, and a hand you
+ * can see is a hand you can pick. "Count your outs" puts both hands face up and
+ * asks about the cards still to come, so the holdings have to be on the screen
+ * without being buttons. Separate from {@link DrillChoice} rather than a flag on
+ * it, because "can this be clicked" is the one thing the runner must never have
+ * to infer.
+ */
+export interface DrillHand {
+  /** What the panel says, e.g. "You". */
+  label: string
+  cards: Card[]
+  /** The made hand in words right now, e.g. "Pair". Shown from the start. */
+  detail?: string
+}
+
 /** A generated spot: everything the runner draws and the grader needs. */
 export interface Drill {
   kind: DrillKindId
@@ -55,6 +80,11 @@ export interface Drill {
   /** The community cards. */
   board: Card[]
   choices: DrillChoice[]
+  /**
+   * Holdings the spot shows without asking about, drawn above the choices.
+   * Absent for a kind whose choices are the hands (see {@link DrillHand}).
+   */
+  hands?: DrillHand[]
   /** The id of the correct choice. */
   answer: string
   /**
@@ -62,7 +92,7 @@ export interface Drill {
    * `explanation`. One reading of the hand feeds the grade, the sentence and
    * the difficulty, so none of the three can disagree with the other two.
    */
-  settledBy: SettledBy
+  settledBy: SpotKind
   /**
    * What this spot is rated, on the same scale as the player's rating. Carried
    * on the drill rather than recomputed by whatever is scoring, for the same
@@ -96,6 +126,18 @@ export interface Grade {
  * - `unexplainable`: the winner cannot be explained from the same evaluation
  *   that graded it. Silence over noise, at generation time.
  *
+ * The next three belong to "count your outs", and all three are about the
+ * question being well posed rather than about the answer being computable. The
+ * answer is always computable there, because it is a count of 44 showdowns.
+ *
+ * - `already-ahead`: the hero is winning or tied on the turn. "How many cards
+ *   win it for you" has no honest answer when you are already there.
+ * - `chop-possible`: some river splits the pot. Whether a chop counts as an out
+ *   is a real disagreement between reasonable players, so the spot goes in the
+ *   bin rather than the player being marked wrong for the other reading.
+ * - `drawing-dead`: nothing wins it. A true and useful fact about a hand, and a
+ *   bad multiple-choice question: it makes "the lowest number" a free guess.
+ *
  * **An equity-graded kind adds `ambiguous` here**, and rejects any spot where
  * required and actual equity sit inside the margin (4 points is a guess and
  * wants play-testing, not theory). Two rules come with it, and they are why
@@ -104,7 +146,12 @@ export interface Grade {
  * sentence under it cannot drift; and iterations go **up** there rather than
  * down, because generation happens once per spot and not once per render.
  */
-export type RejectReason = 'one-sided' | 'unexplainable'
+export type RejectReason =
+  | 'one-sided'
+  | 'unexplainable'
+  | 'already-ahead'
+  | 'chop-possible'
+  | 'drawing-dead'
 
 /** The result of generating at one seed: a spot, or the reason there isn't one. */
 export interface Generated {
