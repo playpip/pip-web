@@ -18,6 +18,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'august-what-shipped',
+    title: 'August: what shipped',
+    description:
+      'Six written guides, a free odds calculator, a drill that marks your answer, a card at the end of a tournament, and the month we measured our own bots and published our own errors.',
+    date: '2026-09-01',
+  },
+  {
     slug: 'what-we-got-wrong',
     title: 'Everything we have published that was wrong',
     description:
