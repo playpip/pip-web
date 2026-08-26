@@ -21,7 +21,7 @@ import { SITE_URL, contentAlternates } from '@/config/site'
 
 const TITLE = 'Play poker free, no signup'
 const DESCRIPTION =
-  'Free Texas Hold’em against AI opponents that play a proper game. No signup, no download, no real money and nothing to buy. Type a name and you are dealt in.'
+  'Free Texas Hold’em against AI opponents that play a proper game. No signup, no download, no real money, and the chips are not for sale. Type a name and you are dealt in.'
 const PATH = '/play-poker-free-no-signup'
 
 /**
@@ -87,7 +87,10 @@ const CHECKLIST: { thing: string; answer: string }[] = [
     thing: 'Where your progress lives',
     answer: 'Your browser, on your device. Ours only if you switch sync on, and it ships off.',
   },
-  { thing: 'What it costs', answer: 'Nothing.' },
+  {
+    thing: 'What it costs',
+    answer: 'Nothing to play. Not a trial, and nothing in it gets metered later.',
+  },
 ]
 
 /**
@@ -100,7 +103,7 @@ const FAQ: { q: string; a: string[] }[] = [
   {
     q: 'Is it actually free?',
     a: [
-      'Yes. There is nothing to buy in the game, no ads, and no paid tier of anything on this page. The chips are play money and they are not for sale, which is the part that makes the rest of it hold: there is no purchase for us to be steering you towards.',
+      'Yes. No ads, no signup, and no charge to play. The chips are play money and they are not for sale, and there is no advantage you can buy at any price, which is the part that makes the rest of it hold: there is no purchase for us to be steering you towards.',
     ],
   },
   {
@@ -198,7 +201,8 @@ export default function PlayPokerFreeNoSignupPage() {
       <Lead>
         <p>
           Pip is a free Texas Hold’em game that runs in a browser tab. No signup, no download, no
-          real money and nothing to buy. Type a name, pick a face, and you are at a table.
+          real money, and the chips are not for sale. Type a name, pick a face, and you are at a
+          table.
         </p>
         <p>
           The engine is open source, so how the cards are dealt is something you can read rather
