@@ -12,3 +12,23 @@
 # application/xml. Readers accept that, but say what it actually is.
 /rss.xml
   Content-Type: application/rss+xml; charset=utf-8
+# The Pages project's production alias serves this same build on a second host,
+# and Cloudflare only adds noindex to *preview* deployments, so
+# pip-web-9oj.pages.dev is a fully crawlable duplicate of the whole site. The
+# canonical tag on every page points at playpip.io, but a canonical is a hint
+# and a directive is not, and the one thing we cannot afford on a domain this
+# young is splitting what little ranking signal exists across two hosts.
+#
+# A rule with a host in it applies to that host only, so playpip.io is
+# untouched. Preview deployments are a different host again
+# (<hash>.pip-web-9oj.pages.dev) and keep the noindex Cloudflare gives them,
+# which matters because their permanent addresses are how any past build gets
+# audited from outside (see the account outage, #92).
+#
+# Chosen over a 301 in a Pages Function: a root functions/_middleware.ts runs
+# for every request to the project including static assets, so redirecting one
+# host would put a Worker invocation in front of every chunk, image and font on
+# playpip.io as well. That is a real cost for an SEO hygiene fix, and this file
+# costs nothing at runtime.
+https://pip-web-9oj.pages.dev/*
+  X-Robots-Tag: noindex
