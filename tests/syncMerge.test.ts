@@ -190,10 +190,26 @@ test('merge › challenge scalps union, whichever side wins', (t) => {
 
 test('merge › drill progress takes the best of each side, and the busier rating', (t) => {
   const phone = profile({
-    drills: { 'which-hand-wins': { answered: 200, correct: 150, rating: 1_310, bestRun: 14 } },
+    drills: {
+      'which-hand-wins': {
+        answered: 200,
+        correct: 150,
+        rating: 1_310,
+        bestRun: 14,
+        shapes: { category: { answered: 100, correct: 90 }, kicker: { answered: 50, correct: 20 } },
+      },
+    },
   })
   const laptop = profile({
-    drills: { 'which-hand-wins': { answered: 12, correct: 3, rating: 780, bestRun: 22 } },
+    drills: {
+      'which-hand-wins': {
+        answered: 12,
+        correct: 3,
+        rating: 780,
+        bestRun: 22,
+        shapes: { category: { answered: 6, correct: 2 }, split: { answered: 6, correct: 1 } },
+      },
+    },
   })
 
   for (const side of ['local', 'remote'] as const) {
@@ -206,12 +222,58 @@ test('merge › drill progress takes the best of each side, and the busier ratin
     // time two devices met; averaging invents a number neither device earned.
     // Twelve answers is a worse reading of the same player than two hundred.
     t.is(merged.rating, 1_310, `rating on ${side}`)
+    // The per-shape counters merge shape by shape, so neither device's history
+    // of a shape the other has never seen is dropped. `split` exists only on
+    // the laptop and `kicker` only on the phone; both survive.
+    t.is(merged.shapes.category.answered, 100, `the busier device's category on ${side}`)
+    t.is(merged.shapes.category.correct, 90, `category correct on ${side}`)
+    t.is(merged.shapes.kicker.answered, 50, `a shape only the phone has seen on ${side}`)
+    t.is(merged.shapes.split.answered, 6, `a shape only the laptop has seen on ${side}`)
+  }
+})
+
+test('merge › a merged shape row never claims more right than answered', (t) => {
+  // The invariant the display rests on: "9 of 4" is not a fraction, it is a
+  // bug. It survives `max` because it holds on each side and the larger of two
+  // `correct` cannot exceed the larger of two `answered`. Asserted with the two
+  // sides crossed over, which is the arrangement that would break a rule that
+  // took `correct` from one side and `answered` from the other.
+  const phone = profile({
+    drills: {
+      'which-hand-wins': {
+        answered: 10,
+        correct: 9,
+        rating: 1_200,
+        bestRun: 4,
+        shapes: { kicker: { answered: 10, correct: 9 } },
+      },
+    },
+  })
+  const laptop = profile({
+    drills: {
+      'which-hand-wins': {
+        answered: 40,
+        correct: 4,
+        rating: 900,
+        bestRun: 1,
+        shapes: { kicker: { answered: 40, correct: 4 } },
+      },
+    },
+  })
+
+  for (const side of ['local', 'remote'] as const) {
+    const row = mergeProfiles(phone, laptop, side).drills['which-hand-wins'].shapes.kicker
+    t.true(row.correct <= row.answered, `correct <= answered on ${side}`)
+    t.is(row.answered, 40, side)
+    t.is(row.correct, 9, side)
   }
 })
 
 test('merge › a kind only one device has ever played survives', (t) => {
   const played = profile({
-    drills: { 'which-hand-wins': { answered: 30, correct: 20, rating: 1_050, bestRun: 6 } },
+    drills: {
+      'which-hand-wins': { answered: 30, correct: 20, rating: 1_050, bestRun: 6, shapes: {} },
+    },
   })
   for (const side of ['local', 'remote'] as const) {
     t.is(mergeProfiles(played, profile(), side).drills['which-hand-wins'].rating, 1_050, side)
@@ -337,7 +399,17 @@ test('pristine › anything the player actually did disqualifies a profile', (t)
     // here that can be true of a device which has played no poker at all.
     [
       'a drill answered',
-      { drills: { 'which-hand-wins': { answered: 1, correct: 1, rating: 1_024, bestRun: 1 } } },
+      {
+        drills: {
+          'which-hand-wins': {
+            answered: 1,
+            correct: 1,
+            rating: 1_024,
+            bestRun: 1,
+            shapes: { category: { answered: 1, correct: 1 } },
+          },
+        },
+      },
     ],
   ]
 
