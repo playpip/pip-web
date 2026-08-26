@@ -272,7 +272,10 @@ function Run({ kind }: { kind: DrillKind }) {
       setPicked(choiceId)
       setRun(next)
       setBefore({ rating: progress.rating, bestRun: progress.bestRun })
-      recordDrill(kind.id, result.correct, result.difficulty, next)
+      // `drill.settledBy` rather than anything derived from the grade: the spot
+      // has carried its own shape since generation, and it is the same reading
+      // that set the answer and the difficulty.
+      recordDrill(kind.id, result.correct, result.difficulty, next, drill.settledBy)
       sound.play(result.correct ? 'win' : 'fold')
       haptics.fire(result.correct ? 'win' : 'bust')
     },

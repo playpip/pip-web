@@ -113,6 +113,46 @@ test('v14 → v15 gives an existing player an empty drill record', (t) => {
   t.true(after.haptics, 'nothing else moved')
 })
 
+test('v15 → v16 gives an existing drill record an empty shape breakdown', (t) => {
+  // Empty, and it cannot be anything else. The totals do not record which
+  // shapes they were, so a player with two hundred answers behind them starts
+  // this breakdown at zero. Splitting the totals by the generator's measured
+  // shape frequencies would put four rows on the screen that describe the
+  // generator rather than the player, which is the invented-authority failure
+  // the whole drills build has avoided so far.
+  const v15 = {
+    ...v11(),
+    challengeWins: [],
+    challengesPlayed: 0,
+    handCoaching: true,
+    haptics: false,
+    drills: {
+      'which-hand-wins': { answered: 212, correct: 150, rating: 1_240, bestRun: 11 },
+      'count-your-outs': { answered: 8, correct: 5, rating: 1_010, bestRun: 2 },
+    },
+  }
+  const after = migrateProfile(v15, 15)
+
+  t.deepEqual(after.drills['which-hand-wins'].shapes, {})
+  t.deepEqual(after.drills['count-your-outs'].shapes, {}, 'every record, not just the first')
+  // The failure this branch exists to stop: a record loading with `shapes`
+  // undefined and the first answer after the upgrade throwing on it.
+  t.is(after.drills['which-hand-wins'].rating, 1_240, 'the rating was not disturbed')
+  t.is(after.drills['which-hand-wins'].answered, 212)
+})
+
+test('v15 → v16 is a no-op for a player who has never opened a drill', (t) => {
+  const v15 = {
+    ...v11(),
+    challengeWins: [],
+    challengesPlayed: 0,
+    handCoaching: true,
+    haptics: false,
+    drills: {},
+  }
+  t.deepEqual(migrateProfile(v15, 15).drills, {})
+})
+
 test('an ancient profile survives the whole chain', (t) => {
   // A v1 save is a name, a Roll and nothing else. Every branch has to fire.
   const ancient = { created: true, name: 'Player', avatar: null, roll: 800 }
@@ -136,7 +176,15 @@ test('migrating an already-current profile is a no-op', (t) => {
     ...v11(),
     challengeWins: ['doris'],
     challengesPlayed: 2,
-    drills: { 'which-hand-wins': { answered: 40, correct: 31, rating: 1_120, bestRun: 9 } },
+    drills: {
+      'which-hand-wins': {
+        answered: 40,
+        correct: 31,
+        rating: 1_120,
+        bestRun: 9,
+        shapes: { category: { answered: 21, correct: 19 }, kicker: { answered: 12, correct: 5 } },
+      },
+    },
   }
   const p = migrateProfile(structuredClone(current), PERSIST_VERSION)
   t.deepEqual(p.challengeWins, ['doris'])
@@ -145,4 +193,7 @@ test('migrating an already-current profile is a no-op', (t) => {
   // profile would wipe a rating on every load and nothing would report it.
   t.is(p.drills['which-hand-wins'].rating, 1_120)
   t.is(p.drills['which-hand-wins'].bestRun, 9)
+  // The same failure one level down, and it is the one the v16 branch could
+  // plausibly cause: emptying `shapes` on a profile that is already current.
+  t.is(p.drills['which-hand-wins'].shapes.kicker.answered, 12)
 })
