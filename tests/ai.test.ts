@@ -484,3 +484,82 @@ test('a preflop open is a real raise, not a min-raise', (t) => {
   t.true(avg > s.bigBlind * 2, `average open ${avg.toFixed(1)} into a ${s.bigBlind} blind`)
   t.true(avg < s.bigBlind * 4.5, `average open ${avg.toFixed(1)} is too big`)
 })
+
+// How often the AI bets a postflop pot that is checked to it, split by how many
+// opponents are still live. Every preflop band above measures how *wide* the AI
+// plays; this is the first one that measures what it does after the flop, and
+// it exists because that half had never been measured at all.
+function measureLeadByField(
+  profile: AiProfile,
+  hands = 80,
+): Map<number, { n: number; led: number }> {
+  const by = new Map<number, { n: number; led: number }>()
+  for (let h = 0; h < hands; h++) {
+    const rng = mulberry32(h * 7 + 13)
+    let s = startHand({ seats: makeSeats(6), buttonIndex: h % 6, smallBlind: 5, bigBlind: 10, rng })
+    let guard = 0
+    while (!isHandComplete(s) && guard++ < 1000) {
+      const legal = legalActions(s)
+      const p = s.players[s.toActIndex]
+      const a = decideAction(s, profile, rng)
+      if (s.street !== 'preflop' && legal && legal.callAmount === 0 && p) {
+        const live = s.players.filter(
+          (q) => q.id !== p.id && q.status !== 'folded' && q.status !== 'out',
+        ).length
+        const cell = by.get(live) ?? { n: 0, led: 0 }
+        cell.n++
+        if (a.type === 'bet' || a.type === 'raise') cell.led++
+        by.set(live, cell)
+      }
+      s = applyAction(s, a)
+    }
+  }
+  return by
+}
+
+test('the AI still bets multiway flops instead of checking the pot down', (t) => {
+  // The defect this pins: every postflop gate used to be an absolute equity
+  // number written for a heads-up pot (lead above 0.62, value-raise above 0.78),
+  // and an equity point is not the same size against three opponents as against
+  // one. Measured on this profile before the fix, the AI led an unbet pot 21% of
+  // the time heads-up and **7% against two or three**: it checked the flop round
+  // at exactly the loose tables a beginner meets first, which are the ones that
+  // go multiway. Quoting the gates as a multiple of a fair share of the pot puts
+  // the multiway rates back at 16% and 23%.
+  const loose: AiProfile = { tightness: 0.15, aggression: 0.35, bluff: 0.06, iterations: 120 }
+  const by = measureLeadByField(loose)
+
+  const headsUp = by.get(1)
+  t.truthy(headsUp, 'no heads-up postflop decisions were sampled at all')
+  if (!headsUp) return
+  // A rate measured over a handful of spots is not a rate. Assert the sample
+  // before asserting the thing, or this test goes green on an empty measurement.
+  t.true(headsUp.n >= 100, `only ${headsUp.n} heads-up spots sampled`)
+  const headsUpRate = headsUp.led / headsUp.n
+  t.true(headsUpRate > 0.05, `heads-up lead rate ${(headsUpRate * 100).toFixed(0)}% is not poker`)
+
+  const collapsed: string[] = []
+  for (const [opponents, cell] of by) {
+    if (opponents < 2 || cell.n < 30) continue
+    const rate = cell.led / cell.n
+    if (rate < headsUpRate * 0.6) {
+      collapsed.push(
+        `${opponents} opponents: ${(rate * 100).toFixed(0)}% of unbet pots led (n=${cell.n}), against ${(headsUpRate * 100).toFixed(0)}% heads-up`,
+      )
+    }
+  }
+  t.deepEqual(collapsed, [], 'betting collapses as the field grows')
+})
+
+test('the postflop gates are the old heads-up numbers, restated as a fair share', (t) => {
+  // The safety property behind the change above, and the reason it could ship
+  // without a playtest of all 29 tables: heads-up a fair share of the pot is
+  // exactly 0.5, so every multiple reproduces the absolute it replaced and no
+  // heads-up pot plays differently. Break one of these and you have moved every
+  // table on the ladder, not just the loose multiway ones.
+  const fairShareHeadsUp = 1 / (1 + 1)
+  t.is(fairShareHeadsUp * 1.24, 0.62, 'lead gate')
+  t.is(fairShareHeadsUp * 1.56, 0.78, 'value-raise gate')
+  t.is(fairShareHeadsUp * 1.2, 0.6, 'thin-raise gate')
+  t.is(fairShareHeadsUp * 0.8, 0.4, 'bluff ceiling')
+})
