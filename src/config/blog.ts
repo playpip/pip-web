@@ -18,6 +18,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'pokersolver-undocumented',
+    title: 'Five things pokersolver does that its README does not mention',
+    description:
+      'Its cards array can hand you seven cards for a five-card hand, an ace playing low comes back with the value 1, and a royal flush is named “Straight Flush”. Each one with the input that produces it.',
+    date: '2026-08-28',
+  },
+  {
     slug: 'what-we-got-wrong',
     title: 'Everything we have published that was wrong',
     description:
