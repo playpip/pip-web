@@ -103,7 +103,16 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
  *
  * **The line gains a text link to /membership when that page exists**
  * (technology#52 item F), and the wording is the CMO's to set at that point.
- * There is no paid kind registered today, so nothing renders this yet.
+ *
+ * **This renders in production.** `count-your-outs` registered `membersOnly` in
+ * v1.16.0 (25 Aug), so `playpip.io/game/drills/count-your-outs` serves this
+ * sentence to a signed-out visitor today: the kind is filtered off the drills
+ * index and is in no sitemap, but the URL answers. Nobody can buy anything yet,
+ * so the line points at something a reader cannot get, and that is a known and
+ * temporary state rather than an oversight (technology#75, the CMO found it by
+ * grepping the live chunk). This paragraph said the opposite until 27 Aug, and
+ * it is the first place anyone would look to answer "is this live", which is why
+ * it is worth more than a comment usually is.
  */
 function WithTheMembership({ kind }: { kind: DrillKind }) {
   return (
