@@ -1,10 +1,15 @@
 import test from 'ava'
 import { ACE_RUNS, BEST_FIVE, CAN_YOU_CHECK, WHO_WINS, toCards } from '@/config/learnExamples'
-import { determineWinners, evaluateHand, type EvaluatedHand } from '@/lib/poker/handEval'
+import { cardToString } from '@/lib/poker/cards'
+import { bestFive, determineWinners, evaluateHand, type EvaluatedHand } from '@/lib/poker/handEval'
 
-/** The five cards the evaluator actually used, as "Kh" strings. */
-const bestFiveOf = (solved: EvaluatedHand): string[] =>
-  (solved.solved as unknown as { cards: unknown[] }).cards.map(String)
+/**
+ * The five cards the evaluator actually used, as "Kh" strings. Goes through
+ * bestFive rather than reading solved.cards: the raw list is six cards on a
+ * six-card flush or two trips, and holds a low ace as '1'. This used to read
+ * it raw and was safe only because no fixture had that shape.
+ */
+const bestFiveOf = (solved: EvaluatedHand): string[] => bestFive(solved).map(cardToString)
 
 // The whole point of this file: every worked example on a guide page states who
 // wins a hand, in public, to people learning the rules. Getting one wrong is
