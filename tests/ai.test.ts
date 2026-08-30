@@ -234,7 +234,7 @@ const CATALOGUE = ALL_VENUES
  * 10.7 / 6.0 / 4.8. That spread is sampling noise, not behaviour.
  *
  * The fix is hands, not iterations. At 150 hands the same five settings land in
- * 9.0-12.9. `MEASURED_HANDS = 60` is where the spread is small enough that
+ * 9.0-12.6. `MEASURED_HANDS = 60` is where the spread is small enough that
  * every table clears the band with room, and it costs about a second a table.
  * **Do not trim either number to speed the suite up** — at 18 hands these
  * assertions measure the seed, and one shipped table (The Study) reads anywhere
@@ -330,9 +330,12 @@ test('the ladder gets more aggressive preflop as the stakes climb', (t) => {
   // separates them is what they do *when they come in*: the garage limps, the
   // Main Event raises.
   //
-  // What the ladder actually measures, entries-raised at six seats:
+  // What the ladder actually measures, entries-raised at six seats. This is a
+  // snapshot of a run (2026-08-30), not an assertion: the assertions below are
+  // the shape, and they print the live table on failure. Do not read a number
+  // here as current without re-running.
   //   garage 32%  pub 41%  poolhall 46%  cardroom 48%  casino 40%
-  //   riverboat 42%  penthouse 43%  montecarlo 45%  vegas 51%  mainevent 60%
+  //   riverboat 41%  penthouse 43%  montecarlo 45%  vegas 51%  mainevent 60%
   //
   // The climb is real end to end and by tier, and it is NOT monotone step by
   // step: the casino and the riverboat come in less often as raisers than the
