@@ -15,11 +15,17 @@
 // to, so neither date is the day somebody noticed.
 //
 // `gone` is the load-bearing field. It is a fragment of the false sentence
-// chosen so that it appears nowhere on the site any more, and corrections.test.ts
+// chosen so that it appears nowhere we publish any more, and corrections.test.ts
 // fails if it comes back. Pick it from the part that was actually wrong: the
 // rarity claim, for instance, still contains "holds exactly, all the way down
 // the list" in its corrected form, and what was wrong was saying it without
 // "on five cards" in front.
+//
+// Not everything we publish is a route. ROADMAP.md is linked from the blog and
+// from the launch copy, and a false claim in it is as readable as a false claim
+// on /privacy. So `where` takes a document as well as a page, the walk that
+// enforces `gone` covers those documents too, and this page stops being a list
+// of the errors our tooling happened to be able to see.
 //
 // Two rows do not work that way, and both are marked rather than excused.
 // A blog post is a dated record, so a wrong one keeps its sentence and gains a
@@ -32,7 +38,11 @@
 export interface Correction {
   /** Stable handle. Used as the anchor and the test's failure message. */
   id: string
-  /** Where it served, as paths on the site. */
+  /**
+   * Where it served: a path on the site, or a GitHub blob URL pinned to the
+   * commit that carried the wrong words. See `resolveWhere` for why a document
+   * gets a URL and a page does not.
+   */
   where: readonly string[]
   /** The claim, quoted. */
   said: string
@@ -175,6 +185,36 @@ export const CORRECTIONS: readonly Correction[] = [
     guard: 'tests/guideClaims.test.ts',
   },
 ]
+
+/**
+ * A blob URL on this repository, pinned to a full commit SHA. A branch name is
+ * deliberately not accepted: `blob/main/ROADMAP.md` shows whatever the file says
+ * today, which after a fix is the corrected text, so it would be a link that
+ * disproves the row it is filed under.
+ */
+const PINNED_BLOB =
+  /^https:\/\/github\.com\/playpip\/pip-web\/blob\/[0-9a-f]{40}\/([^#?\s]+)(?:#L\d+(?:-L\d+)?)?$/
+
+/**
+ * Where a claim served, resolved to the file in this repository that carried it
+ * and a short label to print. `null` if the entry is neither form, which the
+ * test turns into a failure rather than a quiet skip.
+ *
+ * A page gets a site path, because the path is the address and the file behind
+ * it is the page's own source. A document gets a pinned blob URL instead, and
+ * that asymmetry is the point: for a page, "what it used to say" is recoverable
+ * from this registry, but for a document the honest evidence is the file at the
+ * commit that carried the wrong text, which anybody can read forever and which
+ * we cannot quietly change. A repo-relative path would be a thing only we can
+ * resolve; a pinned URL is checkable from outside.
+ */
+export function resolveWhere(entry: string): { file: string; label: string } | null {
+  if (entry.startsWith('/')) {
+    return { file: entry === '/' ? 'src/app/page.tsx' : `src/app${entry}/page.tsx`, label: entry }
+  }
+  const file = PINNED_BLOB.exec(entry)?.[1]
+  return file ? { file, label: file } : null
+}
 
 /** Whole days a claim served, `null` while it is still serving. */
 export function daysLive(correction: Correction): number | null {

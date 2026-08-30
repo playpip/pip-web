@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import test from 'ava'
 import { BLOG_POSTS } from '@/config/blog'
-import { CORRECTIONS, daysLive } from '@/config/corrections'
+import { CORRECTIONS, daysLive, resolveWhere } from '@/config/corrections'
 import { BAND_ORDER, HAND_BANDS } from '@/config/startingHands'
 
 // The corrections list is the one page on the site whose subject is our own
@@ -9,9 +9,10 @@ import { BAND_ORDER, HAND_BANDS } from '@/config/startingHands'
 // to us. So it gets more checking than anything it lists.
 //
 // The load-bearing test is the last one: a fixed row names a fragment of what it
-// used to say, and that fragment must appear nowhere in the source but the
-// registry and the post itself. That turns every row into a live guard rather
-// than a memory of one.
+// used to say, and that fragment must appear nowhere we publish but the registry
+// and the post itself. That turns every row into a live guard rather than a
+// memory of one. "Publish" means the site's source and the documents at the root,
+// not just the site's source, because ROADMAP.md is read by people too.
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/
 
@@ -121,13 +122,51 @@ test('every guard names a test file that exists', (t) => {
   }
 })
 
-test('every row points at a page that exists', (t) => {
+test('every row points at something that exists', (t) => {
   for (const c of CORRECTIONS) {
-    for (const path of c.where) {
-      const page = path === '/' ? 'src/app/page.tsx' : `src/app${path}/page.tsx`
-      t.true(existsSync(repoFile(page)), `${c.id}: ${path} has no page at ${page}`)
+    for (const entry of c.where) {
+      const resolved = resolveWhere(entry)
+      if (!resolved) {
+        t.fail(
+          entry.startsWith('https://github.com/')
+            ? `${c.id}: ${entry} is not a blob URL on this repository pinned to a commit SHA, so it would show the corrected text`
+            : `${c.id}: ${entry} is neither a site path nor a pinned blob URL`,
+        )
+        continue
+      }
+      t.true(
+        existsSync(repoFile(resolved.file)),
+        `${c.id}: ${entry} has no file at ${resolved.file}`,
+      )
     }
   }
+})
+
+/**
+ * No row uses the document form yet, so without this the branch that handles it
+ * is untested code waiting for the first person to need it. The pinning rule is
+ * the part worth holding: a branch link renders the file as it is today, which
+ * for a fixed row is the correction, so it would quietly become evidence against
+ * the row it sits under.
+ */
+test('where takes a site path, and a blob URL only when it is pinned to a commit', (t) => {
+  t.is(resolveWhere('/')?.file, 'src/app/page.tsx')
+  t.is(resolveWhere('/privacy')?.file, 'src/app/privacy/page.tsx')
+  t.is(resolveWhere('/privacy')?.label, '/privacy')
+
+  const sha = '0'.repeat(40)
+  const pinned = resolveWhere(`https://github.com/playpip/pip-web/blob/${sha}/ROADMAP.md#L42-L48`)
+  t.is(pinned?.file, 'ROADMAP.md')
+  t.is(pinned?.label, 'ROADMAP.md')
+  t.is(
+    resolveWhere(`https://github.com/playpip/pip-web/blob/${sha}/docs/brand.md`)?.file,
+    'docs/brand.md',
+  )
+
+  t.is(resolveWhere('https://github.com/playpip/pip-web/blob/main/ROADMAP.md'), null)
+  t.is(resolveWhere(`https://github.com/playpip/pip-web/blob/${sha.slice(0, 7)}/ROADMAP.md`), null)
+  t.is(resolveWhere(`https://github.com/playpip/marketing/blob/${sha}/ROADMAP.md`), null)
+  t.is(resolveWhere('ROADMAP.md'), null)
 })
 
 test('open rows come first, then fixed rows newest first', (t) => {
@@ -178,9 +217,17 @@ test('the post never types its own live state', (t) => {
   t.false(source.includes('as this goes up'), 'the publication-day tense is back in the post')
 })
 
-// Everything below walks the source. The registry quotes the false sentences and
-// the post prints them, so those two are the only places they are allowed to be.
+// Everything below walks what we publish. The registry quotes the false
+// sentences and the post prints them, so those two are the only places they are
+// allowed to be.
+//
+// It covers the documents at the root as well as src, because both are published.
+// ROADMAP.md in particular is linked from the blog and from the launch copy, and
+// a claim in it reaches a reader exactly the way a claim on a route does. Walking
+// only src would have made `gone` a rule about which files our tooling could
+// reach rather than about which words we are still saying.
 const EXEMPT = new Set(['src/config/corrections.ts', 'src/app/blog/what-we-got-wrong/page.tsx'])
+const ROOT_DOCS = ['ROADMAP.md', 'README.md']
 
 function sources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(repoFile(dir), { withFileTypes: true })) {
@@ -191,8 +238,18 @@ function sources(dir: string, out: string[] = []): string[] {
   return out
 }
 
+// A renamed document would drop out of the walk above without failing anything,
+// which is the quiet way a guard stops guarding. Pinned so it has to be noticed.
+test('the documents the walk covers are still where it looks for them', (t) => {
+  for (const path of ROOT_DOCS) {
+    t.true(existsSync(repoFile(path)), `${path} has moved, so the walk below no longer reads it`)
+  }
+})
+
 test('nothing we corrected is still being said', (t) => {
-  const files = sources('src').map((path) => [path, readFileSync(repoFile(path), 'utf-8')] as const)
+  const files = [...sources('src'), ...ROOT_DOCS].map(
+    (path) => [path, readFileSync(repoFile(path), 'utf-8')] as const,
+  )
   for (const c of CORRECTIONS) {
     if (!c.gone) continue
     for (const [path, source] of files) {

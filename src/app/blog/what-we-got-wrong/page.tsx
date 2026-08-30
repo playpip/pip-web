@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { A, Item, LegalPage, List, Section } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
-import { CORRECTIONS, type Correction, daysLive } from '@/config/corrections'
+import { CORRECTIONS, type Correction, daysLive, resolveWhere } from '@/config/corrections'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'what-we-got-wrong')!
 
@@ -30,11 +30,28 @@ function Life({ correction }: { correction: Correction }) {
 }
 
 function Entry({ correction }: { correction: Correction }) {
+  // A row about a document carries a link to the file at the commit that had the
+  // wrong words in it. A row about a page does not need one: its path is the
+  // address, and the page there now shows the corrected text by design.
+  const pinned = correction.where.filter((entry) => !entry.startsWith('/'))
   return (
-    <Section title={correction.where.join(', ')}>
+    <Section
+      title={correction.where.map((entry) => resolveWhere(entry)?.label ?? entry).join(', ')}
+    >
       <p>
         <strong>It said:</strong> {correction.said}
       </p>
+      {pinned.length > 0 ? (
+        <p>
+          <strong>The words as they served:</strong>{' '}
+          {pinned.map((entry, i) => (
+            <span key={entry}>
+              {i > 0 ? ', ' : null}
+              <A href={entry}>{resolveWhere(entry)?.label ?? entry}</A>
+            </span>
+          ))}
+        </p>
+      ) : null}
       <p>
         <strong>It was wrong because:</strong> {correction.wrong}
       </p>
