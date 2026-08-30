@@ -73,6 +73,30 @@ export type SettledBy = 'category' | 'rank' | 'kicker' | 'split'
 export type OutsShape = 'one-draw' | 'two-draws' | 'many-draws'
 
 /**
+ * How a "pot odds" spot is shaped, easiest first: how far apart what the hand
+ * gets there and what the pot is charging turned out to be. Read off the same
+ * enumeration and the same fraction that set the answer, so, as above, the
+ * difficulty cannot disagree with the grade.
+ *
+ * What makes a price hard is not the size of the bet, it is how little room
+ * there is between the two numbers. A quarter-pot bet with a flush draw is a
+ * call you can make without arithmetic; the same draw against a pot-sized bet
+ * is four points from being a fold and you have to actually count.
+ *
+ * - `clear-price`: 11 points or more between them.
+ * - `close-price`: 7 to 11 points. Counting badly gets it wrong.
+ * - `thin-price`: under 7, and never under the margin at which the spot is
+ *   thrown away instead (see `RejectReason` in ./types).
+ *
+ * **The two boundaries were measured before they were chosen.** Over 6,000
+ * seeds the gap has a median of 8.3 points and never exceeds 20, so 7 and 11
+ * cut the spots roughly 27 / 43 / 30. Boundaries picked as round numbers
+ * instead put four spots in five in one band, and a shape that nearly every
+ * spot has is not a difficulty, it is a constant.
+ */
+export type PriceShape = 'clear-price' | 'close-price' | 'thin-price'
+
+/**
  * Any spot's shape, whichever kind dealt it.
  *
  * One union rather than a field per kind, because everything downstream of a
@@ -80,7 +104,7 @@ export type OutsShape = 'one-draw' | 'two-draws' | 'many-draws'
  * only that a spot has a shape and a number, never which kind's vocabulary the
  * shape is drawn from.
  */
-export type SpotKind = SettledBy | OutsShape
+export type SpotKind = SettledBy | OutsShape | PriceShape
 
 /**
  * What each shape is rated.
@@ -156,6 +180,36 @@ export const EASIEST_OUTS = OUTS_BASE['one-draw']
 export const HARDEST_OUTS = OUTS_BASE['many-draws'] + TRAP
 
 /**
+ * What each shape of a pricing spot is rated.
+ *
+ * Same judgement, same caveat: the ordering is the defensible part and the
+ * numbers are not measured, because nobody has answered one of these either.
+ *
+ * Pitched above both other kinds on purpose, and the reason is arithmetic
+ * rather than taste. Counting the outs is the *first* half of one of these
+ * spots: you then have to turn the count into a percentage and hold it against
+ * a fraction of a pot. A player who can do the counting kind perfectly still
+ * has a step left here, so the floor sits above that kind's floor.
+ *
+ * **No adjustment on top, and that is deliberate.** The other two kinds each
+ * carry one (a decoy, a trap) because there was something computable about the
+ * cards that made a spot harder than its shape. Here the gap between the two
+ * numbers *is* that thing, and it is already the shape. A second adjustment
+ * would be asserting something about the spot rather than reading it.
+ */
+const PRICE_BASE: Record<PriceShape, number> = {
+  'clear-price': 1060,
+  'close-price': 1280,
+  'thin-price': 1460,
+}
+
+/** The least a pricing spot can be rated. Both numbers a long way apart. */
+export const EASIEST_PRICE = PRICE_BASE['clear-price']
+
+/** The most a pricing spot can be rated. */
+export const HARDEST_PRICE = PRICE_BASE['thin-price']
+
+/**
  * What this spot is worth. Splits take no decoy adjustment: with two winners
  * there is no losing hand to be misled by.
  */
@@ -166,6 +220,11 @@ export function spotDifficulty(settledBy: SettledBy, decoy: boolean): number {
 /** What an outs spot is worth: its shape, plus the trap adjustment if it has one. */
 export function outsDifficulty(shape: OutsShape, trap: boolean): number {
   return OUTS_BASE[shape] + (trap ? TRAP : 0)
+}
+
+/** What a pricing spot is worth. Its shape, and nothing else — see {@link PRICE_BASE}. */
+export function priceDifficulty(shape: PriceShape): number {
+  return PRICE_BASE[shape]
 }
 
 /** Elo's expectation: the share of spots at this difficulty you should get right. */

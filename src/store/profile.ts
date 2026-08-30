@@ -85,6 +85,23 @@ export interface DrillRecord {
   rating: number
   /** The longest unbroken run of correct answers, ever. */
   bestRun: number
+  /**
+   * The same two counters again, split by what settled the spot (the `SpotKind`
+   * vocabulary in lib/drills/rating.ts). Read by lib/drills/shapes.ts.
+   *
+   * `Record<string, …>` rather than `Record<SpotKind, …>` on purpose, and for
+   * the same reason `drills` itself is keyed by `string`: this is persisted
+   * data, so a shape that is renamed or retired leaves rows here that no longer
+   * type-check as a `SpotKind` and must not stop an old profile loading.
+   * Anything reading it joins against a kind's ladder and ignores the rest.
+   */
+  shapes: Record<string, ShapeRecord>
+}
+
+/** What one shape of spot knows about you. Two counters, nothing derived. */
+export interface ShapeRecord {
+  answered: number
+  correct: number
 }
 
 /** Today's Daily Deal — one play per UTC day; abandoning counts as played. */
@@ -175,7 +192,13 @@ export interface ProfileState {
    * place that counts the spot. Returns nothing: what the screen shows is
    * derived from the record, never from a second copy of the sum.
    */
-  recordDrill: (kindId: string, correct: boolean, difficulty: number, run: number) => void
+  recordDrill: (
+    kindId: string,
+    correct: boolean,
+    difficulty: number,
+    run: number,
+    shape: string,
+  ) => void
   setTableTalk: (value: boolean) => void
   setHandCoaching: (value: boolean) => void
   setHaptics: (value: boolean) => void
@@ -197,7 +220,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 15
+export const PERSIST_VERSION = 16
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -206,6 +229,7 @@ export const emptyDrillRecord = (): DrillRecord => ({
   correct: 0,
   rating: STARTING_RATING,
   bestRun: 0,
+  shapes: {},
 })
 
 export const useProfile = create<ProfileState>()(
@@ -292,9 +316,10 @@ export const useProfile = create<ProfileState>()(
               ? [...s.challengeWins, characterId]
               : s.challengeWins,
         })),
-      recordDrill: (kindId, correct, difficulty, run) =>
+      recordDrill: (kindId, correct, difficulty, run, shape) =>
         set((s) => {
           const rec = s.drills[kindId] ?? emptyDrillRecord()
+          const was = rec.shapes?.[shape] ?? { answered: 0, correct: 0 }
           return {
             drills: {
               ...s.drills,
@@ -305,6 +330,17 @@ export const useProfile = create<ProfileState>()(
                 // the K-factor is asking about.
                 rating: nextRating(rec.rating, difficulty, correct, rec.answered),
                 bestRun: Math.max(rec.bestRun, run),
+                // The same answer counted a second time, by shape. Counted here
+                // rather than derived anywhere, for the reason the rating is:
+                // one place moves the numbers, and it is the place that sees
+                // the answer.
+                shapes: {
+                  ...rec.shapes,
+                  [shape]: {
+                    answered: was.answered + 1,
+                    correct: was.correct + (correct ? 1 : 0),
+                  },
+                },
               },
             },
           }
@@ -470,6 +506,16 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // those to honour, and seeding a rating from the tables would be a claim
   // about how somebody reads a showdown made out of how they play a hand.
   if (fromVersion < 15) s.drills = {}
+  // v15 -> v16: the per-shape split of the drill counters. Empty on every
+  // existing record, and it cannot be anything else: the totals do not say
+  // which shapes they were, and there is no honest way to guess. So a player
+  // who has answered two hundred spots starts this breakdown at zero and fills
+  // it again from here. That is the cost of not having counted it the first
+  // time, and inventing a split out of the shape frequencies would put numbers
+  // on the screen that describe the generator rather than the player.
+  if (fromVersion < 16) {
+    for (const rec of Object.values(s.drills ?? {})) rec.shapes = {}
+  }
   return s
 }
 

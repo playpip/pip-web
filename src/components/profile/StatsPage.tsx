@@ -12,6 +12,7 @@ import { VENUES, SIDE_TABLES, KITCHEN_TABLE } from '@/config/venues'
 import { DRILL_KINDS } from '@/config/drills'
 import type { DrillKindId } from '@/lib/drills/types'
 import { drillAccuracy, standingLine } from '@/lib/drills/standing'
+import { shapeBreakdown } from '@/lib/drills/shapes'
 import { rankFor } from '@/config/ranks'
 import { derivePlayStyle } from '@/lib/playStyle'
 import { accentFromSwatch } from '@/lib/avatar'
@@ -285,6 +286,7 @@ function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }
 
   const accuracy = drillAccuracy(record)
   const line = standingLine(kindId, record.rating)
+  const shapes = shapeBreakdown(kindId, record.shapes)
   // Facts, quietest first. `bestRun` only once it is a run: "best 1" is not a
   // personal best, it is one right answer.
   const facts = [
@@ -304,6 +306,27 @@ function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }
         <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">{facts.join(' · ')}</p>
       )}
       {line && <p className="mt-2 text-sm leading-snug text-muted-foreground">{line}</p>}
+      {shapes.length > 0 && (
+        <dl className="mt-3 space-y-1 border-t border-foreground/10 pt-3">
+          {shapes.map((shape) => (
+            <div key={shape.settledBy} className="flex items-baseline justify-between gap-3">
+              {/* The label is the ladder's own, so this row and the sentence
+                  above it call a shape the same thing. Lower case because that
+                  is how ./standing writes them: they are made to sit inside a
+                  line, not to head a column. */}
+              <dt className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                {shape.label}
+              </dt>
+              {/* "7 of 21", never 33%. A percentage hides how many answers are
+                  under it and invites a comparison between rows that ten
+                  answers cannot support. */}
+              <dd className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                {shape.correct} of {shape.answered}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </div>
   )
 }

@@ -16,6 +16,10 @@ and dates aren't listed on purpose. If something here matters to you,
 - Light/dark themes, sound, desktop + mobile, installable PWA
 - Local-first: your profile lives in your browser (versioned, exportable), with an
   optional account if you want it on more than one device
+- Written guides at `/learn`, with every figure on them computed rather than typed
+- A free poker odds calculator that prints the margin of error next to the answer
+- Drills: short spots with a right answer, graded by the engine, never metered
+- A card at the end of a tournament that reads the run you just played, and stores nothing
 
 ## Considering next
 
@@ -44,10 +48,17 @@ it gets metered later. That covers the ladder, the venues, the Daily, the Chip S
 moving your profile between devices, and every written guide.
 
 There will eventually be a **membership**, for the things that cost real money to run or
-that don't exist yet: multiplayer, and a deeper learning layer with drills and coaching
-across your hands. It isn't built, it isn't priced, and there's nothing to buy today.
+that don't exist yet: multiplayer, and more kinds of drill. The drill that shipped free
+stays free and unmetered, which is the paragraph above applied to the thing most likely to
+test it.
 
-If that ever stops being true, this section is where you'd catch us.
+**Part of it is built, and this section said it wasn't until 26 August.** The membership
+check is live in the app, and since 25 August one drill kind sits behind it. There is no
+price, no membership page and no way to pay, so nobody is a member and nobody has given us
+any money. That is the whole of the state.
+
+If that ever stops being true, this section is where you'd catch us. It stopped being true
+once already, and this is the corrected version.
 
 ## Not planned
 

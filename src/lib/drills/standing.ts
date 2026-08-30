@@ -1,9 +1,11 @@
 import type { DrillKindId } from './types'
 import {
   type OutsShape,
+  type PriceShape,
   type SettledBy,
   type SpotKind,
   outsDifficulty,
+  priceDifficulty,
   spotDifficulty,
 } from './rating'
 
@@ -94,6 +96,26 @@ const COUNT_YOUR_OUTS: SpotShape[] = [
   outsShape('many-draws', 'spots with three or more draws at once'),
 ]
 
+const priceShape = (settledBy: PriceShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: priceDifficulty(settledBy),
+})
+
+/**
+ * The shapes "pot odds" deals, easiest first.
+ *
+ * The ladder here is how much room there was between what the hand gets there
+ * and what the pot was charging, for the reason set out on {@link PriceShape}:
+ * a call that is right by twenty points is right whether or not you counted,
+ * and one that is right by five is only right if you did.
+ */
+const POT_ODDS: SpotShape[] = [
+  priceShape('clear-price', 'clear prices'),
+  priceShape('close-price', 'close prices'),
+  priceShape('thin-price', 'the closest prices'),
+]
+
 /**
  * Every kind's ladder, or an explicit `null` for a kind that has none.
  *
@@ -106,6 +128,7 @@ const COUNT_YOUR_OUTS: SpotShape[] = [
 const LADDERS: Record<DrillKindId, SpotShape[] | null> = {
   'which-hand-wins': WHICH_HAND_WINS,
   'count-your-outs': COUNT_YOUR_OUTS,
+  'pot-odds': POT_ODDS,
 }
 
 /** The shapes this kind deals, easiest first, or null if it has no ladder. */

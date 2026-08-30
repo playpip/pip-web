@@ -44,12 +44,17 @@ function Entry({ correction }: { correction: Correction }) {
       </p>
       <p>
         <Life correction={correction} />{' '}
-        {correction.guard ? (
+        {/* An open row has no guard by definition: nothing is stopping a thing
+            that is still happening. The guard sentence belongs to fixed rows. */}
+        {correction.fixedOn === null ? null : correction.guard ? (
           <>
             The test that fails if it comes back is <code>{correction.guard}</code>.
           </>
         ) : (
-          <>The check that catches it is not merged yet, so this row has no guard behind it.</>
+          <>
+            <strong>Nothing stops this one coming back.</strong>{' '}
+            {correction.guardNote ?? 'We have not written the check yet.'}
+          </>
         )}
       </p>
     </Section>
@@ -78,10 +83,25 @@ export default function WhatWeGotWrongPost() {
           pinned by tests that run the same engine that deals the cards, and the way you can tell we
           mean it is that it keeps catching us.
         </p>
-        <p>
-          <strong>One of them is still wrong as this goes up.</strong> It is first in the list,
-          because burying it would be the joke writing itself.
-        </p>
+        {open.length > 0 ? (
+          <p>
+            <strong>
+              {open.length === 1
+                ? 'One of them is still wrong'
+                : `${open.length} of them are still wrong`}{' '}
+              as you read this.
+            </strong>{' '}
+            {open.length === 1 ? 'It is' : 'They are'} first in the list, because burying{' '}
+            {open.length === 1 ? 'it' : 'them'} would be the joke writing itself.
+          </p>
+        ) : (
+          <p>
+            <strong>Nothing on this list is open as you read this.</strong> One was when this went
+            up on 24 August: the site was serving a build with its account system missing from it.
+            That was fixed the next evening, and the row for it now carries both dates, a correction
+            to the date we first printed, and no guard at all.
+          </p>
+        )}
       </Section>
 
       {open.map((correction) => (
@@ -127,13 +147,14 @@ export default function WhatWeGotWrongPost() {
             downloading the JavaScript the live site actually serves and reading the configuration
             out of it
           </Item>
+          <Item>reading this post against the live site the morning after publishing it</Item>
         </List>
         <p>
           The tests come after. Their job is that a fixed thing stays fixed, which they are good at
           and which nothing else does. But a green build tells you the code is right. It does not
-          tell you that what shipped is right, and the open row at the top of this page is the
-          expensive version of that distinction: every test passed, every build was green, and the
-          site quietly went out without part of itself.
+          tell you that what shipped is right, and the account row is the expensive version of that
+          distinction: every test passed, every build was green, every one of those builds had the
+          configuration in it, and the site was serving a different build entirely.
         </p>
       </Section>
 
@@ -141,7 +162,8 @@ export default function WhatWeGotWrongPost() {
         <p>
           That every future one lands here too. The list is generated from a registry the test suite
           reads, so a row cannot be quietly dropped and a corrected sentence cannot creep back into
-          the site without the build failing.
+          the site without the build failing. Where a row has no guard behind it, it has to say so
+          in as many words, which is why one of them does.
         </p>
         <p>
           It is not promising there will not be more. There will be. The interesting number is not{' '}

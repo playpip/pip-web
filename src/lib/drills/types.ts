@@ -26,8 +26,18 @@ import type { SpotKind } from './rating'
  * back). It is graded by dealing all 44 remaining cards one at a time and
  * reading the showdown, so it is exact in the same way the free kind is: no
  * simulation, nothing to sample, nothing that can mark a correct count wrong.
+ *
+ * **`pot-odds` comes with the membership too**, and carries `membersOnly` from
+ * the commit that registered it for the same reason. It is the same turn spot
+ * as counting outs with a price on it, and it is exact for the same reason: the
+ * cards that win it are counted rather than simulated, and the price the pot is
+ * laying is a fraction. **The spec had this kind graded by `estimateEquity`**
+ * (technology#55, part B), which would have made the first equity-graded thing
+ * in the app the thing people pay for. One card to come against a hand you can
+ * see is 44 showdowns, so it is enumerable, and enumerating it is strictly
+ * better than sampling it: same answer, no tolerance, nothing to drift.
  */
-export type DrillKindId = 'which-hand-wins' | 'count-your-outs'
+export type DrillKindId = 'which-hand-wins' | 'count-your-outs' | 'pot-odds'
 
 /** One of the answers on offer. */
 export interface DrillChoice {
@@ -43,6 +53,12 @@ export interface DrillChoice {
    * correct button, and the runner should show all three as right.
    */
   winning: boolean
+  /**
+   * What a screen reader says in place of the label, where the label on its own
+   * does not stand up as a sentence: "6" is read as a bare six, and "6 cards"
+   * is the button. Absent where the label already says what it means ("Call").
+   */
+  spoken?: string
   /** The made hand in words once the answer is out, e.g. "Two pair". */
   detail?: string
   /** The five cards this hand actually plays, shown with the answer. */
@@ -67,6 +83,21 @@ export interface DrillHand {
   detail?: string
 }
 
+/**
+ * The money on the table, for a kind whose question is about a price rather
+ * than only about cards.
+ *
+ * Both numbers are chips as the table shows them: `pot` is what is in the
+ * middle *including* the bet being faced, and `toCall` is what it costs to see
+ * the next card. So the price the pot is laying is `toCall / (pot + toCall)`,
+ * which is the same reading `lib/coach.ts` takes of a real hand — one
+ * definition of a price in the app, not two.
+ */
+export interface DrillStakes {
+  pot: number
+  toCall: number
+}
+
 /** A generated spot: everything the runner draws and the grader needs. */
 export interface Drill {
   kind: DrillKindId
@@ -85,6 +116,11 @@ export interface Drill {
    * Absent for a kind whose choices are the hands (see {@link DrillHand}).
    */
   hands?: DrillHand[]
+  /**
+   * The pot and the price, for a kind that asks about one. Absent everywhere
+   * else, and the runner draws nothing rather than drawing a zero.
+   */
+  stakes?: DrillStakes
   /** The id of the correct choice. */
   answer: string
   /**
@@ -121,8 +157,11 @@ export interface Grade {
  * Why a generated spot was thrown away instead of shown. Generation is a
  * filtered stream, not a raw one, and this is the filter's vocabulary.
  *
- * - `one-sided`: the two hands are more than one category apart, so the spot
- *   is a look rather than a question.
+ * - `one-sided`: the spot is a look rather than a question. On the ranking kind
+ *   that means the two hands are more than one category apart. On the pricing
+ *   kind it means no bet this pot could carry would make the answer the one the
+ *   spot set out to ask for, which is the same defect wearing the other kind's
+ *   clothes: nothing on the screen is deciding anything.
  * - `unexplainable`: the winner cannot be explained from the same evaluation
  *   that graded it. Silence over noise, at generation time.
  *
@@ -137,14 +176,24 @@ export interface Grade {
  *   bin rather than the player being marked wrong for the other reading.
  * - `drawing-dead`: nothing wins it. A true and useful fact about a hand, and a
  *   bad multiple-choice question: it makes "the lowest number" a free guess.
+ *   The pricing kind rejects it too, where it means there is no draw left to
+ *   put a price on.
  *
- * **An equity-graded kind adds `ambiguous` here**, and rejects any spot where
- * required and actual equity sit inside the margin (4 points is a guess and
- * wants play-testing, not theory). Two rules come with it, and they are why
- * this vocabulary exists before there is a kind that needs it: the rng handed
- * to `estimateEquity` is `mulberry32(drill.seed)`, so the grade and the
- * sentence under it cannot drift; and iterations go **up** there rather than
- * down, because generation happens once per spot and not once per render.
+ * The last one belongs to "pot odds":
+ *
+ * - `ambiguous`: what the hand gets there and what the pot is charging sit
+ *   inside {@link https://github.com/playpip/technology/issues/55 the margin},
+ *   4 points, where calling and folding are worth the same to within a
+ *   rounding. A player who reads it the other way is not wrong, so the spot is
+ *   not asked. The number is a judgement and wants play-testing, not theory.
+ *
+ * **This vocabulary was written before there was a kind that needed the last
+ * one**, with two rules attached: that the rng handed to `estimateEquity` be
+ * `mulberry32(drill.seed)`, and that iterations go up rather than down. Neither
+ * applies, because the kind that arrived grades by enumeration instead — 44
+ * showdowns, no rng at all. The margin survived the change and the rest did
+ * not, which is the right way round: it is about the question being fair, not
+ * about the estimate being steady.
  */
 export type RejectReason =
   | 'one-sided'
@@ -152,6 +201,7 @@ export type RejectReason =
   | 'already-ahead'
   | 'chop-possible'
   | 'drawing-dead'
+  | 'ambiguous'
 
 /** The result of generating at one seed: a spot, or the reason there isn't one. */
 export interface Generated {

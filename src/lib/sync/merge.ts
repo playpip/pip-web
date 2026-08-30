@@ -14,7 +14,14 @@
 // device, which is a much bigger build for a single-player game where one device
 // is almost always the active one. If players complain, that's the upgrade path.
 
-import type { CastRecord, DrillRecord, ProfileState, RollPoint, VenueRecord } from '@/store/profile'
+import type {
+  CastRecord,
+  DrillRecord,
+  ProfileState,
+  RollPoint,
+  ShapeRecord,
+  VenueRecord,
+} from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 
@@ -264,6 +271,39 @@ function mergeDrills(
       correct: Math.max(x.correct, y.correct),
       rating: x.answered >= y.answered ? x.rating : y.rating,
       bestRun: Math.max(x.bestRun, y.bestRun),
+      shapes: mergeShapes(x.shapes, y.shapes),
+    }
+  }
+  return out
+}
+
+/**
+ * The per-shape counters, merged the same way the totals above are: the better
+ * of the two, shape by shape.
+ *
+ * Taking the whole map from one side would be the other candidate, and it loses
+ * every shape the other device is ahead on. Per-shape `max` keeps
+ * `correct <= answered` on every row, because it holds on each side and the
+ * larger of two `correct` cannot exceed the larger of two `answered`. It does
+ * let the rows add up to more than the kind's `answered`, which is the same
+ * arithmetic the totals already accept from `max` and the reason nothing
+ * displays that sum.
+ */
+function mergeShapes(
+  a: Record<string, ShapeRecord> | undefined,
+  b: Record<string, ShapeRecord> | undefined,
+): Record<string, ShapeRecord> {
+  const out: Record<string, ShapeRecord> = {}
+  for (const shape of new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])) {
+    const x = a?.[shape]
+    const y = b?.[shape]
+    if (!x || !y) {
+      out[shape] = (x ?? y) as ShapeRecord
+      continue
+    }
+    out[shape] = {
+      answered: Math.max(x.answered, y.answered),
+      correct: Math.max(x.correct, y.correct),
     }
   }
   return out

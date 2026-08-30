@@ -181,6 +181,7 @@ test('the filter throws away one-sided spots, and only those', (t) => {
     'already-ahead': 0,
     'chop-possible': 0,
     'drawing-dead': 0,
+    ambiguous: 0,
   }
   let kept = 0
   for (let seed = 1; seed <= 5_000; seed++) {
@@ -190,10 +191,10 @@ test('the filter throws away one-sided spots, and only those', (t) => {
   }
   t.true(counts['one-sided'] > 100, `the filter is not biting: ${counts['one-sided']} rejected`)
   t.true(kept > counts['one-sided'], 'more spots are thrown away than kept')
-  // The three reasons that belong to "count your outs". This kind has no turn,
-  // no chop rule and no draw to be dead on, so seeing one here would mean the
-  // generators had got crossed.
-  for (const reason of ['already-ahead', 'chop-possible', 'drawing-dead'] as const) {
+  // The reasons that belong to the two turn kinds. This kind has no turn, no
+  // chop rule, no draw to be dead on and no price to be close to, so seeing one
+  // here would mean the generators had got crossed.
+  for (const reason of ['already-ahead', 'chop-possible', 'drawing-dead', 'ambiguous'] as const) {
     t.is(counts[reason], 0, `${reason} is not this kind's vocabulary`)
   }
   // Not a tuning knob. This fires when the sentence and the grade came from

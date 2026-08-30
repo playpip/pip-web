@@ -25,10 +25,17 @@ export const BLOG_POSTS: BlogPost[] = [
     date: '2026-09-01',
   },
   {
+    slug: 'pokersolver-undocumented',
+    title: 'Five things pokersolver does that its README does not mention',
+    description:
+      'Its cards array can hand you seven cards for a five-card hand, an ace playing low comes back with the value 1, and a royal flush is named “Straight Flush”. Each one with the input that produces it.',
+    date: '2026-08-28',
+  },
+  {
     slug: 'what-we-got-wrong',
     title: 'Everything we have published that was wrong',
     description:
-      'Seven false claims we shipped, what each one said, how long it served, how we found it, and the test that now fails if it comes back. One of them is still wrong.',
+      'Every false claim we have shipped: what each one said, how long it served, how we found it, and the test that now fails if it comes back. The newest one is a sentence in this post.',
     date: '2026-08-24',
   },
   {
