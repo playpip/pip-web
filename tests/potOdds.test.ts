@@ -2,6 +2,9 @@ import test from 'ava'
 import {
   BET_SIZES,
   DRAWS,
+  RULE_OF_FOUR_CROSSOVER,
+  RULE_OF_TWO_DECK,
+  RULE_OF_TWO_SHARE,
   UNSEEN_AFTER_FLOP,
   breakevenFolds,
   byRiverChance,
@@ -67,8 +70,9 @@ test('outs convert to one card and to both, by combination count', (t) => {
 
 // The page says the rule of 4 is close enough at small counts and drifts high
 // as they grow. Both halves of that, because "always wrong" would be wrong: at
-// four outs the shortcut is actually a shade low, and it does not cross over
-// until somewhere between six outs and eight.
+// four outs the shortcut is actually a shade low, and the page now names the
+// count it crosses over at, so the crossover is pinned below rather than left
+// as a range in this comment.
 test('the rule of 4 drifts high, and further with every out', (t) => {
   const drift = (outs: number) => outs * 4 - byRiverChance(outs) * 100
   for (let outs = 5; outs <= 15; outs++) t.true(drift(outs) > drift(outs - 1), `${outs} outs`)
@@ -86,6 +90,31 @@ test('the rule of 2 is a shade low, always', (t) => {
     t.true(shortcut < truth, `${draw.outs} outs`)
     // Low by the same 6.4% every time: 2 per out against 100/47.
     t.true(truth / shortcut < 1.07, `${draw.outs} outs, and not by much`)
+  }
+})
+
+// The page says the rule of 2 is low by the same proportion at every count, and
+// prints one figure for it. The claim is "without exception", so the test is
+// every count the deck allows rather than the five in DRAWS.
+test('the rule of 2 is low by one fixed proportion, at every out count', (t) => {
+  t.is(RULE_OF_TWO_SHARE, UNSEEN_AFTER_FLOP / RULE_OF_TWO_DECK)
+  t.is(pct(1 - RULE_OF_TWO_SHARE), '6')
+  for (let outs = 1; outs <= UNSEEN_AFTER_FLOP; outs++) {
+    const shortcut = oneCardChance(outs) * 100 * RULE_OF_TWO_SHARE
+    t.is(Math.round(shortcut * 1e9), Math.round(outs * 2 * 1e9), `${outs} outs`)
+  }
+})
+
+// The other half of the same sentence, and the number the page names: the rule
+// of 4 reads low against byRiverChance below the crossover and high from it up.
+// Checked over the whole deck so "up to" and "from" are exhaustive, not a spot
+// check at the two counts the prose happens to mention.
+test('the rule of 4 crosses from low to high at seven outs', (t) => {
+  t.is(RULE_OF_FOUR_CROSSOVER, 7)
+  for (let outs = 1; outs < UNSEEN_AFTER_FLOP; outs++) {
+    const drift = outs * 4 - byRiverChance(outs) * 100
+    if (outs < RULE_OF_FOUR_CROSSOVER) t.true(drift < 0, `${outs} outs reads low`)
+    else t.true(drift > 0, `${outs} outs reads high`)
   }
 })
 
