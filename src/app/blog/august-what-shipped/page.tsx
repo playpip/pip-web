@@ -20,6 +20,16 @@ export const metadata: Metadata = postMetadata(post)
 // flop counts come from the same registry the answer page renders, and the
 // calculator's two constants from the module that computes the quote, so if
 // either moves this page moves with it.
+//
+// Two exceptions, both deliberate, because the rule is worth stating honestly
+// rather than pretending to. Measurement outputs are typed: the preflop bands
+// and the entries-raised ladder are the result of a run, not values a module
+// holds, and there is nothing to import them from. And the two postflop gates
+// (62% and 78%) are literals inside `src/lib/poker/ai/policy.ts` rather than
+// exported constants, so the prose repeats them. `tests/ai.test.ts` asserts the
+// arithmetic that ties them to the multiples the code actually uses, which
+// means moving one fails the build even though it does not move this sentence.
+// Asked of the tech side: export them. Until then this comment is the record.
 
 const link =
   'font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground'
@@ -47,10 +57,11 @@ export default function AugustRoundupPost() {
           just played.
         </p>
         <p>
-          Two of the things we did this month were about our own work rather than the product. We
-          measured our bots against how real people play and found them nothing like it, and we
-          published a page listing every factual claim we have got wrong. That second one was the
-          least comfortable thing here and is the one we would keep if we had to pick.
+          Three of the things we did this month were about our own work rather than the product. We
+          measured our bots against how real people play and found them nothing like it, twice. We
+          wrote down what the library that settles every hand does when its README stops describing
+          it. And we published a page listing every factual claim we have got wrong. That last one
+          was the least comfortable thing here and is the one we would keep if we had to pick.
         </p>
       </Section>
 
@@ -263,6 +274,46 @@ export default function AugustRoundupPost() {
         </p>
       </Section>
 
+      <Section title="Then it happened again, one street later">
+        <p>
+          Every band in that fix measures how wide the bots play <em>before</em> the flop. Nothing
+          measured what they did after it. On the 29th we wrote the first test that did, and it
+          found the bots betting a flop that had been checked to them far less often as the number
+          of opponents went up. Given company, they stopped betting.
+        </p>
+        <p>
+          The cause was one assumption written down once and never revisited. Every postflop
+          decision was gated on an absolute number: lead out if you hold more than 62% of the
+          equity, raise for value above 78%. Those are heads-up numbers. Against three opponents 62%
+          is a much better hand than it is against one, so a gate that reads the same reads far
+          tighter, and the pot got checked down.
+        </p>
+        <p>
+          The fix quotes those gates as a multiple of a fair share of the pot rather than as an
+          absolute, a fair share being one divided by the number of players still in. The reason
+          that could ship to all 29 tables without playing them is arithmetic: heads-up a fair share
+          is exactly a half, so every multiple works out to the number it replaced, to the decimal,
+          and not one heads-up hand plays differently. There is a test that does that multiplication
+          rather than a comment asserting it, which is a distinction this repository has now been
+          caught by twice.
+        </p>
+        <p>
+          We are not putting the before-and-after rates on this page, and the reason is the same
+          kind of thing as the rest of the month. The spots that carry the finding are the ones with
+          three or four opponents left in, and those are the rarest spots in the sample: a run long
+          enough to be worth quoting heads-up gives you a few dozen of them. The collapse was large
+          enough to see through that. The exact percentages are not, and we would rather describe
+          the shape we can defend than print four decimals of noise.
+        </p>
+        <p>
+          The lesson is the one from three weeks earlier and we had not learned it well enough. The
+          tests that stayed green this time were the ones we had just written to stop exactly this
+          from happening. They were green because they measured the half of the game we had thought
+          to look at, and a bot that comes into a reasonable range of pots and then never bets one
+          of them passes every check in that half.
+        </p>
+      </Section>
+
       <Section title="Everything we have published that was wrong">
         <p>
           On the 24th we published{' '}
@@ -286,6 +337,35 @@ export default function AugustRoundupPost() {
           being updated implies you stopped making them. Each fixed row names a fragment of the
           sentence that was wrong, and a test fails the build if that fragment ever appears on the
           site again.
+        </p>
+      </Section>
+
+      <Section title="The library that decides who wins">
+        <p>
+          Pip does not have its own hand evaluator. Every showdown at the table, and every answer
+          the drill marks, is settled by an open-source library called{' '}
+          <A href="https://github.com/goldfire/pokersolver">pokersolver</A>, which we wrap in about
+          sixty lines. On the 28th we published{' '}
+          <Link href="/blog/pokersolver-undocumented" className={link}>
+            five things it does that its README does not mention
+          </Link>
+          , each with the input that produces it.
+        </p>
+        <p>
+          Ask it for the cards in a hand and a seven-card flush hands you seven. An ace playing low
+          in a five-high straight comes back labelled 1. A royal flush is called a straight flush.
+          Four of the five have been asked about on the library’s own issue tracker and left
+          unanswered for between three and six years, so as far as we can tell there was nowhere to
+          look them up.
+        </p>
+        <p>
+          None of it is a complaint and none of it has ever reached a player, because the wrapper
+          already handles the ones that would. The reason it was worth a post is closer to home. Our
+          wrapper had been asserting three of those behaviours in a code comment, and the line that
+          keeps only the best five cards depends on one of them being true. A comment is not a test.
+          So the post ships with a test that re-runs every example on it against the installed
+          library, which means the page fails the build before it can start lying, and the wrapper
+          finally has the check it had gone a month without.
         </p>
       </Section>
 
