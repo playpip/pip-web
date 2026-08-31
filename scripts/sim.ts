@@ -14,6 +14,12 @@
 // Reading the output: "fair" is 1/seats — the win rate of a hero no better
 // than the field. A venue is beatable when the target player type clears fair
 // comfortably, and hard when they sit near or below it.
+//
+// "won" is the raw count behind "win %", and it is the column to quote. A
+// percentage hides its sample size: 47% off 200 tournaments and 47% off 15 read
+// identically, and only one of them means anything. Every rate this harness has
+// ever produced is a sample, so anything written down about a venue quotes the
+// count. Percentages are here to be read at a glance, not repeated.
 
 import { spawn } from 'node:child_process'
 import os from 'node:os'
@@ -36,6 +42,16 @@ const HERO_ID = 'hero'
 // Proxy players. "competent" is the calibration reference — a solid casual
 // player who knows the game but isn't optimal. Venue difficulty targets are
 // expressed against this hero.
+//
+// **"beginner" is a label, not a calibration, and the floor is higher than the
+// catalogue's.** `skill` is the one knob that models being bad at poker: it is
+// hand-reading accuracy (`misread` in ai/policy.ts) plus a give-up-under-pressure
+// rate. The weakest hero here sits at 0.50, and **10 of the 29 tables in
+// ALL_VENUES ship an AI below that**, the whole soft end of the ladder included
+// (Friends' Garage 0.28, Micro Ring 0.24). So on the soft tables this hero reads
+// hands roughly twice as accurately as the bots it is beating, and "the beginner
+// won" is partly true by construction. No hero here is calibrated against a human
+// beginner, because nobody has measured one. See the note under the table.
 const HEROES: Record<string, AiProfile> = {
   beginner: { tightness: 0.2, aggression: 0.3, bluff: 0.04, iterations: 200, skill: 0.5 },
   casual: { tightness: 0.3, aggression: 0.4, bluff: 0.06, iterations: 300, skill: 0.7 },
@@ -299,15 +315,18 @@ if (!process.env.SIM_SLICE) {
   const pad = (s: string, w: number) => s.padEnd(w)
   const num = (s: string, w: number) => s.padStart(w)
   console.log(
-    pad('venue', 20) +
+    `  ${pad('venue', 18)}` +
       num('seats', 6) +
       num('ai skill', 9) +
+      num('won', 10) +
       num('win %', 8) +
       num('fair %', 8) +
       num('avg hands', 11) +
       num('EV/entry', 10),
   )
 
+  let sawCash = false
+  let sawOutskilled = false
   for (const venue of venues) {
     const started = Date.now()
     const { wins, hands, timeouts } = await runVenueParallel(venue, seed, heroName, n, workers)
@@ -316,15 +335,62 @@ if (!process.env.SIM_SLICE) {
     // Expected chips per entry, ignoring bounties and mid-game cash-outs.
     const ev = winRate * venue.prize - venue.buyIn
     const secs = ((Date.now() - started) / 1000).toFixed(0)
+    // A cash table has no prize and nobody is ever eliminated from it, so both
+    // outcome columns are answering a question the venue does not ask. See the
+    // note printed below the table.
+    const cash = venue.cash === true
+    // The hero out-reads the table on the engine's own skill knob, so a win here
+    // is not evidence that a weaker player wins. Flagged, not suppressed: the
+    // number is still the answer to "does this profile beat this table".
+    const outskilled = (hero.skill ?? 1) > (venue.ai.skill ?? 1)
     console.log(
-      pad(venue.name, 20) +
+      (outskilled ? '! ' : '  ') +
+        pad(venue.name, 18) +
         num(String(venue.seats), 6) +
         num((venue.ai.skill ?? 1).toFixed(2), 9) +
-        num(`${(winRate * 100).toFixed(0)}%`, 8) +
-        num(`${(fair * 100).toFixed(0)}%`, 8) +
+        num(cash ? 'n/a' : `${wins}/${n}`, 10) +
+        num(cash ? 'n/a' : `${(winRate * 100).toFixed(0)}%`, 8) +
+        num(cash ? 'n/a' : `${(fair * 100).toFixed(0)}%`, 8) +
         num((hands / n).toFixed(1), 11) +
-        num((ev >= 0 ? '+' : '') + Math.round(ev).toLocaleString(), 10) +
+        num(cash ? 'n/a' : (ev >= 0 ? '+' : '') + Math.round(ev).toLocaleString(), 10) +
         `   (${secs}s${timeouts ? `, ${timeouts} timeouts` : ''})`,
+    )
+    sawCash ||= cash
+    sawOutskilled ||= outskilled
+  }
+
+  if (sawOutskilled) {
+    console.log(
+      [
+        '',
+        `!: the ${heroName} hero (skill ${hero.skill}) is more skilled than that table's AI on the`,
+        'engine\'s own knob, so it out-reads the players it is beating. Whatever the row says,',
+        'it is not evidence that a worse player beats the table, and a claim of the form "a',
+        'beginner beats this" cannot be read off it. The floor of HEROES is 0.50 and 10 of the',
+        '29 shipped tables are below it, so on the soft end of the ladder every hero here is',
+        'flagged. Calibrating a hero against a real beginner needs a human. technology#82.',
+      ].join('\n'),
+    )
+  }
+
+  if (sawCash) {
+    console.log(
+      [
+        '',
+        'n/a: this harness cannot measure a cash table, so those rows are blanked rather',
+        'than filled in with a number that reads like an answer.',
+        '',
+        '  - It plays every venue as a freezeout, last player standing. A ring table has no',
+        '    elimination at all: opponents rebuy and you stand up whenever you like, so the',
+        '    win rate is the answer to a question the table never asks.',
+        '  - `prize` is 0 on every cash venue, so `winRate * prize - buyIn` is exactly',
+        '    `-buyIn` no matter how well the hero plays. It looked like a measured loss and',
+        '    it was arithmetic.',
+        '',
+        'The right measure for these is chips per 100 hands at a fixed stack depth, which is',
+        'not built. Until it is, no ring table has ever had its beatability simulated, and',
+        'nothing should claim otherwise. avg hands is still real. technology#81.',
+      ].join('\n'),
     )
   }
 }

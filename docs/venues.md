@@ -54,7 +54,7 @@ changes.
 
 | id | Name | Blinds | Sit-down (100bb) | AI skill | Feel |
 |----|------|-------:|------:|:--:|------|
-| `ring-micro` | Micro Ring | 1/2 | 200 | 0.24 | loose-passive — beatable by value |
+| `ring-micro` | Micro Ring | 1/2 | 200 | 0.24 | loose-passive: calls too much, rarely bluffs |
 | `ring-small` | Small Ring | 3/6 | 600 | 0.36 | loose, with a bit more bite |
 | `ring-low` | Low Ring | 10/20 | 2,000 | 0.49 | Friday-night regulars |
 | `ring-club` | Club Ring | 30/60 | 6,000 | 0.61 | thinking players, still exploitable |
@@ -65,6 +65,15 @@ changes.
 Every step is ~3x. The canon four (Micro / Low / Mid / High) each sat 10x apart, which left a
 player who had ground a Micro roll up to 800 with nowhere honest to sit. Small, Club and Big
 fill the geometric midpoints and interpolate their AI profiles from their neighbours.
+
+**The "Feel" column describes how these bots play, not how well you will do against them.**
+Style is guarded: `tests/ai.test.ts` bands every table in `ALL_VENUES` on VPIP and PFR, ring
+rooms included, so "loose-passive" fails the build if the profile drifts. **Beatability is
+not, and has never been simulated for any room on the Rail.** `scripts/sim.ts` plays every
+venue as a freezeout and reads EV off `prize`, and a cash table has no elimination and a
+`prize` of 0, so both of its outcome columns are meaningless here; it now blanks them and
+says so (technology#81). Until a cash measurement exists, no row above should be given a verb
+about the player.
 
 **Difficulty is the stake.** There's no difficulty toggle: the AI sharpens as the stakes
 rise (`skill` 0.24 → 0.89), and rooms unlock by affordability (`roll >= buyIn`), so a player
