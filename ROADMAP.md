@@ -53,12 +53,13 @@ stays free and unmetered, which is the paragraph above applied to the thing most
 test it.
 
 **Part of it is built, and this section said it wasn't until 26 August.** The membership
-check is live in the app, and since 25 August one drill kind sits behind it. There is no
-price, no membership page and no way to pay, so nobody is a member and nobody has given us
-any money. That is the whole of the state.
+check is live in the app, and since 25 August the drills called "Count your outs" and "Pot
+odds" have sat behind it. There is no price, no membership page and no way to pay, so
+nobody is a member and nobody has given us any money. That is the whole of the state.
 
-If that ever stops being true, this section is where you'd catch us. It stopped being true
-once already, and this is the corrected version.
+If that ever stops being true, this section is where you'd catch us. It has stopped being
+true twice: the first version of this section said the membership wasn't built, and the
+correction said one drill was behind it when it was already two. This is the second fix.
 
 ## Not planned
 

@@ -23,8 +23,11 @@ declare module 'pokersolver' {
     /** Numeric category rank (higher = stronger hand category). */
     rank: number
     /**
-     * The five cards the solver used, its own order: the cards that make the
-     * hand first, then the kickers, each descending.
+     * The cards the solver used, its own order: the cards that make the hand
+     * first, then the kickers, each descending. **Not always five** - where
+     * more than five are eligible (a six-card flush, a full house made of two
+     * trips) every eligible card is here. The first five are the hand; use
+     * `bestFive()` in `lib/poker/handEval` rather than reading this directly.
      */
     cards: SolvedCard[]
     /** Solve the best 5-card hand from 5–7 card strings like ["Ah","Kd",...]. */
