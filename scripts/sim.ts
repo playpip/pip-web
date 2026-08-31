@@ -364,7 +364,7 @@ if (!process.env.SIM_SLICE) {
       [
         '',
         `!: the ${heroName} hero (skill ${hero.skill}) is more skilled than that table's AI on the`,
-        'engine\'s own knob, so it out-reads the players it is beating. Whatever the row says,',
+        "engine's own knob, so it out-reads the players it is beating. Whatever the row says,",
         'it is not evidence that a worse player beats the table, and a claim of the form "a',
         'beginner beats this" cannot be read off it. The floor of HEROES is 0.50 and 10 of the',
         '29 shipped tables are below it, so on the soft end of the ladder every hero here is',
