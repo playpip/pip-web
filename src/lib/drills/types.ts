@@ -36,8 +36,18 @@ import type { SpotKind } from './rating'
  * in the app the thing people pay for. One card to come against a hand you can
  * see is 44 showdowns, so it is enumerable, and enumerating it is strictly
  * better than sampling it: same answer, no tolerance, nothing to drift.
+ *
+ * **`hand-strength` comes with the membership too**, and carries `membersOnly`
+ * from the commit that registered it for the same reason. Two hands face up on
+ * a flop, two cards to come, which one is the favourite. It is exact like the
+ * other three, by the same method one size up: 45 cards are unseen after a flop
+ * and every pair of them is dealt, which is 990 showdowns, and the favourite is
+ * counted rather than estimated. `estimateEquity` would have been the obvious
+ * way to grade this one and it is the wrong one, for the reason set out on
+ * `pot-odds` above: an estimate has a tolerance, and a tolerance is a way to
+ * mark a correct answer wrong.
  */
-export type DrillKindId = 'which-hand-wins' | 'count-your-outs' | 'pot-odds'
+export type DrillKindId = 'which-hand-wins' | 'count-your-outs' | 'pot-odds' | 'hand-strength'
 
 /** One of the answers on offer. */
 export interface DrillChoice {
@@ -160,8 +170,10 @@ export interface Grade {
  * - `one-sided`: the spot is a look rather than a question. On the ranking kind
  *   that means the two hands are more than one category apart. On the pricing
  *   kind it means no bet this pot could carry would make the answer the one the
- *   spot set out to ask for, which is the same defect wearing the other kind's
- *   clothes: nothing on the screen is deciding anything.
+ *   spot set out to ask for. On the strength kind it means one hand takes more
+ *   than nine runouts in ten, so the other is drawing close to dead. All three
+ *   are the same defect in different clothes: nothing on the screen is deciding
+ *   anything.
  * - `unexplainable`: the winner cannot be explained from the same evaluation
  *   that graded it. Silence over noise, at generation time.
  *
@@ -173,19 +185,27 @@ export interface Grade {
  *   win it for you" has no honest answer when you are already there.
  * - `chop-possible`: some river splits the pot. Whether a chop counts as an out
  *   is a real disagreement between reasonable players, so the spot goes in the
- *   bin rather than the player being marked wrong for the other reading.
+ *   bin rather than the player being marked wrong for the other reading. The
+ *   strength kind reuses it for a softer version of the same trouble: chops are
+ *   normal on a flop and are counted as a half each, but a spot that splits more
+ *   often than a third of the time is not asking which hand is the favourite.
  * - `drawing-dead`: nothing wins it. A true and useful fact about a hand, and a
  *   bad multiple-choice question: it makes "the lowest number" a free guess.
  *   The pricing kind rejects it too, where it means there is no draw left to
  *   put a price on.
  *
- * The last one belongs to "pot odds":
+ * The last one belongs to "pot odds" and to "hand strength", and it means the
+ * same thing on both: the two quantities the spot is about are inside four
+ * points of each other.
  *
- * - `ambiguous`: what the hand gets there and what the pot is charging sit
- *   inside {@link https://github.com/playpip/technology/issues/55 the margin},
- *   4 points, where calling and folding are worth the same to within a
- *   rounding. A player who reads it the other way is not wrong, so the spot is
- *   not asked. The number is a judgement and wants play-testing, not theory.
+ * - `ambiguous`: on the pricing kind, what the hand gets there and what the pot
+ *   is charging sit inside {@link https://github.com/playpip/technology/issues/55
+ *   the margin}, where calling and folding are worth the same to within a
+ *   rounding. On the strength kind it is the two hands themselves: a favourite
+ *   by less than four points is a coin flip, and a coin flip has no answer a
+ *   player could have read off the cards. In both cases a player who reads it
+ *   the other way is not wrong, so the spot is not asked. The number is a
+ *   judgement and wants play-testing, not theory.
  *
  * **This vocabulary was written before there was a kind that needed the last
  * one**, with two rules attached: that the rng handed to `estimateEquity` be

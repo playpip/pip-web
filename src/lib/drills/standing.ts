@@ -4,9 +4,11 @@ import {
   type PriceShape,
   type SettledBy,
   type SpotKind,
+  type StrengthShape,
   outsDifficulty,
   priceDifficulty,
   spotDifficulty,
+  strengthDifficulty,
 } from './rating'
 
 // What the rating means, said in words.
@@ -116,6 +118,26 @@ const POT_ODDS: SpotShape[] = [
   priceShape('thin-price', 'the closest prices'),
 ]
 
+const strengthShape = (settledBy: StrengthShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: strengthDifficulty(settledBy),
+})
+
+/**
+ * The shapes "hand strength" deals, easiest first.
+ *
+ * The ladder here is whether the hand that is winning on the flop is the hand
+ * that gets there. The first two rungs are margins and the third is not: it is
+ * the spot where reading the made hands and stopping gives the wrong answer,
+ * which is the reading the kind exists to teach.
+ */
+const HAND_STRENGTH: SpotShape[] = [
+  strengthShape('clear-favourite', 'flops with a clear favourite'),
+  strengthShape('live-underdog', 'flops where the hand behind is still live'),
+  strengthShape('draw-is-favourite', 'flops where the best hand is not the favourite'),
+]
+
 /**
  * Every kind's ladder, or an explicit `null` for a kind that has none.
  *
@@ -129,6 +151,7 @@ const LADDERS: Record<DrillKindId, SpotShape[] | null> = {
   'which-hand-wins': WHICH_HAND_WINS,
   'count-your-outs': COUNT_YOUR_OUTS,
   'pot-odds': POT_ODDS,
+  'hand-strength': HAND_STRENGTH,
 }
 
 /** The shapes this kind deals, easiest first, or null if it has no ladder. */
