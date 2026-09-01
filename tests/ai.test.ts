@@ -8,6 +8,7 @@ import {
   type SeatConfig,
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity, type AiProfile } from '@/lib/poker/ai/policy'
+import { HEADS_UP_FAIR_SHARE, POSTFLOP_GATE_HEADS_UP } from '@/config/aiGates'
 import { mulberry32, type Rng } from '@/lib/poker/cards'
 import { ALL_VENUES, VENUES, type Venue } from '@/config/venues'
 import { makeDeck } from './helpers'
@@ -524,11 +525,24 @@ test('the AI still bets multiway flops instead of checking the pot down', (t) =>
   // The defect this pins: every postflop gate used to be an absolute equity
   // number written for a heads-up pot (lead above 0.62, value-raise above 0.78),
   // and an equity point is not the same size against three opponents as against
-  // one. Measured on this profile before the fix, the AI led an unbet pot 21% of
-  // the time heads-up and **7% against two or three**: it checked the flop round
-  // at exactly the loose tables a beginner meets first, which are the ones that
-  // go multiway. Quoting the gates as a multiple of a fair share of the pot puts
-  // the multiway rates back at 16% and 23%.
+  // one. So the AI checked the flop round at exactly the loose tables a
+  // beginner meets first, which are the ones that go multiway.
+  //
+  // The subject is the synthetic `loose` profile on the next line, not a
+  // shipped venue: it is deliberately looser than any of them, so it reaches
+  // multiway flops often enough to sample. `measureLeadByField` is run on
+  // shipped profiles too, in the bands above.
+  //
+  // What is asserted is the shape and not a rate. Three-opponent unbet flops
+  // are the rarest spot there is, so the cell carrying the whole finding is the
+  // smallest one: 80 hands gives it a few dozen decisions, and the post-fix
+  // figures an earlier version of this comment quoted moved by 7 points on a
+  // re-run. The collapse itself is large enough to see through that. Measured
+  // on this profile over 400 hands, before the fix, the AI led 18.8% of unbet
+  // pots heads-up (n=709) and 8.2% against two (n=1354) and 7.5% against three
+  // (n=399): under half the heads-up rate, and those cells cannot drift because
+  // the gates that produced them are gone. After the fix the multiway rates sit
+  // inside the band below, which re-measures every run.
   const loose: AiProfile = { tightness: 0.15, aggression: 0.35, bluff: 0.06, iterations: 120 }
   const by = measureLeadByField(loose)
 
@@ -542,8 +556,10 @@ test('the AI still bets multiway flops instead of checking the pot down', (t) =>
   t.true(headsUpRate > 0.05, `heads-up lead rate ${(headsUpRate * 100).toFixed(0)}% is not poker`)
 
   const collapsed: string[] = []
+  let compared = 0
   for (const [opponents, cell] of by) {
     if (opponents < 2 || cell.n < 30) continue
+    compared++
     const rate = cell.led / cell.n
     if (rate < headsUpRate * 0.6) {
       collapsed.push(
@@ -551,6 +567,10 @@ test('the AI still bets multiway flops instead of checking the pot down', (t) =>
       )
     }
   }
+  // An empty list is only evidence if something was in it to begin with. If the
+  // sampling ever stops reaching multiway flops, this test would otherwise pass
+  // by measuring nothing.
+  t.true(compared >= 2, `only ${compared} multiway fields had enough spots to compare`)
   t.deepEqual(collapsed, [], 'betting collapses as the field grows')
 })
 
@@ -560,9 +580,12 @@ test('the postflop gates are the old heads-up numbers, restated as a fair share'
   // exactly 0.5, so every multiple reproduces the absolute it replaced and no
   // heads-up pot plays differently. Break one of these and you have moved every
   // table on the ladder, not just the loose multiway ones.
-  const fairShareHeadsUp = 1 / (1 + 1)
-  t.is(fairShareHeadsUp * 1.24, 0.62, 'lead gate')
-  t.is(fairShareHeadsUp * 1.56, 0.78, 'value-raise gate')
-  t.is(fairShareHeadsUp * 1.2, 0.6, 'thin-raise gate')
-  t.is(fairShareHeadsUp * 0.8, 0.4, 'bluff ceiling')
+  //
+  // The multiples are imported, never retyped: a local copy of a constant is
+  // how a test ends up green while asserting a number the code stopped using.
+  t.is(HEADS_UP_FAIR_SHARE, 0.5, 'a fair share heads-up')
+  t.is(POSTFLOP_GATE_HEADS_UP.lead, 0.62, 'lead gate')
+  t.is(POSTFLOP_GATE_HEADS_UP.raiseValue, 0.78, 'value-raise gate')
+  t.is(POSTFLOP_GATE_HEADS_UP.raiseThin, 0.6, 'thin-raise gate')
+  t.is(POSTFLOP_GATE_HEADS_UP.bluffCeiling, 0.4, 'bluff ceiling')
 })
