@@ -44,6 +44,35 @@ export function byRiverChance(outs: number): number {
 }
 
 /**
+ * The unseen count the rule of 2 is exactly right for: `2 * outs` is the same
+ * arithmetic as `outs / 50`. The flop leaves fewer, which is the whole reason
+ * the shortcut is short.
+ */
+export const RULE_OF_TWO_DECK = 50
+
+/**
+ * The rule of 2 as a share of the next-card figure. The outs cancel, so it is
+ * the same number at every count without exception: the shortcut is not roughly
+ * right and occasionally wrong, it is low by a fixed proportion every time.
+ */
+export const RULE_OF_TWO_SHARE = UNSEEN_AFTER_FLOP / RULE_OF_TWO_DECK
+
+/**
+ * The out count where the rule of 4 stops reading under byRiverChance and starts
+ * reading over it. Found rather than typed, because it is a fact about the deck:
+ * doubling the rule of 2 doubles a shortfall, and also counts the runouts that
+ * hit on both cards twice, and this is the count where the second error wins.
+ */
+function ruleOfFourCrossover(): number {
+  for (let outs = 1; outs < UNSEEN_AFTER_FLOP; outs++) {
+    if (4 * outs > byRiverChance(outs) * 100) return outs
+  }
+  return UNSEEN_AFTER_FLOP
+}
+
+export const RULE_OF_FOUR_CROSSOVER = ruleOfFourCrossover()
+
+/**
  * The smallest bet, as a fraction of the pot, that makes calling with `outs`
  * outs a losing call for one card. Solves requiredEquity(f) = oneCardChance.
  */

@@ -6,6 +6,10 @@ import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import {
   DRAWS,
+  RULE_OF_FOUR_CROSSOVER,
+  RULE_OF_TWO_DECK,
+  RULE_OF_TWO_SHARE,
+  UNSEEN_AFTER_FLOP,
   WORKED_SPOTS,
   betSizes,
   byRiverChance,
@@ -144,6 +148,24 @@ export default function PotOddsGuide() {
           outs it says {FLUSH_OUTS * 4} where the true figure is {pct(byRiverChance(FLUSH_OUTS))}.
           At fifteen it says {15 * 4} where the truth is {pct(byRiverChance(15))}, and fifteen outs
           is exactly the situation where people talk themselves into stacking off.
+        </p>
+        <p>
+          <strong className={strong}>
+            The two halves are wrong in opposite directions, and that part does not get printed.
+          </strong>{' '}
+          Multiplying by 2 is the exact answer for a deck of {RULE_OF_TWO_DECK} unseen cards, and
+          the flop leaves {UNSEEN_AFTER_FLOP}. The outs cancel, so the rule of 2 sits{' '}
+          {pct(1 - RULE_OF_TWO_SHARE)}% under the next-card column at every count there is, without
+          exception. Nine outs is {pct(oneCardChance(FLUSH_OUTS))}% and it says {FLUSH_OUTS * 2}.
+          Fifteen is {pct(oneCardChance(15))}% and it says {15 * 2}.
+        </p>
+        <p>
+          The rule of 4 is that same shortfall doubled, so it starts under the column too, and
+          doubling also counts the runouts where both cards are outs twice over. Two errors pulling
+          opposite ways. Up to {RULE_OF_FOUR_CROSSOVER - 1} outs the missing cards win and the
+          shortcut reads low; from {RULE_OF_FOUR_CROSSOVER} the double-count wins and it reads high,
+          by more with every out you add. Which puts the flattering half of the shortcut on exactly
+          the draws people are already looking for a reason to call with.
         </p>
       </Section>
 
