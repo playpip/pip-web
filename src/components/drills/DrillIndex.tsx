@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { MotionConfig, motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { SectionScreen } from '@/components/menu/SectionScreen'
 import { DRILL_KINDS, type DrillKind, canPlayDrill } from '@/config/drills'
@@ -38,17 +38,22 @@ export function DrillIndex() {
   const member = useEntitlement()
   const kinds = DRILL_KINDS.filter((kind) => canPlayDrill(kind, member))
 
+  // The tiles stagger in on a delay, which is the one thing on this screen a
+  // player who asked for less motion would notice most. Honoured once here for
+  // the whole subtree, the way Tutorial.tsx does it.
   return (
-    <SectionScreen
-      title="Drills"
-      subtitle="Short spots with a right answer. Your rating moves with every one, and there is no limit on how many you play."
-    >
-      <div className="grid gap-4 md:grid-cols-2">
-        {kinds.map((kind, i) => (
-          <DrillTile key={kind.id} kind={kind} delay={i * 0.05} />
-        ))}
-      </div>
-    </SectionScreen>
+    <MotionConfig reducedMotion="user">
+      <SectionScreen
+        title="Drills"
+        subtitle="Short spots with a right answer. Your rating moves with every one, and there is no limit on how many you play."
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          {kinds.map((kind, i) => (
+            <DrillTile key={kind.id} kind={kind} delay={i * 0.05} />
+          ))}
+        </div>
+      </SectionScreen>
+    </MotionConfig>
   )
 }
 
@@ -75,7 +80,7 @@ function DrillTile({ kind, delay }: { kind: DrillKind; delay: number }) {
           sound.play('tap')
           router.push(`/game/drills/${kind.id}`)
         }}
-        className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+        className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
       >
         <div className="relative flex w-full items-center justify-center gap-1.5 bg-foreground/[0.04] px-4 py-6">
           {hydrated ? (
@@ -84,7 +89,7 @@ function DrillTile({ kind, delay }: { kind: DrillKind; delay: number }) {
             Array.from({ length: kind.boardCards }, (_, i) => <PlayingCard key={i} size="sm" />)
           )}
           <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/30 backdrop-blur-sm">
-            <ChevronRight className="size-4 text-white/85 transition group-hover:translate-x-0.5" />
+            <ChevronRight className="size-4 text-white/85 transition group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
           </span>
         </div>
         <div className="p-4">
