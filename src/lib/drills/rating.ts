@@ -97,6 +97,32 @@ export type OutsShape = 'one-draw' | 'two-draws' | 'many-draws'
 export type PriceShape = 'clear-price' | 'close-price' | 'thin-price'
 
 /**
+ * How a "hand strength" spot is shaped, easiest first: how much of the flop a
+ * reader has to take in before picking a side. Read off the same enumeration
+ * that set the answer, so, as above, the difficulty cannot disagree with the
+ * grade.
+ *
+ * - `clear-favourite`: the hand that is ahead on the flop takes three runouts
+ *   in four or more. Read the made hands and you have it.
+ * - `live-underdog`: the hand that is ahead on the flop is still the favourite,
+ *   but the other one takes at least a quarter. You picked the right side
+ *   without seeing how close it was.
+ * - `draw-is-favourite`: the hand that is ahead on the flop is not the
+ *   favourite. Reading the made hands and stopping gets this one wrong, every
+ *   time, and it is the reading the kind exists for.
+ *
+ * **The boundary was measured before it was chosen, and so was the cut that
+ * makes the spots worth asking.** Two random hands on a random flop are usually
+ * a blowout: over 1,000 seeds with nothing thrown away the favourite's share has
+ * a median of 76%. So the generator rejects anything above 85%, and the boundary
+ * below sits on the median of what is left, which cuts the spots 53 / 44 / 2.
+ *
+ * `draw-is-favourite` is rare by construction, in the same way a split pot and
+ * a three-draw turn are: nobody chose the rate, it falls out of accept/reject.
+ */
+export type StrengthShape = 'clear-favourite' | 'live-underdog' | 'draw-is-favourite'
+
+/**
  * Any spot's shape, whichever kind dealt it.
  *
  * One union rather than a field per kind, because everything downstream of a
@@ -104,7 +130,7 @@ export type PriceShape = 'clear-price' | 'close-price' | 'thin-price'
  * only that a spot has a shape and a number, never which kind's vocabulary the
  * shape is drawn from.
  */
-export type SpotKind = SettledBy | OutsShape | PriceShape
+export type SpotKind = SettledBy | OutsShape | PriceShape | StrengthShape
 
 /**
  * What each shape is rated.
@@ -210,6 +236,38 @@ export const EASIEST_PRICE = PRICE_BASE['clear-price']
 export const HARDEST_PRICE = PRICE_BASE['thin-price']
 
 /**
+ * What each shape of a hand-strength spot is rated.
+ *
+ * Same judgement and same caveat as the other three: the ordering is the
+ * defensible part, the numbers are not measured, and they should be re-derived
+ * from real accuracy per shape the moment there is any.
+ *
+ * **The floor sits below the counting kind's on purpose.** An easy spot here
+ * asks you to pick a side between two hands you can see, which is one bit;
+ * counting outs asks for a number, and there is no version of that settled by
+ * looking. The ceiling sits above both other floors for the opposite reason: a
+ * flop where the hand that is behind is the favourite is the spot the rest of
+ * the set has been building towards, and it is the one where reading the made
+ * hands and stopping gets you the wrong answer every time.
+ *
+ * **No adjustment on top**, for the same reason the pricing kind has none: the
+ * thing that would be an adjustment (the flop leader losing) already *is* the
+ * shape. A second one would be asserting something about the spot rather than
+ * reading it.
+ */
+const STRENGTH_BASE: Record<StrengthShape, number> = {
+  'clear-favourite': 900,
+  'live-underdog': 1150,
+  'draw-is-favourite': 1420,
+}
+
+/** The least a hand-strength spot can be rated. A favourite that is obvious. */
+export const EASIEST_STRENGTH = STRENGTH_BASE['clear-favourite']
+
+/** The most a hand-strength spot can be rated. */
+export const HARDEST_STRENGTH = STRENGTH_BASE['draw-is-favourite']
+
+/**
  * What this spot is worth. Splits take no decoy adjustment: with two winners
  * there is no losing hand to be misled by.
  */
@@ -225,6 +283,11 @@ export function outsDifficulty(shape: OutsShape, trap: boolean): number {
 /** What a pricing spot is worth. Its shape, and nothing else — see {@link PRICE_BASE}. */
 export function priceDifficulty(shape: PriceShape): number {
   return PRICE_BASE[shape]
+}
+
+/** What a hand-strength spot is worth. Its shape, and nothing else. */
+export function strengthDifficulty(shape: StrengthShape): number {
+  return STRENGTH_BASE[shape]
 }
 
 /** Elo's expectation: the share of spots at this difficulty you should get right. */

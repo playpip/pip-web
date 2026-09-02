@@ -47,7 +47,7 @@ export interface DrillKind {
    * needed is the frame *before* a spot exists: the runner and the room both
    * draw card backs until the client has dealt, and a placeholder of the wrong
    * width makes the spot arriving a jump rather than a deal. A finished board
-   * is five; a spot with a card still to come is four.
+   * is five, a turn is four and a flop is three.
    */
   boardCards: number
   /**
@@ -98,6 +98,16 @@ export const DRILL_KINDS: DrillKind[] = [
     gradedBy:
       'Settled by dealing all 44 cards you cannot see and holding what gets there against what the pot is charging.',
     boardCards: 4,
+    membersOnly: true,
+  },
+  {
+    id: 'hand-strength',
+    title: 'Who gets there?',
+    blurb: 'Two hands face up on the flop, two cards still to come. Which one wins it more often?',
+    question: 'Which hand is the favourite?',
+    gradedBy:
+      'Settled by dealing every pair of cards that could still come, all 990 of them, and reading each showdown.',
+    boardCards: 3,
     membersOnly: true,
   },
 ]

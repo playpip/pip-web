@@ -333,7 +333,7 @@ test("pot odds is registered as the membership's, not as free", (t) => {
 
 test('the membership has more than one kind in it, and the free one is still free', (t) => {
   const paid = DRILL_KINDS.filter((kind) => kind.membersOnly).map((kind) => kind.id)
-  t.deepEqual(paid.sort(), ['count-your-outs', 'pot-odds'])
+  t.deepEqual(paid.sort(), ['count-your-outs', 'hand-strength', 'pot-odds'])
   t.true(canPlayDrill(drillKind('which-hand-wins'), false), 'the free kind is no longer free')
 })
 
