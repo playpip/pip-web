@@ -3,6 +3,11 @@
 // odds, then let per-venue personality knobs decide how loose/aggressive/bluffy
 // the action is. Pure and deterministic given an RNG.
 
+import {
+  POSTFLOP_GATE,
+  PREFLOP_RAISE_STRENGTH,
+  PREFLOP_RAISE_THIN_STRENGTH,
+} from '@/config/aiGates'
 import type { Rng } from '../cards'
 import { legalActions, potSize, type Action, type HandState } from '../engine'
 import { estimateEquity } from '../equity'
@@ -170,37 +175,51 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   // old numbers stand.
   // Postflop, equity is the right yardstick again, but an equity number is not
   // the same size against one opponent as against three, and every postflop gate
-  // below was written as an absolute against a heads-up pot. Measured on the
-  // shipped venue profiles, that is what makes the bots check the flop round:
-  // at the loose end of the ladder the AI leads an unbet pot 14% of the time
-  // heads-up, 8% against two and 4% against three, because 0.62 equity is a
-  // decent made hand heads-up and close to the nuts four-handed. A real player
-  // bets an unbet flop far more than that, and the loose tables (the ones a
-  // beginner meets first) are the ones that go multiway.
+  // below used to be an absolute written for a heads-up pot. That is what made
+  // the bots check the flop round: 0.62 equity is a decent made hand heads-up
+  // and close to the nuts four-handed, so the AI led an unbet multiway pot at
+  // under half its heads-up rate. A real player bets an unbet flop far more
+  // than that, and the loose tables (the ones a beginner meets first) are the
+  // ones that go multiway.
+  //
+  // No current rate is quoted here on purpose. Three-opponent unbet flops are
+  // the rarest spot in any sample, so the cells carrying the finding are the
+  // small ones, and a figure written into a comment is a figure nothing
+  // re-reads: the last set drifted inside 48 hours of being written. The size
+  // of the collapse is asserted in `tests/ai.test.ts` instead, on a named
+  // profile, which re-measures it every run.
   //
   // So the gates are quoted as a multiple of a fair share of the pot,
   // `1 / (opponents + 1)`, which is what "ahead of this field" actually means.
-  // **Heads-up every multiple below reproduces the old absolute exactly**
-  // (0.5 x 1.24 = 0.62, 0.5 x 1.56 = 0.78, 0.5 x 1.2 = 0.6, 0.5 x 0.8 = 0.4),
-  // so nothing changes at a table that plays heads-up pots, and `tests/ai.test.ts`
-  // pins that. Only the multiway spots move, which is where the defect was.
+  // **Heads-up every multiple reproduces the old absolute exactly**, which is
+  // what `POSTFLOP_GATE_HEADS_UP` derives and `tests/ai.test.ts` pins, so
+  // nothing changes at a table that plays heads-up pots. Only the multiway
+  // spots move, which is where the defect was.
   const fairShare = 1 / (opponents.length + 1)
   const misjudged = clamp(preStrength + misread, 0, 1)
-  const raiseValue = preflop ? misjudged >= 0.62 : equity > fairShare * 1.56
-  const raiseThin = preflop ? misjudged >= 0.55 : equity > fairShare * 1.2
+  const raiseValue = preflop
+    ? misjudged >= PREFLOP_RAISE_STRENGTH
+    : equity > fairShare * POSTFLOP_GATE.raiseValue
+  const raiseThin = preflop
+    ? misjudged >= PREFLOP_RAISE_THIN_STRENGTH
+    : equity > fairShare * POSTFLOP_GATE.raiseThin
 
   // --- unbet pot: check or lead out --------------------------------------
   if (toCall === 0) {
     // Same story here: preflop this branch is the big blind with the pot limped
     // to it, and equity-vs-the-field says check with any holding at all.
-    const strongEnoughToLead = preflop ? misjudged >= 0.62 : equity > fairShare * 1.24
+    const strongEnoughToLead = preflop
+      ? misjudged >= PREFLOP_RAISE_STRENGTH
+      : equity > fairShare * POSTFLOP_GATE.lead
     const wantsValue = strongEnoughToLead && roll < 0.35 + profile.aggression * 0.55
     // The bluff ceiling scales with the field for the same reason, and it is the
     // half that was quietly wrong in the other direction: four-handed, "under
     // 0.4" is almost every holding, so the bot fired its full bluff frequency
     // with hands that were good for the pot size and called it a bluff.
     const wantsBluff =
-      equity < fairShare * 0.8 && !trashPreflop && roll < profile.bluff * (1 - posPressure * 0.5)
+      equity < fairShare * POSTFLOP_GATE.bluffCeiling &&
+      !trashPreflop &&
+      roll < profile.bluff * (1 - posPressure * 0.5)
     if ((wantsValue || wantsBluff) && (legal.canBet || legal.canRaise)) {
       const fraction = wantsValue ? 0.55 + profile.aggression * 0.25 : 0.5
       return {
