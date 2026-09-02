@@ -23,6 +23,7 @@
     "test:sync-config": "node scripts/assert-sync-config.mjs out",
     "typecheck": "tsc --noEmit",
     "sim": "tsx scripts/sim.ts",
+    "spot-sim": "tsx scripts/spot-sim.ts",
     "supabase:db:push": "supabase db push",
     "supabase:db:push:dry-run": "supabase db push --dry-run",
     "supabase:generate-types": "supabase gen types typescript --linked --schema public > src/types/supabase-types.ts"
