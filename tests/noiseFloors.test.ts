@@ -1,5 +1,8 @@
 import test from 'ava'
+import { COST_FLOOR_IN_BB, EDGE_FLOOR, ITERATIONS } from '@/lib/coach'
 import { STYLE_MIN_HANDS, derivePlayStyle } from '@/lib/playStyle'
+import { cardFromString, mulberry32 } from '@/lib/poker/cards'
+import { estimateEquity } from '@/lib/poker/equity'
 import { READS_MIN_HANDS, deriveReads, emptySeatStats, type SeatStats } from '@/lib/reads'
 
 // The sample-size floors, pinned to their values.
@@ -68,4 +71,61 @@ test('at the floor, both surfaces speak', (t) => {
   t.true(style.ready, 'twenty hands is the floor and it is not speaking')
 
   t.truthy(deriveReads(stats({ handsDealt: 8, vpipHands: 4, raises: 2, calls: 2 })))
+})
+
+// --- the coaching read ------------------------------------------------------
+//
+// The third floor of the same kind, and the only one with an arithmetic
+// constraint on it. `EDGE_FLOOR` is how big an equity gap has to be before the
+// read will call a decision right or wrong, and the estimate it is applied to is
+// `ITERATIONS` Monte-Carlo runs. If the floor ever sits inside the estimator's
+// own noise, the sentence a player reads is a coin flip wearing a percentage,
+// and neither constant can be judged without the other.
+//
+// The bound is derivable rather than measured. One iteration of `estimateEquity`
+// returns a share of the pot in [0, 1], so its variance is at most 0.25 and the
+// standard error of the mean is at most `0.5 / sqrt(ITERATIONS)`. Nothing about
+// the ranges, the opponent count or the board can push it above that.
+
+/** The worst-case standard error of the read's equity estimate, in points. */
+const seCeiling = (iterations: number) => (0.5 / Math.sqrt(iterations)) * 100
+
+test('the coaching floors are pinned', (t) => {
+  t.is(EDGE_FLOOR, 0.05, 'how big a gap has to be before the read judges a decision at all')
+  t.is(ITERATIONS, 1500, 'the sample size the gap is measured with; EDGE_FLOOR depends on it')
+  t.is(COST_FLOOR_IN_BB, 1, 'below one big blind of swing the read stays quiet')
+})
+
+test('the edge floor sits at least three sigma clear of the estimate it judges', (t) => {
+  const sigma = seCeiling(ITERATIONS)
+  t.true(
+    EDGE_FLOOR * 100 >= 3 * sigma,
+    `EDGE_FLOOR is ${(EDGE_FLOOR * 100).toFixed(1)}pts against a worst-case ${sigma.toFixed(2)}pt standard error at ${ITERATIONS} iterations. Lowering the floor or the iterations makes the read speak from noise: move them together, and say why.`,
+  )
+})
+
+test('the estimator stays inside the bound the floor is derived from', (t) => {
+  // A flop the read would actually be asked about: two live opponents who have
+  // put money in, and a hand near 50% where the variance is worst.
+  const hole = ['Ah', 'Kd'].map(cardFromString)
+  const community = ['7c', '2d', '9s'].map(cardFromString)
+  const equities = Array.from({ length: 12 }, (_, i) => {
+    return estimateEquity({
+      hole,
+      community,
+      opponents: 2,
+      opponentSelectivity: [0.5, 0.5],
+      iterations: ITERATIONS,
+      rng: mulberry32(1000 + i),
+    }).equity
+  })
+
+  const mean = equities.reduce((a, b) => a + b, 0) / equities.length
+  const sd =
+    Math.sqrt(equities.reduce((a, b) => a + (b - mean) ** 2, 0) / (equities.length - 1)) * 100
+
+  t.true(
+    sd <= seCeiling(ITERATIONS),
+    `the read's equity estimate varies by ${sd.toFixed(2)}pts across seeds, above the ${seCeiling(ITERATIONS).toFixed(2)}pt ceiling the [0, 1] bound guarantees. estimateEquity has stopped returning a share of one pot per iteration, and the edge floor above is no longer derived from anything.`,
+  )
 })

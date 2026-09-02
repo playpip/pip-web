@@ -18,7 +18,7 @@ import { freerollOpen, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
-import { readHand, type HandRead, type HeroDecision } from '@/lib/coach'
+import { heroDecision, readHand, type HandRead, type HeroDecision } from '@/lib/coach'
 import { buildRecap, type Recap } from '@/lib/recap'
 import {
   startHand,
@@ -359,29 +359,6 @@ let vpipThisHand = new Set<string>()
 
 const statsFor = (id: string): SeatStats => (seatStatsLive[id] ??= emptySeatStats())
 
-/**
- * Freeze what the hero can see at the moment they act, for the post-hand read.
- *
- * Everything here is already on their screen: the pot, the price, the board,
- * and the same range tightness the ambient win% readout uses. Nothing about
- * anyone's cards.
- */
-function heroDecision(prev: HandState, toCall: number): HeroDecision | undefined {
-  const hero = prev.players.find((p) => p.id === HUMAN_ID)
-  if (!hero || hero.hole.length < 2) return undefined
-  const opponents = prev.players.filter(
-    (p) => p.id !== HUMAN_ID && p.status !== 'folded' && p.status !== 'out',
-  )
-  if (opponents.length === 0) return undefined
-  return {
-    pot: potSize(prev),
-    toCall,
-    opponents: opponents.length,
-    selectivity: opponents.map((p) => opponentSelectivity(prev, p)),
-    board: prev.community.slice(),
-  }
-}
-
 /** Record one action (and any board cards it dealt) into the running timeline. */
 function recordStep(prev: HandState, action: Action, next: HandState) {
   const actor = prev.players[prev.toActIndex]
@@ -399,7 +376,8 @@ function recordStep(prev: HandState, action: Action, next: HandState) {
       playerName: actor.name,
       type: action.type,
       amount,
-      decision: actor.id === HUMAN_ID ? heroDecision(prev, legal?.callAmount ?? 0) : undefined,
+      decision:
+        actor.id === HUMAN_ID ? heroDecision(prev, HUMAN_ID, legal?.callAmount ?? 0) : undefined,
     })
 
     // Tendencies (feeds the reads in the player dialog).
