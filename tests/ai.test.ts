@@ -566,3 +566,27 @@ test('the postflop gates are the old heads-up numbers, restated as a fair share'
   t.is(fairShareHeadsUp * 1.2, 0.6, 'thin-raise gate')
   t.is(fairShareHeadsUp * 0.8, 0.4, 'bluff ceiling')
 })
+
+// `scripts/sim.ts` plays every venue as a freezeout and prints a win rate and an
+// EV per entry. For a ring table both are answers to questions the table does not
+// ask: nobody is eliminated from a cash game, and with `prize: 0` the EV column
+// computes `winRate * 0 - buyIn`, which is `-buyIn` however well the hero plays.
+// The harness blanks those columns for cash venues on the strength of the two
+// invariants below. Give a ring table a prize or an escalating structure and the
+// blanking becomes the wrong call, so fail here rather than quietly start
+// printing a number that reads like a measurement again. technology#81.
+test('a cash venue stays the shape that makes the sim blank its outcome columns', (t) => {
+  const cash = ALL_VENUES.filter((v) => v.cash === true)
+  t.true(cash.length > 0, 'no cash venues found, so this is proving nothing')
+
+  t.deepEqual(
+    cash.filter((v) => v.prize !== 0).map((v) => v.id),
+    [],
+    'a cash venue with a prize would make the sim EV column look meaningful',
+  )
+  t.deepEqual(
+    cash.filter((v) => v.escalation !== false).map((v) => v.id),
+    [],
+    'a cash venue whose blinds escalate is a tournament wearing a cash label',
+  )
+})
