@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { MotionConfig, motion } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { PageShell } from '@/components/PageShell'
 import { PlayingCard } from '@/components/PlayingCard'
@@ -66,28 +66,34 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
   const known = !kind.membersOnly || settled
   const allowed = canPlayDrill(kind, member)
 
+  // Everything this screen animates sits inside, so the setting is honoured
+  // once here rather than remembered at each `motion` element. Same wrapper
+  // Tutorial.tsx uses. Tailwind's own motion is handled by the `motion-reduce`
+  // variants on the classes that scale, which this cannot reach.
   return (
-    <PageShell leading="back" backLabel="Drills" onBack={() => router.push('/game/drills')}>
-      <div className="flex flex-1 flex-col">
-        {!hydrated || !known ? (
-          <Dealing kind={kind} />
-        ) : allowed ? (
-          <Run kind={kind} />
-        ) : (
-          <WithTheMembership kind={kind} />
-        )}
+    <MotionConfig reducedMotion="user">
+      <PageShell leading="back" backLabel="Drills" onBack={() => router.push('/game/drills')}>
+        <div className="flex flex-1 flex-col">
+          {!hydrated || !known ? (
+            <Dealing kind={kind} />
+          ) : allowed ? (
+            <Run kind={kind} />
+          ) : (
+            <WithTheMembership kind={kind} />
+          )}
 
-        {/* Small print, at the foot of the screen where it belongs. Both halves
-            are load-bearing: what settles the answer, and what happens to the
-            number. Never a cap, never a countdown. */}
-        {allowed && (
-          <p className="mt-auto pt-8 text-center text-xs text-muted-foreground/80">
-            {kind.gradedBy} Your rating is yours, it never expires, and there is no limit on how
-            many you play.
-          </p>
-        )}
-      </div>
-    </PageShell>
+          {/* Small print, at the foot of the screen where it belongs. Both halves
+              are load-bearing: what settles the answer, and what happens to the
+              number. Never a cap, never a countdown. */}
+          {allowed && (
+            <p className="mt-auto pt-8 text-center text-xs text-muted-foreground/80">
+              {kind.gradedBy} Your rating is yours, it never expires, and there is no limit on how
+              many you play.
+            </p>
+          )}
+        </div>
+      </PageShell>
+    </MotionConfig>
   )
 }
 
@@ -418,6 +424,7 @@ function Run({ kind }: { kind: DrillKind }) {
                   : 'border-foreground/10 text-muted-foreground',
                 grade === null &&
                   'hover:border-foreground/25 hover:text-foreground active:scale-[0.99]',
+                'motion-reduce:transition-none motion-reduce:active:scale-100',
                 grade !== null && !choice.winning && picked === choice.id && 'opacity-60',
               )}
             >
@@ -450,7 +457,7 @@ function Run({ kind }: { kind: DrillKind }) {
           <button
             type="button"
             onClick={another}
-            className="mt-4 w-full rounded-2xl bg-primary px-6 py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            className="mt-4 w-full rounded-2xl bg-primary px-6 py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
           >
             Next hand
           </button>
@@ -558,6 +565,7 @@ function CountChoice({
           : 'border-foreground/10',
         revealed && !choice.winning && 'opacity-60',
         !revealed && 'hover:border-foreground/25 active:scale-[0.99]',
+        'motion-reduce:transition-none motion-reduce:active:scale-100',
       )}
     >
       {choice.label}
@@ -603,6 +611,7 @@ function HandChoice({
         revealed && won ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-foreground/10',
         revealed && !won && 'opacity-60',
         !revealed && 'hover:border-foreground/25 active:scale-[0.99]',
+        'motion-reduce:transition-none motion-reduce:active:scale-100',
       )}
     >
       <span className="flex items-center gap-3">
