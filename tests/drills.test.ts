@@ -392,6 +392,43 @@ test('the rating only ever moves on the answer', (t) => {
   t.is(expectedScore(1_000, 1_000), 0.5)
 })
 
+// 4. No drill is graded against what the AI would do.
+//
+//    The spec's fifth kind, the spot trainer, is specified as graded by "the AI
+//    policy plus equity", and `decideAction` cannot carry that. Measured with
+//    `pnpm spot-sim` on 2026-09-02, n=120 spots per venue, asking the identical
+//    HandState twelve times under twelve seeds: at Friends' Garage its own bot
+//    gave more than one answer on 82.5% of spots and flipped between folding
+//    and continuing on 81.7%. That is by design and not a defect. `misread`
+//    scales noise into the hand-strength estimate by skill, there is an
+//    outright random give-up fold below skill 1, and `estimateEquity` is
+//    sampled, so at the profile's own 600 iterations the estimate's band is
+//    wider than the 4-point ambiguity margin meant to protect the grade.
+//
+//    Even the fairest possible key, skill 1 with no misread and no give-up,
+//    still answered differently on 57.5% and flipped fold-versus-continue on
+//    40.8%. **A grader that changes its mind about the same position is not a
+//    grader**, and this is the one drill failure our own credibility argument
+//    says we cannot ship: marking a correct answer wrong.
+//
+//    The rest of the measurement is why this is a ban on the grader and not on
+//    the kind. On the spots that were stable and unambiguous, the policy never
+//    once disagreed with the price the pot was laying (0 of 46 at the Garage, 0
+//    of 50 at the Pub, so under about 7% by the rule of three). That is
+//    selection rather than vindication: a spot that survives twelve seeds is
+//    one where the decision was never close. Grade a spot trainer against
+//    equity versus price, which is exact arithmetic on a number with a stated
+//    band, and it is defensible. Grade it against the bot and it is not.
+test('no drill grades against the AI policy', (t) => {
+  for (const path of drillSources()) {
+    t.notRegex(
+      code(path),
+      /decideAction|poker\/ai\/policy/,
+      `${path}: grades against the AI policy, which answers the same spot differently`,
+    )
+  }
+})
+
 // The difficulty on a spot is part of the contract and travels with the seed,
 // like the sentence and the grade do. Everything that scores an answer reads
 // it off the drill rather than working it out again from the cards.
