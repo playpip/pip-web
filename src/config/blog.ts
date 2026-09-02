@@ -22,7 +22,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'August: what shipped',
     description:
       'Six written guides, a free odds calculator, a drill that marks your answer, a card at the end of a tournament, and the month we measured our own bots and published our own errors.',
-    date: '2026-09-01',
+    date: '2026-09-02',
   },
   {
     slug: 'pokersolver-undocumented',
