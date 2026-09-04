@@ -20,6 +20,13 @@ const FOOTER_GROUPS: {
       // links to is a page a crawler reaches only through the sitemap, and this
       // is the label it would want to be found under anyway.
       { label: 'Free poker, no signup', href: '/play-poker-free-no-signup' },
+      // Added 2026-09-03, and it is the same rule as the line above applied
+      // late. The calculator shipped without a single internal link and took
+      // 62 of the site's 202 Google impressions in August anyway, more than
+      // every guide put together, from eleven separate calculator queries. It
+      // was the best-performing page on the site and the only way to reach it
+      // was to already know the URL.
+      { label: 'Poker odds calculator', href: '/poker-odds-calculator' },
       { label: 'Blog', href: '/blog' },
       { label: 'Credits', href: '/credits' },
       // A quiet text link rather than an icon: we have exactly one social

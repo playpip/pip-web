@@ -119,6 +119,31 @@ export default function LearnPage() {
         />
       )}
 
+      {/* A tool, not a guide, so it gets its own section rather than a card in
+          either list above: those lists are prose, and this is an input form.
+          It had no internal link from anywhere on the site until 2026-09-03
+          while out-earning every guide on this page in Google impressions, so
+          the reason it is here is discoverability rather than tidiness. */}
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold tracking-tight">Tools</h2>
+        <p className="mt-2 text-md leading-relaxed text-muted-foreground">
+          The arithmetic in the guides, run on a hand you are actually holding.
+        </p>
+        <Link
+          href="/poker-odds-calculator"
+          className="group mt-6 block rounded-2xl border border-foreground/10 p-5 transition hover:border-foreground/20 hover:bg-foreground/[0.02]"
+        >
+          <h3 className="flex items-center gap-1.5 text-[1.0625rem] font-semibold tracking-tight">
+            Poker odds calculator
+            <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+          </h3>
+          <p className="mt-1.5 text-md leading-relaxed text-muted-foreground">
+            Your two cards, the board if there is one, and how many people you are against. It deals
+            the hand out and counts who wins rather than looking the answer up.
+          </p>
+        </Link>
+      </section>
+
       {/* The practice half, which is in the app rather than on this side of the
           wall: reading and doing are different things, and doing one is closer
           to sitting at a table than it is to reading a guide. Separate from the
