@@ -69,7 +69,7 @@ export default function PokerOddsCalculatorPage() {
       <Lead>
         <p>
           Pick your two cards, add the board if there is one, say how many people you are against.
-          That is the whole thing.
+          Leave the board empty and it works the hand out preflop. That is the whole thing.
         </p>
       </Lead>
 
