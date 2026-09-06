@@ -19,11 +19,6 @@ function pathOf(url: string): string {
   return url.slice(SITE_URL.length)
 }
 
-// The tour is an app, not prose: it has no Markdown mirror to serve, so it has
-// no function and no gen-llms entry on purpose. It is in the sitemap because it
-// is a page we want indexed, which is a different question.
-const APP_ROUTES = new Set(['/tutorial'])
-
 /** Where a route's Pages Function could live, in `functions/`. */
 function functionCandidates(path: string): string[] {
   if (path === '') return ['index.ts']
@@ -35,7 +30,6 @@ function functionCandidates(path: string): string[] {
 test('every indexable content route has a Pages Function serving it', (t) => {
   for (const { url } of sitemap()) {
     const path = pathOf(url)
-    if (APP_ROUTES.has(path)) continue
     const candidates = functionCandidates(path)
     const found = candidates.some((file) =>
       existsSync(new URL(`../functions/${file}`, import.meta.url)),
@@ -56,7 +50,7 @@ test('every hand-registered content route is in gen-llms PAGES', (t) => {
   )
   for (const { url } of sitemap()) {
     const path = pathOf(url)
-    if (APP_ROUTES.has(path) || AUTO_DISCOVERED.test(path)) continue
+    if (AUTO_DISCOVERED.test(path)) continue
     t.true(registered.has(path), `${url} is not in PAGES in scripts/gen-llms.mjs`)
   }
 })
