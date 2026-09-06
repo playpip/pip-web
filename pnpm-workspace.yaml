@@ -16,7 +16,7 @@ allowBuilds:
 #
 # Bumping shadcn does not fix these. 4.16.1 was tried and carries the same four.
 overrides:
-  fast-uri: '>=3.1.5 <4' # GHSA-x6y7-cw3q-r55c (host confusion); stay on ajv's 3.x line
+  fast-uri: '>=3.1.6 <4' # GHSA-x6y7-cw3q-r55c, -5jgf-p345-68v8, -f65p-4m7j-42xc, -fph4-wmhf-6fwf, -jqff-g426-hqxp (host confusion, SSRF); stay on ajv's 3.x line
   sharp: '>=0.35.0' # libvips CVEs; unused at runtime under static export
   postcss: '>=8.5.12' # GHSA-6g55-p6wh-862q (arbitrary file read); next pins 8.4.31
   undici: '>=7.29.0' # GHSA-c96p-vxvm-v55g (cross-user disclosure); via dotenvx
