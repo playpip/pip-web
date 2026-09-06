@@ -16,7 +16,8 @@ This document is the why. The code is `src/lib/sync/*`, `src/store/sync.ts` and
    progress!" anywhere. One quiet section in Settings.
 3. **Sync never blocks play.** Every push is fire-and-forget. A failure marks the profile dirty
    and retries on reconnect, on the next change, or on the next app open. A dropped connection
-   must never cost a hand.
+   must never cost a hand, and neither must a tab killed mid-push: what to retry is worked out
+   from a fingerprint rather than remembered (below).
 4. **Never silently destroy progress.** Additive fields always merge in the player's favour. The
    one case that can't merge asks.
 5. **Free forever, and never sold.** Sync shipped free, so it stays free.
@@ -96,6 +97,40 @@ Only when all three are true:
 
 Change your card back on the bus and nothing prompts. Play a session on each of two devices and
 it does. If only one side moved, the merge is silent because there is nothing to lose.
+
+## What counts as "not synced yet"
+
+`dirty` on its own could not answer that. It lived in memory, and the bookmark in `pip.sync`
+recorded only the row's `updated_at`, so a reload lost the one fact that mattered: whether the
+server had taken what is on this device. A push killed in flight (backgrounding a PWA does it
+routinely) came back looking synced, and the winnings sat there. If the row had moved since, the
+next pull adopted the server's Roll with no prompt, which is chips vanishing (technology#89).
+
+The bookmark now also holds a **fingerprint of the state the server last accepted from this
+device**. Unpushed means `fingerprint(local) !== bookmark.pushed`: derived rather than remembered,
+so it survives a reload, a crash and a killed tab, and it self-heals, because a profile that does
+not match is pushed at the next opportunity whatever went wrong.
+
+Two rules keep it honest:
+
+- **Only a successful push writes it.** Any pull that replaces the local profile clears it to
+  null, meaning "unknown", which falls back to the in-memory flag: the behaviour that shipped. An
+  upgrading player's old `{ seen }` bookmark reads as unknown too, so nothing prompts on the first
+  run after this.
+- **It gets no vote in the restore branch below.** A cleared profile does not match the
+  fingerprint either, and reading that as work to upload is the exact disaster that branch exists
+  to prevent.
+
+The decision it feeds is a pure function, `planSync` in `lib/sync/plan`, covered branch by branch
+in `tests/syncPlan.test.ts`.
+
+## When it talks to the server
+
+Push: four seconds after a profile change (debounced), on reconnect, and when the tab goes hidden.
+Pull: at app open, at sign-in, on the button in Settings, and **when the tab comes back to the
+foreground**, at most once every 30 seconds. Without that last one, a warm PWA or a tab left open
+since before you played on the phone pulls only at app open, and its next change writes over the
+fresher row.
 
 ## An empty device is a restore, not a merge
 
