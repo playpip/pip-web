@@ -318,8 +318,14 @@ export const RING_TABLES: readonly Venue[] = [
     cash: true,
     escalation: false,
     accent: '#7C8CF0',
-    // Loose-passive on purpose: calls too much, rarely bluffs. A beginner beats
-    // this by value-betting, so the softest cash game is genuinely forgiving.
+    // Loose-passive on purpose: calls too much, rarely bluffs. That half is
+    // measured: tests/ai.test.ts bands every table in ALL_VENUES on VPIP and PFR,
+    // this one included, so it fails if the profile drifts out of the band.
+    // Whether a beginner *beats* it has never been measured and this file should
+    // not imply it has. `pnpm sim` cannot answer it: it plays a cash table as a
+    // freezeout and every ring prize is 0, so its win-rate and EV columns say
+    // nothing here (technology#81). The claim players actually see is the
+    // tagline, and it is deliberately weaker than this comment used to be.
     ai: { tightness: 0.16, aggression: 0.2, bluff: 0.04, iterations: 350, skill: 0.24 },
   },
   {
