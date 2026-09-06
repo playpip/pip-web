@@ -1,4 +1,5 @@
 import { generateCountYourOuts } from './countYourOuts'
+import { generateHandStrength } from './handStrength'
 import { generatePotOdds } from './potOdds'
 import type { Drill, DrillKindId, Generated, Grade } from './types'
 import { generateWhichHandWins } from './whichHandWins'
@@ -18,6 +19,7 @@ const GENERATORS: Record<DrillKindId, (seed: number) => Generated> = {
   'which-hand-wins': generateWhichHandWins,
   'count-your-outs': generateCountYourOuts,
   'pot-odds': generatePotOdds,
+  'hand-strength': generateHandStrength,
 }
 
 /**
