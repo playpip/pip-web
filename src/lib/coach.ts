@@ -46,6 +46,8 @@ import type { HandRecord } from '@/store/game'
 import type { Card, Rng } from '@/lib/poker/cards'
 import { mulberry32 } from '@/lib/poker/cards'
 import { estimateEquity } from '@/lib/poker/equity'
+import { type HandState, potSize } from '@/lib/poker/engine'
+import { opponentSelectivity } from '@/lib/poker/ai/policy'
 import { formatChips } from '@/lib/useMoney'
 
 /**
@@ -67,6 +69,35 @@ export interface HeroDecision {
   board: Card[]
 }
 
+/**
+ * Freeze what the hero can see at the moment they act.
+ *
+ * Everything here is already on their screen: the pot, the price, the board,
+ * and the same range tightness the ambient win% readout uses. Nothing about
+ * anyone's cards. The game store calls this from `recordStep`; it lives here
+ * rather than in the store so that a measurement of the read runs the same
+ * snapshot the player got, rather than a second copy of this arithmetic.
+ */
+export function heroDecision(
+  state: HandState,
+  heroId: string,
+  toCall: number,
+): HeroDecision | undefined {
+  const hero = state.players.find((p) => p.id === heroId)
+  if (!hero || hero.hole.length < 2) return undefined
+  const opponents = state.players.filter(
+    (p) => p.id !== heroId && p.status !== 'folded' && p.status !== 'out',
+  )
+  if (opponents.length === 0) return undefined
+  return {
+    pot: potSize(state),
+    toCall,
+    opponents: opponents.length,
+    selectivity: opponents.map((p) => opponentSelectivity(state, p)),
+    board: state.community.slice(),
+  }
+}
+
 export interface HandRead {
   /** The read, ready to render. One or two sentences. */
   text: string
@@ -83,21 +114,25 @@ export interface HandRead {
  * Monte-Carlo sample size for a post-hand read. Larger than the 800 the live
  * win% uses, because this runs off the critical path and the noise floor below
  * is only honest if the estimate is tighter than the edge it is judging: at
- * 1500 the standard error is around 1.3 points, so `EDGE_FLOOR` sits a few
+ * 1500 the standard error is at most 1.29 points, so `EDGE_FLOOR` sits a few
  * sigma clear of it.
+ *
+ * That is not a comment any more: `tests/noiseFloors.test.ts` derives the bound
+ * from `ITERATIONS` and fails the build if the floor stops clearing it, so the
+ * two constants can only move together.
  */
-const ITERATIONS = 1500
+export const ITERATIONS = 1500
 
 /** Decisions scored per hand, largest pot first. Bounds the work on a raise war. */
 const MAX_ANALYSED = 4
 
 /** Below this equity gap the estimate cannot tell right from wrong. Say nothing. */
-const EDGE_FLOOR = 0.05
+export const EDGE_FLOOR = 0.05
 
 /** And below one big blind of swing it is right but not worth anyone's attention. */
-const COST_FLOOR_IN_BB = 1
+export const COST_FLOOR_IN_BB = 1
 
-interface Scored {
+export interface Scored {
   decision: HeroDecision
   folded: boolean
   /** The price the pot laid, as a fraction: `toCall / (pot + toCall)`. */
@@ -141,13 +176,33 @@ const pct = (fraction: number): string => `${Math.round(fraction * 100)}%`
 /**
  * The one decision worth talking about, or nothing.
  *
- * Scores each priced hero decision by how much it gained or cost against the
- * other choice, in chips, and surfaces the largest. Returns `null` when the
- * hand carries no priced decision, when the record has no decision snapshots
- * (a hand decoded from a `/hand` permalink is the case that matters, and the wire
- * format does not carry them), or when nothing clears the noise floor.
+ * `null` when the hand carries no priced decision, when the record has no
+ * decision snapshots (a hand decoded from a `/hand` permalink is the case that
+ * matters, and the wire format does not carry them), or when the best one is
+ * inside either floor.
  */
 export function readHand(record: HandRecord, rng?: Rng): HandRead | null {
+  const best = analyseHand(record, { rng })
+  if (!best) return null
+  if (Math.abs(best.equity - best.required) < EDGE_FLOOR) return null
+  if (Math.abs(best.margin) < record.bigBlind * COST_FLOOR_IN_BB) return null
+  return { text: phrase(best), good: best.margin > 0 }
+}
+
+/**
+ * The arithmetic behind `readHand`, without the two floors that decide whether
+ * to say anything.
+ *
+ * Scores each priced hero decision by how much it gained or cost against the
+ * other choice, in chips, and returns the largest, or `null` for a hand that
+ * carries none. Separate from `readHand` so `scripts/coach-sim.ts` can re-score
+ * the same hand under other seeds and see whether the read a player got was a
+ * property of the hand or of the seed.
+ */
+export function analyseHand(
+  record: HandRecord,
+  opts: { rng?: Rng; iterations?: number } = {},
+): Scored | null {
   const decisions = record.events.flatMap((ev) =>
     ev.kind === 'action' && ev.decision
       ? [{ playerId: ev.playerId, type: ev.type, decision: ev.decision }]
@@ -171,7 +226,7 @@ export function readHand(record: HandRecord, rng?: Rng): HandRead | null {
     .slice(0, MAX_ANALYSED)
   if (priced.length === 0) return null
 
-  const random = rng ?? mulberry32(seedFor(record))
+  const random = opts.rng ?? mulberry32(seedFor(record))
   const scored: Scored[] = priced.map(({ type, decision }) => {
     const finalPot = decision.pot + decision.toCall
     const required = decision.toCall / finalPot
@@ -180,7 +235,7 @@ export function readHand(record: HandRecord, rng?: Rng): HandRead | null {
       community: decision.board,
       opponents: decision.opponents,
       opponentSelectivity: decision.selectivity,
-      iterations: ITERATIONS,
+      iterations: opts.iterations ?? ITERATIONS,
       rng: random,
     })
     // Calling is worth `finalPot * (equity - required)` more than folding, and
@@ -190,11 +245,7 @@ export function readHand(record: HandRecord, rng?: Rng): HandRead | null {
     return { decision, folded, required, equity, margin: folded ? -swing : swing }
   })
 
-  const best = scored.reduce((a, b) => (Math.abs(b.margin) > Math.abs(a.margin) ? b : a))
-  if (Math.abs(best.equity - best.required) < EDGE_FLOOR) return null
-  if (Math.abs(best.margin) < record.bigBlind * COST_FLOOR_IN_BB) return null
-
-  return { text: phrase(best), good: best.margin > 0 }
+  return scored.reduce((a, b) => (Math.abs(b.margin) > Math.abs(a.margin) ? b : a))
 }
 
 /**
