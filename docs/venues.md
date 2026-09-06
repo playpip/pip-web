@@ -37,6 +37,13 @@ all pure venue config, no engine changes:
 | `chopshop` | The Chop Shop | Bounty | 5,000 | `bounty: 1500` + `handsPerLevel: 3` — turbo bounty |
 | `vault` | The Vault | Heads-up | 25,000 | `seats: 2`, sharp AI (skill 0.82) — the side-table boss |
 
+**A `startingStack` that isn't the buy-in is an exchange rate.** The Study sells a 2,000
+stack for 1,000, the All-Nighter a 900 stack for 1,500, so those chips are not Roll chips
+and leaving converts them back (`cashOutValue`). Paying a stack back at face value printed
+1,000 chips for sitting down and standing up at one table and ate 600 at the other, whether
+or not a hand was played (technology#89). Any new venue that overrides `startingStack`
+inherits the conversion; `tests/cashOut.test.ts` holds every venue to it.
+
 The `format` field is a display tag (`FORMAT_LABELS`); mechanics come from the
 overrides (`handsPerLevel`, `startingStack`, `seats`, `bounty`). Bounties are paid
 the moment you take every chip in a hand that busts an opponent (the same seam as

@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { ordinal } from '@/lib/recap'
-import { KITCHEN_TABLE, freerollOpen } from '@/config/venues'
+import { KITCHEN_TABLE, cashOutValue, freerollOpen } from '@/config/venues'
 import { nicknameFor } from '@/config/handNames'
 import { tableFinishById } from '@/config/shop'
 import { cardBackById } from '@/config/cardBacks'
@@ -112,9 +112,9 @@ export function Table() {
     router.push('/game')
   }
   const cashOutAndLeave = () => {
-    // Freeroll stacks are the house's chips — only the winner's prize pays out,
-    // so you can't enter the Kitchen Table just to walk off with the stack.
-    if (hero && !venue.freeroll) adjustRoll(hero.stack)
+    // `cashOutValue` handles the freeroll (the stack is the house's, so it pays
+    // nothing) and the two venues whose table stack isn't the buy-in.
+    if (hero) adjustRoll(cashOutValue(venue, hero.stack))
     useProfile.getState().recordRollPoint()
     goHome()
   }
@@ -415,6 +415,7 @@ export function Table() {
         onOpenChange={setLeaveOpen}
         buyIn={venue.cash ? cashInvested : venue.buyIn}
         stack={hero?.stack ?? 0}
+        cashOut={cashOutValue(venue, hero?.stack ?? 0)}
         freeroll={venue.freeroll === true}
         cash={venue.cash === true}
         onConfirm={cashOutAndLeave}
