@@ -9,7 +9,10 @@
 //   2. **Sync never blocks play.** Every push is fire-and-forget. A failed one
 //      leaves the profile marked dirty and tries again later (on reconnect, on
 //      the next change, on the next app open). A dropped connection must never
-//      cost a hand.
+//      cost a hand. A push that dies with the tab is not a failure the app ever
+//      sees, so what to retry is worked out from a fingerprint of the last
+//      state the server accepted rather than from a flag in memory, and the
+//      decision itself is pure and tested in lib/sync/plan.
 //   3. **Never silently destroy progress.** Additive fields always merge in the
 //      player's favour. When the two devices actually disagree about the Roll,
 //      the player is asked. See lib/sync/merge for why.
@@ -18,14 +21,8 @@
 
 import { create } from 'zustand'
 import { deviceId, getSupabase, syncConfigured, type ProfileRow } from '@/lib/sync/client'
-import {
-  hasDivergence,
-  isPristine,
-  mergeProfiles,
-  summarise,
-  type ProfileData,
-  type SideSummary,
-} from '@/lib/sync/merge'
+import { mergeProfiles, summarise, type ProfileData, type SideSummary } from '@/lib/sync/merge'
+import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/plan'
 import { friendly } from '@/lib/sync/errors'
 import { migrateProfile, PERSIST_VERSION, useProfile } from '@/store/profile'
 import { track } from '@/lib/analytics'
@@ -34,23 +31,30 @@ import type { Json } from '@/types/supabase-types'
 /** Where this device got to last time, so divergence is detectable. */
 const BOOKMARK_KEY = 'pip.sync'
 
-interface Bookmark {
-  /** `updated_at` of the row this device last read or wrote. */
-  seen: string | null
-}
+const NO_BOOKMARK: Bookmark = { seen: null, pushed: null }
+
+/**
+ * How long a tab coming back to the foreground waits before pulling again, so
+ * flicking between apps is not a request each time.
+ */
+const RESUME_MIN_GAP_MS = 30_000
 
 function readBookmark(): Bookmark {
   try {
     const raw = localStorage.getItem(BOOKMARK_KEY)
-    return raw ? (JSON.parse(raw) as Bookmark) : { seen: null }
+    if (!raw) return NO_BOOKMARK
+    // A bookmark written before fingerprints has no `pushed`. Null is the
+    // honest answer there, and the next push fills it in.
+    const stored = JSON.parse(raw) as Partial<Bookmark>
+    return { seen: stored.seen ?? null, pushed: stored.pushed ?? null }
   } catch {
-    return { seen: null }
+    return NO_BOOKMARK
   }
 }
 
-function writeBookmark(seen: string | null) {
+function writeBookmark(bookmark: Bookmark) {
   try {
-    localStorage.setItem(BOOKMARK_KEY, JSON.stringify({ seen }))
+    localStorage.setItem(BOOKMARK_KEY, JSON.stringify(bookmark))
   } catch {
     // Storage blocked. Sync still works; divergence just prompts more often,
     // which errs towards asking rather than towards overwriting.
@@ -149,10 +153,21 @@ export const useSync = create<SyncState>()((set, get) => ({
 
     // Retry on reconnect, and flush before the tab goes away.
     window.addEventListener('online', () => {
-      if (get().dirty) void push(set, get)
+      if (unpushed(get)) void push(set, get)
     })
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden' && get().dirty) void push(set, get)
+      if (document.visibilityState === 'hidden') {
+        if (unpushed(get)) void push(set, get)
+        return
+      }
+      // Back in the foreground: the row may have moved on another device while
+      // this one slept. Without this, a warm PWA or a tab left open since
+      // before you played elsewhere pulls only at app open, and its next
+      // change writes over the fresher row.
+      const { busy, conflict, lastSyncedAt } = get()
+      if (busy || conflict) return
+      if (lastSyncedAt !== null && Date.now() - lastSyncedAt < RESUME_MIN_GAP_MS) return
+      void get().syncNow()
     })
   },
 
@@ -195,7 +210,7 @@ export const useSync = create<SyncState>()((set, get) => ({
     if (!sb) return
     set({ busy: true })
     await sb.auth.signOut()
-    writeBookmark(null)
+    writeBookmark(NO_BOOKMARK)
     set({ busy: false, status: 'signed-out', email: null, dirty: false, lastSyncedAt: null })
   },
 
@@ -242,87 +257,78 @@ export const useSync = create<SyncState>()((set, get) => ({
       return
     }
 
-    // No row yet: this device is the first one in. Straight upload.
-    if (!data) {
-      set({ busy: false, dirty: true })
-      await push(set, get)
-      return
-    }
-
-    // A row from a client newer than this one. Refusing is the same rule the
-    // backup restore path already follows, for the same reason.
-    if (data.version > PERSIST_VERSION) {
-      set({
-        busy: false,
-        error: 'Your account has progress from a newer version of Pip. Update, then sync.',
-      })
-      return
-    }
-
-    const remote = migrateProfile(structuredClone(data.state), data.version) as ProfileData
     const local = localData()
-    const bookmark = readBookmark()
+    const plan = planSync({
+      local,
+      row: data
+        ? {
+            profile: migrateProfile(structuredClone(data.state), data.version) as ProfileData,
+            updatedAt: data.updated_at,
+            deviceId: data.device_id,
+            version: data.version,
+          }
+        : null,
+      bookmark: readBookmark(),
+      deviceId: deviceId(),
+      changedHere: get().dirty,
+      persistVersion: PERSIST_VERSION,
+    })
 
-    // This device has nothing of its own and the account has real progress:
-    // restore the row outright, whatever the bookmark says. Checked before
-    // `movedWithoutUs` on purpose, because the two cases that reach here both
-    // have a bookmark that looks current:
-    //
-    //   - Signing in on a fresh device. Merging would fold onboarding's
-    //     placeholder origin point into the account's real history and hang a
-    //     cliff back down to the starting Roll off the end of the graph.
-    //   - Storage half-cleared: drop `pip.profile` and keep `pip.sync`, and the
-    //     bookmark still matches the row while the profile is empty. The pull
-    //     would be skipped, and the first change after onboarding would push
-    //     the empty profile over the account. That one costs real progress.
-    //
-    // `dirty` is what separates this from a reset, which produces an identical
-    // profile deliberately and is waiting to go up. See merge#isPristine.
-    if (!get().dirty && isPristine(local) && !isPristine(remote)) {
-      applyMerged(remote)
-      writeBookmark(data.updated_at)
-      set({ busy: false, dirty: false, lastSyncedAt: Date.now() })
-      return
+    switch (plan.action) {
+      // A row from a client newer than this one. Refusing is the same rule the
+      // backup restore path already follows, for the same reason.
+      case 'too-new':
+        set({
+          busy: false,
+          error: 'Your account has progress from a newer version of Pip. Update, then sync.',
+        })
+        return
+
+      case 'upload':
+        set({ busy: false, dirty: true })
+        await push(set, get)
+        return
+
+      case 'idle':
+        writeBookmark(plan.bookmark)
+        set({ busy: false, lastSyncedAt: Date.now() })
+        return
+
+      // Nothing arrived, but the server never took what is here: the case a
+      // killed push used to leave looking synced.
+      case 'push':
+        writeBookmark(plan.bookmark)
+        set({ busy: false, dirty: true, lastSyncedAt: Date.now() })
+        await push(set, get)
+        return
+
+      case 'restore':
+      case 'adopt':
+        applyMerged(plan.profile)
+        writeBookmark(plan.bookmark)
+        set({ busy: false, dirty: false, lastSyncedAt: Date.now() })
+        return
+
+      case 'merge':
+        applyMerged(plan.profile)
+        writeBookmark(plan.bookmark)
+        set({ busy: false, dirty: true })
+        await push(set, get)
+        return
+
+      case 'conflict':
+        track('sync-conflict')
+        set({
+          busy: false,
+          conflict: {
+            local: summarise(local),
+            remote: summarise(plan.remote),
+            remoteData: plan.remote,
+            remoteUpdatedAt: plan.seen,
+          },
+        })
+        return
     }
-
-    const movedWithoutUs = data.updated_at !== bookmark.seen && data.device_id !== deviceId()
-
-    if (!movedWithoutUs) {
-      writeBookmark(data.updated_at)
-      set({ busy: false, lastSyncedAt: Date.now() })
-      if (get().dirty) await push(set, get)
-      return
-    }
-
-    // The remote moved and this device hasn't seen it. If nothing local is
-    // waiting to go up, there is nothing to lose: take the account's version.
-    if (!get().dirty) {
-      applyMerged(mergeProfiles(local, remote, 'remote'))
-      writeBookmark(data.updated_at)
-      set({ busy: false, dirty: false, lastSyncedAt: Date.now() })
-      return
-    }
-
-    // Both sides moved. Only ask if they actually disagree about something the
-    // player would notice losing.
-    if (hasDivergence(local, remote)) {
-      track('sync-conflict')
-      set({
-        busy: false,
-        conflict: {
-          local: summarise(local),
-          remote: summarise(remote),
-          remoteData: remote,
-          remoteUpdatedAt: data.updated_at,
-        },
-      })
-      return
-    }
-
-    applyMerged(mergeProfiles(local, remote, 'local'))
-    writeBookmark(data.updated_at)
-    set({ busy: false })
-    await push(set, get)
   },
 
   /**
@@ -350,7 +356,7 @@ export const useSync = create<SyncState>()((set, get) => ({
     const conflict = get().conflict
     if (!conflict) return
     applyMerged(mergeProfiles(localData(), conflict.remoteData, side))
-    writeBookmark(conflict.remoteUpdatedAt)
+    writeBookmark({ seen: conflict.remoteUpdatedAt, pushed: null })
     set({ conflict: null, dirty: true })
     await push(set, get)
   },
@@ -391,7 +397,7 @@ export const useSync = create<SyncState>()((set, get) => ({
     // revoke has nothing to revoke and would fail. This clears the stored
     // session, which is the part that matters.
     await sb.auth.signOut({ scope: 'local' })
-    writeBookmark(null)
+    writeBookmark(NO_BOOKMARK)
     set({ busy: false, status: 'signed-out', email: null, dirty: false, lastSyncedAt: null })
     return true
   },
@@ -412,6 +418,12 @@ async function push(
   const userId = sessionData.session?.user.id
   if (!userId) return
 
+  // Fingerprint what is being sent, before sending it. A hand can finish while
+  // the request is in flight, and marking that clean on the response is how a
+  // change gets left behind.
+  const state = localData()
+  const sent = fingerprint(state)
+
   const { data, error } = await sb
     .from('profiles')
     .upsert(
@@ -420,7 +432,7 @@ async function push(
         version: PERSIST_VERSION,
         // `state` is a jsonb column. ProfileData is structurally JSON, but
         // TypeScript can't prove that, hence the cast.
-        state: localData() as unknown as Json,
+        state: state as unknown as Json,
         updated_at: new Date().toISOString(),
         device_id: deviceId(),
       },
@@ -434,8 +446,13 @@ async function push(
     set({ dirty: true })
     return
   }
-  writeBookmark(data.updated_at)
-  set({ dirty: false, lastSyncedAt: Date.now(), error: null })
+  writeBookmark({ seen: data.updated_at, pushed: sent })
+  set({ dirty: fingerprint(localData()) !== sent, lastSyncedAt: Date.now(), error: null })
+}
+
+/** Is there local progress the server has not accepted? Survives a reload. */
+function unpushed(get: () => SyncState): boolean {
+  return get().dirty || isUnpushed(localData(), readBookmark())
 }
 
 /** Fold a merged profile back into the live store (persist writes it through). */
