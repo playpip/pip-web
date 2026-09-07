@@ -1,3 +1,4 @@
+import { readdir } from 'node:fs/promises'
 import type { Metadata } from 'next'
 import test from 'ava'
 import sitemap from '@/app/sitemap'
@@ -109,6 +110,48 @@ test('the pages that inherit the site card do it on purpose', async (t) => {
     t.is(meta.openGraph, undefined, `${path || '/'} declares no card of its own`)
     t.is(meta.twitter, undefined, `${path || '/'} declares no card of its own`)
   }
+})
+
+// The other side of the sitemap: routes we deliberately left out of it.
+//
+// Leaving a route out of the sitemap is not an instruction to anybody. The app
+// subtree was excluded from day one and Google indexed /game regardless, via
+// the Play button, where it inherited the root layout's title and description
+// and competed with the home page for the same queries. Every test above reads
+// the sitemap, so nothing here was covered by anything.
+//
+// Read from the filesystem rather than from a list, so a new screen under
+// /game is covered the day it is added rather than the day someone remembers.
+const APP_SUBTREE = 'src/app/game'
+
+test('every route in the app subtree is noindex, and none of them is in the sitemap', async (t) => {
+  const dir = new URL(`../${APP_SUBTREE}`, import.meta.url)
+  const pages = (await readdir(dir, { recursive: true })).filter((f) =>
+    String(f).endsWith('page.tsx'),
+  )
+  t.true(pages.length > 0, 'found no routes under the app subtree')
+
+  const { metadata } = (await import(
+    new URL(`../${APP_SUBTREE}/layout.tsx`, import.meta.url).href
+  )) as { metadata?: Metadata }
+  const robots = metadata?.robots as { index?: boolean; follow?: boolean } | undefined
+  t.is(robots?.index, false, `${APP_SUBTREE}/layout.tsx must set robots.index = false`)
+  t.is(robots?.follow, true, 'links out of the app are still worth following')
+
+  // A route that set its own `robots` would drop the layout's, the same
+  // field-at-a-time merge that cost the Learn routes their feed link.
+  for (const page of pages) {
+    const mod = (await import(new URL(`../${APP_SUBTREE}/${page}`, import.meta.url).href)) as {
+      metadata?: Metadata
+    }
+    t.is(mod.metadata?.robots, undefined, `${APP_SUBTREE}/${page} must not override robots`)
+  }
+
+  const listed = sitemap().map((entry) => pathOf(entry.url))
+  t.false(
+    listed.some((path) => path === '/game' || path.startsWith('/game/')),
+    'the app subtree stays out of the sitemap',
+  )
 })
 
 interface Card {
