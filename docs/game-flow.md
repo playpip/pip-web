@@ -142,6 +142,13 @@ Three rules hold it in shape:
 - **Award chips** — collectible "special chips" earned at milestones (venue wins,
   showdown hand highs, comebacks, ranks). Detection runs in `finishHand()` via the
   pure `detectAwards` helper; see [awards.md](./awards.md).
+- **Leaving early:** the buy-in left the Roll at sit-down, so the stack comes back at
+  cash-out, converted at the rate you bought in (`cashOutValue` in `config/venues.ts`). At
+  almost every table that is the stack itself; the two venues whose `startingStack` isn't
+  the buy-in deal chips that are not Roll chips, and paying them back at face value made
+  sitting down and standing up worth +1,000 at The Study and -600 at the All-Nighter
+  (technology#89). Winning a tournament pays the **prize** and nothing else, so no
+  conversion is involved there.
 - **The freeroll** — there is **no free top-up**. When you can't afford the Garage
   (`freerollOpen(roll)`), **The Kitchen Table** opens: a free **heads-up** game vs the
   softest AI with a nominal 50-chip stack, flat blinds (`escalation: false`), and a 150
@@ -160,7 +167,8 @@ Ring tables (`RING_TABLES`, `cash: true`) reuse the same loop with three flips i
   that drains to heads-up.
 - **No prize, no win.** The `tournamentWon` / `status: 'won'` path never runs; the hand goes
   to a normal `handover`. Your chips *are* the payout, always — standing up
-  (`cashOutAndLeave`, already `adjustRoll(+stack)`) is the intended, endorsed exit, so the
+  (`cashOutAndLeave`, `adjustRoll(+cashOutValue(venue, stack))`, which is the stack itself
+  here because a ring table's stack is its buy-in) is the intended, endorsed exit, so the
   `LeaveDialog` drops the "forfeit the prize" framing.
 - **Bust = rebuy or stand up.** When the human's stack hits 0 it's `status: 'busted'` but with
   a cash-specific overlay: **Rebuy** (`rebuy()` — spends another buy-in, deals on) if you can

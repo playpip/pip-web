@@ -564,3 +564,28 @@ export function venueById(id: string): Venue | undefined {
 export function canAfford(venue: Venue, roll: number): boolean {
   return roll >= venue.buyIn
 }
+
+/** The table stack a venue seats you with (game.ts derives it the same way). */
+function tableStack(venue: Venue): number {
+  return venue.startingStack ?? venue.buyIn
+}
+
+/**
+ * What a stack is worth in Roll chips when you stand up.
+ *
+ * At almost every table it is the stack, because the buy-in *is* the starting
+ * stack. The two that override it deal chips that are not Roll chips: The Study
+ * sells a 2,000 stack for 1,000, the All-Nighter a 900 stack for 1,500. Paying
+ * those back at face value printed 1,000 chips for sitting down and standing up
+ * again at one, and ate 600 at the other, whichever way the hands went
+ * (technology#89).
+ *
+ * A freeroll pays back nothing: those are the house's chips and only the prize
+ * cashes, which is what stops the Kitchen Table being farmed for its stack.
+ */
+export function cashOutValue(venue: Venue, stack: number): number {
+  if (venue.freeroll) return 0
+  const stackSize = tableStack(venue)
+  if (stackSize <= 0 || stackSize === venue.buyIn) return stack
+  return Math.round(stack * (venue.buyIn / stackSize))
+}

@@ -15,12 +15,19 @@ import { cn } from '@/lib/utils'
  * you're forfeiting the prize; a freeroll cashes out nothing (the stack is the
  * house's). A cash table has no prize and no forfeit — standing up is the whole
  * point — so it just confirms you're walking with your chips.
+ *
+ * `cashOut` is what the stack is worth in Roll chips (`cashOutValue`), which is
+ * the stack itself everywhere except the two venues that deal a stack bigger or
+ * smaller than their buy-in. The P/L is computed from it, not from the stack:
+ * subtracting the buy-in from a table stack in different chips is how this
+ * dialog reported -100 to a player who was down 600 (technology#89).
  */
 export function LeaveDialog({
   open,
   onOpenChange,
   buyIn,
   stack,
+  cashOut,
   freeroll = false,
   cash = false,
   onConfirm,
@@ -29,12 +36,14 @@ export function LeaveDialog({
   onOpenChange: (open: boolean) => void
   buyIn: number
   stack: number
+  cashOut: number
   freeroll?: boolean
   cash?: boolean
   onConfirm: () => void
 }) {
   const money = useMoney()
-  const pnl = stack - buyIn
+  const converted = cashOut !== stack
+  const pnl = cashOut - buyIn
   const up = pnl >= 0
 
   return (
@@ -47,7 +56,9 @@ export function LeaveDialog({
               ? 'It’s a freeroll — the chips stay at the table. Leave now and you walk away with nothing; only winning pays.'
               : cash
                 ? 'Cash out and stand up — every chip in front of you is yours to keep.'
-                : 'You’ll cash out your chips and forfeit a shot at the prize.'}
+                : converted
+                  ? 'You’ll cash out your chips at the rate you bought in, and forfeit a shot at the prize.'
+                  : 'You’ll cash out your chips and forfeit a shot at the prize.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -55,6 +66,7 @@ export function LeaveDialog({
           <div className="pt-1">
             <Row label={cash ? 'Bought in' : 'Bought in for'} value={money(buyIn)} />
             <Row label={cash ? 'Standing up with' : 'Your stack'} value={money(stack)} />
+            {converted && <Row label="Cashing out" value={money(cashOut)} />}
             <div className="my-3 h-px bg-foreground/10" />
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Profit / loss</span>
