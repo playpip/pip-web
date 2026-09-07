@@ -14,6 +14,22 @@ import { generateWhichHandWins } from './whichHandWins'
 // the build on any of the three.
 
 export * from './rating'
+// The "play it out" mode of `pot-odds` (RULED technology#86). Exported from the
+// same seam as the kinds and registered nowhere: it produces `pot-odds` streets,
+// so it inherits that kind's `membersOnly` and adds no row to any registry.
+export {
+  BAND,
+  ITERATIONS,
+  MARGIN,
+  FAIR_QUESTION,
+  MAX_HAND_ATTEMPTS,
+  generatePlayedHand,
+  nextPlayedHand,
+  type GeneratedHand,
+  type PlayedHand,
+  type PlayedStreet,
+  type StreetId,
+} from './playItOut'
 
 const GENERATORS: Record<DrillKindId, (seed: number) => Generated> = {
   'which-hand-wins': generateWhichHandWins,
