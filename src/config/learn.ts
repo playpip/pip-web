@@ -239,6 +239,16 @@ export const LEARN_GUIDES: LearnGuide[] = [
     // nearly nothing to write. If the format works, sixty of them should not
     // need sixty renders.
   },
+  {
+    slug: 'three-pair-in-texas-holdem',
+    kind: 'answer',
+    title: 'Three pair in Texas Hold’em',
+    metaTitle: 'Three pair in Texas Hold’em: what happens to the third one',
+    description:
+      'You can hold three pairs and you cannot play them: a hand is five cards, so the top two pairs play and the third is worth a kicker, one time in four. With every rank shape counted and two spots walked through.',
+    date: '2026-09-08',
+    related: ['hand-rankings', 'how-often-do-you-flop-a-set', 'how-to-play-texas-holdem'],
+  },
 ]
 
 /** Pillar guides: one broad subject each, in the order the index lists them. */

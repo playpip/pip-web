@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { AceRuns } from '@/components/learn/AceRuns'
-import { GuideChart, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { GuideChart, GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
 import { HAND_FREQUENCIES, formatShare, sevenCardShare } from '@/config/handFrequencies'
@@ -119,7 +119,10 @@ export default function HandRankingsGuide() {
           make the best five from the seven available, and sometimes all five of those are on the
           table. If the board is A-K-Q-J-10 with no flush possible, everyone still in the hand has
           the same straight and the pot is split, no matter what they’re holding. Beginners often
-          fold in that spot thinking they’ve lost.
+          fold in that spot thinking they’ve lost. The quieter version is{' '}
+          <GuideLink slug="three-pair-in-texas-holdem">three pair</GuideLink>: three pairs are on
+          show, two of them play, and the one you were dealt is the one left out a quarter of the
+          time.
         </p>
       </Section>
 
