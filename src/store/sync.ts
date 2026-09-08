@@ -25,6 +25,7 @@ import { mergeProfiles, summarise, type ProfileData, type SideSummary } from '@/
 import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/plan'
 import { friendly } from '@/lib/sync/errors'
 import { migrateProfile, PERSIST_VERSION, useProfile } from '@/store/profile'
+import { dropUnbackedTable } from '@/store/game'
 import { track } from '@/lib/analytics'
 import type { Json } from '@/types/supabase-types'
 
@@ -458,4 +459,9 @@ function unpushed(get: () => SyncState): boolean {
 /** Fold a merged profile back into the live store (persist writes it through). */
 function applyMerged(merged: ProfileData) {
   useProfile.setState(merged as Partial<ReturnType<typeof useProfile.getState>>)
+  // The table is not synced and is not going to be, but whether it is still
+  // backed by chips is (technology#90). A profile naming another device means
+  // the player sat down over there, which took this buy-in home to the Roll,
+  // so the table here has no money behind it any more.
+  dropUnbackedTable(merged.escrow)
 }

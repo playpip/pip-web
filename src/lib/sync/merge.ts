@@ -61,6 +61,11 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // with it rather than being independently wrong.
     stats: winner.stats,
     tendencies: winner.tendencies,
+    // The other half of the Roll, so it follows the Roll (lib/sync/escrow).
+    // `pickUnhandled` would have taken `winner.escrow ?? loser.escrow`, which
+    // is the one wrong answer available: a winner holding nothing would inherit
+    // the loser's claim and owe chips its own Roll was never debited.
+    escrow: winner.escrow ?? null,
 
     // Monotonic — always the better of the two.
     peakRoll: Math.max(local.peakRoll, remote.peakRoll),
@@ -368,6 +373,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'challengeWins',
     'challengesPlayed',
     'drills',
+    'escrow',
   ])
   const out: Record<string, unknown> = {}
   for (const key of new Set([...Object.keys(winner), ...Object.keys(loser)])) {

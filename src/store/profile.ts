@@ -11,6 +11,7 @@ import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
+import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
 import { track } from '@/lib/analytics'
 
 export interface LifetimeStats {
@@ -167,6 +168,16 @@ export interface ProfileState {
    * the first answer, so a player who has never opened a drill carries nothing.
    */
   drills: Record<string, DrillRecord>
+  /**
+   * Chips out of the Roll and sitting on a table, and which device has them.
+   *
+   * The table itself is not synced and will not be (`pip.table`, store/game).
+   * This is the one thing about it the account needs to know, because sitting
+   * down debits the Roll and the Roll is synced: without it a second device
+   * pulls a Roll short by a buy-in with nothing to show for the difference
+   * (technology#90). The rules are pure and live in lib/sync/escrow.
+   */
+  escrow: Escrow | null
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -217,10 +228,22 @@ export interface ProfileState {
   recordRollPoint: () => void
   recordVenueEntry: (venueId: string) => void
   recordVenueResult: (venueId: string, finish: number, hands: number) => void
+  /**
+   * Say that this device is holding chips on a table. Idempotent, so the
+   * resume path can call it on every restore without writing a change.
+   */
+  holdEscrow: (escrow: Escrow) => void
+  /** The table is over. Clears the record only if it is this device's. */
+  releaseEscrow: (deviceId: string) => void
+  /**
+   * Take another device's escrowed chips back into the Roll, and return how
+   * many. Zero, and no write, when there is nothing to take.
+   */
+  reclaimEscrow: (deviceId: string) => number
   reset: () => void
 }
 
-export const PERSIST_VERSION = 16
+export const PERSIST_VERSION = 17
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -234,7 +257,7 @@ export const emptyDrillRecord = (): DrillRecord => ({
 
 export const useProfile = create<ProfileState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       created: false,
       name: '',
       avatar: null,
@@ -258,6 +281,7 @@ export const useProfile = create<ProfileState>()(
       challengeWins: [],
       challengesPlayed: 0,
       drills: {},
+      escrow: null,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -393,6 +417,25 @@ export const useProfile = create<ProfileState>()(
             },
           }
         }),
+      holdEscrow: (escrow) =>
+        set((s) => {
+          const next = claimEscrow(s.escrow, escrow)
+          return next === null ? s : { escrow: next }
+        }),
+      releaseEscrow: (deviceId) =>
+        set((s) => (s.escrow?.deviceId === deviceId ? { escrow: null } : s)),
+      reclaimEscrow: (deviceId) => {
+        // Not `adjustRoll`, because that is a delta and this is a delta plus
+        // the clear that stops it being taken twice. One `set` or a second tab
+        // could read the escrow between them.
+        const escrow = get().escrow
+        if (!escrow || escrow.deviceId === deviceId) return 0
+        set((s) => {
+          const roll = Math.max(0, s.roll + escrow.chips)
+          return { roll, peakRoll: Math.max(s.peakRoll, roll), escrow: null }
+        })
+        return escrow.chips
+      },
       reset: () =>
         set({
           created: false,
@@ -418,6 +461,7 @@ export const useProfile = create<ProfileState>()(
           challengeWins: [],
           challengesPlayed: 0,
           drills: {},
+          escrow: null,
         }),
     }),
     {
@@ -516,6 +560,13 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   if (fromVersion < 16) {
     for (const rec of Object.values(s.drills ?? {})) rec.shapes = {}
   }
+  // v16 -> v17: the table escrow (technology#90). Null for everyone, including
+  // a player who is sat at a table as this lands: there is no way to know from
+  // here that they are, because the table is a separate localStorage key this
+  // function is not allowed to read (it also runs against a row written by
+  // another device). Null reads as "unclaimed" rather than "not yours", so
+  // their tournament survives and the resume path claims it on the way in.
+  if (fromVersion < 17) s.escrow = null
   return s
 }
 

@@ -20,6 +20,8 @@ import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { heroDecision, readHand, type HandRead, type HeroDecision } from '@/lib/coach'
 import { buildRecap, type Recap } from '@/lib/recap'
+import { deviceId } from '@/lib/sync/client'
+import { type Escrow, tableIsBacked } from '@/lib/sync/escrow'
 import {
   startHand,
   applyAction,
@@ -239,6 +241,20 @@ export interface TableSnapshot {
 }
 
 function saveTableSnapshot(snap: TableSnapshot) {
+  // The account's half of the same fact: chips are out of the Roll and this
+  // device is holding them (technology#90, lib/sync/escrow). It is written here
+  // rather than at sit-down so that there is one place the snapshot and the
+  // escrow can disagree, and there isn't one. `holdEscrow` writes nothing when
+  // the record already says this, so the common case is a comparison.
+  //
+  // It also means a table started on a build that had no escrow claims itself
+  // on its first save after the upgrade, which is why the migration can leave
+  // the field null without ending anybody's tournament.
+  useProfile.getState().holdEscrow({
+    deviceId: deviceId(),
+    chips: snap.cashInvested ?? 0,
+    venueId: snap.venueId,
+  })
   try {
     localStorage.setItem(TABLE_KEY, JSON.stringify(snap))
   } catch {
@@ -247,9 +263,34 @@ function saveTableSnapshot(snap: TableSnapshot) {
 }
 
 function clearTableSnapshot() {
+  // Every way a table ends comes through here: busting, winning, cashing out
+  // and walking away. So this is where the chips stop being out, and it is only
+  // ever this device's claim that is dropped.
+  useProfile.getState().releaseEscrow(deviceId())
   try {
     localStorage.removeItem(TABLE_KEY)
   } catch {}
+}
+
+/**
+ * A pull has landed. Is the table this device is holding still backed by chips?
+ *
+ * Called from store/sync, which owns the pull; the rule is pure and lives in
+ * lib/sync/escrow. False means the player sat down on another device, that
+ * device took this buy-in back into the Roll, and playing this table on would
+ * pay a prize out of a Roll that has already been refunded.
+ *
+ * Returns the venue that was dropped, or null if nothing was.
+ */
+export function dropUnbackedTable(escrow: Escrow | null): string | null {
+  const snap = loadTableSnapshot()
+  if (!snap) return null
+  if (tableIsBacked(escrow, deviceId(), snap.venueId)) return null
+  clearTableSnapshot()
+  // If it is the table on screen, leaving it is the only honest thing to do:
+  // the alternative is a tournament that pays out chips nobody is holding.
+  if (useGame.getState().venue?.id === snap.venueId) useGame.getState().leave()
+  return snap.venueId
 }
 
 export function loadTableSnapshot(): TableSnapshot | null {
@@ -732,6 +773,7 @@ export const useGame = create<GameState>((set, get) => {
       ),
       handIndex: get().handIndex,
       heroLow: heroLowTide,
+      cashInvested: get().cashInvested,
       dailyDate: dailyDay ?? undefined,
       run: { ...runTally },
     })
@@ -999,6 +1041,12 @@ export const useGame = create<GameState>((set, get) => {
       seats.splice(Math.floor(aiSeats.length / 2), 0, humanSeat)
 
       const profile = useProfile.getState()
+      // Chips this player left on a table on another device come home first,
+      // and this is the only moment they do (lib/sync/escrow). Sitting down
+      // here is the player asking for exactly that; a pull is not, which is why
+      // merely opening the app on a second device leaves the first one's
+      // tournament alone.
+      profile.reclaimEscrow(deviceId())
       profile.adjustRoll(-venue.buyIn) // pay the buy-in (your stack on the table)
       // Cash tables aren't tournaments — they don't count as entries and their
       // ids don't belong in the per-venue win/finish records.
