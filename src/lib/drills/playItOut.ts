@@ -34,12 +34,23 @@ import type { Drill, DrillChoice } from './types'
 /**
  * How many simulations settle one street.
  *
- * The ruling's number, and the direction of travel is up: the band this buys
- * has to stay small against MARGIN, so lowering it is a change to the grade
- * rather than a performance tweak. `tests/playItOut.test.ts` fails the build if
- * the two stop being safe together.
+ * **This is not the knob that protects the grade, and it is not free.** The
+ * ruling's worked example said 20,000 and nobody had timed it: a seed is three
+ * `estimateEquity` calls, so 20,000 cost 2.75s a seed and 4.1s per hand that
+ * survives the filter, on a 2-core runner, all of it on the thread the screen
+ * is drawn on. `scripts/play-it-out-cost.ts` walked the grid (n=60 seeds a row,
+ * 2026-09-08) and what it bought was nothing anybody could see: across an eight
+ * fold range of iterations the accept rate moved 65% to 67% and the decisions
+ * in a hand moved 1.38 to 1.41, while the cost moved 4.1s to 0.5s.
+ *
+ * So the iterations came down and MARGIN went up to pay for it, which keeps the
+ * guarantee where it was: a street accepted here has a true gap of at least
+ * 5.11 points, against 5.31 at the old pair, and both are clear of
+ * FAIR_QUESTION. **The guarantee is `MARGIN - BAND >= FAIR_QUESTION` and that
+ * is what may not be tuned down**; either constant may move as long as the two
+ * of them keep it. `tests/playItOut.test.ts` fails the build if they stop.
  */
-export const ITERATIONS = 20_000
+export const ITERATIONS = 5_000
 
 /**
  * The most a sampled equity can be out by, in points, at 95%.
@@ -49,9 +60,10 @@ export const ITERATIONS = 20_000
  * or the opponent do. That is a bound rather than a fit, which is what makes it
  * safe to build a margin on: it cannot be wrong in our favour.
  *
- * Measured at 20,000 iterations over 20 rng seeds on one spot, the observed
- * standard deviation is 0.26 points on a flop and 0.28 on a turn, against the
- * bound's 0.35. The bound is doing what a bound should.
+ * Measured over 20 rng seeds on one spot (2026-09-08), the observed standard
+ * deviation at 5,000 iterations is 0.67 points on a flop and 0.65 on a turn,
+ * against the bound's 0.71; at 20,000 it is 0.31 and 0.33 against 0.35. The
+ * bound is doing what a bound should at both ends.
  */
 export const BAND = 1.96 * (50 / Math.sqrt(ITERATIONS))
 
@@ -69,19 +81,32 @@ export const FAIR_QUESTION = 4
  * How far apart the two numbers must be, in points, for a street to be asked.
  *
  * **The face-up margin plus room for the band, written as that sum rather than
- * as a 6**, because the relationship is the whole point and a bare constant
- * loses it. The ruling was explicit that the iterations are the budget and the
- * margin is not the knob: a street accepted at a measured gap of six has a true
- * gap of at least `6 - BAND`, which is still clear of FAIR_QUESTION. Tuning
- * this down to buy back some iterations is how a correct answer gets marked
- * wrong.
+ * as a 6.5**, because the relationship is the whole point and a bare constant
+ * loses it. A street accepted at a measured gap of 6.5 has a true gap of at
+ * least `6.5 - BAND`, which is still clear of FAIR_QUESTION.
+ *
+ * The extra half point over the first cut is what pays for the iterations
+ * coming down, and it costs less than it sounds: at 5,000 iterations, going
+ * from 6 to 6.5 moved the decisions in a hand from 1.44 to 1.36 and the accept
+ * rate from 65% to 65% (n=60 seeds, 2026-09-08). Widening it further does bite:
+ * 7 takes the accept rate to 62%, so this is about as far as that road goes.
+ *
+ * There is no counting route out of it either, and it is worth writing down
+ * because it looks like there should be. The other three kinds are exact
+ * because the opponent is a *hand*; here the opponent is a range, and the range
+ * is not a set of combos with weights on it, it is a procedure.
+ * `drawRangedHoles` takes the best of `1 + floor(sel * MAX)` random pairs by
+ * `holeStrength`. Even on a river, with the board complete and 990 pairs left,
+ * there is nothing to enumerate without first deriving each pair's probability
+ * of winning that draw. So sampling is the method at every street, and these
+ * two constants are the whole of the precision budget.
  *
  * The visible cost is that this mode cannot ask the thinnest questions the
  * face-up kind can, so it deals `thin-price` spots (a gap under seven) through
  * a sliver rather than a band. That is honest: the estimate is not precise
  * enough to grade a three-point edge, so it does not pretend to.
  */
-export const MARGIN = FAIR_QUESTION + 2
+export const MARGIN = FAIR_QUESTION + 2.5
 
 /** And how far apart before a street stops being a question. The face-up number. */
 const MAX_GAP = 20

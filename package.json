@@ -27,7 +27,8 @@
     "supabase:db:push": "supabase db push",
     "supabase:db:push:dry-run": "supabase db push --dry-run",
     "supabase:generate-types": "supabase gen types typescript --linked --schema public > src/types/supabase-types.ts",
-    "coach-sim": "tsx scripts/coach-sim.ts"
+    "coach-sim": "tsx scripts/coach-sim.ts",
+    "play-it-out-cost": "tsx scripts/play-it-out-cost.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
