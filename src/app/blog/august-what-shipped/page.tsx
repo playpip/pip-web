@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { A, LegalPage, Section } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
+import { POSTFLOP_GATE_HEADS_UP } from '@/config/aiGates'
 import { CORRECTIONS } from '@/config/corrections'
 import {
   FLOPS,
@@ -21,15 +22,10 @@ export const metadata: Metadata = postMetadata(post)
 // calculator's two constants from the module that computes the quote, so if
 // either moves this page moves with it.
 //
-// Two exceptions, both deliberate, because the rule is worth stating honestly
-// rather than pretending to. Measurement outputs are typed: the preflop bands
-// and the entries-raised ladder are the result of a run, not values a module
-// holds, and there is nothing to import them from. And the two postflop gates
-// (62% and 78%) are literals inside `src/lib/poker/ai/policy.ts` rather than
-// exported constants, so the prose repeats them. `tests/ai.test.ts` asserts the
-// arithmetic that ties them to the multiples the code actually uses, which
-// means moving one fails the build even though it does not move this sentence.
-// Asked of the tech side: export them. Until then this comment is the record.
+// One exception, deliberate, because the rule is worth stating honestly rather
+// than pretending to. Measurement outputs are typed: the preflop bands and the
+// entries-raised ladder are the result of a run, not values a module holds, and
+// there is nothing to import them from.
 
 const link =
   'font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground'
@@ -41,6 +37,17 @@ const link =
  * appears in, and a typed 990 is the kind of figure this post is about.
  */
 const EXACT_HEADS_UP_HANDS = combinations(52 - 7, 2)
+
+/**
+ * The two postflop gates as the prose says them. `toFixed(1)` is there to drop
+ * binary-float dust (0.62 * 100 can print as 62.000000000000004) without
+ * rounding a real move away: if a multiple changes, this reads 63 or 62.4, not
+ * a silently unchanged 62.
+ */
+const gatePercent = (gate: number) => Number((gate * 100).toFixed(1))
+
+const GATE_LEAD = gatePercent(POSTFLOP_GATE_HEADS_UP.lead)
+const GATE_RAISE_VALUE = gatePercent(POSTFLOP_GATE_HEADS_UP.raiseValue)
 
 export default function AugustRoundupPost() {
   return (
@@ -283,10 +290,10 @@ export default function AugustRoundupPost() {
         </p>
         <p>
           The cause was one assumption written down once and never revisited. Every postflop
-          decision was gated on an absolute number: lead out if you hold more than 62% of the
-          equity, raise for value above 78%. Those are heads-up numbers. Against three opponents 62%
-          is a much better hand than it is against one, so a gate that reads the same reads far
-          tighter, and the pot got checked down.
+          decision was gated on an absolute number: lead out if you hold more than {GATE_LEAD}% of
+          the equity, raise for value above {GATE_RAISE_VALUE}%. Those are heads-up numbers. Against
+          three opponents {GATE_LEAD}% is a much better hand than it is against one, so a gate that
+          reads the same reads far tighter, and the pot got checked down.
         </p>
         <p>
           The fix quotes those gates as a multiple of a fair share of the pot rather than as an
