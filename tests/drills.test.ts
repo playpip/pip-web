@@ -259,7 +259,10 @@ test('the screens deal a fresh spot, never a fixed one', (t) => {
       new URL(`../src/components/drills/${file}`, import.meta.url),
       'utf-8',
     )
-    const calls = source.match(/nextDrill\([^)]*\)/g) ?? []
+    // `nextPlayedHand` is the play-it-out mode's generator and inherits the
+    // same trap for the same reason: a hand dealt from a fixed seed is one
+    // hand, baked into the export, for the life of the build.
+    const calls = source.match(/next(Drill|PlayedHand)\([^)]*\)/g) ?? []
     for (const call of calls) {
       t.regex(call, /randomSeed\(\)/, `${file}: "${call}" is the same spot for every visitor`)
     }
@@ -275,6 +278,30 @@ test('drills are app routes, and only app routes', (t) => {
   t.throws(() => readdirSync(new URL('../src/app/drills', import.meta.url)), {
     code: 'ENOENT',
   })
+})
+
+// The play-it-out mode is a mode of pot odds and not a kind (RULED
+// technology#86), but its answers are **not** the kind's answers. The rating is
+// an average over a fair sample of what a kind deals (RULED technology#76), and
+// this mode deals a different sample of the same question: a price read against
+// a range rather than against a hand you can see, at a wider accept margin, so
+// the thinnest prices the face-up kind asks cannot be asked here at all. Folded
+// into one record the number would mean two things and would fall when a player
+// switched modes, having measured nothing about them.
+//
+// A source scan rather than an import, because the constant lives in a client
+// component and this suite has no renderer.
+test("the play-it-out mode keeps its own record, not a registered kind's", (t) => {
+  const source = readFileSync(
+    new URL('../src/components/drills/PlayItOut.tsx', import.meta.url),
+    'utf-8',
+  )
+  const key = source.match(/PLAY_IT_OUT_RECORD = '([^']+)'/)?.[1]
+  t.truthy(key, 'the mode has no record key, so it is writing somewhere unknown')
+  t.false(
+    DRILL_KINDS.some((kind) => kind.id === key),
+    `${key} is a registered kind, so the mode is writing into a kind's fair sample`,
+  )
 })
 
 // --- what may never be built here ------------------------------------------

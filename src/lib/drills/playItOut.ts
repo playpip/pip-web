@@ -150,6 +150,16 @@ export interface PlayedStreet {
   /** The board as it stands here: three cards, then four, then five. */
   board: Card[]
   /**
+   * What the hero holds on this street, e.g. "Pair". Absent when it is high card.
+   *
+   * Per street rather than per hand, because a hand played out changes what it
+   * is on the way: the flop pair that becomes two pair on the river is the
+   * whole reason the next price is a different question. The graded streets
+   * carry the same phrase inside their drill; a street that is checked through
+   * has no drill and would otherwise have nothing to say.
+   */
+  detail?: string
+  /**
    * The decision, or `null` where there is nothing to ask.
    *
    * A street is only a question if some bet this pot could carry makes it a
@@ -265,7 +275,13 @@ export function generatePlayedHand(seed: number): GeneratedHand {
           ? prices.filter((price) => equity > price.required)
           : prices.filter((price) => price.required > equity)
       if (missing.some((price) => gapOf(price) < MARGIN)) missedByMargin = true
-      streets.push({ street: street.id, board, drill: null, potAfter: pot })
+      streets.push({
+        street: street.id,
+        board,
+        ...detailOf(hole, board),
+        drill: null,
+        potAfter: pot,
+      })
       continue
     }
 
@@ -282,6 +298,7 @@ export function generatePlayedHand(seed: number): GeneratedHand {
     streets.push({
       street: street.id,
       board,
+      ...detailOf(hole, board),
       drill: {
         kind: 'pot-odds',
         seed,
@@ -332,6 +349,33 @@ export function nextPlayedHand(seed: number): PlayedHand {
     if (hand) return hand
   }
   throw new Error(`No played hand in ${MAX_HAND_ATTEMPTS} seeds from ${seed}`)
+}
+
+/**
+ * Where a hand goes after the street at `index` is settled, or `'over'`.
+ *
+ * `action` is what the player did: `'call'`, `'fold'`, or `null` on a street
+ * with no price in it, which the opponent checks.
+ *
+ * **The hand runs for as long as the player calls, and folding ends it whether
+ * the fold was right or not.** That is poker rather than a scoring rule, and it
+ * is also the only line the script supports: `generatePlayedHand` prices every
+ * later street off a pot that both bets went into, so a hand carried on after a
+ * fold would be charging for a pot that is not there. A wrong *call* continues
+ * exactly as scripted, because the chips went in either way.
+ *
+ * Here rather than in the screen because it is the mode's one rule, and a rule
+ * a test can hold is worth more than a rule in a component nothing renders in
+ * CI.
+ */
+export function afterStreet(
+  hand: PlayedHand,
+  index: number,
+  action: string | null,
+): number | 'over' {
+  if (action === 'fold') return 'over'
+  const next = index + 1
+  return next < hand.streets.length ? next : 'over'
 }
 
 /** How much room there was between the two numbers. Shared with the face-up kind. */
