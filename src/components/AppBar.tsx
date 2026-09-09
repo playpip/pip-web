@@ -6,6 +6,7 @@ import { ChevronLeft, Palette, Settings } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
+import { AccountBarButton } from '@/components/settings/AccountOffer'
 import { StyleDialog } from '@/components/settings/StyleDialog'
 import { useProfile } from '@/store/profile'
 import { rankFor } from '@/config/ranks'
@@ -103,6 +104,9 @@ export function AppBar({
               pip
             </span>
           )}
+          {/* Signed out only, and it vanishes permanently once there is an
+              account. One tap from anywhere beats three taps from two screens. */}
+          <AccountBarButton />
           <button
             onClick={() => {
               sound.play('tap')

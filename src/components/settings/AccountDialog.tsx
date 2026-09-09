@@ -49,9 +49,13 @@ const COPY: Record<AccountMode, { title: string; description: string }> = {
     description: 'Your progress follows you to any device you sign in on.',
   },
   signup: {
-    title: 'Create an account',
+    // "Nothing to confirm" is true because production runs with
+    // mailer_autoconfirm on: the only email Pip ever sends is a password reset.
+    // If that ever changes, this line and the landing page's trust card go with
+    // it.
+    title: 'Create a free account',
     description:
-      'Free, optional, and only for carrying your progress between devices. You can play everything without one.',
+      'An email and a password, and nothing to confirm. Your Roll follows you to every device you sign in on.',
   },
   reset: {
     title: 'Reset your password',
