@@ -295,10 +295,12 @@ export const SIDE_TABLES: readonly Venue[] = [
 // The Rail — cash / ring tables. Unlike the ladder, these never end and have no
 // prize: you sit down with a stack (a slice of your Roll), play any number of
 // hands, and stand up with whatever's in front of you. Opponents rebuy so the
-// table stays full; bust and you can rebuy or walk. Difficulty is the stake —
-// Micro is loose-passive (beatable by value), the nosebleeds are sharks — so a
-// player of any level finds an honest game just by picking their stake. Every
-// room is 100 big blinds deep and blinds never escalate. (See docs/game-flow.md.)
+// table stays full; bust and you can rebuy or walk. Difficulty is the stake:
+// Micro is loose-passive, the nosebleeds are sharks, so a player of any level
+// finds an honest game just by picking their stake. That describes how the
+// seats play, not how anyone does against them: no room on the Rail has ever
+// had its beatability measured (technology#82). Every room is 100 big blinds
+// deep and blinds never escalate. (See docs/game-flow.md.)
 // Skill mirrors the post-rebalance ladder (~0.06 softer per rung): these tables
 // were authored after that retune, so their numbers were dialled to match it.
 // The canon four each sat 10x apart, which left a Micro grinder with an 800 roll
