@@ -169,7 +169,7 @@ export default function FlopASetAnswer() {
           Pocket pairs are exactly one deal in seventeen, so waiting for{' '}
           {FLOPS.toLocaleString('en-GB')} of them is not a plan. Deal yourself some instead.
         </p>
-        <p>Free, no signup, nothing to install.</p>
+        <p>Free, and nothing to install.</p>
       </TryIt>
     </GuidePage>
   )

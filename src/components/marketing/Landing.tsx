@@ -30,6 +30,7 @@ import { Wordmark } from './Wordmark'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, type Venue } from '@/config/venues'
+import { ACCOUNT_OFFER } from '@/config/account'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
 import { guideBySlug } from '@/config/learn'
@@ -190,8 +191,7 @@ function Hero() {
             custom={4}
             className="mt-4 text-sm text-muted-foreground"
           >
-            Plays in your browser, nothing to download. Play now, and make a free account whenever
-            you want your Roll on every device.
+            Plays in your browser, nothing to download. {ACCOUNT_OFFER}
           </motion.p>
         </div>
 

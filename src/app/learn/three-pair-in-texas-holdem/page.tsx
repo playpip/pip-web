@@ -222,7 +222,7 @@ export default function ThreePairAnswer() {
           Three pair looks like a lot of poker and grades as one line. The quickest way to believe
           that is to be shown your best five cards by something that has no reason to flatter you.
         </p>
-        <p>Free, no signup, nothing to install.</p>
+        <p>Free, and nothing to install.</p>
       </TryIt>
     </GuidePage>
   )

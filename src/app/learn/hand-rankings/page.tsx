@@ -219,9 +219,9 @@ export default function HandRankingsGuide() {
         </p>
         <p>
           You can play Texas Hold’em on Pip right now, in the browser, against opponents that
-          actually play. No account needed, nothing to install, no money involved anywhere and none
-          to spend. The hand strength is shown as you go, so the rankings stop being something you
-          look up and start being something you know.
+          actually play. Nothing to install, no money involved anywhere and none to spend. The hand
+          strength is shown as you go, so the rankings stop being something you look up and start
+          being something you know.
         </p>
       </TryIt>
     </GuidePage>

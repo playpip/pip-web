@@ -328,9 +328,9 @@ export default function PotOddsGuide() {
         </p>
         <p>
           You can play Texas Hold’em on Pip right now, in the browser, against opponents that price
-          their own decisions the same way. No account needed, nothing to install, no money involved
-          anywhere and none to spend. The table shows your win chance while the hand is live, so you
-          can make your estimate first and then check it.
+          their own decisions the same way. Nothing to install, no money involved anywhere and none
+          to spend. The table shows your win chance while the hand is live, so you can make your
+          estimate first and then check it.
         </p>
       </TryIt>
     </GuidePage>

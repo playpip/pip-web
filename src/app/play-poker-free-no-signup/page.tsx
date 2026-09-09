@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { GuideTable, Lead } from '@/components/learn/Guide'
 import { LegalPage, Section } from '@/components/marketing/LegalPage'
 import { PlayCta } from '@/components/marketing/PlayCta'
+import { ACCOUNT_OFFER } from '@/config/account'
 import { SITE_URL, contentAlternates } from '@/config/site'
 
 // A landing page, not a guide.
@@ -212,8 +213,12 @@ export default function PlayPokerFreeNoSignupPage() {
 
       <div className="mt-8">
         <PlayCta label="Play a hand now" />
+        {/* The page ranks on the negative and the negative is true, so it stays
+            first. The offer goes after it, in the same breath, because a
+            visitor who arrives on this query is the one most likely to assume
+            an account is the catch. */}
         <p className="mt-3 text-sm text-muted-foreground">
-          No email, no password, nothing to pay with.
+          No email, no password, nothing to pay with. {ACCOUNT_OFFER}
         </p>
       </div>
 

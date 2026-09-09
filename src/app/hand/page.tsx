@@ -311,7 +311,7 @@ function StickyCta({ eyebrow }: { eyebrow: string }) {
           Play your first hand — free
         </Link>
         <p className="text-2xs text-muted-foreground/70">
-          No account needed · Runs in your browser · Open source
+          Free · Runs in your browser · Open source
         </p>
       </div>
     </div>
