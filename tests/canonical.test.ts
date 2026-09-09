@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import type { Metadata } from 'next'
 import test from 'ava'
 import sitemap from '@/app/sitemap'
@@ -140,11 +140,25 @@ test('every route in the app subtree is noindex, and none of them is in the site
 
   // A route that set its own `robots` would drop the layout's, the same
   // field-at-a-time merge that cost the Learn routes their feed link.
+  //
+  // Read the source as well as the module, because the module check only sees
+  // half of it. A route under a dynamic segment declares its title from
+  // `generateMetadata` instead, and a `robots` returned from there is invisible
+  // here: the export is a function, `mod.metadata` is undefined, the assertion
+  // passes, and the route quietly indexes itself. Same mistake, so both forms
+  // fail.
   for (const page of pages) {
     const mod = (await import(new URL(`../${APP_SUBTREE}/${page}`, import.meta.url).href)) as {
       metadata?: Metadata
     }
     t.is(mod.metadata?.robots, undefined, `${APP_SUBTREE}/${page} must not override robots`)
+
+    const source = await readFile(new URL(`../${APP_SUBTREE}/${page}`, import.meta.url), 'utf-8')
+    t.notRegex(
+      source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' '),
+      /\brobots\b/,
+      `${APP_SUBTREE}/${page} must not mention robots: the subtree's noindex is the layout's`,
+    )
   }
 
   const listed = sitemap().map((entry) => pathOf(entry.url))
