@@ -16,6 +16,7 @@ export function LegalPage({
   updated,
   subtitle,
   back,
+  wide = false,
   children,
 }: {
   title: string
@@ -25,6 +26,13 @@ export function LegalPage({
   subtitle?: string
   /** A quiet back link above the title (e.g. a post back to the blog index). */
   back?: { href: string; label: string }
+  /**
+   * A wider column, for an index rather than a document. The default measure is
+   * chosen for reading a paragraph; an index is a shelf, and a shelf one item
+   * across in a prose column is what made /learn read as an essay (#102).
+   * Prose pages must not set this.
+   */
+  wide?: boolean
   children: React.ReactNode
 }) {
   return (
@@ -45,7 +53,7 @@ export function LegalPage({
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-14 md:px-10 md:py-20">
         {/* Left-aligned with the chrome, capped at a readable measure. */}
-        <div className="max-w-2xl">
+        <div className={wide ? 'max-w-4xl' : 'max-w-2xl'}>
           {back && (
             <Link
               href={back.href}
