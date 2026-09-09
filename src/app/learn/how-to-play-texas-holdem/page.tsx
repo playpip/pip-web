@@ -273,9 +273,9 @@ export default function HowToPlayGuide() {
         </p>
         <p>
           You can play Texas Hold’em on Pip right now, in the browser, against opponents that
-          actually play. No account needed, nothing to install, no money involved anywhere and none
-          to spend. It tells you what hand you have made as you go, so the rules on this page turn
-          into something you do rather than something you looked up.
+          actually play. Nothing to install, no money involved anywhere and none to spend. It tells
+          you what hand you have made as you go, so the rules on this page turn into something you
+          do rather than something you looked up.
         </p>
       </TryIt>
     </GuidePage>

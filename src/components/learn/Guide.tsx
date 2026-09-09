@@ -6,6 +6,7 @@
 import Link from 'next/link'
 import { LegalPage } from '@/components/marketing/LegalPage'
 import { PlayCta } from '@/components/marketing/PlayCta'
+import { ACCOUNT_OFFER } from '@/config/account'
 import { type GuideArt, guideArtUrl, guideBySlug, relatedGuides } from '@/config/learn'
 
 const SITE = 'https://playpip.io'
@@ -155,11 +156,22 @@ export function GuideTable({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** The one "now go and try it" block. Once per page, quiet, and a real link. */
+/**
+ * The one "now go and try it" block. Once per page, quiet, and a real link.
+ *
+ * The account line is rendered here rather than written into each guide because
+ * it is the same fact on all of them, and because a guide is where a stranger
+ * from search first meets Pip. It sits under the page's own prose and above the
+ * button, in the muted text, and it is a sentence rather than a second button:
+ * `PlayCta` is deliberately the only call to action these pages get.
+ */
 export function TryIt({ children }: { children: React.ReactNode }) {
   return (
     <section className="mt-12 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-6">
-      <div className="space-y-3 text-md leading-relaxed text-muted-foreground">{children}</div>
+      <div className="space-y-3 text-md leading-relaxed text-muted-foreground">
+        {children}
+        <p>{ACCOUNT_OFFER}</p>
+      </div>
       <div className="mt-5">
         <PlayCta />
       </div>

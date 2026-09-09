@@ -40,7 +40,12 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
    "no account needed". **Prominent is not pushy, and the line is mechanical:** permanent
    furniture on a screen the player is already on is fine, anything that appears over what
    they were doing, or comes back after being closed, is not. See docs/sync.md → Where the
-   account is offered.
+   account is offered. **On the marketing and search pages it is one shared sentence,
+   `ACCOUNT_OFFER` in `src/config/account.ts`**, because within a week of this principle
+   landing the site was describing the same account three different ways and the eight
+   `/learn` guides did not mention it at all. A page that wants to say something else about
+   the account edits that constant, for every page at once. `tests/accountClaims.test.ts`
+   holds the inventory of the pages allowed to phrase it themselves, with the reason.
 6. **Open by default.** Pip is open source — the deterministic, seeded engine most of
    all. Anyone can read exactly how a hand is dealt and shuffled, fork it, or self-host.
    This is a deliberate trust foundation, not a footnote: when we later add things you
