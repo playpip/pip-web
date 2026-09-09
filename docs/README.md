@@ -5,7 +5,8 @@ redesigned. No fake felt, no neon, no pop-ups. You play a local bankroll (your
 **Roll**) up a ladder of venues against increasingly sharp AI.
 
 It is inspired by [Offsuit](https://offsuit.app/) but is its own product: desktop-first,
-local-first with no account needed, free (no real money — chips are play money), and **open
+local-first with no account needed to play (there is a free one, offered plainly: see
+[sync.md](./sync.md)), free (no real money — chips are play money), and **open
 source** — the deterministic engine is public, so the game is provably fair by
 inspection. Openness is the trust foundation for everything we add later (paid
 cosmetics, multiplayer); see [brand.md](./brand.md).

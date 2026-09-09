@@ -5,11 +5,18 @@
  * number and every sentence is built by `lib/recap` at the moment the run
  * ended, and this renders what it was given.
  *
- * Deliberately quiet. No call to action, no "play again", nothing asking for
- * tomorrow. The buttons underneath already offer the only two things to do.
+ * Deliberately quiet. No "play again", nothing asking for tomorrow. The buttons
+ * underneath already offer the only two things to do.
+ *
+ * The one exception, on Will's call (#97): the account offer, for a player who
+ * has not made one. This is the moment the run they just finished is worth
+ * keeping, so it is the moment the offer means something. It is a static line
+ * at the foot of the card, not a step, and closing the overlay is the only
+ * thing anyone has to do about it.
  */
 
 import type { Recap } from '@/lib/recap'
+import { AccountOffer } from '@/components/settings/AccountOffer'
 
 export function RunRecap({ recap }: { recap: Recap }) {
   return (
@@ -33,6 +40,7 @@ export function RunRecap({ recap }: { recap: Recap }) {
           ))}
         </div>
       )}
+      <AccountOffer variant="overlay" />
     </div>
   )
 }

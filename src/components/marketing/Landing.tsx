@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Spade,
   Sparkles,
+  UserPlus,
   Volume2,
   WifiOff,
 } from 'lucide-react'
@@ -189,7 +190,8 @@ function Hero() {
             custom={4}
             className="mt-4 text-sm text-muted-foreground"
           >
-            Plays in your browser — no download, no sign-up. Loads in a second.
+            Plays in your browser, nothing to download. Play now, and make a free account whenever
+            you want your Roll on every device.
           </motion.p>
         </div>
 
@@ -283,9 +285,12 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       body: 'Play-money chips only. No wallet, no losses, no “buy more.”',
     },
     {
-      icon: WifiOff,
-      title: 'No account needed',
-      body: 'Play everything without one. Add one, free, whenever you want your progress backed up and on every device.',
+      // Led with the negative for months, which is us arguing against our own
+      // free account in the one place a visitor decides. The promise is
+      // unchanged; the offer goes first (#97).
+      icon: UserPlus,
+      title: 'Free account, nothing to confirm',
+      body: 'An email and a password, and your Roll follows you to every device. Or play everything without one.',
     },
     {
       icon: Sparkles,
@@ -888,9 +893,19 @@ function FinalCta() {
           whileInView="show"
           viewport={{ once: true }}
           custom={2}
-          className="mt-9"
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
         >
           <PlayButton size="lg" />
+          {/* The quiet second door. The app has no signup route (the account
+              is a dialog), so this lands on the lobby and asks it to open the
+              form, which is where the same button in the app opens it too. */}
+          <Link
+            href="/game?account=new"
+            onClick={() => sound.play('tap')}
+            className="rounded-2xl px-5 py-3.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+          >
+            Create a free account
+          </Link>
         </motion.div>
       </div>
     </section>

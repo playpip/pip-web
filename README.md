@@ -57,10 +57,11 @@ play money only, no pop-ups, no fake felt.
   winner's stake buys you back onto the ladder.
 - **Ambient help** — live win-% equity, hand strength, plain-English reads on
   opponents, and a reviewable last-hand history. Informative, never nagging.
-- **Yours, locally** — your profile, Roll (bankroll), rank, collection, and style
-  live in localStorage (versioned, exportable). No account needed for any of it.
-  There's an optional one if you want your progress on a second device, and it's
-  off until you turn it on (see [sync](docs/sync.md)).
+- **Yours, locally, and on every device if you want** — your profile, Roll (bankroll),
+  rank, collection, and style live in localStorage (versioned, exportable), and play
+  needs no account at all. A free account is an email and a password with nothing to
+  confirm, and it carries all of it to every device you sign in on (see
+  [sync](docs/sync.md)).
   The only analytics are anonymous and cookieless — see [Privacy](#privacy) below.
 - Light and dark themes, quiet tactile sound, desktop and mobile layouts.
 

@@ -84,6 +84,16 @@ export type SyncStatus = 'off' | 'signed-out' | 'signed-in'
 
 interface SyncState {
   status: SyncStatus
+  /**
+   * The stored session has been looked for, one way or the other. `status`
+   * starts at 'signed-out' because that is the honest default before anything
+   * is known, which is fine inside a dialog the player opened but not for a
+   * permanent offer on the lobby: without this a returning player watches
+   * "create a free account" flash over their own signed-in screen every load.
+   * Anything that *offers* an account waits for this; anything the player
+   * opened themselves does not have to.
+   */
+  ready: boolean
   email: string | null
   /** A request is in flight (sign-in, push, pull). Drives button spinners. */
   busy: boolean
@@ -111,6 +121,7 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null
 
 export const useSync = create<SyncState>()((set, get) => ({
   status: syncConfigured() ? 'signed-out' : 'off',
+  ready: false,
   email: null,
   busy: false,
   dirty: false,
@@ -128,12 +139,19 @@ export const useSync = create<SyncState>()((set, get) => ({
     if (started) return
     started = true
     const sb = await getSupabase()
-    if (!sb) return
+    if (!sb) {
+      // No project configured: `status` is 'off' and stays there, so the
+      // question is settled.
+      set({ ready: true })
+      return
+    }
 
     const { data } = await sb.auth.getSession()
     if (data.session?.user.email) {
-      set({ status: 'signed-in', email: data.session.user.email })
+      set({ ready: true, status: 'signed-in', email: data.session.user.email })
       await get().syncNow()
+    } else {
+      set({ ready: true })
     }
 
     sb.auth.onAuthStateChange((_event, session) => {

@@ -9,6 +9,7 @@ import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
 import { PageShell } from '@/components/PageShell'
+import { AccountOffer } from '@/components/settings/AccountOffer'
 import { useProfile } from '@/store/profile'
 import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
@@ -124,6 +125,10 @@ export function Home() {
             Play the freeroll — win {money(KITCHEN_TABLE.prize)}
           </button>
         )}
+        {/* Under the Roll, because the Roll is the thing an account keeps.
+            Signed out only, and it renders nothing until the stored session has
+            been checked. */}
+        <AccountOffer />
       </motion.div>
 
       {/* the main menu — one tap into each corner, plus the three side rooms */}

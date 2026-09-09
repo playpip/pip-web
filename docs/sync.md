@@ -12,8 +12,9 @@ This document is the why. The code is `src/lib/sync/*`, `src/store/sync.ts` and
 1. **Opt-in is absolute.** No account means no client, no request, no identity and no stored row.
    Not "we don't track you much", literally no network call. That is what makes the privacy claim
    checkable rather than promised.
-2. **Signed out is a first-class state, permanently.** No banner, no interstitial, no "sync your
-   progress!" anywhere. One quiet section in Settings.
+2. **Signed out is a first-class state, permanently.** No modal, no interstitial, nothing that
+   appears over what the player was doing or comes back after being closed. Everything about the
+   account is visible where they already are (below).
 3. **Sync never blocks play.** Every push is fire-and-forget. A failure marks the profile dirty
    and retries on reconnect, on the next change, or on the next app open. A dropped connection
    must never cost a hand, and neither must a tab killed mid-push: what to retry is worked out
@@ -21,6 +22,40 @@ This document is the why. The code is `src/lib/sync/*`, `src/store/sync.ts` and
 4. **Never silently destroy progress.** Additive fields always merge in the player's favour. The
    one case that can't merge asks.
 5. **Free forever, and never sold.** Sync shipped free, so it stays free.
+
+## Where the account is offered
+
+Until #97 the only two doors were the foot of the Edit player dialog and Settings, both of them
+two taps inside something nobody opens, and the landing page argued against the account in the
+one place a visitor decides. **The fix was placement and timing, not pressure.** Five surfaces,
+all of them signed-out only, all of them gone for good once there is an account:
+
+| Where | Component |
+|-------|-----------|
+| Lobby, under the Roll | `settings/AccountOffer` in `menu/Home` |
+| End-of-run overlay, under the recap | `settings/AccountOffer variant="overlay"` in `table/RunRecap` |
+| AppBar, beside Style and Settings | `settings/AccountBarButton` |
+| Foot of Edit player | `profile/AccountRow` |
+| Settings → Your account | `settings/SyncSection` |
+
+**The test any new one has to pass:** it is furniture on a screen the player is already looking
+at, it never covers anything, it has no dismiss button because there is nothing to dismiss, and
+it counts nothing. `Landing.tsx` ships *"No forced pop-ups, no pay-to-win, no nagging. Ever."*
+An interstitial, a load-time modal, or a prompt after N hands all fail that sentence. Prominence
+does not.
+
+**Anything that offers an account waits for `useSync().ready`,** which flips once the stored
+session has been looked for. `status` starts at `'signed-out'` because that is the honest default
+before anything is known, so without the gate a returning player watches "create a free account"
+flash over their own signed-in lobby on every load.
+
+The landing page has no signup route to link to (the account is a dialog), so its CTA links to
+`/game?account=new` and the lobby offer opens the form once, then strips the parameter so a
+reload does not reopen what was closed.
+
+**The copy says "nothing to confirm".** That is true because production runs with
+`mailer_autoconfirm` on and a password reset is the only email Pip ever sends. Turn autoconfirm
+off and the landing trust card, the signup dialog and the offer all become false together.
 
 ## What is stored
 
