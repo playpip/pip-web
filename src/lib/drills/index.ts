@@ -23,6 +23,7 @@ export {
   MARGIN,
   FAIR_QUESTION,
   MAX_HAND_ATTEMPTS,
+  afterStreet,
   generatePlayedHand,
   nextPlayedHand,
   type GeneratedHand,

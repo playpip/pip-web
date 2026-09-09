@@ -8,9 +8,10 @@ import { PageShell } from '@/components/PageShell'
 import { PlayingCard } from '@/components/PlayingCard'
 import { type DrillKind, canPlayDrill } from '@/config/drills'
 import { gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
-import type { Drill, DrillChoice, DrillHand, DrillStakes } from '@/lib/drills/types'
-import { type Card, cardName } from '@/lib/poker/cards'
-import { formatChips } from '@/lib/useMoney'
+import type { Drill, DrillChoice } from '@/lib/drills/types'
+import { cardName } from '@/lib/poker/cards'
+import { Header, ShownHand, Stakes, cardKey } from './parts'
+import { PLAY_IT_OUT_KIND, PLAY_IT_OUT_MODE, PlayItOut } from './PlayItOut'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
@@ -66,6 +67,13 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
   const known = !kind.membersOnly || settled
   const allowed = canPlayDrill(kind, member)
 
+  // Pot odds has a second way to ask the same question: one hand, played out
+  // street by street against a range (RULED technology#86). It is a mode of
+  // this screen rather than a kind of its own, so it lives behind a switch here
+  // and behind the same `membersOnly` gate as everything else on the kind.
+  const [playItOut, setPlayItOut] = useState(false)
+  const hasMode = kind.id === PLAY_IT_OUT_KIND
+
   // Everything this screen animates sits inside, so the setting is honoured
   // once here rather than remembered at each `motion` element. Same wrapper
   // Tutorial.tsx uses. Tailwind's own motion is handled by the `motion-reduce`
@@ -74,12 +82,18 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
     <MotionConfig reducedMotion="user">
       <PageShell leading="back" backLabel="Drills" onBack={() => router.push('/game/drills')}>
         <div className="flex flex-1 flex-col">
+          {allowed && hasMode && (
+            <ModeSwitch kind={kind} playItOut={playItOut} onPick={setPlayItOut} />
+          )}
+
           {!hydrated || !known ? (
             <Dealing kind={kind} />
-          ) : allowed ? (
-            <Run kind={kind} />
-          ) : (
+          ) : !allowed ? (
             <WithTheMembership kind={kind} />
+          ) : playItOut ? (
+            <PlayItOut title={kind.title} />
+          ) : (
+            <Run kind={kind} />
           )}
 
           {/* Small print, at the foot of the screen where it belongs. Both halves
@@ -87,8 +101,8 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
               number. Never a cap, never a countdown. */}
           {allowed && (
             <p className="mt-auto pt-8 text-center text-xs text-muted-foreground/80">
-              {kind.gradedBy} Your rating is yours, it never expires, and there is no limit on how
-              many you play.
+              {playItOut ? PLAY_IT_OUT_MODE.gradedBy : kind.gradedBy} Your rating is yours, it never
+              expires, and there is no limit on how many you play.
             </p>
           )}
         </div>
@@ -132,76 +146,54 @@ function WithTheMembership({ kind }: { kind: DrillKind }) {
 }
 
 /**
- * The title and the score.
+ * The two ways this kind asks its question.
  *
- * One line of numbers under the title rather than a panel: a scoreboard that
- * takes a quarter of a phone screen is competing with the cards, and the cards
- * are the drill. The rating sits opposite the title where the eye lands on
- * arriving, and everything else is one muted line of facts.
+ * Two plain segments, the same weight as each other, sitting where a tab bar
+ * sits. **Discoverability, not persuasion**: nothing here is badged "new", the
+ * mode is not preselected, and switching back is the same one press as
+ * switching in. A player who never touches it loses nothing, which is the test
+ * every prompt on this app has to pass.
  *
- * The delta is the reason the rating is worth showing at all. A number that
- * only ever appears in its settled state is furniture; a number you watch move
- * is the thing you came back for.
+ * The two modes keep separate records, so the number in the header changes with
+ * the segment. That is deliberate and it is explained in the small print at the
+ * foot of the screen (see PLAY_IT_OUT_RECORD).
  */
-function Header({
-  title,
-  rating,
-  delta = null,
-  run = 0,
-  answered = 0,
-  correct = 0,
-  bestRun = 0,
+function ModeSwitch({
+  kind,
+  playItOut,
+  onPick,
 }: {
-  title: string
-  rating?: number
-  delta?: number | null
-  run?: number
-  answered?: number
-  correct?: number
-  bestRun?: number
+  kind: DrillKind
+  playItOut: boolean
+  onPick: (value: boolean) => void
 }) {
-  // Facts, in the order they change. Nothing is shown before it means
-  // something: a first-timer gets a title and a rating to move, not a row of
-  // zeros telling them how little they have done.
-  const facts = [
-    run > 1 ? `${run} in a row` : null,
-    bestRun > 1 ? `best ${bestRun}` : null,
-    answered > 0 ? `${Math.round((correct / answered) * 100)}% of ${answered}` : null,
-  ].filter(Boolean)
-
+  const segments: { label: string; value: boolean }[] = [
+    { label: 'One spot', value: false },
+    { label: PLAY_IT_OUT_MODE.label, value: true },
+  ]
   return (
-    <div className="mb-6 flex items-start justify-between gap-3 px-1">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
-        {facts.length > 0 && (
-          <p className="mt-1 text-xs tabular-nums text-muted-foreground">{facts.join(' · ')}</p>
-        )}
-      </div>
-
-      {rating !== undefined && (
-        <div className="flex shrink-0 items-baseline gap-1.5">
-          {delta !== null && delta !== 0 && (
-            <motion.span
-              // Keyed by the value so a second answer worth the same as the
-              // first still animates rather than sitting there.
-              key={`${rating}-${delta}`}
-              initial={{ opacity: 0, y: delta > 0 ? 6 : -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                'text-sm font-medium tabular-nums',
-                delta > 0 ? 'text-emerald-500' : 'text-muted-foreground',
-              )}
-            >
-              {delta > 0 ? '+' : ''}
-              {delta}
-            </motion.span>
+    <fieldset className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-foreground/[0.04] p-1">
+      {/* `sr-only` is absolute, so the legend names the pair for a screen
+          reader without taking a cell of the grid. */}
+      <legend className="sr-only">{`How to play ${kind.title}`}</legend>
+      {segments.map((segment) => (
+        <button
+          key={segment.label}
+          type="button"
+          onClick={() => onPick(segment.value)}
+          aria-pressed={playItOut === segment.value}
+          className={cn(
+            'rounded-xl px-3 py-2 text-sm font-medium transition',
+            playItOut === segment.value
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+            'motion-reduce:transition-none',
           )}
-          <span className="rounded-full bg-foreground/[0.06] px-3 py-1 text-sm font-semibold tabular-nums">
-            {rating}
-          </span>
-        </div>
-      )}
-    </div>
+        >
+          {segment.label}
+        </button>
+      ))}
+    </fieldset>
   )
 }
 
@@ -468,68 +460,6 @@ function Run({ kind }: { kind: DrillKind }) {
 }
 
 /**
- * The money, on a kind whose question is about a price.
- *
- * Two numbers, in the order the decision needs them, and in the same words the
- * table uses. Nothing here is a hint: what the pot is charging as a percentage
- * is the thing being asked for, so it appears in the sentence after the answer
- * and never before it.
- */
-function Stakes({ stakes }: { stakes: DrillStakes }) {
-  const pot = formatChips(stakes.pot)
-  const toCall = formatChips(stakes.toCall)
-  return (
-    <p className="mt-1.5 text-center text-sm tabular-nums text-muted-foreground">
-      <span className="sr-only">{`Pot ${pot} chips, ${toCall} to call.`}</span>
-      <span aria-hidden>
-        Pot <span className="font-semibold text-foreground">{pot}</span>
-        {' · '}
-        <span className="font-semibold text-foreground">{toCall}</span> to call
-      </span>
-    </p>
-  )
-}
-
-/**
- * A holding the spot shows and does not ask about.
- *
- * Deliberately not a button and deliberately not styled like one: on a kind
- * where the answer is a number, a hand panel that looks pressable is an
- * invitation to answer the wrong question. Same card sizes as the choice
- * panels so the two read as one row of information.
- *
- * What each hand *is* right now is shown from the start rather than at the
- * reveal. You cannot count what beats you without being told what you are up
- * against, so hiding it would make counting outs a guess about the opponent.
- */
-function ShownHand({ hand }: { hand: DrillHand }) {
-  return (
-    <div className="rounded-2xl border border-foreground/10 p-3">
-      {/* `PlayingCard` is aria-hidden, so the cards do not read at all. The
-          pickable panels solve that with an aria-label on the button; there is
-          no button here, so the readout is a visually hidden line and the
-          visual half is hidden from the reader to stop it being said twice. */}
-      <span className="sr-only">
-        {`${hand.label}: ${hand.cards.map(cardName).join(' and ')}${
-          hand.detail ? `, ${hand.detail}` : ''
-        }`}
-      </span>
-      <span className="flex items-center gap-3" aria-hidden>
-        <span className="flex gap-1.5">
-          {hand.cards.map((card) => (
-            <PlayingCard key={cardKey(card)} card={card} size="md" />
-          ))}
-        </span>
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="text-sm font-medium">{hand.label}</span>
-          {hand.detail && <span className="text-xs text-muted-foreground">{hand.detail}</span>}
-        </span>
-      </span>
-    </div>
-  )
-}
-
-/**
  * One of the counts on offer.
  *
  * The number is the control, so it is the biggest thing on the button and
@@ -651,5 +581,3 @@ function HandChoice({
     </button>
   )
 }
-
-const cardKey = (card: Card): string => `${card.rank}${card.suit}`

@@ -8,6 +8,7 @@ import {
   ITERATIONS,
   MARGIN,
   type PlayedHand,
+  afterStreet,
   generatePlayedHand,
   nextPlayedHand,
 } from '@/lib/drills'
@@ -224,4 +225,55 @@ test('nextPlayedHand finds one and it is reproducible from its seed', (t) => {
   const hand = nextPlayedHand(101)
   t.true(hand.streets.some((s) => s.drill !== null))
   t.deepEqual(generatePlayedHand(hand.seed).hand, hand)
+})
+
+// --- the rule the screen walks a hand by ------------------------------------
+//
+// The mode is a screen and CI has no browser, so the rule that decides how far
+// a hand gets is in the engine where a test can hold it. What it protects is
+// not a nicety: the script prices every later street off a pot that both bets
+// went into, so a hand carried on past a fold would be charging for chips that
+// are not in the middle.
+
+test('the hand runs while you call, and folding ends it', (t) => {
+  const hand = nextPlayedHand(101)
+  t.is(hand.streets.length, 3)
+
+  // Calling walks to the next street, from wherever you are.
+  t.is(afterStreet(hand, 0, 'call'), 1)
+  t.is(afterStreet(hand, 1, 'call'), 2)
+  // The river is the last one, so calling it ends the hand rather than
+  // reaching for a fourth street that is not there.
+  t.is(afterStreet(hand, 2, 'call'), 'over')
+
+  // Folding ends it wherever it happens, and whether or not it was the answer:
+  // it is what folding is, not a scoring rule.
+  for (const index of [0, 1, 2]) t.is(afterStreet(hand, index, 'fold'), 'over')
+
+  // A street with no price in it is checked through, and the hand carries on.
+  t.is(afterStreet(hand, 0, null), 1)
+  t.is(afterStreet(hand, 2, null), 'over')
+})
+
+test('every street says what the hero holds, asked or not', (t) => {
+  // The screen prints it on each street, including the ones that are checked
+  // through: a flop pair that turns into two pair is the reason the next price
+  // is a different question, and a street with no drill has nothing else to
+  // read it off.
+  t.true(corpus.length > 0)
+  let phrases = 0
+  for (const hand of corpus) {
+    for (const street of hand.streets) {
+      if (street.drill) {
+        // The same phrase the drill's own panel carries, so the two cannot
+        // disagree about what you are holding on the street they both describe.
+        t.is(street.detail, street.drill.hands?.[0]?.detail)
+      }
+      if (street.detail) {
+        phrases++
+        t.regex(street.detail, /^[A-Z]/, 'a phrase in the middle of a sentence, capitalised')
+      }
+    }
+  }
+  t.true(phrases > 0, 'no street held anything, so this proved nothing')
 })
