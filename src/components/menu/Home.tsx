@@ -31,6 +31,7 @@ import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { greetingFor, periodFor, type DayPeriod } from '@/lib/timeOfDay'
 import { useHydrated } from '@/lib/useHydrated'
+import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { useCopied } from '@/lib/useCopied'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -143,7 +144,7 @@ export function Home() {
           )}
         >
           {challenge && <ChallengeCard challenge={challenge} delay={0.05} />}
-          {hydrated && <DailyTile roll={roll} delay={0.1} />}
+          {hydrated && <DailyTile delay={0.1} />}
           <CategoryCard
             art="rail"
             accent="#4FB477"
@@ -319,10 +320,11 @@ function GreetingLine({ hour, name }: { hour: number; name: string }) {
  * tap to play. Played: tap copies the calm share line. Can't afford the buy-in:
  * a clear locked tile (the Daily costs a real buy-in — there's no free daily).
  */
-function DailyTile({ roll, delay }: { roll: number; delay: number }) {
+function DailyTile({ delay }: { delay: number }) {
   const router = useRouter()
   const money = useMoney()
   const daily = useProfile((s) => s.daily)
+  const spendable = useSpendableRoll()
   // Worst of the three #20 sites: 'Copied' sat in place of the finishing
   // position for the rest of the session, so a tile that had real information
   // on it lost it to a confirmation.
@@ -332,7 +334,7 @@ function DailyTile({ roll, delay }: { roll: number; delay: number }) {
   const today = dailyDateKey()
   const dayNo = dailyNumber(today)
   const playedToday = daily?.date === today
-  const affordable = roll >= THE_DAILY.buyIn
+  const affordable = spendable >= THE_DAILY.buyIn
   const locked = !playedToday && !affordable
 
   const subtitle = copied

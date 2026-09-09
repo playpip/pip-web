@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Splash } from '@/components/Splash'
-import { useProfile } from '@/store/profile'
 import { sound } from '@/lib/sound'
+import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import type { Venue } from '@/config/venues'
 import { SectionScreen } from './SectionScreen'
 import { VenueInfoDialog } from './VenueInfoDialog'
@@ -29,7 +29,7 @@ export function VenueBrowser({
 }) {
   const ready = useRequireProfile()
   const router = useRouter()
-  const roll = useProfile((s) => s.roll)
+  const spendable = useSpendableRoll()
   const [infoVenue, setInfoVenue] = useState<Venue | null>(null)
 
   const models: VenueVM[] = useMemo(
@@ -38,13 +38,13 @@ export function VenueBrowser({
         venue,
         index,
         tier: tiered ? index + 1 : undefined,
-        playable: roll >= venue.buyIn,
+        playable: spendable >= venue.buyIn,
         onOpen: () => {
           sound.play('tap')
           setInfoVenue(venue)
         },
       })),
-    [venues, tiered, roll],
+    [venues, tiered, spendable],
   )
 
   if (!ready) return <Splash />
@@ -59,7 +59,7 @@ export function VenueBrowser({
 
       <VenueInfoDialog
         venue={infoVenue}
-        playable={infoVenue ? roll >= infoVenue.buyIn : false}
+        playable={infoVenue ? spendable >= infoVenue.buyIn : false}
         onOpenChange={(o) => !o && setInfoVenue(null)}
         onPlay={(venue) => {
           sound.play('call')
