@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight, Lock } from 'lucide-react'
 import { Splash } from '@/components/Splash'
-import { useProfile } from '@/store/profile'
 import { RING_TABLES, type Venue } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
+import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
 import { SectionScreen } from './SectionScreen'
 import { CategoryArt } from './CategoryArt'
@@ -23,7 +23,7 @@ import { useRequireProfile } from './useRequireProfile'
 export function RailBrowser() {
   const ready = useRequireProfile()
   const router = useRouter()
-  const roll = useProfile((s) => s.roll)
+  const spendable = useSpendableRoll()
   const [infoRoom, setInfoRoom] = useState<Venue | null>(null)
 
   if (!ready) return <Splash />
@@ -39,7 +39,7 @@ export function RailBrowser() {
             key={room.id}
             room={room}
             index={i}
-            playable={roll >= room.buyIn}
+            playable={spendable >= room.buyIn}
             onOpen={() => {
               sound.play('tap')
               setInfoRoom(room)
@@ -56,7 +56,7 @@ export function RailBrowser() {
 
       <VenueInfoDialog
         venue={infoRoom}
-        playable={infoRoom ? roll >= infoRoom.buyIn : false}
+        playable={infoRoom ? spendable >= infoRoom.buyIn : false}
         onOpenChange={(o) => !o && setInfoRoom(null)}
         onPlay={(room) => {
           sound.play('call')

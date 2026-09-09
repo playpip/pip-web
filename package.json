@@ -1,6 +1,6 @@
 {
   "name": "clean-poker",
-  "version": "1.18.7",
+  "version": "1.18.9",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.9",
@@ -39,7 +39,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.24.0",
-    "next": "16.2.11",
+    "next": "16.3.4",
     "pokersolver": "^2.1.4",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
