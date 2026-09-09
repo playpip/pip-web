@@ -153,6 +153,17 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: pnpm build
 
+      # The only place the truth about sync config exists is the emitted bundle. `pnpm build`
+      # cannot fail on missing NEXT_PUBLIC_SUPABASE_*: Next leaves a runtime `process.env.…`
+      # lookup behind, the build goes green, and the site ships with every account surface
+      # rendering null. That is what took accounts off playpip.io for an unknown number of
+      # days (technology#69). This reads `out/` and stops the deploy instead.
+      #
+      # Deliberately not in `pnpm build` or `test:all`: missing config is a supported state
+      # for local builds and forks. It is a fault only here, where the variables are wired.
+      - name: Assert the build has sync configured
+        run: pnpm test:sync-config
+
       # Plain npx rather than wrangler-action: the action installs wrangler via
       # the repo's package manager, and pnpm 11 blocks workerd's build script.
       - name: Publish to Cloudflare Pages
