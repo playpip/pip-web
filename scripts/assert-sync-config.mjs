@@ -20,10 +20,8 @@
 // never need a backend to run the app. It belongs in the deploy workflow only, where the
 // variables are wired and their absence is a fault.
 //
-// It is not wired there yet: the CTO App cannot push .github/workflows without the
-// `workflows` permission (technology#62), so the one step that calls this has to be added
-// by hand. The exact patch is on technology#69. Until then this is runnable but unrun,
-// which means the canary in the technology repo is the only thing watching.
+// It runs as the "Assert the build has sync configured" step in
+// .github/workflows/deploy-cloudflare-pages.yaml, between the build and the publish.
 //
 // Usage: node scripts/assert-sync-config.mjs [outDir]   (default: out)
 // Exit 0 = config is inlined. Exit 1 = it is not, and the deploy must stop.
