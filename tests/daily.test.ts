@@ -37,9 +37,9 @@ test('hands within a day get distinct seeds', (t) => {
 })
 
 test('share text reads calmly', (t) => {
-  t.is(dailyShareText(142, 2, 6, 34), 'pip daily #142 · 2nd of 6 · 34 hands · playpip.io')
-  t.is(dailyShareText(3, 1, 5, 21), 'pip daily #3 · won it · 21 hands · playpip.io')
-  t.is(dailyShareText(9, null, 5, 1), 'pip daily #9 · played · 1 hand · playpip.io')
+  t.is(dailyShareText(142, 2, 6, 34), 'pip daily #142 · 2nd of 6 · 34 hands · playpip.io/daily')
+  t.is(dailyShareText(3, 1, 5, 21), 'pip daily #3 · won it · 21 hands · playpip.io/daily')
+  t.is(dailyShareText(9, null, 5, 1), 'pip daily #9 · played · 1 hand · playpip.io/daily')
 })
 
 // --- the AI stream ----------------------------------------------------------
