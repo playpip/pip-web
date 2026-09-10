@@ -15,9 +15,13 @@ export default function AgentReadablePost() {
     >
       <Correction date="19 August 2026">
         <p>
-          There are <strong className="font-medium text-foreground">ten content routes</strong> with
-          a Markdown mirror now, not six. The learn guides, the odds calculator and the no-signup
-          page were all written after this post, and each one arrived with its mirror.
+          Six is well out of date, and a number here would only go out of date again, so:{' '}
+          <strong className="font-medium text-foreground">
+            every route on this site that serves prose has a Markdown mirror
+          </strong>
+          , and a test fails the build if a new one ships without. The learn guides, the odds
+          calculator and the no-signup page were all written after this post, and each one arrived
+          with its mirror.
         </p>
         <p>
           Which makes the last paragraph below exactly backwards: it names the learn pages as part

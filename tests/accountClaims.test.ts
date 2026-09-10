@@ -45,6 +45,10 @@ const OFFER_SURFACES = [
   'src/components/learn/Guide.tsx',
   'src/components/marketing/Landing.tsx',
   'src/app/play-poker-free-no-signup/page.tsx',
+  // /daily, added with the page. Same test as the others: it is a page a
+  // stranger can land on from search, and "do I need an account for this" is a
+  // question a tournament with a buy-in and a finishing place invites.
+  'src/app/daily/page.tsx',
 ]
 
 test('the account is described in one sentence, in one place', (t) => {

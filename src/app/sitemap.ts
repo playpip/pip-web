@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = [
     '',
     '/learn',
+    '/daily',
     '/play-poker-free-no-signup',
     '/poker-odds-calculator',
     '/blog',

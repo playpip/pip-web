@@ -27,6 +27,11 @@ const FOOTER_GROUPS: {
       // was the best-performing page on the site and the only way to reach it
       // was to already know the URL.
       { label: 'Poker odds calculator', href: '/poker-odds-calculator' },
+      // The Daily's front door. The tournament itself is /play/daily, which is
+      // app rather than content and is not in the sitemap, so the single most
+      // linkable thing we own had no URL anybody could arrive on: the share
+      // line the app copies names "pip daily #142" and points nowhere.
+      { label: 'The Daily Deal', href: '/daily' },
       { label: 'Blog', href: '/blog' },
       { label: 'Credits', href: '/credits' },
       // A quiet text link rather than an icon: we have exactly one social
