@@ -23,10 +23,10 @@ import { create } from 'zustand'
 import { deviceId, getSupabase, syncConfigured, type ProfileRow } from '@/lib/sync/client'
 import { mergeProfiles, summarise, type ProfileData, type SideSummary } from '@/lib/sync/merge'
 import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/plan'
-import { friendly } from '@/lib/sync/errors'
+import { friendly, neverReachedServer } from '@/lib/sync/errors'
 import { migrateProfile, PERSIST_VERSION, useProfile } from '@/store/profile'
 import { dropUnbackedTable } from '@/store/game'
-import { track } from '@/lib/analytics'
+import { track, trackOnce } from '@/lib/analytics'
 import type { Json } from '@/types/supabase-types'
 
 /** Where this device got to last time, so divergence is detectable. */
@@ -196,6 +196,7 @@ export const useSync = create<SyncState>()((set, get) => ({
     set({ busy: true, error: null })
     const { error } = await sb.auth.signUp({ email, password })
     if (error) {
+      if (neverReachedServer(error)) trackOnce('sync-auth-unreachable')
       set({ busy: false, error: friendly(error.message) })
       return false
     }
@@ -212,6 +213,10 @@ export const useSync = create<SyncState>()((set, get) => ({
     set({ busy: true, error: null })
     const { error } = await sb.auth.signInWithPassword({ email, password })
     if (error) {
+      // Once per tab: someone on a network that cannot reach Supabase will
+      // retry, and ten events from one blocked person would read as ten people.
+      // The question is what share of players cannot get through, so count them.
+      if (neverReachedServer(error)) trackOnce('sync-auth-unreachable')
       set({ busy: false, error: friendly(error.message) })
       return false
     }

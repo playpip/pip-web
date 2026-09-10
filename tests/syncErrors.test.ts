@@ -1,5 +1,5 @@
 import test from 'ava'
-import { friendly } from '../src/lib/sync/errors'
+import { friendly, neverReachedServer } from '../src/lib/sync/errors'
 
 // The real strings Supabase returns, not paraphrases. If these change upstream
 // the mapping quietly degrades to the catch-all, which is survivable; what is
@@ -51,4 +51,47 @@ test('rate limiting asks for patience, even though it says "email"', (t) => {
 
 test('anything else reassures about local progress', (t) => {
   t.is(friendly('fetch failed'), 'Something went wrong. Your progress is safe on this device.')
+})
+
+// `neverReachedServer` decides whether an anonymous event fires. It is the only
+// instrument we have for a question nothing here can test: 62% of our views are
+// from mainland China, `*.supabase.co` is a third-party origin, and a sign-in
+// that never lands looks to us exactly like nobody wanting an account.
+//
+// The asymmetry is the design. A false positive would send us fixing China for
+// a typo, so anything not positively recognised as unreachable reads as
+// reached, and the count is a floor.
+
+test('a real HTTP status means the server answered, whatever it said', (t) => {
+  // The shapes supabase-js gives an AuthApiError. All of these are working
+  // accounts and a player getting something wrong.
+  t.false(neverReachedServer({ name: 'AuthApiError', status: 400, message: 'Invalid login' }))
+  t.false(neverReachedServer({ name: 'AuthApiError', status: 422, message: 'Weak password' }))
+  t.false(neverReachedServer({ name: 'AuthApiError', status: 429, message: 'rate limit' }))
+  t.false(neverReachedServer({ name: 'AuthApiError', status: 500, message: 'boom' }))
+})
+
+test('a fetch that threw is the thing we are trying to count', (t) => {
+  t.true(
+    neverReachedServer({ name: 'AuthRetryableFetchError', status: 0, message: 'fetch failed' }),
+  )
+})
+
+test('the name alone is enough, in case the status stops being 0', (t) => {
+  // Status 0 is how supabase-js constructs it today, not a promise it makes.
+  t.true(neverReachedServer({ name: 'AuthRetryableFetchError', message: 'Load failed' }))
+})
+
+test('a status of 0 is enough, in case the name changes', (t) => {
+  t.true(neverReachedServer({ name: 'SomethingElse', status: 0 }))
+})
+
+test('an unfamiliar error reads as reached, so the count is a floor', (t) => {
+  // Every one of these would be a false outage. None may fire the event.
+  t.false(neverReachedServer(null))
+  t.false(neverReachedServer(undefined))
+  t.false(neverReachedServer('fetch failed'))
+  t.false(neverReachedServer(new Error('fetch failed')))
+  t.false(neverReachedServer({ message: 'no status at all' }))
+  t.false(neverReachedServer({ status: '0' }))
 })
