@@ -120,51 +120,106 @@ test('the pages that inherit the site card do it on purpose', async (t) => {
 // and competed with the home page for the same queries. Every test above reads
 // the sitemap, so nothing here was covered by anything.
 //
-// Read from the filesystem rather than from a list, so a new screen under
-// /game is covered the day it is added rather than the day someone remembers.
-const APP_SUBTREE = 'src/app/game'
+// Read from the filesystem rather than from a list, so a new screen under one
+// of these is covered the day it is added rather than the day someone
+// remembers.
+//
+// The list was `src/app/game` alone, which is how the fix missed the other
+// thirty-two URLs it applies to: /play prerenders one static file per venue and
+// there are twenty-nine of them, all of which shipped with no robots meta, no
+// canonical and the home page's own title tag, plus /stats, /hand and
+// /reset-password. The ruling was applied to the route that got caught rather
+// than to the rule, for the fourth time on this repository.
+const APP_SUBTREES = [
+  'src/app/game',
+  'src/app/play',
+  'src/app/stats',
+  'src/app/hand',
+  'src/app/reset-password',
+] as const
 
-test('every route in the app subtree is noindex, and none of them is in the sitemap', async (t) => {
-  const dir = new URL(`../${APP_SUBTREE}`, import.meta.url)
-  const pages = (await readdir(dir, { recursive: true })).filter((f) =>
-    String(f).endsWith('page.tsx'),
-  )
-  t.true(pages.length > 0, 'found no routes under the app subtree')
+for (const subtree of APP_SUBTREES) {
+  test(`every route under ${subtree.replace('src/app', '')} is noindex, and none of them is in the sitemap`, async (t) => {
+    const dir = new URL(`../${subtree}`, import.meta.url)
+    const pages = (await readdir(dir, { recursive: true })).filter((f) =>
+      String(f).endsWith('page.tsx'),
+    )
+    t.true(pages.length > 0, `found no routes under ${subtree}`)
 
-  const { metadata } = (await import(
-    new URL(`../${APP_SUBTREE}/layout.tsx`, import.meta.url).href
-  )) as { metadata?: Metadata }
-  const robots = metadata?.robots as { index?: boolean; follow?: boolean } | undefined
-  t.is(robots?.index, false, `${APP_SUBTREE}/layout.tsx must set robots.index = false`)
-  t.is(robots?.follow, true, 'links out of the app are still worth following')
-
-  // A route that set its own `robots` would drop the layout's, the same
-  // field-at-a-time merge that cost the Learn routes their feed link.
-  //
-  // Read the source as well as the module, because the module check only sees
-  // half of it. A route under a dynamic segment declares its title from
-  // `generateMetadata` instead, and a `robots` returned from there is invisible
-  // here: the export is a function, `mod.metadata` is undefined, the assertion
-  // passes, and the route quietly indexes itself. Same mistake, so both forms
-  // fail.
-  for (const page of pages) {
-    const mod = (await import(new URL(`../${APP_SUBTREE}/${page}`, import.meta.url).href)) as {
+    const { metadata } = (await import(
+      new URL(`../${subtree}/layout.tsx`, import.meta.url).href
+    )) as {
       metadata?: Metadata
     }
-    t.is(mod.metadata?.robots, undefined, `${APP_SUBTREE}/${page} must not override robots`)
+    const robots = metadata?.robots as { index?: boolean; follow?: boolean } | undefined
+    t.is(robots?.index, false, `${subtree}/layout.tsx must set robots.index = false`)
+    t.is(robots?.follow, true, 'links out of the app are still worth following')
 
-    const source = await readFile(new URL(`../${APP_SUBTREE}/${page}`, import.meta.url), 'utf-8')
-    t.notRegex(
-      source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' '),
-      /\brobots\b/,
-      `${APP_SUBTREE}/${page} must not mention robots: the subtree's noindex is the layout's`,
+    // A route that set its own `robots` would drop the layout's, the same
+    // field-at-a-time merge that cost the Learn routes their feed link.
+    //
+    // Read the source as well as the module, because the module check only sees
+    // half of it. A route under a dynamic segment declares its title from
+    // `generateMetadata` instead, and a `robots` returned from there is invisible
+    // here: the export is a function, `mod.metadata` is undefined, the assertion
+    // passes, and the route quietly indexes itself. Same mistake, so both forms
+    // fail.
+    for (const page of pages) {
+      const mod = (await import(new URL(`../${subtree}/${page}`, import.meta.url).href)) as {
+        metadata?: Metadata
+      }
+      t.is(mod.metadata?.robots, undefined, `${subtree}/${page} must not override robots`)
+
+      const source = await readFile(new URL(`../${subtree}/${page}`, import.meta.url), 'utf-8')
+      t.notRegex(
+        source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' '),
+        /\brobots\b/,
+        `${subtree}/${page} must not mention robots: the subtree's noindex is the layout's`,
+      )
+    }
+
+    const route = subtree.replace('src/app', '')
+    const listed = sitemap().map((entry) => pathOf(entry.url))
+    t.false(
+      listed.some((path) => path === route || path.startsWith(`${route}/`)),
+      `${route} stays out of the sitemap`,
     )
-  }
+  })
+}
 
-  const listed = sitemap().map((entry) => pathOf(entry.url))
-  t.false(
-    listed.some((path) => path === '/game' || path.startsWith('/game/')),
-    'the app subtree stays out of the sitemap',
+/**
+ * Routes that are neither in the sitemap nor under a noindex subtree, and the
+ * reason each is allowed to sit in that gap.
+ *
+ * An inventory rather than a ban, and the point is that a new one makes
+ * somebody write the reason down. Being absent from the sitemap instructs
+ * nobody, so every route lands in exactly one of three states: published and
+ * listed, app and noindex, or here with an argument.
+ */
+const NEITHER_LISTED_NOR_NOINDEX: Record<string, string> = {
+  '/tutorial':
+    'prose-shaped and deliberately indexable, but it renders the tour client-side and serves 51 words to a crawler (technology#88). Whether it belongs in the sitemap or under a noindex is that issue’s call, not this test’s.',
+}
+
+test('every route is either in the sitemap, under a noindex subtree, or written down', async (t) => {
+  const pages = (await readdir(new URL('../src/app', import.meta.url), { recursive: true }))
+    .map(String)
+    .filter((file) => file.endsWith('page.tsx'))
+    .map((file) => `/${file.replace(/\/?page\.tsx$/, '')}`)
+    .map((route) => (route === '/' ? '' : route))
+
+  const listed = new Set(sitemap().map((entry) => pathOf(entry.url)))
+  const covered = (route: string) =>
+    APP_SUBTREES.some((subtree) => {
+      const prefix = subtree.replace('src/app', '')
+      return route === prefix || route.startsWith(`${prefix}/`)
+    })
+
+  const gap = pages.filter((route) => !listed.has(route) && !covered(route)).sort()
+  t.deepEqual(
+    gap,
+    Object.keys(NEITHER_LISTED_NOR_NOINDEX).sort(),
+    'a route is neither published nor marked as app: put it in the sitemap, put it under a noindex subtree, or add it above with the reason',
   )
 })
 
