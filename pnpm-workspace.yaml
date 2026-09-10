@@ -32,3 +32,4 @@ overrides:
   # package AVA reports through.
   js-yaml@3: '>=3.15.2 <4'
   js-yaml@4: '>=4.3.2 <5'
+  smol-toml: '>=1.7.1' # GHSA-7w5x-hrqm-74c2 (DoS on malformed TOML); knip's config reader, build-time only
