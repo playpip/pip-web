@@ -6,7 +6,7 @@
   "packageManager": "pnpm@11.0.9",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/gen-credits.mjs && next build && node scripts/stamp-sw.mjs && node scripts/gen-llms.mjs",
+    "build": "node scripts/guard-production-build.mjs && node scripts/gen-credits.mjs && next build && node scripts/stamp-sw.mjs && node scripts/gen-llms.mjs",
     "start": "next start",
     "lint": "biome lint .",
     "lint:fix": "biome check --write --unsafe .",
