@@ -68,7 +68,14 @@ export function dailyAiRng(base: number, handIndex: number, from = 0): CountedRn
   return rng
 }
 
-/** The copyable result — calm, no emoji grid, no streak brag. */
+/**
+ * The copyable result — calm, no emoji grid, no streak brag.
+ *
+ * The address is `/daily` rather than the bare domain: the line names a deal
+ * number, and until that page existed the only thing it could point at was a
+ * home page that says nothing about the Daily. Whoever it is pasted to lands on
+ * the thing being talked about.
+ */
 export function dailyShareText(
   dayNo: number,
   place: number | null,
@@ -76,7 +83,7 @@ export function dailyShareText(
   hands: number,
 ): string {
   const finish = place === 1 ? 'won it' : place ? `${ordinal(place)} of ${seats}` : 'played'
-  return `pip daily #${dayNo} · ${finish} · ${hands} ${hands === 1 ? 'hand' : 'hands'} · playpip.io`
+  return `pip daily #${dayNo} · ${finish} · ${hands} ${hands === 1 ? 'hand' : 'hands'} · playpip.io/daily`
 }
 
 export function ordinal(n: number): string {
