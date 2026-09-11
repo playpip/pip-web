@@ -17,16 +17,10 @@ import { ChallengeCard } from './ChallengeCard'
 import { CategoryCard } from './CategoryCard'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import {
-  VENUES,
-  SIDE_TABLES,
-  RING_TABLES,
-  KITCHEN_TABLE,
-  THE_DAILY,
-  freerollOpen,
-} from '@/config/venues'
+import { VENUES, SIDE_TABLES, RING_TABLES, KITCHEN_TABLE, THE_DAILY } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
-import { currentChallenge } from '@/lib/challenge'
+import { challengeOnOffer, freerollOnOffer } from '@/lib/sitDown'
+import { deviceId } from '@/lib/sync/client'
 import { characterById } from '@/config/cast'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
@@ -57,17 +51,23 @@ export function Home() {
   const pearl = characterById('pearl')
   const webb = characterById('webb')
 
-  const broke = freerollOpen(roll)
   // Clock-derived copy renders client-side only (SSR has no local hour).
   const hydrated = useHydrated()
+  // The freeroll button and the challenge card both open a table, so both are
+  // decided on the spendable Roll and by the same function the route uses
+  // (lib/sitDown): a buy-in sitting on another device's table is not being
+  // broke, and it is not a locked band. Client-only because `deviceId()` reads
+  // localStorage, which the prerender does not have, the same reason the
+  // challenge card below has always been.
+  const escrow = useProfile((s) => s.escrow)
+  const sitDown = hydrated ? { roll, escrow, venueRecords, challengeWins, challengesPlayed } : null
+  const broke = sitDown ? freerollOnOffer(sitDown, deviceId()) : false
   // Who is waiting, derived here rather than inside the tile: the grid has to
   // know whether there is a fifth tile before it can pick its column count.
   // Client-only for the same reason the Daily is — it comes from the persisted
   // profile, which the prerender doesn't have, so the first client render has
   // to match the server's and produce the four-tile grid.
-  const challenge = hydrated
-    ? currentChallenge({ roll, venueRecords, challengeWins, challengesPlayed })
-    : null
+  const challenge = sitDown ? challengeOnOffer(sitDown, deviceId()) : null
   const hour = hydrated ? new Date().getHours() : 12
   // The player's own colour — worn by the ambient backdrop and the sparkline.
   const accent = avatar ? accentFromSwatch(avatar.backgroundColor) : 'var(--color-pip)'
