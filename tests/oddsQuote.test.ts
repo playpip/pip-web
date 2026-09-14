@@ -203,6 +203,50 @@ test('the exhaustive answer and a sampled one agree, inside the sample’s own b
   }
 })
 
+// Claim 3, the other half. The test above asks whether the sampler lands inside
+// its band; this one asks whether the band is the right *width*. They can fail
+// separately: a band twice as wide as it should be passes every containment
+// check ever written and quietly tells the reader the calculator is half as
+// good as it is.
+//
+// `sampleBand` is 1.96 standard errors of a binomial proportion, so it claims
+// the estimator's spread across runs is `band / 1.96`. That is checkable
+// directly: run the same spot under many seeds and measure the spread.
+//
+// **Why 1,500 and not 20,000.** The band's width is the same arithmetic at
+// every sample size (the sqrt law above pins that), so the cheapest n tests it.
+// 24 runs at 1,500 is 36,000 showdowns, about four seconds. The full sweep that
+// produced the published coverage table is `pnpm odds-band-coverage`, which
+// deals 2.65M and belongs in a script: 100 runs puts a ±4.3 point band on a
+// coverage rate, so a CI assertion on the rate itself either flakes or passes
+// with a badly broken band.
+test('the band is the width it claims, not just wide enough to contain the answer', (t) => {
+  const spot = { hole: h('8h', '8d'), community: h('Ac', 'Kd', '2s', '9h', '4c'), opponents: 1 }
+  const iterations = 1_500
+
+  const equities = Array.from({ length: 24 }, (_, i) => {
+    return estimateEquity({ ...spot, iterations, rng: mulberry32(101 + i) }).equity
+  })
+  const mean = equities.reduce((a, b) => a + b, 0) / equities.length
+  const sd =
+    Math.sqrt(equities.reduce((a, b) => a + (b - mean) ** 2, 0) / (equities.length - 1)) * 100
+  const claimedSe = sampleBand(mean, iterations) / 1.96
+
+  // Both directions, and both loose, because 24 runs measure a standard
+  // deviation to about ±15% (the relative standard error of an SD is
+  // 1/sqrt(2(n-1))). Measured 1.11 on 2026-09-14. The seeds are fixed, so this
+  // cannot flake: it moves when the estimator or the band moves.
+  const ratio = sd / claimedSe
+  t.true(
+    ratio < 1.6,
+    `the estimator spreads ${sd.toFixed(2)}pts across seeds against the ${claimedSe.toFixed(2)}pt standard error the printed band claims (${ratio.toFixed(2)}x). The band is understating the error, so the calculator is promising more precision than it has.`,
+  )
+  t.true(
+    ratio > 0.6,
+    `the estimator spreads ${sd.toFixed(2)}pts across seeds against the ${claimedSe.toFixed(2)}pt standard error the printed band claims (${ratio.toFixed(2)}x). The band is overstating the error, which is honest but makes the calculator look worse than it is and costs the page a digit.`,
+  )
+})
+
 // --- chopping the work up --------------------------------------------------
 
 test('how the run is chopped into slices does not change the answer', (t) => {
