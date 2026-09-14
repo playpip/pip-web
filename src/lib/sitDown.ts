@@ -27,10 +27,22 @@ import {
 } from '@/lib/challenge'
 import { spendableRoll, type Escrow } from '@/lib/sync/escrow'
 
-/** The profile fields a sit-down is decided from. */
-export interface SitDownInput extends ChallengeInput {
+/**
+ * The two fields any Roll-versus-price question needs.
+ *
+ * Narrower than {@link SitDownInput} on purpose: the freeroll is decided from
+ * the Roll alone, and a caller that only wants that answer should not have to
+ * hold a challenge record to ask for it. Asking for more than the question
+ * needs is how the table's end-of-run overlays ended up calling `freerollOpen`
+ * directly and disagreeing with the route.
+ */
+export interface RollInput {
+  roll: number
   escrow?: Escrow | null
 }
+
+/** The profile fields a sit-down is decided from. */
+export interface SitDownInput extends ChallengeInput, RollInput {}
 
 /** Why the table said no. `null` from {@link refuseSitDown} means it said yes. */
 export type SitDownRefusal = 'cannot-afford' | 'freeroll-closed' | 'not-your-challenge'
@@ -41,7 +53,7 @@ export type SitDownRefusal = 'cannot-afford' | 'freeroll-closed' | 'not-your-cha
  * Exported so a caller that needs the number itself (a price, a locked tile)
  * reads the same one the guard does rather than reaching for `profile.roll`.
  */
-export function rollToSitDownWith(p: SitDownInput, device: string): number {
+export function rollToSitDownWith(p: RollInput, device: string): number {
   return spendableRoll(p.roll, p.escrow, device)
 }
 
@@ -77,7 +89,15 @@ export function challengeOnOffer(p: SitDownInput, device: string): Challenge | n
   return currentChallenge({ ...p, roll: rollToSitDownWith(p, device) })
 }
 
-/** Is the freeroll open to this player? True means they are out of chips. */
-export function freerollOnOffer(p: SitDownInput, device: string): boolean {
+/**
+ * Is the freeroll open to this player? True means they are out of chips.
+ *
+ * Every surface that offers the freeroll has to ask this rather than
+ * `freerollOpen(profile.roll)`, because the route that honours the click asks
+ * it here. A buy-in parked on another device is chips, so it closes the
+ * freeroll, and a surface that has not noticed offers a button that bounces
+ * the player back to the home screen without a word.
+ */
+export function freerollOnOffer(p: RollInput, device: string): boolean {
   return freerollOpen(rollToSitDownWith(p, device))
 }

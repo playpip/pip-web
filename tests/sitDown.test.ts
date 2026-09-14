@@ -153,20 +153,21 @@ function sources(dir: string): { path: string; code: string }[] {
   return out
 }
 
-// The one screen that must keep reading `profile.roll`, and why. `Table.tsx`
-// renders while this device is sat down, which means either the escrow is ours
-// (nothing to reclaim) or another device has taken it and this table is about
-// to be dropped by `dropUnbackedTable` on the next pull. Spending those chips
-// in that window would be spending them twice. Its rebuy is the same rule from
-// the other end: `rebuy()` does not reclaim, so it must not offer to.
-const READS_RAW_ROLL_ON_PURPOSE = 'src/components/table/Table.tsx'
+const TABLE = 'src/components/table/Table.tsx'
 
+// No exemptions. This used to skip `Table.tsx` wholesale, on the grounds that a
+// live table is the one screen where another device's escrow is not ours to
+// spend. That is true of its rebuy and false of the freeroll button next to it,
+// and a file-level skip cannot tell two questions apart. The rule is per-call
+// and it is the one in the decision log: **a gate reads the spendable Roll if
+// and only if the click leads to `sitDown`**, because that is the one path that
+// reclaims. The freeroll button opens a new table through the route, so it
+// qualifies; the rebuy re-seats a table already open here, so it does not.
 test('no screen answers "can I sit down here" for itself', (t) => {
   const asked = /\b(canAfford|freerollOpen|currentChallenge|affordableBand)\s*\(/
   let checked = 0
   for (const dir of ['src/app', 'src/components']) {
     for (const { path, code } of sources(dir)) {
-      if (path === READS_RAW_ROLL_ON_PURPOSE) continue
       checked++
       const hit = asked.exec(code)
       t.is(hit, null, `${path} calls ${hit?.[1]} directly, go through lib/sitDown`)
@@ -175,12 +176,30 @@ test('no screen answers "can I sit down here" for itself', (t) => {
   t.true(checked > 50, `scanned ${checked} files, which is too few to mean anything`)
 })
 
-test('the table screen keeps reading the Roll it can actually spend', (t) => {
-  const code = readFileSync(new URL(`../${READS_RAW_ROLL_ON_PURPOSE}`, import.meta.url), 'utf-8')
+// The two questions the table screen asks about money, which have to stay
+// different. Getting the rebuy wrong spends a buy-in twice; getting the
+// freeroll wrong offers a button that the route refuses, dropping the player on
+// the home screen with nothing to read. `freerollOnOffer` against a stranded
+// Roll is tested above; this is the wiring that decides which one the screen
+// calls.
+test('the table rebuys from the Roll it holds and offers the freeroll from the Roll it can spend', (t) => {
+  const code = readFileSync(new URL(`../${TABLE}`, import.meta.url), 'utf-8')
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/^\s*\/\/.*$/gm, ' ')
-  t.false(
-    /useSpendableRoll|lib\/sitDown|spendableRoll/.test(code),
-    'a live table is the one screen where another device’s escrow is not ours to spend',
+
+  t.regex(
+    code,
+    /roll >= venue\.buyIn/,
+    'the rebuy must stay on profile.roll: rebuy() does not reclaim, so it must not offer to spend a buy-in another device is holding',
+  )
+  t.regex(
+    code,
+    /useFreerollOnOffer\(\)/,
+    'the freeroll button opens a table through the route, so it has to be decided by the function the route uses',
+  )
+  t.notRegex(
+    code,
+    /freerollOpen\s*\(/,
+    'freerollOpen(profile.roll) here disagrees with the route, which asks it against the spendable Roll',
   )
 })

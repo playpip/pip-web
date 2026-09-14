@@ -1,6 +1,7 @@
 'use client'
 
 import { deviceId } from '@/lib/sync/client'
+import { freerollOnOffer } from '@/lib/sitDown'
 import { spendableRoll } from '@/lib/sync/escrow'
 import { useHydrated } from '@/lib/useHydrated'
 import { useProfile } from '@/store/profile'
@@ -24,4 +25,23 @@ export function useSpendableRoll(): number {
   const roll = useProfile((s) => s.roll)
   const escrow = useProfile((s) => s.escrow)
   return hydrated ? spendableRoll(roll, escrow, deviceId()) : roll
+}
+
+/**
+ * Whether to offer the freeroll, answered by the function the route uses.
+ *
+ * The same rule as above and for the same reason: the button opens a table, so
+ * it is decided on the spendable Roll. A surface that asks
+ * `freerollOpen(profile.roll)` instead offers the freeroll to a player whose
+ * chips are on another device's table, and the route then refuses the sit-down
+ * and drops them on the home screen with no message. `tests/sitDown.test.ts`
+ * fails the build on a component importing `freerollOpen` directly.
+ *
+ * Pre-hydration it answers from `roll`, for the same localStorage reason.
+ */
+export function useFreerollOnOffer(): boolean {
+  const hydrated = useHydrated()
+  const roll = useProfile((s) => s.roll)
+  const escrow = useProfile((s) => s.escrow)
+  return freerollOnOffer({ roll, escrow: hydrated ? escrow : null }, hydrated ? deviceId() : '')
 }

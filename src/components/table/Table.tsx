@@ -25,8 +25,9 @@ import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
+import { useFreerollOnOffer } from '@/lib/useSpendableRoll'
 import { ordinal } from '@/lib/recap'
-import { KITCHEN_TABLE, cashOutValue, freerollOpen } from '@/config/venues'
+import { KITCHEN_TABLE, cashOutValue } from '@/config/venues'
 import { nicknameFor } from '@/config/handNames'
 import { tableFinishById } from '@/config/shop'
 import { cardBackById } from '@/config/cardBacks'
@@ -77,6 +78,10 @@ export function Table() {
   } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
+  // The freeroll offer opens a table, so it is decided on the spendable Roll by
+  // the same function the route uses (lib/sitDown). The rebuy below is not: it
+  // spends `roll` at a table already open here and reclaims nothing.
+  const freerollOffered = useFreerollOnOffer()
   const finish = tableFinishById(useProfile((s) => s.tableFinish))
   const { resolvedTheme } = useTheme()
   const adjustRoll = useProfile((s) => s.adjustRoll)
@@ -476,14 +481,14 @@ export function Table() {
               subtitle="The table’s still running — buy back in, or call it a session."
               onHome={goHome}
               primaryLabel={
-                freerollOpen(roll)
+                freerollOffered
                   ? 'Play the freeroll'
                   : roll >= venue.buyIn
                     ? `Rebuy — ${money(venue.buyIn)}`
                     : undefined
               }
               onPrimary={
-                freerollOpen(roll)
+                freerollOffered
                   ? () => {
                       sound.play('call')
                       leave()
@@ -504,9 +509,9 @@ export function Table() {
               subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
               detail={recap && <RunRecap recap={recap} />}
               onHome={goHome}
-              primaryLabel={freerollOpen(roll) ? 'Play the freeroll' : undefined}
+              primaryLabel={freerollOffered ? 'Play the freeroll' : undefined}
               onPrimary={
-                freerollOpen(roll)
+                freerollOffered
                   ? () => {
                       sound.play('call')
                       if (venue.freeroll && heroMeta) {
