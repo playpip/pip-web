@@ -18,6 +18,14 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'how-accurate-is-a-poker-equity-calculator',
+    title:
+      'How accurate is a poker equity calculator? We checked ours against an answer we could count',
+    description:
+      'Every sampled equity number carries an error bar, and almost nobody prints one or tests it. There is exactly one spot where the true answer is countable. Here is what 100 runs against it say about the band we print.',
+    date: '2026-09-14',
+  },
+  {
     slug: 'august-what-shipped',
     title: 'August: what shipped',
     description:
