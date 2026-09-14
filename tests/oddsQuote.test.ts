@@ -215,34 +215,37 @@ test('the exhaustive answer and a sampled one agree, inside the sample’s own b
 //
 // **Why 1,500 and not 20,000.** The band's width is the same arithmetic at
 // every sample size (the sqrt law above pins that), so the cheapest n tests it.
-// 24 runs at 1,500 is 36,000 showdowns, about four seconds. The full sweep that
-// produced the published coverage table is `pnpm odds-band-coverage`, which
-// deals 2.65M and belongs in a script: 100 runs puts a ±4.3 point band on a
-// coverage rate, so a CI assertion on the rate itself either flakes or passes
+// 60 runs at 1,500 is 90,000 showdowns, about eleven seconds. The full sweep
+// that produced the published coverage table is `pnpm odds-band-coverage`,
+// which deals 2.65M and belongs in a script: 100 runs puts a ±4.3 point band on
+// a coverage rate, so a CI assertion on the rate itself either flakes or passes
 // with a badly broken band.
 test('the band is the width it claims, not just wide enough to contain the answer', (t) => {
   const spot = { hole: h('8h', '8d'), community: h('Ac', 'Kd', '2s', '9h', '4c'), opponents: 1 }
   const iterations = 1_500
 
-  const equities = Array.from({ length: 24 }, (_, i) => {
-    return estimateEquity({ ...spot, iterations, rng: mulberry32(101 + i) }).equity
+  const equities = Array.from({ length: 60 }, (_, i) => {
+    return estimateEquity({ ...spot, iterations, rng: mulberry32(7_000 + i) }).equity
   })
   const mean = equities.reduce((a, b) => a + b, 0) / equities.length
   const sd =
     Math.sqrt(equities.reduce((a, b) => a + (b - mean) ** 2, 0) / (equities.length - 1)) * 100
   const claimedSe = sampleBand(mean, iterations) / 1.96
 
-  // Both directions, and both loose, because 24 runs measure a standard
-  // deviation to about ±15% (the relative standard error of an SD is
-  // 1/sqrt(2(n-1))). Measured 1.11 on 2026-09-14. The seeds are fixed, so this
-  // cannot flake: it moves when the estimator or the band moves.
+  // Both directions, and both loose, because 60 runs measure a standard
+  // deviation to about ±9% (the relative standard error of an SD is
+  // 1/sqrt(2(n-1))). Measured 2026-09-14 across four sample sizes: 1.03 at 500,
+  // 1.11 at 1,500, 1.05 at 5,000, 0.92 at 20,000, all inside that error of a
+  // true 1.0, so the band is the right width and these bounds are the
+  // measurement's precision rather than a tolerance for drift. The seeds are
+  // fixed, so this cannot flake: it moves when the estimator or the band moves.
   const ratio = sd / claimedSe
   t.true(
-    ratio < 1.6,
+    ratio < 1.4,
     `the estimator spreads ${sd.toFixed(2)}pts across seeds against the ${claimedSe.toFixed(2)}pt standard error the printed band claims (${ratio.toFixed(2)}x). The band is understating the error, so the calculator is promising more precision than it has.`,
   )
   t.true(
-    ratio > 0.6,
+    ratio > 0.7,
     `the estimator spreads ${sd.toFixed(2)}pts across seeds against the ${claimedSe.toFixed(2)}pt standard error the printed band claims (${ratio.toFixed(2)}x). The band is overstating the error, which is honest but makes the calculator look worse than it is and costs the page a digit.`,
   )
 })
