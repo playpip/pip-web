@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import type { Metadata } from 'next'
 import test from 'ava'
 import sitemap from '@/app/sitemap'
+import { NEITHER_LISTED_NOR_NOINDEX, NOINDEX_SUBTREES } from '@/config/routeStates'
 import { RSS_URL, SITE_URL } from '@/config/site'
 
 // Every URL we put in the sitemap is a URL we are asking a search engine to
@@ -130,13 +131,11 @@ test('the pages that inherit the site card do it on purpose', async (t) => {
 // canonical and the home page's own title tag, plus /stats, /hand and
 // /reset-password. The ruling was applied to the route that got caught rather
 // than to the rule, for the fourth time on this repository.
-const APP_SUBTREES = [
-  'src/app/game',
-  'src/app/play',
-  'src/app/stats',
-  'src/app/hand',
-  'src/app/reset-password',
-] as const
+//
+// The list itself lives in src/config/routeStates.ts, because
+// /blog/sitemap-is-not-noindex publishes it and a post describing a guard has
+// to read the guard rather than a copy of it.
+const APP_SUBTREES = NOINDEX_SUBTREES.map((subtree) => subtree.dir)
 
 for (const subtree of APP_SUBTREES) {
   test(`every route under ${subtree.replace('src/app', '')} is noindex, and none of them is in the sitemap`, async (t) => {
@@ -187,20 +186,10 @@ for (const subtree of APP_SUBTREES) {
   })
 }
 
-/**
- * Routes that are neither in the sitemap nor under a noindex subtree, and the
- * reason each is allowed to sit in that gap.
- *
- * An inventory rather than a ban, and the point is that a new one makes
- * somebody write the reason down. Being absent from the sitemap instructs
- * nobody, so every route lands in exactly one of three states: published and
- * listed, app and noindex, or here with an argument.
- */
-const NEITHER_LISTED_NOR_NOINDEX: Record<string, string> = {
-  '/tutorial':
-    'prose-shaped and deliberately indexable, but it renders the tour client-side and serves 51 words to a crawler (technology#88). Whether it belongs in the sitemap or under a noindex is that issue’s call, not this test’s.',
-}
-
+// The third state: routes that are neither in the sitemap nor under a noindex
+// subtree, and the reason each is allowed to sit in that gap. An inventory
+// rather than a ban, and the point is that a new one makes somebody write the
+// reason down. It lives in src/config/routeStates.ts with the subtree list.
 test('every route is either in the sitemap, under a noindex subtree, or written down', async (t) => {
   const pages = (await readdir(new URL('../src/app', import.meta.url), { recursive: true }))
     .map(String)
