@@ -59,7 +59,7 @@ export function routeOf(subtree: (typeof NOINDEX_SUBTREES)[number]['dir']): stri
  */
 export const NEITHER_LISTED_NOR_NOINDEX: Record<string, string> = {
   '/tutorial':
-    'prose-shaped and deliberately indexable, but it renders the tour client-side and serves 51 words to a crawler (technology#88). Whether it belongs in the sitemap or under a noindex is that issue’s call, not this test’s.',
+    'prose-shaped, and out of the sitemap since #116 because it renders the tour client-side and serves 51 words to a crawler. Still crawlable, which nobody has argued for either way: it is linked from /learn and the landing page and is a tour for people rather than a page we want ranked.',
 }
 
 /**
