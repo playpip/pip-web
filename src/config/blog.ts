@@ -18,6 +18,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'sitemap-is-not-noindex',
+    title: 'A route missing from your sitemap is not noindexed',
+    description:
+      'Leaving a URL out of the sitemap instructs nobody. Ours never listed the game, Google indexed it anyway under the home page’s title, and the fix we shipped covered one route and missed thirty-two. What replaced it: every route is published, noindex, or written down with a reason.',
+    date: '2026-09-15',
+  },
+  {
     slug: 'how-accurate-is-a-poker-equity-calculator',
     title:
       'How accurate is a poker equity calculator? We checked ours against an answer we could count',
