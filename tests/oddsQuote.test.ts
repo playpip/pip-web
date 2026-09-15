@@ -232,11 +232,14 @@ test('the band is the width it claims, not just wide enough to contain the answe
     Math.sqrt(equities.reduce((a, b) => a + (b - mean) ** 2, 0) / (equities.length - 1)) * 100
   const claimedSe = sampleBand(mean, iterations) / 1.96
 
-  // Both directions, and both loose, because 60 runs measure a standard
-  // deviation to about ±9% (the relative standard error of an SD is
-  // 1/sqrt(2(n-1))). Measured 2026-09-14 across four sample sizes: 1.03 at 500,
-  // 1.11 at 1,500, 1.05 at 5,000, 0.92 at 20,000, all inside that error of a
-  // true 1.0, so the band is the right width and these bounds are the
+  // Both directions, and both loose, because 60 runs only pin a standard
+  // deviation to about ±9% and that is one standard error, not an interval: the
+  // relative standard error of an SD is 1/sqrt(2(n-1)), which is 9.2% here, so
+  // a true ratio of 1.0 gives a 95% interval of 0.82 to 1.18. Measured
+  // 2026-09-14 across four sample sizes: 1.03 at 500, 1.11 at 1,500, 1.05 at
+  // 5,000, 0.92 at 20,000. Every row is inside that interval, so the band is
+  // the right width; 1.11 is 1.2 standard errors out, which is where a
+  // 60-sample SD sits a fair share of the time. The bounds below are the
   // measurement's precision rather than a tolerance for drift. The seeds are
   // fixed, so this cannot flake: it moves when the estimator or the band moves.
   const ratio = sd / claimedSe
