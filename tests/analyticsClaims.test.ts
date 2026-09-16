@@ -26,6 +26,7 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'first-hand': 'someone played their first hand',
   'sync-signed-up': 'someone created an account',
   'sync-conflict': 'two devices disagreed about a Roll',
+  'sync-auth-attempt': 'someone tried to sign in',
   'sync-auth-unreachable': 'whether a sign-in reached our servers at all',
 }
 

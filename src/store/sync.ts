@@ -191,6 +191,7 @@ export const useSync = create<SyncState>()((set, get) => ({
   },
 
   signUp: async (email, password) => {
+    trackOnce('sync-auth-attempt')
     const sb = await getSupabase()
     if (!sb) return false
     set({ busy: true, error: null })
@@ -208,6 +209,14 @@ export const useSync = create<SyncState>()((set, get) => ({
   },
 
   signIn: async (email, password) => {
+    // The denominator. `sync-auth-unreachable` on its own is a count of tabs
+    // that got no answer, and a count is not a share: 40 of them is a crisis at
+    // 100 attempts and a rounding error at 40,000. Both events are trackOnce,
+    // so both count tabs rather than presses, and the numerator is a subset of
+    // this one. Fired before getSupabase() so an attempt on a build shipped
+    // without the Supabase config still lands here, where it reads as attempts
+    // with no outcome at all.
+    trackOnce('sync-auth-attempt')
     const sb = await getSupabase()
     if (!sb) return false
     set({ busy: true, error: null })
