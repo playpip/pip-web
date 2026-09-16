@@ -29,12 +29,13 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { Wordmark } from './Wordmark'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
-import { VENUES, SIDE_TABLES, FORMAT_LABELS, type Venue } from '@/config/venues'
+import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
 import { ACCOUNT_OFFER } from '@/config/account'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
 import { guideBySlug } from '@/config/learn'
 import { useProfile } from '@/store/profile'
+import { dailyShareText } from '@/lib/daily'
 import { useHydrated } from '@/lib/useHydrated'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -651,22 +652,33 @@ function CustomizeStrip() {
   )
 }
 
-/** The Daily's copyable result line, as it comes out of the app. */
+/**
+ * The Daily's copyable result line, as it comes out of the app.
+ *
+ * Rendered by the function the app shares with, not typed out beside it. The
+ * hand-written version sat here for the month after `dailyShareText` started
+ * appending `playpip.io/daily`, so the page advertising the loop was showing
+ * the one part of the line that makes it a loop as absent.
+ *
+ * It wraps rather than truncates: the address is the last thing on the line,
+ * which is exactly what `truncate` eats first on a phone.
+ */
 function DailyShareMock() {
   return (
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
-      <div className="flex items-center justify-between gap-3">
-        {/* min-w-0: without it the nowrap line sets the card's min-content and
-            the whole feature grid overflows the phone screen */}
-        <span className="min-w-0 truncate font-mono text-sm text-muted-foreground">
-          pip daily #142 · 2nd of 5 · 34 hands
+      <div className="flex items-start justify-between gap-3">
+        <span className="min-w-0 break-words font-mono text-sm text-muted-foreground">
+          {dailyShareText(142, 2, THE_DAILY.seats, 34)}
         </span>
         <span className="shrink-0 rounded-lg bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium">
           Copied
         </span>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        No streaks, no countdowns — tomorrow is simply another deal.
+        No streaks, no countdowns. Tomorrow is simply another deal.{' '}
+        <Link href="/daily" className="font-medium text-foreground transition hover:text-pip">
+          How the Daily works
+        </Link>
       </p>
     </div>
   )
