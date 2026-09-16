@@ -1,5 +1,6 @@
 import test from 'ava'
 import { readFileSync } from 'node:fs'
+import { ALIAS_HEADER, ALIAS_RULE } from '@/config/aliasNoindex'
 
 // `public/_headers` is the one file in this repo that can take the whole site
 // out of Google in a single line, and nothing was reading it.
@@ -70,10 +71,16 @@ test('the pages.dev duplicate of the site is noindexed', (t) => {
   // returned 200 with the current production build and no x-robots-tag at all.
   // Cloudflare adds noindex to preview deployments only; the production alias
   // does not get one.
-  const rule = PARSED.find((r) => r.pattern === 'https://pip-web-9oj.pages.dev/*')
+  //
+  // Read off src/config/aliasNoindex.ts rather than typed here, because
+  // /blog/cloudflare-pages-dev-duplicate publishes those same constants as the
+  // fix. Three copies of one rule is how a post ends up describing a file that
+  // has moved on; this way the post, this test and public/_headers agree or
+  // the build fails.
+  const rule = PARSED.find((r) => r.pattern === ALIAS_RULE)
   t.truthy(rule, 'the production pages.dev alias has no rule, so it is indexable')
   t.true(
-    (rule?.headers ?? []).some((h) => /^x-robots-tag:\s*noindex$/i.test(h)),
-    'the alias rule no longer sets noindex',
+    (rule?.headers ?? []).some((h) => h.toLowerCase() === ALIAS_HEADER.toLowerCase()),
+    'the alias rule no longer sets the header the blog post says it sets',
   )
 })

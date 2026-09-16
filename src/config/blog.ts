@@ -18,6 +18,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'cloudflare-pages-dev-duplicate',
+    title: 'Your Cloudflare Pages site is on Google twice',
+    description:
+      'Cloudflare noindexes preview deployments and says nothing about the production pages.dev alias, which serves your whole site on a second host. Ours did, for five weeks, with a correct canonical tag on every page. The two-line rule that fixed it, why it is not a redirect, and the test that stops the same file deindexing the real domain.',
+    date: '2026-09-16',
+  },
+  {
     slug: 'sitemap-is-not-noindex',
     title: 'A route missing from your sitemap is not noindexed',
     description:
