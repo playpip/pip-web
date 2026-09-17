@@ -153,18 +153,23 @@ export default function LandingPageMockupsPost() {
           anything, fussy about this.
         </p>
         <p>
-          Every one of them reads <code>src/lib</code> or <code>src/app</code>. None of them had any
-          concept that a component in the marketing folder could be making a factual claim about the
-          product, because it does not look like a claim. It looks like layout. A sentence saying
-          &ldquo;your shared hand fits in a URL&rdquo; is obviously a claim and gets checked; a{' '}
-          <code>&lt;span&gt;</code> containing a short fake URL says the same thing more
-          persuasively and gets read as design.
+          Two of them walk this exact file. They read every line of the landing page on every run,
+          and they did it while all three cards were wrong, because what they are looking for is a
+          phrase. A banned form of words about money. A sentence that contradicts the roadmap. Miss
+          the phrase and you catch the claim.
+        </p>
+        <p>
+          A mock is not a phrase. Nobody was ever going to add <code>Top pair, good kicker</code> to
+          a list of sentences we must not write, because until you go and read{' '}
+          <code>evaluateHand</code> it is not a false sentence, it is a plausible label. The same
+          goes for a short URL: no string in it is wrong. What is wrong is the relationship between
+          it and a function somewhere else, and grep cannot see a relationship.
         </p>
         <p>
           That is the generalisable bit, and we do not think it is specific to us. If your marketing
           page draws your product&rsquo;s output rather than screenshotting it, you have written
-          claims in a file nobody is checking, in a format that survives every rename and refactor
-          because nothing imports it.
+          claims that no amount of looking for bad sentences will find, in a file that survives
+          every rename and refactor because nothing imports it.
         </p>
       </Section>
 
