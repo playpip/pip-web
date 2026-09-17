@@ -74,8 +74,13 @@ equity + pot odds + a personality.
   Logic: estimate equity vs live opponents — **ranging each by how much they've
   backed the hand** (`opponentSelectivity`, so it doesn't over-call into aggression)
   → compare to pot odds (tightness, plus a little more when players are still to act
-  behind it) → value-bet/raise strong hands, check/call medium, fold weak, occasionally
-  bluff (less so out of position). Bet sizing is a jittered fraction of the pot,
+  behind it) → value-bet/raise strong hands, fold weak, occasionally bluff (less so
+  out of position). On the **flop and turn** a pot checked to it is also bet at a
+  lower frequency and a smaller size with the band in between: the draws and
+  marginal made hands that are neither value nor a bluff (`SEMI_BLUFF` in
+  `config/aiGates.ts`, measured by `pnpm lead-band`). The river is deliberately not
+  in that list: a complete board holds no draws, so the same hand there is a thin
+  value bet rather than a semi-bluff. Bet sizing is a jittered fraction of the pot,
   clamped to legal bounds. **Preflop, `tightness` is the looseness dial**: it sets a
   starting-hand-quality cutoff (`holeStrength`) below which a holding won't open-bluff
   and folds to any bet, and it scales how far the continue decision discounts (loose,

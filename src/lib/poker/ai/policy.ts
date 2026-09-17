@@ -7,6 +7,7 @@ import {
   POSTFLOP_GATE,
   PREFLOP_RAISE_STRENGTH,
   PREFLOP_RAISE_THIN_STRENGTH,
+  SEMI_BLUFF,
 } from '@/config/aiGates'
 import type { Rng } from '../cards'
 import { legalActions, potSize, type Action, type HandState } from '../engine'
@@ -220,8 +221,46 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
       equity < fairShare * POSTFLOP_GATE.bluffCeiling &&
       !trashPreflop &&
       roll < profile.bluff * (1 - posPressure * 0.5)
-    if ((wantsValue || wantsBluff) && (legal.canBet || legal.canRaise)) {
-      const fraction = wantsValue ? 0.55 + profile.aggression * 0.25 : 0.5
+
+    // Between those two gates sits every holding too good to bluff and not good
+    // enough for value, and until this branch existed the AI could not bet one
+    // of them at any table, at any aggression, ever. Heads-up that band is 0.40
+    // to 0.62, which is where draws and second pair live, so betting it is what
+    // semi-bluffing and thin value *are*: a bot that cannot bet a flush draw is
+    // passive by construction rather than by personality. `pnpm lead-band`
+    // measures how much of a flop lands in it; against a loose range it is over
+    // a third of them.
+    //
+    // **Flop and turn only.** The band's whole justification is that it holds
+    // draws, and a complete board has none: a river hand at half the pot's
+    // equity is a marginal made hand, and betting it is thin value, which is a
+    // different argument and one this change does not make. No rate is quoted
+    // for that choice, because the first version of this comment quoted one off
+    // 40 hands and it did not survive 300.
+    //
+    // **`semiBluffStreet` naming the two streets is the whole guard**, and it is
+    // what keeps preflop out. Preflop this branch is the big blind in a limped
+    // pot, where equity is measured against a whole field and the decision is
+    // gated on holding quality instead (see the raise gates above); betting
+    // there was calibrated separately and must not move. `tests/ai.test.ts`
+    // fails if that list ever grows.
+    //
+    // The three bands are disjoint by equity and tile the range with no gap, so
+    // sharing the single `roll` with the other two branches is safe: at most one
+    // of them can be live for a given hand. That stops being true the moment a
+    // gate moves past its neighbour, so a test pins the ordering.
+    const semiBluffStreet = state.street === 'flop' || state.street === 'turn'
+    const wantsSemiBluff =
+      semiBluffStreet &&
+      equity >= fairShare * POSTFLOP_GATE.bluffCeiling &&
+      equity <= fairShare * POSTFLOP_GATE.lead &&
+      roll <
+        (SEMI_BLUFF.base + profile.aggression * SEMI_BLUFF.perAggression) * (1 - posPressure * 0.5)
+
+    if ((wantsValue || wantsBluff || wantsSemiBluff) && (legal.canBet || legal.canRaise)) {
+      let fraction = 0.5
+      if (wantsValue) fraction = 0.55 + profile.aggression * 0.25
+      else if (wantsSemiBluff) fraction = SEMI_BLUFF.size
       return {
         type: legal.canBet ? 'bet' : 'raise',
         amount: sizedRaise(
