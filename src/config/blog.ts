@@ -18,6 +18,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'landing-page-mockups',
+    title: 'The mock-ups on your landing page are untested claims',
+    description:
+      'Our home page draws four small pictures of what the game produces. Three were typed out by hand and all three had drifted: a share line missing the address that makes it a loop, a hand permalink six characters long on the card that says there is no server, and an equity read labelled with a phrase the game has never emitted, over a percentage its own caption contradicted. Why the suite stayed green, and the two ways to draw your own output that are true by construction.',
+    date: '2026-09-17',
+  },
+  {
     slug: 'cloudflare-pages-dev-duplicate',
     title: 'Your Cloudflare Pages site is on Google twice',
     description:
