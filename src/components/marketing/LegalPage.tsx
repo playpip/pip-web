@@ -117,6 +117,19 @@ export function Item({ children }: { children: React.ReactNode }) {
   )
 }
 
+/**
+ * A file in this repository, named and linked at the point the prose talks about
+ * it. `tests/sourceLinks.test.ts` fails if the path does not exist, so a rename
+ * breaks the build rather than the link.
+ */
+export function Src({ path, children }: { path: string; children?: React.ReactNode }) {
+  return (
+    <A href={`https://github.com/playpip/pip-web/blob/main/${path}`}>
+      {children ?? <code>{path}</code>}
+    </A>
+  )
+}
+
 /** An external link, styled to sit calmly in body copy. */
 export function A({ href, children }: { href: string; children: React.ReactNode }) {
   // A mailto: has nowhere to open, and target="_blank" leaves a stray tab behind.

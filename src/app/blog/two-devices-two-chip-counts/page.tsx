@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { LegalPage, Section, List, Item, A } from '@/components/marketing/LegalPage'
+import { LegalPage, Section, List, Item, A, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'two-devices-two-chip-counts')!
@@ -57,8 +57,10 @@ export default function TwoDevicesTwoChipCountsPost() {
 
       <Section title="The rule">
         <p>
-          Everything that can only grow merges in your favour, whichever device you pick, because
-          gaining it can never cost you anything:
+          It is <Src path="src/lib/sync/merge.ts" />, one rule per field, and{' '}
+          <Src path="tests/syncMerge.test.ts" /> has a case for each of the ones below. Everything
+          that can only grow merges in your favour, whichever device you pick, because gaining it
+          can never cost you anything:
         </p>
         <List>
           <Item>
