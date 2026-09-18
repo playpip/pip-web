@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { A, LegalPage, Section } from '@/components/marketing/LegalPage'
+import { A, LegalPage, Section, Src } from '@/components/marketing/LegalPage'
 import { ALIAS_FOUND_ON, ALIAS_HEADER, ALIAS_HOST, ALIAS_RULE } from '@/config/aliasNoindex'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
@@ -103,7 +103,7 @@ export default function PagesDevDuplicatePost() {
           trying not to pay for.
         </p>
         <p>
-          <code>public/_headers</code> is read by the CDN, applies per host, and costs nothing at
+          <Src path="public/_headers" /> is read by the CDN, applies per host, and costs nothing at
           runtime.
         </p>
       </Section>
@@ -130,7 +130,7 @@ export default function PagesDevDuplicatePost() {
           the one file here that can do that, and nothing was reading it.
         </p>
         <p>
-          So something does now. <code>tests/headers.test.ts</code> parses the file the way Pages
+          So something does now. <Src path="tests/headers.test.ts" /> parses the file the way Pages
           does, an unindented line being a pattern and the indented lines under it being its
           headers, and holds one invariant: no rule that sets <code>noindex</code> may match the
           site itself. It collects the offending rules and compares the list to empty, rather than

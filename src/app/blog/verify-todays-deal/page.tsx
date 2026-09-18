@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { A, Item, LegalPage, List, Section } from '@/components/marketing/LegalPage'
+import { A, Item, LegalPage, List, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import {
   PROOF_DAILY_NUMBER,
@@ -138,11 +138,11 @@ export default function VerifyTodaysDealPost() {
           anything.
         </p>
         <p>
-          The code was already public, in{' '}
-          <A href="https://github.com/playpip/pip-web/blob/main/src/lib/daily.ts">one small file</A>
-          , so this post is less a disclosure than a shortcut past reading it. Today&rsquo;s deal is
-          at <A href="https://playpip.io/game">playpip.io</A>, and it is the same one everybody else
-          got.
+          The code was already public, in <Src path="src/lib/daily.ts" />, one small file, and the
+          numbers on this page are re-derived from it on every build by{' '}
+          <Src path="tests/dailyProof.test.ts" />, so this post is less a disclosure than a shortcut
+          past reading it. Today&rsquo;s deal is at <A href="https://playpip.io/game">playpip.io</A>
+          , and it is the same one everybody else got.
         </p>
       </Section>
     </LegalPage>
