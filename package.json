@@ -30,7 +30,8 @@
     "coach-sim": "tsx scripts/coach-sim.ts",
     "play-it-out-cost": "tsx scripts/play-it-out-cost.ts",
     "odds-band-coverage": "tsx scripts/odds-band-coverage.ts",
-    "lead-band": "tsx scripts/lead-band.ts"
+    "lead-band": "tsx scripts/lead-band.ts",
+    "cash-sim": "tsx scripts/cash-sim.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
