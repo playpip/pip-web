@@ -17,7 +17,7 @@ import { ChallengeCard } from './ChallengeCard'
 import { CategoryCard } from './CategoryCard'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import { VENUES, SIDE_TABLES, RING_TABLES, KITCHEN_TABLE, THE_DAILY } from '@/config/venues'
+import { VENUES, SIDE_SHELF, RING_TABLES, KITCHEN_TABLE, THE_DAILY } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { challengeOnOffer, freerollOnOffer } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
@@ -50,7 +50,6 @@ export function Home() {
   // arbitrary icon available for it.
   const pearl = characterById('pearl')
   const webb = characterById('webb')
-
   // Clock-derived copy renders client-side only (SSR has no local hour).
   const hydrated = useHydrated()
   // The freeroll button and the challenge card both open a table, so both are
@@ -145,6 +144,12 @@ export function Home() {
         <div
           className={cn(
             'grid grid-cols-2 gap-3 md:gap-4',
+            // Four tiles, five with a challenger, and it stays that way. The
+            // membership briefly added two more, and six 16:10 tiles across made
+            // every table on the row smaller — the opposite of what this row is
+            // for (Will, 2026-09-19). **The lobby does not grow a tile per
+            // feature.** Everything the membership adds is a format twist, so it
+            // lives on the side tables with the other format twists.
             challenge ? 'md:grid-cols-5' : 'md:grid-cols-4',
           )}
         >
@@ -170,7 +175,7 @@ export function Home() {
             art="side"
             accent="#E06D8C"
             title="Side Tables"
-            subtitle={`${SIDE_TABLES.length} formats`}
+            subtitle={`${SIDE_SHELF.length} formats`}
             onClick={() => go('/game/side')}
             delay={0.25}
           />

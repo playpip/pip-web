@@ -558,6 +558,99 @@ export const CAST: readonly Character[] = [
       ],
     },
   },
+
+  // --- the member tables: after hours, and nobody is going home --------------
+  //
+  // Pinned to the member tables, which has a consequence worth stating:
+  // `rosterFor` returns pinned characters *instead of* the band's regulars, and
+  // `draftCast` then tops up from the wider cast when a table seats more than
+  // the pins can fill. Three pins at a six-seat table means you always meet one
+  // or two of these and the rest are faces you know. That is the intended feel
+  // — another room in the same building, not a different game — and it is why
+  // there are three of them rather than five.
+  //
+  // No `challenge` lines: a pinned character can never be drawn as a challenger
+  // (`lib/challenge` excludes them the same way it excludes Pearl and Sable),
+  // so writing invitations for them would be dead copy in the one file that is
+  // pure voice.
+  {
+    id: 'bev',
+    name: 'Bev',
+    bio: 'Runs the lock-in. Has never once called time.',
+    avatar: av('bev', 'ffe0b2'),
+    bands: ['mid'],
+    only: [
+      'deepstack-750',
+      'deepstack-2000',
+      'deepstack-5000',
+      'deepstack-15000',
+      'deepstack-40000',
+      'bigpot',
+    ],
+    delta: { tightness: 0.04, aggression: 0.06 },
+    lines: {
+      seat: ['Bev bolts the door and deals.', '“Nobody’s in a rush,” says Bev, dealing.'],
+      win: [
+        'Bev rakes it in and tops up her own glass.',
+        '“House rules,” says Bev, of a rule she has just invented.',
+      ],
+      bust: ['Bev finally calls time. On herself.', 'Bev stands. The door is still bolted.'],
+    },
+  },
+  {
+    id: 'dez',
+    name: 'Dez',
+    bio: 'Finishes his shift, starts his stack.',
+    avatar: av('dez', 'b2dfdb'),
+    bands: ['mid'],
+    only: [
+      'deepstack-750',
+      'deepstack-2000',
+      'deepstack-5000',
+      'deepstack-15000',
+      'deepstack-40000',
+      'bigpot',
+    ],
+    delta: { tightness: -0.05, aggression: 0.04 },
+    lines: {
+      seat: ['Dez sits down still in his hi-vis.', '“Ten minutes,” says Dez, at half past one.'],
+      win: [
+        'Dez stacks the pot like it is overtime.',
+        '“That’s the gas bill,” says Dez, of money that does not exist.',
+      ],
+      bust: [
+        'Dez checks the time and pretends to be surprised.',
+        'Dez leaves to sleep through the afternoon.',
+      ],
+    },
+  },
+  {
+    id: 'winnie',
+    name: 'Winnie',
+    bio: 'Knits through every hand. Counts every card.',
+    avatar: av('winnie', 'd7ccc8'),
+    bands: ['mid'],
+    only: [
+      'deepstack-750',
+      'deepstack-2000',
+      'deepstack-5000',
+      'deepstack-15000',
+      'deepstack-40000',
+      'bigpot',
+    ],
+    delta: { tightness: 0.08, aggression: -0.03 },
+    lines: {
+      seat: [
+        'Winnie sets the needles down. Briefly.',
+        'Winnie has been here longer than the table.',
+      ],
+      win: [
+        'Winnie picks the needles back up.',
+        '“Two rows while you were thinking,” says Winnie.',
+      ],
+      bust: ['Winnie packs the wool away, unbothered.', 'Winnie leaves with a finished sleeve.'],
+    },
+  },
 ] as const
 
 /** Band by buy-in, so new venues are covered automatically. */

@@ -187,6 +187,30 @@ const SCENES: Record<string, Scene> = {
     </>
   ),
 
+  // Build a table — an empty felt with the chairs still being set. Three seats
+  // placed, one gap where the next one goes.
+  custom: (c) => (
+    <>
+      <ellipse cx="60" cy="52" rx="30" ry="19" fill={c} fillOpacity={0.3} />
+      <ellipse cx="60" cy="52" rx="23" ry="13" fill={c} fillOpacity={0.16} />
+      <rect x="30" y="34" width="9" height="9" rx="2" fill={c} fillOpacity={0.8} />
+      <rect x="55" y="25" width="9" height="9" rx="2" fill={c} fillOpacity={0.8} />
+      <rect x="81" y="34" width="9" height="9" rx="2" fill={c} fillOpacity={0.8} />
+      {/* the empty chair */}
+      <rect
+        x="55"
+        y="70"
+        width="9"
+        height="9"
+        rx="2"
+        fill="none"
+        stroke={c}
+        strokeOpacity={0.55}
+        strokeWidth={1.4}
+      />
+    </>
+  ),
+
   // The Rail's rooms — chip towers that grow with the stakes. Micro is a couple
   // of modest stacks; the nosebleeds are a skyline.
   'ring-micro': (c) => chipStacks(c, [3, 2], 66),

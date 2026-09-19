@@ -5,6 +5,7 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { PageShell } from '@/components/PageShell'
 import { RollGraph } from '@/components/RollGraph'
 import { CountUp } from '@/components/CountUp'
+import Link from 'next/link'
 import { PlayStyleChart } from './PlayStyleChart'
 import { RankLadder } from './RankLadder'
 import { useProfile } from '@/store/profile'
@@ -141,6 +142,16 @@ export function StatsPage() {
               {Math.max(0, 20 - style.hands)} more hands and your style earns a name.
             </p>
           )}
+          {/* The chart says where you are; the report says what it is costing
+              you and what to do about it. One text link, on the page that is
+              already about your own play — not a banner, and nowhere near a
+              hand. */}
+          <Link
+            href="/game/report"
+            className="mt-4 text-center text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+          >
+            Read the full report
+          </Link>
         </Card>
 
         {/* right column: roll graph over a grid of numbers */}

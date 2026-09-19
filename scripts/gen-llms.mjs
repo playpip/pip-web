@@ -76,6 +76,7 @@ const PAGES = [
   { route: '/poker-odds-calculator', file: 'poker-odds-calculator.html' },
   { route: '/blog', file: 'blog.html' },
   { route: '/credits', file: 'credits.html' },
+  { route: '/membership', file: 'membership.html' },
   { route: '/privacy', file: 'privacy.html' },
   { route: '/terms', file: 'terms.html' },
 ]

@@ -126,6 +126,10 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
     opponentSelectivity: opponents.map((p) => opponentSelectivity(state, p)),
     iterations: profile.iterations,
     rng,
+    // Without this the AI would be estimating Hold'em equity for a four-card
+    // hand: it would read its own first two cards and every opponent as two
+    // random ones, and play a different game from the one on the table.
+    variant: state.variant,
   })
 
   // Unskilled players misread their hand strength. The noisy estimate feeds

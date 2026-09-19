@@ -4,6 +4,11 @@ The venue ladder is the progression spine of Pip: 10 **sit-and-go tournaments** 
 100-buy-in garage up to the 1,000,000 Main Event, each with tougher AI. Defined in
 `src/config/venues.ts`.
 
+Several arrays live there, and `ALL_VENUES` is the union every route and lookup reads:
+`VENUES` (the ladder), `SIDE_TABLES`, `RING_TABLES` (the Rail), `CHALLENGE_TABLES`,
+**`DEEP_STACK_TABLES`** and **`BIG_POT`** (the membership's), plus the Kitchen Table, the
+Daily, and the custom-table route placeholder.
+
 ## The ladder
 
 | # | id | Name | Buy-in | Blinds | Prize | AI feel |
@@ -49,6 +54,60 @@ overrides (`handsPerLevel`, `startingStack`, `seats`, `bounty`). Bounties are pa
 the moment you take every chip in a hand that busts an opponent (the same seam as
 The Bouncer chip) and show on the handover banner. Side-table prizes are budgeted
 like the ladder (≈ buy-in × seats, minus the bounty pool on bounty tables).
+
+## What the membership adds
+
+Two cards on the side tables, not a category of their own. This started as five member
+rooms with their own lobby tile and browser page, and that made the home screen six 16:10
+tiles wide — which shrank every table on the row, the opposite of what that row is for
+(Will, 2026-09-19). The rooms were mostly variations on stack depth, so they collapsed into
+one card that asks how deep you want to play for. **The lobby does not grow a tile per
+feature.**
+
+Both are ordinary tables in every way that touches a hand: same engine, same shuffle, same
+AI policy, `prize = buyIn × seats` exactly as on the ladder. They are **ranked**, and that
+is not pay-to-win — see [membership.md](./membership.md).
+
+### Deep Stack
+
+`DEEP_STACK_TABLES` — **five registered venues wearing one card.** The side-tables page
+shows `DEEP_STACK_DEFAULT` (2,000) and the info dialog swaps between the rest with a stake
+picker.
+
+| id | Buy-in | Stack | Blinds | Opposition |
+|----|-------:|------:|-------:|------------|
+| `deepstack-750` | 750 | 2,250 | 5/10 | The Pool Hall's |
+| `deepstack-2000` | 2,000 | 6,000 | 15/30 | The Card Room's |
+| `deepstack-5000` | 5,000 | 15,000 | 25/50 | Downtown Casino's |
+| `deepstack-15000` | 15,000 | 45,000 | 75/150 | The Riverboat's |
+| `deepstack-40000` | 40,000 | 120,000 | 200/400 | The Penthouse's |
+
+Six seats, three times the buy-in in chips, and a twelve-hand level at every stake: deep is
+the point, so it is the thing that does not vary.
+
+**Why five venues rather than one with a dynamic buy-in.** Every route is generated at build
+time under the static export, nothing new has to persist, `venueById` resolves a deep link
+on its own, and `tests/ai.test.ts` bands each profile the day it lands. A dynamic buy-in
+would have bought a persisted field, a migration and a resolution step in `PlayClient` to
+save four declarative config entries.
+
+**The stake picks the opposition**, taken whole from the ladder rung at the same price —
+the same rule a built table follows. There is no difficulty setting, and the dialog says so.
+
+### The Big Pot
+
+`BIG_POT` — 5,000 buy-in, 10,000 stack, six seats, and the only table in the app that deals
+a different game: **`variant: 'omaha'`**. Deep on purpose, because Omaha is a drawing game
+and short stacks turn it into a coin flip. See
+[poker-engine.md → Variants](./poker-engine.md#variants) for the rules and for the known
+approximation in its opponents' personalities.
+
+### The regulars
+
+Bev, Dez and Winnie are pinned to these tables, so `rosterFor` returns them instead of the
+band's and `draftCast` tops up from the wider cast. Being pinned is also what keeps them out
+of the challenge pool, so no free player's scalp shelf grows because they exist — see
+[cast.md](./cast.md).
 
 ## The Rail (cash / ring tables)
 
@@ -151,8 +210,16 @@ interface Venue {
   prize: number         // winner-take-all, added to Roll on a win
   ai: AiProfile         // { tightness, aggression, bluff, iterations, skill? }
   accent: string        // hex; the tier chip colour
+  membersOnly?: boolean // comes with the membership; absent means free forever
+  variant?: Variant     // 'omaha' deals four and plays pot-limit; absent means Hold'em
 }
 ```
+
+**`membersOnly` absent is not a default anyone may change later.** Rule 1 is that we never
+charge for something that shipped free, so a venue registered without the flag has given
+itself away. A new paid table must carry it in the same commit that registers it, and
+`tests/sitDown.test.ts` pins the exact set of paid venue ids so that neither adding nor
+removing one can land quietly.
 
 `AiProfile` scales up the ladder on two axes. **Personality** — higher
 `tightness`/`aggression`/`bluff` and more equity `iterations` (sharper reads) at
@@ -163,13 +230,20 @@ freeroll sits below the ladder at 0.3. See `docs/poker-engine.md`.
 
 ## Adding / editing a venue
 
-1. Add an entry to `VENUES` in `config/venues.ts` (keep the array ordered low→high).
+1. Add an entry to the right array in `config/venues.ts` — `VENUES` for a ladder rung
+   (keep it ordered low→high), `SIDE_TABLES` / `RING_TABLES` otherwise.
    Pick a unique `id`; set `buyIn` (~50–100× the big blind reads well) and a `prize`
-   (≈ `buyIn × seats`).
+   (`buyIn × seats`, minus `bounty × (seats − 1)` on a bounty table).
 2. Give it an `accent` and an `AiProfile` that fits its position on the ladder.
-3. Add art (below). Until an image exists it falls back to a geometric SVG scene.
-4. No other code changes needed — the menu, routing, unlock logic, and economy
-   are all data-driven from `VENUES`.
+3. **If it is paid, set `membersOnly: true` in the same commit**, and add its id to the
+   pinned list in `tests/sitDown.test.ts`. If it is free, do neither.
+4. Add art (below). Until an image exists it falls back to a geometric SVG scene.
+5. No other code changes needed — the menu, routing, unlock logic, and economy
+   are all data-driven from `ALL_VENUES`.
+
+**`tests/ai.test.ts` will measure it the moment it lands in `ALL_VENUES`** — every table is
+held to a VPIP/PFR band, and a profile that plays like a calling station fails the build
+without anybody editing a test. It costs about a second a table.
 
 > Changing an existing `id` orphans its image mapping — prefer adding over renaming.
 

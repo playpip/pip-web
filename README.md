@@ -57,6 +57,13 @@ play money only, no pop-ups, no fake felt.
   winner's stake buys you back onto the ladder.
 - **Ambient help** — live win-% equity, hand strength, plain-English reads on
   opponents, and a reviewable last-hand history. Informative, never nagging.
+- **Drills** — short spots with a right answer, graded by the engine rather than by
+  a lookup table, and never metered. *Which hand wins?* is free forever.
+- **Pot-Limit Omaha** — four hole cards, and you must use exactly two of them with
+  exactly three from the board. Same engine, genuinely different game.
+- **Build your own table** — seats, stakes, stack depth, blind speed, bounty, and
+  which regulars sit down. The opposition still comes from the buy-in, so you
+  can't build yourself an easy game.
 - **Yours, locally, and on every device if you want** — your profile, Roll (bankroll),
   rank, collection, and style live in localStorage (versioned, exportable), and play
   needs no account at all. A free account is an email and a password with nothing to
@@ -70,8 +77,27 @@ play money only, no pop-ups, no fake felt.
   <img src="docs/assets/table-dark.png" width="380" alt="Pip's table, dark theme" />
 </p>
 
-Play money only: balances are **chips**, never a currency. The only shop takes
-chips you won at the table — nothing costs real money, ever.
+Play money only: balances are **chips**, never a currency. Chips cannot be bought
+and cannot be cashed out, and the Chip Shop only ever takes chips you won at the
+table.
+
+### What's free, and what isn't
+
+**Pip is free to play and most of it is open to everybody** — the whole ladder,
+every side table, the cash games, the Daily, the Chip Shop, the freeroll, the guides,
+the odds calculator, and the read on every hand you play. Nothing that shipped free
+ever gets metered later.
+
+There is also an optional **membership** (£5.99/mo or £49/yr) that adds more to
+play: extra rooms, Pot-Limit Omaha, build-your-own-table, a report on your own
+play across every hand, and spectating after you bust. It's a real fence and we'd
+rather call it one than pretend otherwise. **It is not pay-to-win** — pay-to-win
+means buying an advantage over another player, and Pip is single-player with no
+leaderboard. Nothing you can buy changes a hand: not the cards, the odds, what
+you're shown, or a rebuy. See [ROADMAP → How Pip pays for itself](ROADMAP.md).
+
+**There is no checkout yet**, so as of today nobody is a member and nobody has paid
+anything.
 
 ## Quick start
 
@@ -120,6 +146,7 @@ Full documentation lives in [`docs/`](docs/README.md):
 | [venues.md](docs/venues.md) | The venue ladder and venue art |
 | [awards.md](docs/awards.md) | Collectible "special chips" — the set, triggers, visuals |
 | [shop.md](docs/shop.md) | The Chip Shop & earned unlocks — style, never edge |
+| [membership.md](docs/membership.md) | What is paid, what is free, and the rules that keep it honest |
 | [design.md](docs/design.md) | Theme tokens, typography, motion, sound |
 | [brand.md](docs/brand.md) | The name, the voice (including the dry line), the anti-casino principles |
 | [development.md](docs/development.md) | Setup, testing, conventions, gotchas |
@@ -156,11 +183,17 @@ provably fair by inspection, not by promise. The product docs in [`docs/`](docs/
 are the source of truth for everything from the [brand](docs/brand.md) to the
 [economy](docs/game-flow.md).
 
-Openness is a deliberate foundation: as Pip grows to include things you can pay for
-(cosmetics and extras — never pay-to-win) and social/multiplayer play, a public
-codebase is what keeps the anti-scam promise honest. Contributions welcome.
+Openness is a deliberate foundation: now that Pip has things you can pay for — extra
+rooms, formats and tools, **never pay-to-win** — and multiplayer on the roadmap, a
+public codebase is what keeps the anti-scam promise honest. It does real work here:
+anyone who suspects a member room deals differently can read
+[`config/venues.ts`](src/config/venues.ts) and the engine beside it and find that it
+does not. Contributions welcome.
 
-Play money only, forever — chips are never a currency, and nothing is for sale.
+**Play money only, forever.** Chips are never a currency: they cannot be bought, they
+cannot be cashed out, and the only shop takes chips you won at the table. The optional
+membership buys access to more of the game and never a chip, a card, or an edge in a
+hand.
 
 *Keywords: poker · texas hold'em · sit-and-go · tournament · play money ·
 single player · card game · next.js · react · typescript*

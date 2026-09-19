@@ -28,7 +28,8 @@ Each `Character` in `src/config/cast.ts`:
 - **`bands`** — where they play: `low` / `mid` / `high`, derived from venue
   buy-ins (`bandFor`), so new venues get a roster automatically.
 - **`only`** — pins a character to specific venues instead: Uncle Ray hosts the
-  Kitchen Table; Sable is the Vault's boss. Pinned characters never wander.
+  Kitchen Table; Sable is the Vault's boss; Bev, Dez and Winnie keep the member
+  rooms. Pinned characters never wander.
 - **`delta`** — small nudges (±0.12 max) over the venue's `AiProfile`
   (tightness / aggression / bluff). **The venue owns difficulty** — `skill` and
   `iterations` are never touched, so the ladder curve is exactly as tuned.
@@ -75,16 +76,27 @@ design exists to avoid. No line names a stake, a venue or a reward, so tuning an
 those cannot make one stale.
 
 Optional on the type, required by the gate: `tests/challenge.test.ts` fails if a
-*challengeable* character lacks one. Ray, Pearl and Sable are pinned to a venue and can
-never be challenged, so requiring it on the type would mean writing invitations nobody
-can ever accept.
+*challengeable* character lacks one. Ray, Pearl, Sable, Bev, Dez and Winnie are pinned to
+a venue and can never be challenged, so requiring it on the type would mean writing
+invitations nobody can ever accept.
 
 ## Non-goals
 
 - No character progression, moods, or grudges — tendencies are observed, not
   scripted arcs.
 - No dialogue *at* the player mid-hand; talk never interrupts a decision.
-- No paid or unlockable characters. The troupe is the world, not inventory.
+- **No character is inventory.** You cannot buy one, collect one, or unlock one
+  individually, and there is no roster to complete.
+
+  This used to read "no paid or unlockable characters", and three of them now live
+  behind the membership — Bev, Dez and Winnie keep the member rooms. The line has been
+  corrected rather than quietly reinterpreted. **The distinction that survives, and the
+  one that matters:** what the membership sells is a *room*, and a room has regulars the
+  way every other room does. Nobody is priced, listed or sold, and no free player's
+  collection gets longer because they exist — they are pinned, so `challengeable`
+  excludes them and the scalp shelf still reads `0 of 22`. `tests/challenge.test.ts`
+  pins that number, and if a future member character is not pinned **the fix is to pin
+  them, not to raise the 22**. See [membership.md](./membership.md).
 
 ## Where to make changes
 

@@ -10,6 +10,7 @@ import type { AvatarSpec } from '@/lib/avatar'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
+import type { CustomTableSpec } from '@/config/customTable'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
 import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
 import { track } from '@/lib/analytics'
@@ -178,6 +179,20 @@ export interface ProfileState {
    * (technology#90). The rules are pure and live in lib/sync/escrow.
    */
   escrow: Escrow | null
+  /**
+   * The last table this player built, or null.
+   *
+   * One slot rather than a library: the value is in building the thing, and a
+   * saved-tables list is a management screen nobody asked for. It persists so
+   * that "play it again" costs no clicks and, more importantly, so a refresh
+   * mid-tournament can resolve `/play/custom` back into the table that is
+   * actually on the screen.
+   *
+   * Persisted, therefore client-written, therefore **not trusted for anything
+   * that matters**: `refuseCustomTable` re-checks every field on the way in, so
+   * a hand-edited blob is a refusal rather than a 40-seat table.
+   */
+  customTable: CustomTableSpec | null
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -188,6 +203,8 @@ export interface ProfileState {
   /** Record newly earned award chips (already-owned ids are left untouched). */
   grantAwards: (ids: string[]) => void
   setCameFromFreeroll: (value: boolean) => void
+  /** Remember the table they just built. */
+  setCustomTable: (spec: CustomTableSpec) => void
   /** Fold a hand's observed tendencies into each character's career record. */
   mergeCastStats: (deltas: Record<string, Partial<SeatStats>>) => void
   /** You took this character's last chip. */
@@ -243,7 +260,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 17
+export const PERSIST_VERSION = 18
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -282,6 +299,7 @@ export const useProfile = create<ProfileState>()(
       challengesPlayed: 0,
       drills: {},
       escrow: null,
+      customTable: null,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -316,6 +334,7 @@ export const useProfile = create<ProfileState>()(
           return { awards }
         }),
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
+      setCustomTable: (spec) => set({ customTable: spec }),
       mergeCastStats: (deltas) =>
         set((s) => {
           const ids = Object.keys(deltas)
@@ -462,6 +481,7 @@ export const useProfile = create<ProfileState>()(
           challengesPlayed: 0,
           drills: {},
           escrow: null,
+          customTable: null,
         }),
     }),
     {
@@ -567,6 +587,10 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // another device). Null reads as "unclaimed" rather than "not yours", so
   // their tournament survives and the resume path claims it on the way in.
   if (fromVersion < 17) s.escrow = null
+  // v17 -> v18: build-your-own-table. Null for everybody, including members:
+  // there is nothing to infer from an older profile, and a null slot is the
+  // same state as a member who has never opened the builder.
+  if (fromVersion < 18) s.customTable = null
   return s
 }
 

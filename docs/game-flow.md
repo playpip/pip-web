@@ -15,7 +15,7 @@ enough to afford higher buy-ins.
 ## Stores
 
 ### `profile` (persisted — localStorage)
-Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **15**) with a `migrate` hook.
+Key: `pip.profile`, versioned (`PERSIST_VERSION`, currently **18**) with a `migrate` hook.
 - `created`, `name`, `avatar`, `roll` (bankroll), **`peakRoll`** (drives rank title),
   `stats` (hands, showdowns, tournaments, biggest pot), **`rollHistory`** (Roll
   sampled at tournament results/cash-outs, capped ring buffer — feeds the stats

@@ -5,7 +5,7 @@
 
 import type { Card, Rng } from './cards'
 import { shuffledDeck } from './cards'
-import { determineWinners } from './handEval'
+import { HOLE_CARDS, type Variant, determineWinners } from './handEval'
 import { buildPots, type Pot } from './pots'
 
 export type Street = 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'complete'
@@ -62,6 +62,16 @@ export interface HandState {
   toActIndex: number
   pots: Pot<string>[]
   result: HandResult | null
+  /**
+   * Which game this hand is.
+   *
+   * On the state rather than passed around because every rule that differs —
+   * how many cards were dealt, how a showdown is read, what a raise may be —
+   * has to agree with the deal that already happened. A hand that was dealt
+   * four cards and then evaluated as Hold'em is the bug this field exists to
+   * make impossible.
+   */
+  variant: Variant
 }
 
 export interface SeatConfig {
@@ -79,6 +89,8 @@ export interface StartHandOptions {
   rng?: Rng
   /** Preset deck (tests). Cards are drawn from the END of the array. */
   deck?: Card[]
+  /** Defaults to Hold'em, so every existing caller is unchanged. */
+  variant?: Variant
 }
 
 // --- seat iteration helpers ------------------------------------------------
@@ -122,8 +134,10 @@ export function startHand(opts: StartHandOptions): HandState {
     hasActed: false,
   }))
 
-  // Deal two hole cards to each dealt-in player.
-  for (let round = 0; round < 2; round++) {
+  // Deal each dealt-in player their hole cards, one card per player per round
+  // the way a dealer does it. Two at Hold'em, four at Omaha.
+  const variant = opts.variant ?? 'holdem'
+  for (let round = 0; round < HOLE_CARDS[variant]; round++) {
     for (const p of players) {
       if (p.status !== 'out') p.hole.push(deck.pop()!)
     }
@@ -142,6 +156,7 @@ export function startHand(opts: StartHandOptions): HandState {
     toActIndex: -1,
     pots: [],
     result: null,
+    variant,
   }
 
   const dealt = players.filter((p) => p.status !== 'out').length
@@ -193,13 +208,41 @@ export interface LegalActions {
   maxRaiseTo: number
 }
 
+/**
+ * The most a pot-limit player may put it to.
+ *
+ * The standard rule, written out because it is the one people get wrong: you
+ * may raise by the size of the pot *after* your call. So the pot you are
+ * raising into is everything already committed plus the chips you are about to
+ * call, and your maximum total for this action is that call plus that pot —
+ *
+ *     maxTo = committedThisStreet + toCall + (pot + toCall)
+ *
+ * — where `pot` is every chip committed this hand, on every street, including
+ * the current round's bets. A first bet on a street has `toCall === 0`, which
+ * collapses to "bet the pot", exactly as it should.
+ *
+ * Capped by the stack upstream: pot-limit never lets you put in more than you
+ * have, and it never stops you putting in all of it when the pot is bigger.
+ */
+function potLimitMaxTo(state: HandState, p: Player, toCall: number): number {
+  const pot = state.players.reduce((sum, player) => sum + player.committedThisHand, 0)
+  return p.committedThisStreet + toCall + (pot + toCall)
+}
+
 export function legalActions(state: HandState): LegalActions | null {
   const p = state.players[state.toActIndex]
   if (!p || !canAct(p)) return null
 
   const toCall = state.currentBet - p.committedThisStreet
-  const maxRaiseTo = p.committedThisStreet + p.stack
+  const allInTo = p.committedThisStreet + p.stack
   const betOpen = state.currentBet > 0
+
+  // Omaha is pot-limit here, and Hold'em is no-limit. They are not separate
+  // settings because we do not ship the other two combinations, and a `betting`
+  // field nothing varies independently would be a lie about the design.
+  const maxRaiseTo =
+    state.variant === 'omaha' ? Math.min(allInTo, potLimitMaxTo(state, p, toCall)) : allInTo
 
   const minBetTo = state.bigBlind
   const minRaiseTo = state.currentBet + state.lastRaiseSize
@@ -210,7 +253,11 @@ export function legalActions(state: HandState): LegalActions | null {
     callAmount: Math.min(toCall, p.stack),
     canCall: toCall > 0 && p.stack > 0,
     canBet: !betOpen && p.stack > 0,
-    canRaise: betOpen && p.stack > toCall,
+    // At pot limit the cap can sit below the minimum raise on a short stack, in
+    // which case the only legal aggressive action is all-in — and that is
+    // already covered by calling. Offering a raise you cannot size is worse
+    // than not offering one.
+    canRaise: betOpen && p.stack > toCall && maxRaiseTo > state.currentBet,
     minRaiseTo: Math.min(betOpen ? minRaiseTo : minBetTo, maxRaiseTo),
     maxRaiseTo,
   }
@@ -381,7 +428,11 @@ function resolveShowdown(state: HandState): HandState {
 
   for (const pot of pots) {
     const contenders = pot.eligible.map((id) => ({ id, hole: byId.get(id)!.hole }))
-    const { winners, evaluations: evals } = determineWinners(contenders, state.community)
+    const { winners, evaluations: evals } = determineWinners(
+      contenders,
+      state.community,
+      state.variant,
+    )
     for (const [id, ev] of evals) {
       evaluations[id] = { name: ev.name, description: ev.description }
     }

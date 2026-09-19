@@ -1,8 +1,13 @@
 # The Poker Engine
 
-`src/lib/poker/` is a **pure, framework-free, deterministic, unit-tested** Texas
-Hold'em engine. No React, no I/O, no globals. It is the source of truth for the rules.
-Everything here is portable to a server unchanged.
+`src/lib/poker/` is a **pure, framework-free, deterministic, unit-tested** poker engine.
+No React, no I/O, no globals. It is the source of truth for the rules. Everything here
+is portable to a server unchanged — which is not a hypothetical: it is the property the
+multiplayer plan rests on (`cto/drafts/build-multiplayer.md`).
+
+**It plays two games.** No-Limit Hold'em everywhere, and Pot-Limit Omaha at the one
+table that asks for it. See [Variants](#variants) — the difference is a single field on
+`HandState`, on purpose.
 
 ## Modules
 
@@ -20,9 +25,28 @@ Everything here is portable to a server unchanged.
 ### `handEval.ts`
 Thin typed wrapper over **pokersolver** (a CommonJS module; see
 `src/types/pokersolver.d.ts`).
-- `evaluateHand(hole, community): EvaluatedHand` — best 5-from-7; `{ name, description, categoryRank, solved }`.
-- `determineWinners(contenders, community): { winners, evaluations }` — handles ties
-  (multiple winners share) and kickers. This is what showdown uses.
+- `Variant = 'holdem' | 'omaha'`, and `HOLE_CARDS` — how many cards each deals (2 / 4).
+- `evaluateHand(hole, community, variant = 'holdem'): EvaluatedHand` — best five;
+  `{ name, description, categoryRank, solved }`.
+- `determineWinners(contenders, community, variant = 'holdem'): { winners, evaluations }`
+  — handles ties (multiple winners share) and kickers. This is what showdown uses.
+
+**Both default to Hold'em**, so every call site that predates Omaha is unchanged and
+cannot silently acquire the other game's rules.
+
+**The Omaha reading is enumerated here rather than delegated.** pokersolver has an
+undocumented `'omahahi'` game in some versions; this project has a blog post about
+trusting that library's undocumented behaviour, so the rule is implemented where it can
+be tested. Sixty candidates (six ways to take two of four hole cards × ten ways to take
+three of five board cards), each solved as an exact five-card hand, compared with
+pokersolver's own `winners`. Sixty `solve` calls at a showdown is nothing; the equity
+sim is the hot path and is bounded by its own iteration count.
+
+**Before three board cards there is no legal Omaha hand**, so the variant falls back to
+a free solve of whatever is on the table. Nothing settles a pot in that state — a
+showdown always has five — and the only callers are strength estimates before a board
+exists. Documented because a silent fallback inside a rules file is how a wrong showdown
+ships.
 
 ### `pots.ts`
 Main + side pot construction — a classic bug source, isolated and heavily tested.
@@ -42,11 +66,13 @@ Key types:
 - `Player`, `HandState`, `SeatConfig`.
 
 Key functions:
-- `startHand(opts): HandState` — deals hole cards, posts blinds (heads-up: button =
-  SB and acts first preflop; multiway: SB left of button, action starts left of BB).
-  Accepts a seeded `rng` or a preset `deck` (drawn from the **end** via `pop()`).
+- `startHand(opts): HandState` — deals hole cards (two, or four when
+  `opts.variant === 'omaha'`), posts blinds (heads-up: button = SB and acts first
+  preflop; multiway: SB left of button, action starts left of BB). Accepts a seeded
+  `rng` or a preset `deck` (drawn from the **end** via `pop()`).
 - `legalActions(state): LegalActions | null` — what the player to act may do, with
-  `callAmount`, `minRaiseTo`, `maxRaiseTo` (all-in), and can-flags.
+  `callAmount`, `minRaiseTo`, `maxRaiseTo`, and can-flags. `maxRaiseTo` is the all-in
+  amount at No-Limit and the **pot-limit cap** at Omaha (see Variants).
 - `applyAction(prev, action): HandState` — validates, applies, advances. Enforces
   min-raise (a short all-in does **not** re-open the action), advances streets, deals
   the board, runs it out when betting is closed, resolves showdown, splits pots
@@ -88,6 +114,61 @@ equity + pot odds + a personality.
 - `opponentSelectivity(state, opp)` is exported and shared with the store's hero
   "win %" read, so both sides model opponent ranges identically.
 - Difficulty scales per venue via the profile (see `config/venues.ts`).
+
+## Variants
+
+`HandState.variant` is one field and everything that differs follows from it. It lives on
+the state rather than being passed around because every rule that varies has to agree with
+the deal that already happened: **a hand dealt four cards and then evaluated as Hold'em is
+exactly the bug this field exists to make impossible.**
+
+| | No-Limit Hold'em | Pot-Limit Omaha |
+|---|---|---|
+| `variant` | `'holdem'` (the default everywhere) | `'omaha'` |
+| Hole cards | 2 | 4 |
+| Showdown | best five of seven, free-form | **exactly two from hand + exactly three from board** |
+| Max raise | all-in | the pot after your call |
+| Where | every table | `bigpot` (The Big Pot), members only |
+
+**The two-from-hand rule is the one everybody gets wrong**, including several commercial
+sites historically. Four hearts in your hand is not a flush unless three hearts are also on
+the board. A board that is a full house by itself does not give you that full house — you
+must still play two of your own cards. `tests/omaha.test.ts` pins both, plus a property
+test that deals 60 random hands and asserts the winning five is always reconstructible as
+two hole cards and three board cards.
+
+**Pot-limit, written out, because it is arithmetic with an off-by-one in it.** You may
+raise by the size of the pot *after* your call, so the pot you are raising into includes
+the chips you are about to put in:
+
+```
+maxRaiseTo = committedThisStreet + toCall + (pot + toCall)
+```
+
+where `pot` is every chip committed this hand on every street, including the current
+round's bets. A first bet on a street has `toCall === 0`, which collapses to "bet the pot".
+Capped at the stack, so pot-limit never lets you put in more than you have and never stops
+you putting in all of it when the pot is bigger. One consequence worth knowing: on a short
+stack the cap can fall below the minimum raise, in which case `canRaise` is false and the
+only aggressive action left is calling all-in.
+
+**Equity knows too.** `estimateEquity({ variant })` deals opponents four cards and reads
+showdowns under the same rule; without it the AI would be estimating Hold'em equity for an
+Omaha hand and playing a different game from the one on the table. `opponentSelectivity` is
+**ignored** at Omaha rather than reused — the ranged draw weights two-card holdings by a
+Hold'em notion of strength and there is no honest way to stretch that to four, so Omaha
+estimates are raw equity against random hands.
+
+**A known approximation, stated rather than hidden.** The Big Pot's opponents use the
+Downtown Casino's `AiProfile`, because that is what a 5,000 buy-in seats you against
+everywhere else. Their equity reading is genuinely Omaha, but their tightness, aggression
+and bluff numbers were banded against two cards. It is the table most in need of a tuning
+pass, and it is on the roadmap as such.
+
+**Adding a third variant** would mean: a `Variant` member, an entry in `HOLE_CARDS`, a
+branch in `evaluateHand`, whatever betting rule it needs in `legalActions`, and the
+`variant` threaded into `estimateEquity`. Nothing else — the store, the table and the
+economy all take a `Venue` and never ask what game it is.
 
 ## Invariants worth preserving (and how they're tested)
 

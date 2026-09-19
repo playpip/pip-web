@@ -24,9 +24,11 @@ export interface CardBackDesign {
   /**
    * How a non-free back is unlocked. `venueWin` alone → earned free by winning
    * that venue. `price` alone → bought in the Chip Shop. Both → the win unlocks
-   * the *right to buy*. Style, never edge (docs/shop.md).
+   * the *right to buy*. `membersOnly` → comes with the membership, and never
+   * has a `price`, because no Chip Shop price is ever payable in cash
+   * (docs/shop.md rule 3). Style, never edge, whichever it is.
    */
-  unlock?: { venueWin?: string; price?: number }
+  unlock?: { venueWin?: string; price?: number; membersOnly?: true }
 }
 
 // Slimmed to five (2026-07-18): the free set is a tight, distinct starter spread
@@ -204,10 +206,61 @@ export const SHOP_BACKS: readonly CardBackDesign[] = [
   },
 ] as const
 
+// Member backs — four designs that come with the membership.
+//
+// **The ids are not venue ids and never were.** They were named after four
+// member rooms that have since collapsed into one Deep Stack card, and the
+// designs outlived the rooms because a card back is a card back. Renaming an id
+// orphans a player's saved choice for nothing, so the ids stayed and the names
+// were freed from the rooms.
+//
+// **Their own shelf, and never a Chip Shop price.** Pearl sells for chips you
+// won and nothing on her shelves is ever payable in cash (docs/shop.md rule 3).
+// These carry no `price` at all, which is what keeps the two economies from
+// touching: there is no exchange rate between a membership and a souvenir.
+//
+// They sit in `ALL_CARD_BACKS` and so appear, locked, in the Style picker for
+// everybody. That is the same call the member rooms make and for the same
+// reason — you cannot want what you cannot see, and hiding it would make the
+// strip silently rearrange itself the day somebody joins. The picker is a
+// strip with no `X of N`, so nothing here enlarges a free player's denominator;
+// the shelves that *do* count are in ChipsDialog and these are not on them.
+export const MEMBER_BACKS: readonly CardBackDesign[] = [
+  {
+    id: 'back-lockin',
+    name: 'Lock-In',
+    color: '#B5835A',
+    pattern: 'crosshatch',
+    unlock: { membersOnly: true },
+  },
+  {
+    id: 'back-backroom',
+    name: 'Back Room',
+    color: '#3F8F7A',
+    pattern: 'diamonds',
+    unlock: { membersOnly: true },
+  },
+  {
+    id: 'back-rematch',
+    name: 'Nightcap',
+    color: '#7A6FD1',
+    pattern: 'rings',
+    unlock: { membersOnly: true },
+  },
+  {
+    id: 'back-lastorders',
+    name: 'Last Orders',
+    color: '#D4614A',
+    pattern: 'waves',
+    unlock: { membersOnly: true },
+  },
+] as const
+
 export const ALL_CARD_BACKS: readonly CardBackDesign[] = [
   ...CARD_BACKS,
   ...EARNED_BACKS,
   ...SHOP_BACKS,
+  ...MEMBER_BACKS,
 ]
 
 const byId = new Map(ALL_CARD_BACKS.map((d) => [d.id, d]))
@@ -219,14 +272,27 @@ export function cardBackById(id: string): CardBackDesign {
 
 /**
  * Is this design usable? Free designs always; earned ones once the venue is
- * won; priced ones once bought (a hybrid's venue win only gates the *purchase*).
+ * won; priced ones once bought (a hybrid's venue win only gates the *purchase*);
+ * member ones while the membership is live.
+ *
+ * `member` is last and defaults to false so that the answer for every design
+ * that predates the membership is unchanged by the argument existing. A design
+ * with no `unlock` is still free to everybody, which is the direction that
+ * matters: the default must never be "paid".
+ *
+ * **A member back locks again when a membership lapses**, and that is correct
+ * rather than harsh — it is a cosmetic, the profile keeps the id, and picking
+ * it up again is re-subscribing. What it must never do is take a *bought* back
+ * away, which is why `price` and `membersOnly` never appear on the same design.
  */
 export function cardBackUnlocked(
   design: CardBackDesign,
   wonVenues: ReadonlySet<string>,
   owned: ReadonlySet<string>,
+  member = false,
 ): boolean {
   if (!design.unlock) return true
+  if (design.unlock.membersOnly) return member
   if (design.unlock.price !== undefined) return owned.has(design.id)
   return design.unlock.venueWin !== undefined && wonVenues.has(design.unlock.venueWin)
 }

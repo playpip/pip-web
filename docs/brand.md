@@ -30,6 +30,22 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
 
 1. **No scam energy.** Play money only. No real currency, no `$` symbols (balances read
    `N chips`). No dark patterns, no forced pop-ups, no pay-to-win.
+
+   **What "pay-to-win" means here, since the membership made it a live question**
+   (Will, 2026-09-16): buying an advantage *over another player*. Pip is single-player,
+   there is no leaderboard, and there is nobody to overtake — so there is no contest a
+   member can buy their way to the front of. Member rooms are ranked and a member does
+   reach a rank sooner for having more tables to win at, but that is pace through
+   single-player content, which is what every game with paid content sells. If somebody
+   wants to farm chips, that is their evening.
+
+   **The line doing the real work underneath it is narrower and absolute: nothing you can
+   buy changes a hand** — not the cards, the odds, the information on screen, or a rebuy.
+   That one holds in every case, including the one below.
+
+   ⚠️ **This argument has to be made again the day multiplayer ships**, because then there
+   is somebody to win against and "no leaderboard" stops being the answer. Whoever specs
+   multiplayer owns re-opening it — see `cto/drafts/build-multiplayer.md`.
 2. **Clean over decorated.** Flat, black-first, one accent at a time. No skeuomorphic felt.
 3. **Calm information.** Helpful stats (win %, hand strength) are ambient, never nagging.
 4. **Premium restraint.** Subtle motion and sound; generous space; nothing gratuitous.
@@ -49,10 +65,12 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
 6. **Open by default.** Pip is open source — the deterministic, seeded engine most of
    all. Anyone can read exactly how a hand is dealt and shuffled, fork it, or self-host.
    This is a deliberate trust foundation, not a footnote: when we later add things you
-   can pay for (cosmetics, extras — never pay-to-win) and social/multiplayer play,
+   can pay for (rooms, formats, cosmetics, coaching) and social/multiplayer play,
    *"you can read the code"* is what keeps the no-scam promise credible. Provably fair
-   beats "trust us." Guard this — closing the source, or shipping logic the public repo
-   doesn't reflect, would quietly break the brand's core promise.
+   beats "trust us." **It also does the arguing for us on the membership**: anyone who
+   suspects a member room deals differently can read `config/venues.ts` and the engine and
+   find that it does not. Guard this — closing the source, or shipping logic the public
+   repo doesn't reflect, would quietly break the brand's core promise.
 
 ## Voice & tone
 

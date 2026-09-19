@@ -1,3 +1,4 @@
+import { type MembersOnly, included } from '@/config/membership'
 import type { DrillKindId } from '@/lib/drills/types'
 
 // The drills' table of contents. Each kind is a screen in the app, under
@@ -29,7 +30,7 @@ import type { DrillKindId } from '@/lib/drills/types'
 // metered puzzles are the exact behaviour this app is positioned against. What
 // we sell is another whole kind, never a slice of this one.
 
-export interface DrillKind {
+export interface DrillKind extends MembersOnly {
   /** URL segment under /game/drills, and the kind's id in the engine. */
   id: DrillKindId
   /** The kind's name, on the index tile and at the top of its screen. */
@@ -50,17 +51,10 @@ export interface DrillKind {
    * is five, a turn is four and a flop is three.
    */
   boardCards: number
-  /**
-   * Part of the membership rather than free.
-   *
-   * Absent means free forever, and that is not a default anyone may change
-   * later: rule #8 says we never charge for something that shipped free, so a
-   * kind that ships without this flag has given itself away. **A new kind that
-   * is meant to be paid must carry it in the same commit that registers it**,
-   * or it is free by accident and the box the membership is priced from empties
-   * itself on the way to being sold (technology#55).
-   */
-  membersOnly?: boolean
+  // `membersOnly` comes from MembersOnly in config/membership.ts, which is also
+  // where the argument for why an absent flag means free forever lives. It used
+  // to be written out here; venues, cosmetics and formats now carry the same
+  // flag and one copy of that reasoning is the point.
 }
 
 // **No seed lives here.** It used to: a `firstSeed` per kind, fixed so that the
@@ -127,7 +121,7 @@ export const DRILL_KINDS: DrillKind[] = [
  * page.
  */
 export function canPlayDrill(kind: DrillKind, member: boolean): boolean {
-  return member || !kind.membersOnly
+  return included(kind, member)
 }
 
 /**

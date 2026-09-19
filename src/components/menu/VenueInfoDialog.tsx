@@ -13,7 +13,8 @@ import { ChallengerFace } from '@/components/menu/ChallengerFace'
 import { Lock, XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import type { Character } from '@/config/cast'
-import { FORMAT_LABELS, VENUES, type Venue } from '@/config/venues'
+import { FORMAT_LABELS, VENUES, deepStackFamily, isDeepStack, type Venue } from '@/config/venues'
+import { useState } from 'react'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 
@@ -82,6 +83,7 @@ export function VenueInfoDialog({
   venue,
   challenger,
   playable,
+  canAfford,
   onOpenChange,
   onPlay,
 }: {
@@ -94,17 +96,43 @@ export function VenueInfoDialog({
    */
   challenger?: Character
   playable: boolean
+  /**
+   * Can the Roll cover this stake?
+   *
+   * Needed only where the dialog can change which venue it is showing: a player
+   * who opens Deep Stack at 2,000 and taps 40,000 has not changed their Roll,
+   * and `playable` was decided about the card they tapped. Without this the Play
+   * button stays lit on a stake they cannot buy into, and the route refuses them
+   * — the dead click `lib/sitDown` exists to prevent, reintroduced one dialog
+   * over. Omitted where nothing can change (the Daily).
+   */
+  canAfford?: (venue: Venue) => boolean
   onOpenChange: (open: boolean) => void
   onPlay: (venue: Venue) => void
 }) {
   const money = useMoney()
+  // The stake, when the table has more than one.
+  //
+  // Deep Stack is five registered venues wearing one card (config/venues.ts), so
+  // "choose your stakes" is picking which of them you are looking at rather than
+  // recomputing a venue on the fly. Everything below — the stack, the blinds, the
+  // prize, the difficulty dots and the Play button — reads `shown`, so it all
+  // follows the choice with no extra wiring.
+  //
+  // Held in state rather than lifted, because the caller has no reason to care,
+  // and reset by `key` on this component rather than an effect: `open` is
+  // `venue !== null`, so a new venue is a new mount.
+  const [stake, setStake] = useState<Venue | null>(null)
   if (!venue) return <Dialog open={false} onOpenChange={onOpenChange} />
 
-  const difficulty = venueDifficulty(venue)
-  const rung = VENUES.findIndex((v) => v.id === venue.id) + 1
-  const note = formatNote(venue)
-  const escalates = venue.escalation !== false
-  const pace = venue.handsPerLevel ?? HANDS_PER_LEVEL
+  const stakes = isDeepStack(venue) ? deepStackFamily() : null
+  const shown = (stakes && stake) || venue
+
+  const difficulty = venueDifficulty(shown)
+  const rung = VENUES.findIndex((v) => v.id === shown.id) + 1
+  const note = formatNote(shown)
+  const escalates = shown.escalation !== false
+  const pace = shown.handsPerLevel ?? HANDS_PER_LEVEL
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
@@ -198,26 +226,55 @@ export function VenueInfoDialog({
             </section>
           )}
 
+          {/* stakes — only where there is a choice to make */}
+          {stakes && (
+            <section>
+              <p className="mb-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                Your stakes
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {stakes.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setStake(option)}
+                    className={cn(
+                      'rounded-xl border px-3 py-1.5 text-sm tabular-nums transition',
+                      option.id === shown.id
+                        ? 'border-foreground/40 bg-foreground/[0.06] font-semibold'
+                        : 'border-foreground/10 hover:border-foreground/25',
+                    )}
+                  >
+                    {money(option.buyIn)}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                The stake picks the table: you sit against the ladder's players at that price, three
+                times as deep. There is no difficulty setting here on purpose.
+              </p>
+            </section>
+          )}
+
           {/* structure */}
           <section>
             <p className="mb-1.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
               The table
             </p>
             <div className="flex flex-col">
-              <InfoRow label="Buy-in" value={venue.freeroll ? 'Free' : money(venue.buyIn)} />
-              <InfoRow label="Starting stack" value={money(venue.startingStack ?? venue.buyIn)} />
-              <InfoRow label="Seats" value={`${venue.seats} players`} />
+              <InfoRow label="Buy-in" value={shown.freeroll ? 'Free' : money(shown.buyIn)} />
+              <InfoRow label="Starting stack" value={money(shown.startingStack ?? shown.buyIn)} />
+              <InfoRow label="Seats" value={`${shown.seats} players`} />
               <InfoRow
                 label="Blinds"
                 value={
                   escalates
-                    ? `${money(venue.smallBlind)}/${money(venue.bigBlind)}, rising every ${pace} hands`
-                    : `${money(venue.smallBlind)}/${money(venue.bigBlind)}, fixed`
+                    ? `${money(shown.smallBlind)}/${money(shown.bigBlind)}, rising every ${pace} hands`
+                    : `${money(shown.smallBlind)}/${money(shown.bigBlind)}, fixed`
                 }
               />
-              {!venue.cash && <InfoRow label="Winner takes" value={money(venue.prize)} />}
-              {venue.bounty !== undefined && (
-                <InfoRow label="Knockout bounty" value={`+${money(venue.bounty)} each`} />
+              {!shown.cash && <InfoRow label="Winner takes" value={money(shown.prize)} />}
+              {shown.bounty !== undefined && (
+                <InfoRow label="Knockout bounty" value={`+${money(shown.bounty)} each`} />
               )}
               {rung > 0 && <InfoRow label="Ladder" value={`Rung ${rung} of ${VENUES.length}`} />}
             </div>
@@ -225,20 +282,20 @@ export function VenueInfoDialog({
 
           {/* confirm — the play button lives here now, so tapping a venue opens
               this dialog and playing is a deliberate second tap. */}
-          {playable ? (
+          {playable && (canAfford?.(shown) ?? true) ? (
             <button
-              onClick={() => onPlay(venue)}
+              onClick={() => onPlay(shown)}
               className="w-full rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
             >
-              {venue.freeroll
+              {shown.freeroll
                 ? 'Play — free'
-                : venue.cash || challenger
-                  ? `Sit down — ${money(venue.buyIn)}`
-                  : `Play — ${money(venue.buyIn)}`}
+                : shown.cash || challenger
+                  ? `Sit down — ${money(shown.buyIn)}`
+                  : `Play — ${money(shown.buyIn)}`}
             </button>
           ) : (
             <div className="flex items-center justify-center gap-2 rounded-2xl border border-foreground/10 py-3 text-sm text-muted-foreground">
-              <Lock className="size-4" /> Need {money(venue.buyIn)} to buy in
+              <Lock className="size-4" /> Need {money(shown.buyIn)} to buy in
             </div>
           )}
         </div>

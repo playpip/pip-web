@@ -108,6 +108,11 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     handCoaching: winner.handCoaching,
     haptics: winner.haptics,
     cameFromFreeroll: winner.cameFromFreeroll,
+    // The table they last built. One slot, so there is nothing to merge: the
+    // chosen side's is the one they most recently sat at. `?? null` because a
+    // profile written before v18 has no such field and `pickUnhandled` would
+    // otherwise leave it `undefined`, which the type does not allow.
+    customTable: winner.customTable ?? loser.customTable ?? null,
 
     // The Daily is once per UTC day and abandoning counts as played, so the
     // record that says "played today" has to win or syncing becomes a re-roll.

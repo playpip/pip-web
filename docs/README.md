@@ -22,6 +22,8 @@ cosmetics, multiplayer); see [brand.md](./brand.md).
 | [cast.md](./cast.md) | The cast — Pip's troupe of opponents, career reads, table talk |
 | [awards.md](./awards.md) | Collectible "special chips" awards — the set, triggers, visuals |
 | [shop.md](./shop.md) | The Chip Shop & earned unlocks — style, never edge |
+| [membership.md](./membership.md) | What is paid and what is free, the gate, and the rules tests enforce |
+| [smoke-test-membership.md](./smoke-test-membership.md) | The by-hand checklist for the membership build — the part CI cannot see |
 | [design.md](./design.md) | Design system: theme tokens, colour, typography, motion, sound, components |
 | [venues.md](./venues.md) | The venue ladder, adding venues, and the AI-image workflow |
 | [data-and-offline.md](./data-and-offline.md) | Persistence, profile backup/transfer (file / code / QR), and the offline PWA |

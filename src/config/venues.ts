@@ -3,7 +3,9 @@
 // sits with equal stacks and plays until one player is left standing — the
 // winner takes the prize. Bust and you're out.
 
+import type { MembersOnly } from '@/config/membership'
 import type { AiProfile } from '@/lib/poker/ai/policy'
+import type { Variant } from '@/lib/poker/handEval'
 
 /** Format tag shown on the venue card (side tables). */
 export type VenueFormat = 'turbo' | 'hyper' | 'deep' | 'duel' | 'bounty'
@@ -16,7 +18,7 @@ export const FORMAT_LABELS: Record<VenueFormat, string> = {
   bounty: 'Bounty',
 }
 
-export interface Venue {
+export interface Venue extends MembersOnly {
   id: string
   name: string
   tagline: string
@@ -51,6 +53,14 @@ export interface Venue {
    * chips whenever you like. A place you dip into, not a tournament you finish.
    */
   cash?: boolean
+  /**
+   * Which game this table deals. Absent means Hold'em.
+   *
+   * One field, because everything that differs about Omaha follows from it:
+   * four cards instead of two, the two-from-hand showdown rule, and pot-limit
+   * betting. A table cannot be half-converted.
+   */
+  variant?: Variant
 }
 
 // Low rungs escalate gently (handsPerLevel 12 → 9) — new players need room to
@@ -480,6 +490,189 @@ export const CHALLENGE_TABLES: readonly Venue[] = [
   },
 ] as const
 
+// Member tables — what the membership adds to the side tables.
+//
+// **Two cards, not five.** This started as a `MEMBER_TABLES` array of five rooms
+// with its own lobby tile and its own browser page, and that was one tile too
+// many on a home screen whose job is to make *tables* prominent: six 16:10 tiles
+// across the row made every one of them smaller (Will, 2026-09-19). The rooms
+// were mostly variations on stack depth, so they collapse into one card that
+// asks you how deep you want to play for — and the one that was not a depth
+// variation, Pot-Limit Omaha, is a format twist and belongs on the side tables
+// with the other format twists.
+//
+// **They are ordinary tables in every way that touches a hand.** Same engine,
+// same shuffle, same AI policy, same economy: `prize = buyIn × seats`, exactly as
+// on the ladder. Anyone who suspects otherwise can read this array and the engine
+// beside it, which is the argument open source does for us (docs/brand.md).
+//
+// **They are ranked**, and that is not pay-to-win — see docs/membership.md.
+
+/**
+ * Deep Stack, at every stake it is offered at.
+ *
+ * One card on the side tables, and the info dialog swaps between these. They are
+ * **five real registered venues rather than one venue with a dynamic buy-in**,
+ * and that is the whole reason this is cheap: every route is generated at build
+ * time under the static export, nothing new has to persist, `venueById` resolves
+ * a deep link on its own, and `tests/ai.test.ts` bands each profile the day it
+ * lands. A dynamic buy-in would have bought a persisted field, a migration and a
+ * resolution step in `PlayClient` to save four config entries.
+ *
+ * Three times the buy-in in chips and a twelve-hand level, at every stake: deep
+ * is the point, so it is the thing that does not vary. The opposition is the
+ * ladder rung at the same price, taken whole rather than invented — the same
+ * rule a built table follows (config/customTable.ts).
+ */
+export const DEEP_STACK_TABLES: readonly Venue[] = [
+  {
+    id: 'deepstack-750',
+    name: 'Deep Stack',
+    tagline: 'Three times the chips, and a slow clock.',
+    buyIn: 750,
+    startingStack: 2_250,
+    smallBlind: 5,
+    bigBlind: 10,
+    seats: 6,
+    prize: 4_500,
+    format: 'deep',
+    handsPerLevel: 12,
+    membersOnly: true,
+    accent: '#B5835A',
+    ai: { tightness: 0.28, aggression: 0.4, bluff: 0.08, iterations: 550, skill: 0.44 },
+  },
+  {
+    id: 'deepstack-2000',
+    name: 'Deep Stack',
+    tagline: 'Three times the chips, and a slow clock.',
+    buyIn: 2_000,
+    startingStack: 6_000,
+    smallBlind: 15,
+    bigBlind: 30,
+    seats: 6,
+    prize: 12_000,
+    format: 'deep',
+    handsPerLevel: 12,
+    membersOnly: true,
+    accent: '#B5835A',
+    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750, skill: 0.54 },
+  },
+  {
+    id: 'deepstack-5000',
+    name: 'Deep Stack',
+    tagline: 'Three times the chips, and a slow clock.',
+    buyIn: 5_000,
+    startingStack: 15_000,
+    smallBlind: 25,
+    bigBlind: 50,
+    seats: 6,
+    prize: 30_000,
+    format: 'deep',
+    handsPerLevel: 12,
+    membersOnly: true,
+    accent: '#B5835A',
+    ai: { tightness: 0.45, aggression: 0.58, bluff: 0.14, iterations: 950, skill: 0.64 },
+  },
+  {
+    id: 'deepstack-15000',
+    name: 'Deep Stack',
+    tagline: 'Three times the chips, and a slow clock.',
+    buyIn: 15_000,
+    startingStack: 45_000,
+    smallBlind: 75,
+    bigBlind: 150,
+    seats: 6,
+    prize: 90_000,
+    format: 'deep',
+    handsPerLevel: 12,
+    membersOnly: true,
+    accent: '#B5835A',
+    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_100, skill: 0.74 },
+  },
+  {
+    id: 'deepstack-40000',
+    name: 'Deep Stack',
+    tagline: 'Three times the chips, and a slow clock.',
+    buyIn: 40_000,
+    startingStack: 120_000,
+    smallBlind: 200,
+    bigBlind: 400,
+    seats: 6,
+    prize: 240_000,
+    format: 'deep',
+    handsPerLevel: 12,
+    membersOnly: true,
+    accent: '#B5835A',
+    ai: { tightness: 0.52, aggression: 0.66, bluff: 0.16, iterations: 1_300, skill: 0.84 },
+  },
+] as const
+
+/** The stake the Deep Stack card shows, and the one its dialog opens on. */
+export const DEEP_STACK_DEFAULT = DEEP_STACK_TABLES[1]
+
+/** Every stake Deep Stack is offered at, cheapest first. */
+export function deepStackFamily(): readonly Venue[] {
+  return DEEP_STACK_TABLES
+}
+
+/** Is this one of the Deep Stack stakes? Drives the dialog's stake picker. */
+export function isDeepStack(venue: Venue): boolean {
+  return DEEP_STACK_TABLES.some((v) => v.id === venue.id)
+}
+
+/**
+ * The Big Pot — Pot-Limit Omaha, and the only table that deals a different game.
+ *
+ * Deep on purpose: Omaha is a drawing game and short stacks turn it into a coin
+ * flip. Its opponents are the Downtown Casino's, because that is what a 5,000
+ * buy-in seats you against everywhere else — a known approximation, since their
+ * equity reading is genuinely Omaha but their personalities were banded against
+ * two cards. See docs/poker-engine.md → Variants.
+ */
+export const BIG_POT: Venue = {
+  id: 'bigpot',
+  name: 'The Big Pot',
+  tagline: 'Pot-Limit Omaha. Four cards, use exactly two.',
+  buyIn: 5_000,
+  startingStack: 10_000,
+  smallBlind: 25,
+  bigBlind: 50,
+  seats: 6,
+  prize: 30_000,
+  format: 'deep',
+  handsPerLevel: 10,
+  membersOnly: true,
+  variant: 'omaha',
+  accent: '#5B7FC7',
+  ai: { tightness: 0.45, aggression: 0.58, bluff: 0.14, iterations: 950, skill: 0.64 },
+}
+
+/**
+ * The placeholder that gives a built table a route to be played at.
+ *
+ * A static export generates routes from `ALL_VENUES` at build time, and a table
+ * the player composes in a browser cannot be in that list — so one fixed id is,
+ * and `/play/custom` resolves it against the spec on the profile at run time
+ * (see PlayClient and config/customTable.ts). **Nothing plays these numbers.**
+ * They exist so that `venueById('custom')` is not undefined between the route
+ * mounting and the real venue being built, and so the tile has something to
+ * measure. If a hand is ever dealt from this object, the resolution step has
+ * been skipped and that is a bug rather than a cheap table.
+ */
+export const CUSTOM_TABLE_ROUTE: Venue = {
+  id: 'custom',
+  name: 'Your table',
+  tagline: 'Built by you.',
+  buyIn: 0,
+  smallBlind: 0,
+  bigBlind: 0,
+  seats: 2,
+  prize: 0,
+  membersOnly: true,
+  accent: '#8A8F98',
+  ai: { tightness: 0.3, aggression: 0.4, bluff: 0.08, iterations: 300, skill: 0.3 },
+}
+
 // Two Garage buy-ins: losing your first tournament stings but doesn't send a
 // brand-new player straight to the freeroll.
 export const STARTING_ROLL = 200
@@ -543,19 +736,50 @@ export function freerollOpen(roll: number): boolean {
 }
 
 /**
+ * Everything the side-tables shelf shows, free and paid, in display order.
+ *
+ * **One list, read by both the page and the lobby tile that counts it.** The
+ * tile used to count `SIDE_TABLES` directly and said "7 formats" on a shelf
+ * showing nine the day the membership's tables landed there (Will, 2026-09-19).
+ * A count derived from a different list than the one being rendered is a fact
+ * that goes quietly wrong, so there is now only one list.
+ *
+ * The builder is not here: it is not a venue, and it is appended by the page as
+ * a tile of its own.
+ */
+export const SIDE_SHELF: readonly Venue[] = [...SIDE_TABLES, DEEP_STACK_DEFAULT, BIG_POT]
+
+/**
  * Every table a player can sit at, in one list.
  *
  * It exists so route resolution and route *generation* cannot drift: under the
  * static export, an id that `venueById` knows but `generateStaticParams` never
  * emitted is a 404 with a fully green build. Both read this.
+ *
+ * **The member tables are in here, and that is on purpose.** Their routes are
+ * generated for everybody, exactly like the challenge tables above: a static
+ * export cannot generate a route conditionally on something it learns in the
+ * browser, so leaving them out would make a member's own table a 404 on the
+ * frame before their row comes back. The refusal is a screen, not a missing
+ * page — `refuseSitDown()` is what actually turns a non-member away, and it is
+ * read by the browser and the route both.
+ *
+ * **All five Deep Stack stakes are here and only one of them is browsable.** The
+ * side-tables page shows `DEEP_STACK_DEFAULT` as a single card and the info
+ * dialog swaps between the rest, so the other four need routes without needing
+ * tiles. That is the trade that keeps the stake a choice without inventing any
+ * persisted state.
  */
 export const ALL_VENUES: readonly Venue[] = [
   ...VENUES,
   ...SIDE_TABLES,
   ...RING_TABLES,
   ...CHALLENGE_TABLES,
+  ...DEEP_STACK_TABLES,
+  BIG_POT,
   KITCHEN_TABLE,
   THE_DAILY,
+  CUSTOM_TABLE_ROUTE,
 ]
 
 export function venueById(id: string): Venue | undefined {

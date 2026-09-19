@@ -63,6 +63,13 @@ const allSources = (): string[] => {
 // 1. The sentence the whole design is measured against. If it is ever reworded
 //    or dropped, that is the moment to re-read what the app now does next to
 //    it, so failing here is the point rather than an inconvenience.
+//
+//    It did its job once: the wording below replaced "No forced pop-ups, no
+//    pay-to-win, no nagging. Ever." when member rooms were ruled ranked, and
+//    this test is what forced that re-read instead of letting the old sentence
+//    sit there slowly becoming untrue. The clause the offer is actually
+//    measured against is "no forced pop-ups, no nagging"; the buying clause is
+//    pinned here too because it is the one most likely to drift next.
 test('the landing page still promises no pop-ups and no nagging', (t) => {
   t.true(
     read('src/components/marketing/Landing.tsx').includes(

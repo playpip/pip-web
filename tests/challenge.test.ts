@@ -91,11 +91,21 @@ test('every band has a pool to draw from', (t) => {
   for (const band of BANDS) t.true(challengeable(band).length >= 5)
 })
 
-test('the collection is 22, not the whole cast of 25', (t) => {
-  // Three characters are pinned to a venue. The scalp shelf has to be sized to
+test('the collection is 22, not the whole cast of 28', (t) => {
+  // Six characters are pinned to a venue. The scalp shelf has to be sized to
   // what is actually winnable or it can never be completed.
+  //
+  // **The member rooms' three regulars went in and this number did not move**,
+  // and that is the ruling holding rather than a coincidence: member content
+  // never counts in a free player's denominator (Will, 2026-08-14, and
+  // docs/shop.md → Member cosmetics). Bev, Dez and Winnie are pinned, so
+  // `challengeable` already excludes them for the same reason it excludes Pearl
+  // and Sable, and a free player's shelf still reads `0 of 22`.
+  //
+  // If a later member character is ever *not* pinned, this test is what fails,
+  // and the fix is to pin them — not to raise the 22.
   const collectible = new Set(BANDS.flatMap((b) => challengeable(b).map((ch) => ch.id)))
-  t.is(CAST.length, 25)
+  t.is(CAST.length, 28)
   t.is(collectible.size, 22)
 })
 

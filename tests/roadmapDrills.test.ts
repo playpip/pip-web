@@ -3,11 +3,11 @@ import test from 'ava'
 import { DRILL_KINDS } from '@/config/drills'
 
 // ROADMAP.md is the only public page that says which drills sit behind the
-// membership. The drills index hides a `membersOnly` kind from anyone who is
-// not a member, so a reader cannot get the list off the app: they can only
-// check a kind they already know the name of, by opening its URL. That makes
-// the roadmap paragraph a disclosure rather than a nicety, and it is why the
-// fix here is to pin the list rather than to delete it.
+// membership *and is versioned where anyone can read its history*. The drills
+// index now shows a `membersOnly` kind to everybody, locked, so the list is no
+// longer impossible to get off the app — but the roadmap paragraph is still the
+// disclosure, because it is the thing a reader can diff. That is why the fix
+// here is to pin the list rather than to delete it.
 //
 // **It has gone stale twice, and both times the same way.** The first version
 // said the membership wasn't built after the entitlement check had shipped. The

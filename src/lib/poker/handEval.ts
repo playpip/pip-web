@@ -20,13 +20,82 @@ export interface EvaluatedHand {
   readonly solved: SolvedHand
 }
 
-/** Evaluate the best 5-card hand from a player's hole + community cards. */
+/**
+ * Which game's rules are being applied.
+ *
+ * `holdem` is the free-form "best five of seven" everything here has always
+ * done. `omaha` is the rule that makes Pot-Limit Omaha a different game rather
+ * than Hold'em with more cards: **exactly two of your four, and exactly three
+ * of the board.** Four hearts in your hand is not a flush, and the board
+ * pairing does not give you a full house on its own.
+ *
+ * Defaulted everywhere, so every existing caller keeps the behaviour it had.
+ */
+export type Variant = 'holdem' | 'omaha'
+
+/** How many hole cards a variant deals. */
+export const HOLE_CARDS: Record<Variant, number> = { holdem: 2, omaha: 4 }
+
+/** Every k-sized combination of `items`, as index tuples. Small n only. */
+function combinations<T>(items: readonly T[], k: number): T[][] {
+  const out: T[][] = []
+  const pick = (start: number, acc: T[]) => {
+    if (acc.length === k) {
+      out.push(acc)
+      return
+    }
+    for (let i = start; i < items.length; i++) pick(i + 1, [...acc, items[i]])
+  }
+  pick(0, [])
+  return out
+}
+
+/**
+ * The best legal Omaha five, by enumeration.
+ *
+ * Six ways to pick two of four, ten ways to pick three of five: sixty hands,
+ * each solved as an exact five-card holding and compared by pokersolver's own
+ * `winners`. Enumerated rather than reasoned about because the reasoning is
+ * where Omaha evaluators go wrong, and sixty `solve` calls at a showdown is
+ * nothing — the equity sim is the hot path and it is bounded by its own
+ * iteration count.
+ *
+ * **Not routed through pokersolver's own 'omahahi' game.** That option exists
+ * in some versions of the library and is undocumented in the one we pin; this
+ * project has a blog post about trusting exactly that (`pokersolver`'s
+ * undocumented behaviour), so the rule is implemented here where it can be
+ * tested rather than assumed.
+ */
+function solveOmaha(holeCards: readonly Card[], communityCards: readonly Card[]): SolvedHand {
+  const candidates: SolvedHand[] = []
+  for (const two of combinations(holeCards, 2)) {
+    for (const three of combinations(communityCards, 3)) {
+      candidates.push(Hand.solve(cardsToStrings([...two, ...three])))
+    }
+  }
+  // `winners` returns every hand tied for best; they are equal by definition,
+  // so the first is as good as any.
+  return Hand.winners(candidates)[0] ?? candidates[0]
+}
+
+/**
+ * Evaluate the best 5-card hand from a player's hole + community cards.
+ *
+ * **Before there are three community cards there is no legal Omaha hand**, so
+ * the variant falls back to a free solve of whatever is on the table. Nothing
+ * settles a pot in that state — a showdown always has five board cards — and
+ * the only callers are strength estimates before a board exists. Stated here
+ * because a silent fallback in a rules file is how a wrong showdown ships.
+ */
 export function evaluateHand(
   holeCards: readonly Card[],
   communityCards: readonly Card[],
+  variant: Variant = 'holdem',
 ): EvaluatedHand {
-  const all = cardsToStrings([...holeCards, ...communityCards])
-  const solved = Hand.solve(all)
+  const solved =
+    variant === 'omaha' && communityCards.length >= 3 && holeCards.length >= 2
+      ? solveOmaha(holeCards, communityCards)
+      : Hand.solve(cardsToStrings([...holeCards, ...communityCards]))
   return {
     name: solved.name,
     description: solved.descr,
@@ -105,10 +174,11 @@ export interface ShowdownResult<T> {
 export function determineWinners<T>(
   contenders: readonly HandContenders<T>[],
   communityCards: readonly Card[],
+  variant: Variant = 'holdem',
 ): ShowdownResult<T> {
   const evaluations = new Map<T, EvaluatedHand>()
   for (const c of contenders) {
-    evaluations.set(c.id, evaluateHand(c.hole, communityCards))
+    evaluations.set(c.id, evaluateHand(c.hole, communityCards, variant))
   }
 
   const solvedList = contenders.map((c) => evaluations.get(c.id)!.solved)

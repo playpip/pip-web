@@ -11,6 +11,9 @@
    odds, information, or gameplay. No insurance, no re-buys, no stat boosts.
    The moment a purchase touches gameplay, the no-scam promise dies.
 2. **Award chips are never purchasable.** Earned-only, forever.
+3. **Shop items are bought with chips you won, never with money.** The
+   membership does not sell anything on these shelves and no shop price is ever
+   payable in cash. Member cosmetics are a *different* shelf — see below.
 
 ## Why a shop at all
 
@@ -41,6 +44,23 @@ fine pattern) — `EARNED_BACKS` in `config/cardBacks.ts`, derived from
 `venueRecords` with **no new persisted state**. Locked designs show hollow with
 a lock in the Settings picker, with the unlock hint in the tooltip.
 
+## Member cosmetics (the second shelf)
+
+Cosmetics that come with the membership are **not Chip Shop stock**. They have
+no chip price, they never appear on Pearl's shelves, and nothing on Pearl's
+shelves ever costs money. They are a separate collection with a separate
+denominator.
+
+**The denominator rule (ruled by Will, 2026-08-14, `technology#52`).** Member
+cosmetics count in their own collection and **never in the main shelf's
+`X of N`**. The shelf already ships that pattern (`Scalps · 0 of 22`), and a
+free player's collection reading permanently incomplete because of items they
+cannot earn is the thing that *reads* as a dark pattern even though it isn't.
+Cheap to decide now, a migration to fix later — so it is decided.
+
+Rule 1 still governs: a member card back is a card back. Style and story, never
+edge.
+
 ## Surfacing doctrine
 
 Same as the chip shelf: **the shop is there when you go looking.** No sale
@@ -54,7 +74,10 @@ know the one).
 - ~~Buying a round~~ — built, then **cut** (2026-07-16): the Beer button was
   clutter nobody would parse, and the cast's own table talk carries the charm.
 - A richer souvenir visual (the AwardChip disc language could stretch to it).
-- Paid cosmetics (real money) — far future; the two rules above still govern.
+- ~~Paid cosmetics (real money)~~ — **resolved**: they are not shop items at
+  all. They come with the membership, on their own shelf with their own
+  denominator, and no Chip Shop price is ever payable in cash. See
+  "Member cosmetics" above.
 
 ## Where to make changes
 

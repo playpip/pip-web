@@ -21,6 +21,7 @@ import { useProfile } from '@/store/profile'
 import { ALL_CARD_BACKS, cardBackById, cardBackUnlocked } from '@/config/cardBacks'
 import { DECK_FACES, TABLE_FINISHES } from '@/config/shop'
 import { venueById } from '@/config/venues'
+import { useEntitlement } from '@/store/entitlement'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -34,6 +35,7 @@ export function StyleDialog({
 }) {
   const profile = useProfile()
   const money = useMoney()
+  const member = useEntitlement()
   const selected = cardBackById(profile.cardBack)
 
   // One quiet hint line for anything locked — shared by every section.
@@ -52,6 +54,10 @@ export function StyleDialog({
 
   const backHint = (design: (typeof ALL_CARD_BACKS)[number]): string => {
     const venue = design.unlock?.venueWin ? venueById(design.unlock.venueWin) : undefined
+    // Said plainly and without a link, because this is a tooltip on a card back
+    // inside a settings dialog — about as far from "the moment to sell" as the
+    // app gets. The one link lives on /membership.
+    if (design.unlock?.membersOnly) return `${design.name} comes with the membership.`
     if (design.unlock?.price !== undefined) {
       if (venue && !wonVenues.has(venue.id)) {
         return `Win ${venue.name}, then buy ${design.name} in the Chip Shop.`
@@ -97,7 +103,7 @@ export function StyleDialog({
             </div>
             <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {ALL_CARD_BACKS.map((design) => {
-                const unlocked = cardBackUnlocked(design, wonVenues, ownedSet)
+                const unlocked = cardBackUnlocked(design, wonVenues, ownedSet, member)
                 return (
                   <motion.button
                     key={design.id}

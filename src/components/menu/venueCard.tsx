@@ -17,6 +17,21 @@ export interface VenueVM {
   /** Ladder rung number; side tables have none. */
   tier?: number
   playable: boolean
+  /**
+   * Why it is locked, when the reason is not the Roll.
+   *
+   * Without this a locked tile says "Need 3,000", which for a member room is a
+   * lie told to somebody whose Roll is fine — and the worst kind, because they
+   * can act on it. They go and win 3,000 and the tile still says no.
+   *
+   * It is a line of text rather than a call to action on purpose. A member-only
+   * surface still has to render as *something*: hiding it is worse product (you
+   * cannot buy what you cannot see) and slightly dishonest by omission, and
+   * turning it into a sales button is the nagging the landing page rules out.
+   * A plain sentence saying what the thing is, and the page it belongs to
+   * carries the one link. See technology#52 item 1.
+   */
+  lockedReason?: string
   /** Tapping a venue opens its info dialog, which confirms the buy-in. */
   onOpen: () => void
 }
@@ -46,7 +61,7 @@ function CornerTag({ venue, tier }: { venue: Venue; tier?: number }) {
 
 /** A venue as a compact art-topped tile — the same language as the home menu. */
 export function VenueTile({ model }: { model: VenueVM }) {
-  const { venue, index, tier, playable, onOpen } = model
+  const { venue, index, tier, playable, lockedReason, onOpen } = model
   const money = useMoney()
   return (
     <motion.div
@@ -82,7 +97,7 @@ export function VenueTile({ model }: { model: VenueVM }) {
                 {venue.prize > 0 && ` · win ${money(venue.prize)}`}
               </>
             ) : (
-              `Need ${money(venue.buyIn)}`
+              (lockedReason ?? `Need ${money(venue.buyIn)}`)
             )}
           </p>
         </div>

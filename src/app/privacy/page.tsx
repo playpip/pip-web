@@ -53,6 +53,17 @@ export default function PrivacyPage() {
           working the way it did before.
         </p>
         <p>
+          If you ever take out a <A href="/membership">membership</A>, the payment is handled by{' '}
+          <A href="https://stripe.com">Stripe</A>, who become a third recipient alongside Supabase
+          and Resend.{' '}
+          <strong className="font-medium text-foreground">
+            We never see or store your card number
+          </strong>{' '}
+          — it goes straight to Stripe and never touches our servers. What we keep is a record that
+          your account has a live membership and when it renews, which is what the app checks to
+          unlock what you paid for. Nothing about a membership is linked to how you play.
+        </p>
+        <p>
           You can also just ask. Email <A href="mailto:hello@playpip.io">hello@playpip.io</A> from
           the address on the account and we’ll delete it for you within 7 working days, whether or
           not you can still get into the app. Once it’s gone we keep nothing: no archive, no copy

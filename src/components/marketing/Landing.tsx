@@ -290,11 +290,17 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       // unchanged; the offer goes first (#97).
       icon: UserPlus,
       title: 'Free account, nothing to confirm',
-      body: 'An email and a password, and your Roll follows you to every device. Or play everything without one.',
+      body: 'An email and a password, and your Roll follows you to every device. Or play without one — nothing free needs an account.',
     },
     {
       icon: Sparkles,
       title: 'No dark patterns',
+      // Briefly replaced when member rooms were ruled ranked, on the reasoning
+      // that a member reaching a rank sooner made "pay-to-win" false at the
+      // edges. Restored (Will, 2026-09-16): pay-to-win means buying an
+      // advantage over other players, and there is no leaderboard and nobody to
+      // overtake, so there is no contest for a member to win. **This becomes a
+      // live question the day multiplayer ships** — see cto/build-multiplayer.
       body: 'No forced pop-ups, no pay-to-win, no nagging. Ever.',
     },
     {
@@ -884,8 +890,8 @@ function FinalCta() {
           custom={1}
           className="mt-5 max-w-lg text-lg text-muted-foreground text-pretty"
         >
-          Make a player, take a seat at the Garage, and see how far your Roll climbs. It’s free —
-          and with nothing to sell you, it stays that way.
+          Make a player, take a seat at the Garage, and see how far your Roll climbs. It’s free, and
+          everything free about it today stays free.
         </motion.p>
         <motion.div
           variants={rise}

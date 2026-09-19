@@ -4,6 +4,7 @@ import {
   ALL_CARD_BACKS,
   CARD_BACKS,
   EARNED_BACKS,
+  MEMBER_BACKS,
   SHOP_BACKS,
   cardBackUnlocked,
   cardBackById,
@@ -66,6 +67,45 @@ test('card backs: the free set stays free, earned and shop backs gate correctly'
   // Every earned back exists for a real ladder venue.
   t.is(EARNED_BACKS.length, VENUES.length)
   for (const d of EARNED_BACKS) t.truthy(venueById(d.unlock!.venueWin!))
+})
+
+// The membership's cosmetics, and the two rules that keep the two economies
+// apart. Neither is arithmetic: both are the shape of the thing.
+test('member backs come with the membership and are never for sale', (t) => {
+  const none = new Set<string>()
+  t.true(MEMBER_BACKS.length > 0)
+  for (const design of MEMBER_BACKS) {
+    t.true(design.unlock?.membersOnly, `${design.id} is in the member set without saying so`)
+    // Rule 3 in docs/shop.md: no Chip Shop price is ever payable in cash, so a
+    // design cannot be both bought with chips and included with the membership.
+    // Allowing both would invent an exchange rate between the two.
+    t.is(design.unlock?.price, undefined, `${design.id} has a chip price and a membership`)
+    t.false(cardBackUnlocked(design, none, none, false), `${design.id} was free to a stranger`)
+    t.true(cardBackUnlocked(design, none, none, true), `${design.id} was refused to a member`)
+    // Owning the id is not the unlock, or a lapsed membership would leave the
+    // back behind and `owned` would quietly become a second entitlement store.
+    t.false(
+      cardBackUnlocked(design, none, new Set([design.id]), false),
+      `${design.id} unlocked from the owned list, which is client-written`,
+    )
+  }
+})
+
+// The membership must not change what a free player already had. This is the
+// mechanical half of "anything shipped free is free forever" for cosmetics.
+test('the membership did not take a card back away from anybody', (t) => {
+  const none = new Set<string>()
+  for (const design of CARD_BACKS) {
+    t.true(cardBackUnlocked(design, none, none, false), `${design.id} stopped being free`)
+  }
+  for (const design of EARNED_BACKS) {
+    t.falsy(design.unlock?.membersOnly, `${design.id} is earned and has been made paid`)
+    t.true(cardBackUnlocked(design, new Set([design.unlock!.venueWin!]), none, false))
+  }
+  for (const design of SHOP_BACKS) {
+    t.falsy(design.unlock?.membersOnly, `${design.id} is bought with chips and now needs money`)
+    t.true(cardBackUnlocked(design, none, new Set([design.id]), false))
+  }
 })
 
 test('unknown card back ids still fall back to the default', (t) => {

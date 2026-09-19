@@ -72,8 +72,10 @@ export function Table() {
     recap,
     talk,
     cashInvested,
+    member,
     nextHand,
     rebuy,
+    watchItOut,
     leave,
   } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
@@ -92,6 +94,42 @@ export function Table() {
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [viewId, setViewId] = useState<string | null>(null)
   const hasHistory = useGame((s) => s.lastHand !== null)
+  const spectatorEquity = useGame((s) => s.spectatorEquity)
+
+  // The spectator's peek at an open seat, memoised on the hand rather than
+  // recomputed per render: the equity is several Monte Carlo estimates and the
+  // table re-renders on every animation frame. Both are null unless the player
+  // is genuinely watching a tournament they are out of — the store decides
+  // that, not this component.
+  const spectatorHole = useMemo(() => {
+    if (status !== 'watching' || !viewId || !hand) return null
+    const p = hand.players.find((pl) => pl.id === viewId)
+    if (!p || p.status === 'folded' || p.status === 'out' || p.hole.length < 2) return null
+    return p.hole
+  }, [status, viewId, hand])
+
+  // Keyed on the three things the estimate actually reads — the board, their
+  // cards, and how many players are still live — rather than on the hand. Keyed
+  // on the hand it re-ran 800 simulations on every check and fold; keyed on
+  // this it re-runs when the answer can have changed. The selectivity nudge
+  // does drift with betting inside a street, which is a rounding point on a
+  // spectator's readout and not worth a sim per action.
+  const spectatorKey =
+    hand && viewId
+      ? [
+          hand.community.map((c) => `${c.rank}${c.suit}`).join(''),
+          hand.players
+            .find((p) => p.id === viewId)
+            ?.hole.map((c) => `${c.rank}${c.suit}`)
+            .join('') ?? '',
+          hand.players.filter((p) => p.status !== 'folded' && p.status !== 'out').length,
+        ].join('|')
+      : ''
+
+  const spectatorWin = useMemo(
+    () => (status === 'watching' && viewId && spectatorKey ? spectatorEquity(viewId) : null),
+    [status, viewId, spectatorEquity, spectatorKey],
+  )
 
   const metaById = useMemo(() => new Map(seats.map((s) => [s.id, s])), [seats])
 
@@ -104,7 +142,17 @@ export function Table() {
   const positions = opponentPositions(opponents.length)
   const pot = potSize(hand)
   const heroMeta = hero ? metaById.get(hero.id) : undefined
+  // Offered only when there is something left to watch: at a heads-up table
+  // busting and the table being down to one are the same moment, and a button
+  // that ends the tournament it offered to show you is worse than no button.
+  const canWatch = member && !venue.cash && seats.filter((s) => s.stack > 0).length > 1
   const showdownReveal = hand.result?.showdown === true
+  // Spectating after busting: the cards are face up because there is nothing
+  // left to protect. The player is out, the run is recorded, and nothing they
+  // learn here can be played — which is the whole reason this is allowed to
+  // exist next to "nothing you can buy changes a hand" (pip-web#120).
+  const spectating = status === 'watching'
+  const revealAll = showdownReveal || spectating
 
   // Winners of the just-finished hand — for the pot → winner chip animation.
   const potWinners =
@@ -152,22 +200,35 @@ export function Table() {
     </div>
   )
 
-  const actionArea =
-    status === 'handover' ? (
-      // Entrance transform lives on the wrapper; the button keeps its own CSS
-      // `transition` for hover/press. Animating `y` on the same element that
-      // has `transition-property: transform` makes the two fight → jitter (iOS).
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <button
-          onClick={nextHand}
-          className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
-        >
-          Next hand
-        </button>
-      </motion.div>
-    ) : (
-      <ActionBar hand={hand} />
-    )
+  const actionArea = spectating ? (
+    // No buttons: there is nobody to press them. What sits here instead is the
+    // one line that says why the table is still dealing, and the way out.
+    <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3">
+      <span className="text-sm text-muted-foreground">
+        {message ?? `Watching it out. You finished ${place ? ordinal(place) : 'out'}.`}
+      </span>
+      <button
+        onClick={goHome}
+        className="shrink-0 text-sm font-medium underline underline-offset-4 transition hover:text-foreground"
+      >
+        Leave
+      </button>
+    </div>
+  ) : status === 'handover' ? (
+    // Entrance transform lives on the wrapper; the button keeps its own CSS
+    // `transition` for hover/press. Animating `y` on the same element that
+    // has `transition-property: transform` makes the two fight → jitter (iOS).
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+      <button
+        onClick={nextHand}
+        className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+      >
+        Next hand
+      </button>
+    </motion.div>
+  ) : (
+    <ActionBar hand={hand} />
+  )
 
   // Table talk lives with the board — under the community cards, across from
   // the pot, where table chatter belongs.
@@ -271,7 +332,7 @@ export function Table() {
                     isDealer={p.id === buttonPlayerId}
                     isActive={activeId === p.id}
                     isThinking={aiThinkingId === p.id}
-                    reveal={showdownReveal && p.status !== 'folded' && p.status !== 'out'}
+                    reveal={revealAll && p.status !== 'folded' && p.status !== 'out'}
                     cardsSide="right"
                     onSelect={() => selectSeat(p.id)}
                   />
@@ -353,7 +414,7 @@ export function Table() {
                     isDealer={p.id === buttonPlayerId}
                     isActive={activeId === p.id}
                     isThinking={aiThinkingId === p.id}
-                    reveal={showdownReveal && p.status !== 'folded' && p.status !== 'out'}
+                    reveal={revealAll && p.status !== 'folded' && p.status !== 'out'}
                     cardsSide={parseFloat(positions[i].left) > 50 ? 'left' : 'right'}
                     onSelect={() => selectSeat(p.id)}
                   />
@@ -426,6 +487,8 @@ export function Table() {
         onConfirm={cashOutAndLeave}
       />
       <PlayerDialog
+        hole={spectatorHole}
+        equity={spectatorWin}
         open={viewId !== null}
         onOpenChange={(o) => !o && setViewId(null)}
         seat={viewId ? (metaById.get(viewId) ?? null) : null}
@@ -509,6 +572,15 @@ export function Table() {
               subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
               detail={recap && <RunRecap recap={recap} />}
               onHome={goHome}
+              secondaryLabel={canWatch ? 'Watch it out' : undefined}
+              onSecondary={
+                canWatch
+                  ? () => {
+                      sound.play('tap')
+                      watchItOut()
+                    }
+                  : undefined
+              }
               primaryLabel={freerollOffered ? 'Play the freeroll' : undefined}
               onPrimary={
                 freerollOffered
@@ -517,9 +589,11 @@ export function Table() {
                       if (venue.freeroll && heroMeta) {
                         // Already on the freeroll route — navigation would no-op
                         // and blank the table. Re-seat in place instead.
-                        useGame
-                          .getState()
-                          .sitDown(KITCHEN_TABLE, { name: heroMeta.name, avatar: heroMeta.avatar })
+                        useGame.getState().sitDown(KITCHEN_TABLE, {
+                          name: heroMeta.name,
+                          avatar: heroMeta.avatar,
+                          member,
+                        })
                       } else {
                         leave()
                         router.push(`/play/${KITCHEN_TABLE.id}`)
@@ -636,7 +710,7 @@ function Seat({
         </AnimatePresence>
 
         {/* arc: revealed cards fanned beside the avatar */}
-        {!row && reveal && player.hole.length === 2 && (
+        {!row && reveal && player.hole.length >= 2 && (
           <div
             className={cn(
               'absolute top-1/2 flex -translate-y-1/2 -space-x-1.5',
@@ -687,7 +761,7 @@ function Seat({
       </span>
 
       {/* row: revealed cards below the seat */}
-      {row && reveal && player.hole.length === 2 && (
+      {row && reveal && player.hole.length >= 2 && (
         <div className="mt-0.5 flex gap-0.5">
           {player.hole.map((card, i) => (
             <PlayingCard key={i} card={card} size="xs" />
@@ -754,11 +828,16 @@ function useHandLabel(hero: Player, hand: HandState) {
     if (hero.hole.length < 2) return null
     if (hero.hole.length + hand.community.length < 5) return nicknameFor(hero.hole) ?? 'Hole cards'
     try {
-      return evaluateHand(hero.hole, hand.community).name
+      // **The variant is not optional here.** Without it an Omaha hand is read
+      // free-form, so four hearts in your hand and one on the board would put
+      // "Flush" under your cards — a wrong claim, at the table, that the player
+      // would act on. `nicknameFor` needs no such care: it returns null for
+      // anything that is not exactly two cards.
+      return evaluateHand(hero.hole, hand.community, hand.variant).name
     } catch {
       return null
     }
-  }, [hero.hole, hand.community])
+  }, [hero.hole, hand.community, hand.variant])
 }
 
 /** Mobile hero panel — swipe or tap the dots to flip between profile and odds. */
@@ -886,6 +965,8 @@ function EndOverlay({
   celebrate = false,
   primaryLabel,
   onPrimary,
+  secondaryLabel,
+  onSecondary,
 }: {
   title: string
   subtitle: string
@@ -894,6 +975,15 @@ function EndOverlay({
   celebrate?: boolean
   primaryLabel?: string
   onPrimary?: () => void
+  /**
+   * A third way out, under the primary and above "Home".
+   *
+   * Exists for "Watch it out", which must not compete with the freeroll offer:
+   * a busted player who cannot afford the ladder needs the freeroll more than
+   * they need to spectate, so the ranking is deliberate rather than visual.
+   */
+  secondaryLabel?: string
+  onSecondary?: () => void
 }) {
   return (
     <motion.div
@@ -933,10 +1023,22 @@ function EndOverlay({
               {primaryLabel}
             </button>
           )}
+          {secondaryLabel && onSecondary && (
+            <button
+              onClick={onSecondary}
+              className={cn(
+                primaryLabel
+                  ? 'text-sm text-white/75 underline underline-offset-4 transition hover:text-white'
+                  : 'rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]',
+              )}
+            >
+              {secondaryLabel}
+            </button>
+          )}
           <button
             onClick={onHome}
             className={cn(
-              primaryLabel
+              primaryLabel || secondaryLabel
                 ? 'text-sm text-white/60 transition hover:text-white'
                 : 'rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]',
             )}

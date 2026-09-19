@@ -4,7 +4,7 @@
 
 import type { Card, Rank, Rng, Suit } from './cards'
 import { RANKS, SUITS } from './cards'
-import { determineWinners } from './handEval'
+import { HOLE_CARDS, type Variant, determineWinners } from './handEval'
 import { holeStrength } from './range'
 
 /** How many candidate holdings a maximally-tight opponent picks the best of. */
@@ -33,6 +33,19 @@ export interface EquityOptions {
    * fall back to random. Omit entirely to reproduce classic raw equity.
    */
   opponentSelectivity?: readonly number[]
+  /**
+   * Which game's rules to simulate. Defaults to Hold'em.
+   *
+   * At Omaha every opponent is dealt four cards and every showdown is read
+   * under the two-from-hand rule, so an equity estimate that ignored this
+   * would be answering a different game's question with this game's cards.
+   *
+   * **`opponentSelectivity` is ignored at Omaha**, and that is deliberate
+   * rather than missing: the ranged draw weights two-card holdings by a
+   * Hold'em notion of strength, and there is no honest way to reuse it for
+   * four. Omaha estimates are raw equity against random hands.
+   */
+  variant?: Variant
 }
 
 function cardKey(c: Card): string {
@@ -129,8 +142,10 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
 
   const base = remainingDeck([...opts.hole, ...community])
   const boardNeeded = 5 - community.length
+  const variant = opts.variant ?? 'holdem'
+  const holeSize = HOLE_CARDS[variant]
   const selectivity = opts.opponentSelectivity
-  const ranged = !!selectivity && selectivity.some((s) => s > 0)
+  const ranged = variant === 'holdem' && !!selectivity && selectivity.some((s) => s > 0)
 
   let wins = 0
   let ties = 0
@@ -152,20 +167,20 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
         rng,
       ))
     } else {
-      const need = opponents * 2 + boardNeeded
+      const need = opponents * holeSize + boardNeeded
       const drawn = drawN(base, need, rng)
       oppHoles = []
       for (let o = 0; o < opponents; o++) {
-        oppHoles.push([drawn[o * 2], drawn[o * 2 + 1]])
+        oppHoles.push(drawn.slice(o * holeSize, (o + 1) * holeSize))
       }
-      board = [...community, ...drawn.slice(opponents * 2)]
+      board = [...community, ...drawn.slice(opponents * holeSize)]
     }
 
     const contenders = [
       { id: 'hero', hole: opts.hole },
       ...oppHoles.map((hole, i) => ({ id: `opp${i}`, hole })),
     ]
-    const { winners } = determineWinners(contenders, board)
+    const { winners } = determineWinners(contenders, board, variant)
 
     if (winners.includes('hero')) {
       if (winners.length === 1) {
