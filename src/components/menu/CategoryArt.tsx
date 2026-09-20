@@ -230,6 +230,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
   rail: '/menu/rail.jpg',
   venues: '/menu/venues.jpg',
   side: '/menu/side.jpg',
+  custom: '/menu/custom.jpg',
 }
 
 export function CategoryArt({

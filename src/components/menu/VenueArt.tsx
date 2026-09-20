@@ -251,6 +251,16 @@ const VENUE_IMAGES: Record<string, string> = {
   allnighter: '/venues/allnighter.jpg',
   chopshop: '/venues/chopshop.jpg',
   vault: '/venues/vault.jpg',
+  bigpot: '/venues/bigpot.jpg',
+  // One painting, five registrations. Deep Stack is five real venues wearing a
+  // single card (config/venues.ts) and this map is keyed by id, so the four
+  // stakes the shelf never shows would otherwise lose their cover the moment
+  // the info dialog switched to one of them.
+  'deepstack-750': '/venues/deepstack.jpg',
+  'deepstack-2000': '/venues/deepstack.jpg',
+  'deepstack-5000': '/venues/deepstack.jpg',
+  'deepstack-15000': '/venues/deepstack.jpg',
+  'deepstack-40000': '/venues/deepstack.jpg',
 }
 
 // --- ambience — venues that are barely alive ---------------------------------
