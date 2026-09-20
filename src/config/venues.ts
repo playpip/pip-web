@@ -18,6 +18,32 @@ export const FORMAT_LABELS: Record<VenueFormat, string> = {
   bounty: 'Bounty',
 }
 
+const VARIANT_LABELS: Record<Variant, string> = {
+  holdem: "Hold'em",
+  omaha: 'Omaha',
+  shortdeck: 'Short Deck',
+  omahahilo: 'Omaha Hi-Lo',
+  draw: 'Five-Card Draw',
+}
+
+/**
+ * The one word a venue wears beside its name — on the card corner and in the
+ * info dialog's title.
+ *
+ * **The game outranks the format.** The Big Pot is registered as a `deep` table
+ * and is genuinely deep, but it is also the only table in the app that does not
+ * deal Hold'em, and a badge reading "Deep" spent that slot on the less
+ * surprising of the two facts. A player should not have to open a dialog to
+ * find out they are about to be dealt four cards (Will, 2026-09-20).
+ *
+ * Hold'em is never labelled: it is the whole rest of the game, so saying so
+ * would put a badge on twenty-odd cards to distinguish none of them.
+ */
+export function venueTag(venue: Venue): string | null {
+  if (venue.variant && venue.variant !== 'holdem') return VARIANT_LABELS[venue.variant]
+  return venue.format ? FORMAT_LABELS[venue.format] : null
+}
+
 export interface Venue extends MembersOnly {
   id: string
   name: string
@@ -197,10 +223,14 @@ export const VENUES: readonly Venue[] = [
   },
 ] as const
 
-// Side tables — format twists off the main ladder, at low-to-mid stakes so they
-// never gate progression. Same engine, different pressure: pacing, stack depth,
-// seat count and knockout bounties are all just venue config.
-export const SIDE_TABLES: readonly Venue[] = [
+// Side tables — format twists off the main ladder. Same engine, different
+// pressure: pacing, stack depth, seat count and knockout bounties are all just
+// venue config.
+//
+// **The rooms themselves, before the gate.** Declared free-shaped and gated in
+// one place below, rather than seven `membersOnly: true` lines somebody has to
+// remember — see SIDE_TABLES.
+const SIDE_TABLE_ROOMS: readonly Venue[] = [
   {
     id: 'redeye',
     name: 'The Red-Eye',
@@ -301,6 +331,25 @@ export const SIDE_TABLES: readonly Venue[] = [
     ai: { tightness: 0.48, aggression: 0.6, bluff: 0.14, iterations: 1_100, skill: 0.78 },
   },
 ] as const
+
+/**
+ * The side tables, every one of them the membership's (Will, 2026-09-20).
+ *
+ * **The gate is applied here rather than typed into each room**, and that is the
+ * point: rule 1 now says *every* side table is behind the check, so an eighth
+ * room added next year is a member room on the day it is added rather than on
+ * the day somebody notices. A flag that has to be remembered seven times is a
+ * flag that will be forgotten an eighth (technology#55, inverted).
+ *
+ * These seven shipped free and were moved behind the check before Stripe
+ * existed, so nobody had paid for them or chosen Pip because of them. That is
+ * the only circumstance in which this was allowed and it is written up in full
+ * in docs/membership.md — including why it does not happen again.
+ */
+export const SIDE_TABLES: readonly Venue[] = SIDE_TABLE_ROOMS.map((room) => ({
+  ...room,
+  membersOnly: true,
+}))
 
 // The Rail — cash / ring tables. Unlike the ladder, these never end and have no
 // prize: you sit down with a stack (a slice of your Roll), play any number of
@@ -607,18 +656,12 @@ export const DEEP_STACK_TABLES: readonly Venue[] = [
   },
 ] as const
 
-/** The stake the Deep Stack card shows, and the one its dialog opens on. */
-export const DEEP_STACK_DEFAULT = DEEP_STACK_TABLES[1]
-
-/** Every stake Deep Stack is offered at, cheapest first. */
-export function deepStackFamily(): readonly Venue[] {
-  return DEEP_STACK_TABLES
-}
-
-/** Is this one of the Deep Stack stakes? Drives the dialog's stake picker. */
-export function isDeepStack(venue: Venue): boolean {
-  return DEEP_STACK_TABLES.some((v) => v.id === venue.id)
-}
+// `DEEP_STACK_DEFAULT`, `deepStackFamily()` and `isDeepStack()` lived here until
+// 2026-09-20. They were the hard-coded version of one idea — a card with several
+// rooms priced behind it — and the dialog asked `isDeepStack(venue)` to know
+// whether to offer a picker, which is a question that needed a fresh special
+// case for every family after the first. `SIDE_SHELF` below is the general
+// form; `familyOf()` replaces all three.
 
 /**
  * The Big Pot — Pot-Limit Omaha, and the only table that deals a different game.
@@ -646,6 +689,167 @@ export const BIG_POT: Venue = {
   accent: '#5B7FC7',
   ai: { tightness: 0.45, aggression: 0.58, bluff: 0.14, iterations: 950, skill: 0.64 },
 }
+
+/**
+ * Short Deck — thirty-six cards, and two rules that come with them.
+ *
+ * The deuces through fives are gone, which makes flushes rare enough to outrank
+ * a full house and leaves the ace to play low under the six. Both live in
+ * `lib/poker/shortDeck.ts` with the tests that prove them; nothing about them
+ * is configurable here, because a table that was half-converted would be a
+ * different game to the one it says it is.
+ *
+ * **Deep on purpose**, like Omaha next door: hands run into each other far more
+ * often on a short deck, so a short stack turns every one of them into a race.
+ * Twice the buy-in, and the opposition is the ladder rung at the same price —
+ * taken whole rather than invented, the rule every added table follows.
+ */
+export const SHORT_DECK_TABLES: readonly Venue[] = [
+  {
+    id: 'shortdeck-1000',
+    name: 'Short Deck',
+    tagline: 'Thirty-six cards. Flushes beat full houses.',
+    buyIn: 1_000,
+    startingStack: 2_000,
+    smallBlind: 5,
+    bigBlind: 10,
+    seats: 6,
+    prize: 6_000,
+    handsPerLevel: 10,
+    membersOnly: true,
+    variant: 'shortdeck',
+    accent: '#D95F43',
+    ai: { tightness: 0.3, aggression: 0.45, bluff: 0.09, iterations: 600, skill: 0.5 },
+  },
+  {
+    id: 'shortdeck-5000',
+    name: 'Short Deck',
+    tagline: 'Thirty-six cards. Flushes beat full houses.',
+    buyIn: 5_000,
+    startingStack: 10_000,
+    smallBlind: 25,
+    bigBlind: 50,
+    seats: 6,
+    prize: 30_000,
+    handsPerLevel: 10,
+    membersOnly: true,
+    variant: 'shortdeck',
+    accent: '#D95F43',
+    ai: { tightness: 0.38, aggression: 0.55, bluff: 0.12, iterations: 950, skill: 0.64 },
+  },
+  {
+    id: 'shortdeck-20000',
+    name: 'Short Deck',
+    tagline: 'Thirty-six cards. Flushes beat full houses.',
+    buyIn: 20_000,
+    startingStack: 40_000,
+    smallBlind: 100,
+    bigBlind: 200,
+    seats: 6,
+    prize: 120_000,
+    handsPerLevel: 10,
+    membersOnly: true,
+    variant: 'shortdeck',
+    accent: '#D95F43',
+    ai: { tightness: 0.45, aggression: 0.62, bluff: 0.15, iterations: 1_200, skill: 0.78 },
+  },
+] as const
+
+/**
+ * Omaha Hi-Lo — the same four cards, and half the pot going the other way.
+ *
+ * Every pot splits between the best high hand and the best *low*: five cards,
+ * eight or lower, no pairs, ace counting as one, and still exactly two from
+ * your hand. When nobody makes one the high hand takes the lot, which is about
+ * half the time. `lib/poker/hiLo.ts` owns the rules and the tests own the
+ * arithmetic — a pot cut in two is the one place in this engine where chips
+ * could quietly stop adding up.
+ *
+ * Deep, and for the same reason The Big Pot is: a drawing game on a short stack
+ * is a coin flip. Opposition taken from the ladder rung at the same price.
+ */
+export const HI_LO_TABLES: readonly Venue[] = [
+  {
+    id: 'hilo-2000',
+    name: 'The Split',
+    tagline: 'Omaha Hi-Lo. Half the pot goes to the worst hand.',
+    buyIn: 2_000,
+    startingStack: 4_000,
+    smallBlind: 15,
+    bigBlind: 30,
+    seats: 6,
+    prize: 12_000,
+    handsPerLevel: 10,
+    membersOnly: true,
+    variant: 'omahahilo',
+    accent: '#4FB477',
+    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750, skill: 0.54 },
+  },
+  {
+    id: 'hilo-10000',
+    name: 'The Split',
+    tagline: 'Omaha Hi-Lo. Half the pot goes to the worst hand.',
+    buyIn: 10_000,
+    startingStack: 20_000,
+    smallBlind: 50,
+    bigBlind: 100,
+    seats: 6,
+    prize: 60_000,
+    handsPerLevel: 10,
+    membersOnly: true,
+    variant: 'omahahilo',
+    accent: '#4FB477',
+    ai: { tightness: 0.47, aggression: 0.6, bluff: 0.14, iterations: 1_050, skill: 0.7 },
+  },
+] as const
+
+/**
+ * Five-Card Draw — no board, and the only hand nobody else can read.
+ *
+ * Five cards each, one betting round, a discard, another betting round, and a
+ * showdown. Nothing is ever face up until the end, so the only information at
+ * the table is how many cards each player asked for — which makes it the one
+ * game here where the bluff is the whole point rather than a tool.
+ *
+ * **Five seats, and that is arithmetic rather than taste.** Five hands of five
+ * is twenty-five cards, and five players drawing five each is twenty-five more:
+ * fifty, against a fifty-two-card deck. A sixth seat needs sixty and the engine
+ * throws mid-hand. `tests/draw.test.ts` pins the sum.
+ */
+export const DRAW_TABLES: readonly Venue[] = [
+  {
+    id: 'draw-1000',
+    name: 'The Parlour',
+    tagline: 'Five-Card Draw. No board, nothing to read but the discards.',
+    buyIn: 1_000,
+    startingStack: 2_000,
+    smallBlind: 5,
+    bigBlind: 10,
+    seats: 5,
+    prize: 5_000,
+    handsPerLevel: 10,
+    membersOnly: true,
+    variant: 'draw',
+    accent: '#8F6FE8',
+    ai: { tightness: 0.32, aggression: 0.46, bluff: 0.12, iterations: 600, skill: 0.5 },
+  },
+  {
+    id: 'draw-5000',
+    name: 'The Parlour',
+    tagline: 'Five-Card Draw. No board, nothing to read but the discards.',
+    buyIn: 5_000,
+    startingStack: 10_000,
+    smallBlind: 25,
+    bigBlind: 50,
+    seats: 5,
+    prize: 25_000,
+    handsPerLevel: 10,
+    membersOnly: true,
+    variant: 'draw',
+    accent: '#8F6FE8',
+    ai: { tightness: 0.42, aggression: 0.56, bluff: 0.16, iterations: 950, skill: 0.64 },
+  },
+] as const
 
 /**
  * The placeholder that gives a built table a route to be played at.
@@ -735,19 +939,166 @@ export function freerollOpen(roll: number): boolean {
   return roll < VENUES[0].buyIn
 }
 
+// --- the side-tables shelf ---------------------------------------------------
+//
+// **One card per thing that is different, with the prices behind it**
+// (Will, 2026-09-20). The shelf used to be ten venue cards in a flat grid, and
+// it told you neither of the two things you needed: "The Docks" does not say
+// *bounty*, and a row of buy-ins running 500 to 25,000 in no order does not say
+// whether any of it is above or below where you play.
+//
+// So the cards are now families. A family is one idea — Fast, Heads-Up, Bounty,
+// Deep, a whole different game — and the rooms inside it are the same idea at
+// different prices, picked on the second screen of the info dialog. That is the
+// shape Deep Stack already had and the one that survived contact with a player
+// (see VenueInfoDialog); this generalises it rather than inventing anything.
+//
+// **No new art was commissioned.** Every family wears art that already existed,
+// which is why `art` is a separate field from `id` — the family called Fast is
+// not a venue called redeye, it just borrows its painting.
+
+/** Which half of the shelf a family belongs to. */
+export type ShelfSection = 'games' | 'twists'
+
+/** One card on the side-tables shelf: an idea, and the rooms that price it. */
+export interface TableFamily extends MembersOnly {
+  id: string
+  name: string
+  tagline: string
+  /** An existing venue-art id to wear. Families do not have art of their own. */
+  art: string
+  accent: string
+  /** The corner word, where the name does not already say it. */
+  tag?: string
+  section: ShelfSection
+  /** What is different about this family, for the dialog. One paragraph. */
+  note: string
+  /** The rooms behind the card, cheapest first. One is a perfectly good family. */
+  rooms: readonly Venue[]
+}
+
+/** A gated side-table room by id — throws rather than silently dropping a card. */
+function sideTable(id: string): Venue {
+  const room = SIDE_TABLES.find((v) => v.id === id)
+  if (!room) throw new Error(`no side table with id ${id}`)
+  return room
+}
+
 /**
- * Everything the side-tables shelf shows, free and paid, in display order.
+ * Everything the side-tables shelf shows, in display order.
  *
- * **One list, read by both the page and the lobby tile that counts it.** The
- * tile used to count `SIDE_TABLES` directly and said "7 formats" on a shelf
- * showing nine the day the membership's tables landed there (Will, 2026-09-19).
- * A count derived from a different list than the one being rendered is a fact
- * that goes quietly wrong, so there is now only one list.
+ * **One list, read by the page, the two sections it renders, and the lobby tile
+ * that counts it.** The tile used to count `SIDE_TABLES` directly and said
+ * "7 formats" over a page rendering nine the day the membership's tables landed
+ * there (Will, 2026-09-19). A count derived from a different list than the one
+ * being rendered is a fact that goes quietly wrong, so there is one list.
  *
- * The builder is not here: it is not a venue, and it is appended by the page as
- * a tile of its own.
+ * The builder is not here: it is not a family of rooms, and the page appends it
+ * as a tile of its own.
  */
-export const SIDE_SHELF: readonly Venue[] = [...SIDE_TABLES, DEEP_STACK_DEFAULT, BIG_POT]
+export const SIDE_SHELF: readonly TableFamily[] = [
+  {
+    id: 'omaha',
+    name: 'The Big Pot',
+    tagline: 'Pot-Limit Omaha. Four cards, use exactly two.',
+    art: 'bigpot',
+    accent: '#5B7FC7',
+    tag: 'Omaha',
+    section: 'games',
+    membersOnly: true,
+    note: 'Four cards in your hand instead of two, and at showdown you must use exactly two of them with exactly three from the board. No more, no less: four to a flush on the board plus one in your hand is nothing here. Four cards make far more big hands, so one pair rarely wins and straights and flushes are ordinary. Pot-limit means the largest bet allowed is the size of the pot, so nobody shoves all-in before the flop. Stacks start deep because Omaha is a drawing game and short ones turn it into a coin flip.',
+    rooms: [BIG_POT],
+  },
+  {
+    id: 'shortdeck',
+    name: 'Short Deck',
+    tagline: 'Thirty-six cards. A flush beats a full house.',
+    art: 'chopshop',
+    accent: '#D95F43',
+    tag: 'Short Deck',
+    section: 'games',
+    membersOnly: true,
+    note: 'The deuces through the fives are thrown away before the deal, and two rules come with the thirty-six cards that are left. A flush now beats a full house, because nine of each suit instead of thirteen makes flushes the rarer hand. And the ace plays low under the six, so A-6-7-8-9 is a straight — a nine-high one, not an ace-high one. Everything else is the Hold’em you already know, except that far more of it connects.',
+    rooms: [...SHORT_DECK_TABLES],
+  },
+  {
+    id: 'hilo',
+    name: 'The Split',
+    tagline: 'Omaha Hi-Lo. Half the pot goes to the worst hand.',
+    art: 'vault',
+    accent: '#4FB477',
+    tag: 'Hi-Lo',
+    section: 'games',
+    membersOnly: true,
+    note: 'Omaha, and then every pot is cut in half. One half goes to the best hand as usual; the other goes to the best *low* — five cards of different ranks, all eight or lower, with the ace counting as one. Straights and flushes do not stop a hand being low, so 5-4-3-2-A is both the best low there is and a straight. You still have to use exactly two from your hand for each half, and they are rarely the same two. When nobody makes a qualifying low, which is about half the time, the high hand takes the lot.',
+    rooms: [...HI_LO_TABLES],
+  },
+  {
+    id: 'draw',
+    name: 'The Parlour',
+    tagline: 'Five-Card Draw. No board, nothing to read but the discards.',
+    art: 'allnighter',
+    accent: '#8F6FE8',
+    tag: 'Draw',
+    section: 'games',
+    membersOnly: true,
+    note: 'The oldest game in the room and the least like the rest of this app. Five cards each, all face down, and no board — so there is nothing on the table to read and nothing to share. One round of betting, then everybody throws away as many cards as they like and takes replacements, then one more round, then you show. The only information anybody gets all hand is how many cards you asked for, which is why standing pat on nothing is a real play here rather than a stunt.',
+    rooms: [...DRAW_TABLES],
+  },
+  {
+    id: 'fast',
+    name: 'Fast',
+    tagline: 'The clock is the opponent.',
+    art: 'redeye',
+    accent: '#E06D8C',
+    tag: 'Fast',
+    section: 'twists',
+    membersOnly: true,
+    note: 'The blinds come for you. The Red-Eye moves them every three hands; the All-Nighter every two and seats you short to begin with. Patience stops being a virtue somewhere around the second level.',
+    rooms: [sideTable('redeye'), sideTable('allnighter')],
+  },
+  {
+    id: 'headsup',
+    name: 'Heads-Up',
+    tagline: 'One opponent. Every hand contested.',
+    art: 'duel',
+    accent: '#9A7FD1',
+    tag: 'Heads-up',
+    section: 'twists',
+    membersOnly: true,
+    note: 'Two seats, no hiding in the middle, and you are in every pot whether you like it or not. Fold too much and the blinds eat you; the Vault does it for thirty times the money.',
+    rooms: [sideTable('duel'), sideTable('vault')],
+  },
+  {
+    id: 'bounty',
+    name: 'Bounty',
+    tagline: 'A price on every head.',
+    art: 'docks',
+    accent: '#C9873D',
+    tag: 'Bounty',
+    section: 'twists',
+    membersOnly: true,
+    note: 'Bust somebody and their bounty pays into your Roll on the spot, on top of the chips you just took off them. The Chop Shop pays three times as much and runs the blinds up fast, so the heads are worth more and there is less time to collect them.',
+    rooms: [sideTable('docks'), sideTable('chopshop')],
+  },
+  {
+    id: 'deep',
+    name: 'Deep',
+    tagline: 'More chips than the buy-in, and a slow clock.',
+    art: 'study',
+    accent: '#B5835A',
+    tag: 'Deep',
+    section: 'twists',
+    membersOnly: true,
+    note: 'Everyone sits with more chips than they paid and the blinds climb slowly, so hands get played rather than shoved. The Study doubles the usual stack; the Deep Stack rooms triple it and slow the clock further.',
+    rooms: [DEEP_STACK_TABLES[0], sideTable('study'), ...DEEP_STACK_TABLES.slice(1)],
+  },
+]
+
+/** The families in one half of the shelf, in order. */
+export function familiesIn(section: ShelfSection): readonly TableFamily[] {
+  return SIDE_SHELF.filter((f) => f.section === section)
+}
 
 /**
  * Every table a player can sit at, in one list.
@@ -776,6 +1127,9 @@ export const ALL_VENUES: readonly Venue[] = [
   ...RING_TABLES,
   ...CHALLENGE_TABLES,
   ...DEEP_STACK_TABLES,
+  ...SHORT_DECK_TABLES,
+  ...HI_LO_TABLES,
+  ...DRAW_TABLES,
   BIG_POT,
   KITCHEN_TABLE,
   THE_DAILY,

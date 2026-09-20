@@ -4,7 +4,7 @@
 
 import type { Card, Rank, Rng, Suit } from './cards'
 import { RANKS, SUITS } from './cards'
-import { HOLE_CARDS, type Variant, determineWinners } from './handEval'
+import { DECK_RANKS, HOLE_CARDS, type Variant, determineWinners } from './handEval'
 import { holeStrength } from './range'
 
 /** How many candidate holdings a maximally-tight opponent picks the best of. */
@@ -52,10 +52,10 @@ function cardKey(c: Card): string {
   return `${c.rank}${c.suit}`
 }
 
-function remainingDeck(known: readonly Card[]): Card[] {
+function remainingDeck(known: readonly Card[], ranks: readonly Rank[] = RANKS): Card[] {
   const used = new Set(known.map(cardKey))
   const deck: Card[] = []
-  for (const rank of RANKS as readonly Rank[]) {
+  for (const rank of ranks) {
     for (const suit of SUITS as readonly Suit[]) {
       const c = { rank, suit }
       if (!used.has(cardKey(c))) deck.push(c)
@@ -140,9 +140,12 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     return { win: 1, tie: 0, equity: 1, iterations: 0 }
   }
 
-  const base = remainingDeck([...opts.hole, ...community])
-  const boardNeeded = 5 - community.length
   const variant = opts.variant ?? 'holdem'
+  // The sim deals from the same deck the table does. Running a short-deck spot
+  // against a fifty-two-card runout answers a different question than the one
+  // on screen, and answers it confidently.
+  const base = remainingDeck([...opts.hole, ...community], DECK_RANKS[variant])
+  const boardNeeded = 5 - community.length
   const holeSize = HOLE_CARDS[variant]
   const selectivity = opts.opponentSelectivity
   const ranged = variant === 'holdem' && !!selectivity && selectivity.some((s) => s > 0)

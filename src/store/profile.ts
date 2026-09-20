@@ -10,6 +10,7 @@ import type { AvatarSpec } from '@/lib/avatar'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
+import type { BlackjackSession } from '@/lib/blackjack/session'
 import type { CustomTableSpec } from '@/config/customTable'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
 import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
@@ -194,6 +195,22 @@ export interface ProfileState {
    */
   customTable: CustomTableSpec | null
 
+  /**
+   * An open blackjack session: the chips in front of you and the table you sat
+   * at, or `null` when you are not sitting at one.
+   *
+   * **Persisted because the stack is real money to a player.** A blackjack
+   * buy-in leaves the Roll at sit-down and comes back at cash-out, so a hard
+   * refresh in between with nothing stored would simply delete it — the same
+   * failure the poker table's snapshot exists to prevent, one game over. The
+   * chips live here rather than in a transient store for exactly that reason.
+   *
+   * Client-written like everything else on the profile, so it is re-checked on
+   * the way in (`resumeBlackjack`): an unknown table id or a stack that is not
+   * a finite number is a trip back to the shelf, not a free bankroll.
+   */
+  blackjack: BlackjackSession | null
+
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
   setAvatar: (avatar: AvatarSpec) => void
@@ -205,6 +222,7 @@ export interface ProfileState {
   setCameFromFreeroll: (value: boolean) => void
   /** Remember the table they just built. */
   setCustomTable: (spec: CustomTableSpec) => void
+  setBlackjack: (session: BlackjackSession | null) => void
   /** Fold a hand's observed tendencies into each character's career record. */
   mergeCastStats: (deltas: Record<string, Partial<SeatStats>>) => void
   /** You took this character's last chip. */
@@ -260,7 +278,7 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 18
+export const PERSIST_VERSION = 19
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -300,6 +318,7 @@ export const useProfile = create<ProfileState>()(
       drills: {},
       escrow: null,
       customTable: null,
+      blackjack: null,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -335,6 +354,7 @@ export const useProfile = create<ProfileState>()(
         }),
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
       setCustomTable: (spec) => set({ customTable: spec }),
+      setBlackjack: (session) => set({ blackjack: session }),
       mergeCastStats: (deltas) =>
         set((s) => {
           const ids = Object.keys(deltas)
@@ -482,6 +502,7 @@ export const useProfile = create<ProfileState>()(
           drills: {},
           escrow: null,
           customTable: null,
+          blackjack: null,
         }),
     }),
     {
@@ -591,6 +612,8 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // there is nothing to infer from an older profile, and a null slot is the
   // same state as a member who has never opened the builder.
   if (fromVersion < 18) s.customTable = null
+  // v18 → v19: blackjack, whose stack has to survive a refresh (see the field).
+  if (fromVersion < 19) s.blackjack = null
   return s
 }
 

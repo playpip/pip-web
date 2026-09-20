@@ -17,6 +17,7 @@ export type Cue =
   | 'lose'
   | 'tap'
   | 'turn'
+  | 'draw'
 
 interface Voice {
   freq: number
@@ -39,6 +40,9 @@ const VOICES: Record<Cue, Voice> = {
   lose: { freq: 300, type: 'sine', duration: 0.3, gain: 0.16, sweepTo: 180 },
   tap: { freq: 520, type: 'sine', duration: 0.035, gain: 0.1 },
   turn: { freq: 720, type: 'sine', duration: 0.09, gain: 0.14, sweepTo: 760 },
+  // Cards going away and coming back: `deal`'s shape, a touch shorter, so a
+  // draw round of five players does not turn into a drum solo.
+  draw: { freq: 340, type: 'triangle', duration: 0.06, gain: 0.11, sweepTo: 240 },
 }
 
 class SoundEngine {

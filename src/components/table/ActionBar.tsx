@@ -11,7 +11,17 @@ import { cn } from '@/lib/utils'
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
-export function ActionBar({ hand }: { hand: HandState }) {
+export function ActionBar({
+  hand,
+  marked = [],
+  onDrawn,
+}: {
+  hand: HandState
+  /** Five-Card Draw: the cards the hero has marked to throw away. */
+  marked?: readonly number[]
+  /** Called once the discard has been sent, so the selection can be cleared. */
+  onDrawn?: () => void
+}) {
   const act = useGame((s) => s.act)
   const money = useMoney()
   const [sizerOpen, setSizerOpen] = useState(false)
@@ -44,6 +54,30 @@ export function ActionBar({ hand }: { hand: HandState }) {
   const confirmRaise = () => {
     act({ type: legal.canBet ? 'bet' : 'raise', amount: raiseTo })
     setSizerOpen(false)
+  }
+
+  // The draw round: one button, and what it says depends on what you picked.
+  // Standing pat is a real decision rather than a no-op, so the button is never
+  // disabled — "Stand pat" is the answer when nothing is marked.
+  if (legal.canDraw) {
+    const count = marked.length
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex gap-2"
+      >
+        <Pill
+          tone="primary"
+          onClick={() => {
+            act({ type: 'draw', discard: [...marked] })
+            onDrawn?.()
+          }}
+        >
+          {count === 0 ? 'Stand pat' : `Draw ${count}`}
+        </Pill>
+      </motion.div>
+    )
   }
 
   return (

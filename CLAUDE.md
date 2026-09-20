@@ -16,6 +16,7 @@ work. This file is the quick-start and the non-negotiables.
 | UI / styling | [docs/design.md](./docs/design.md) |
 | Copy / naming / tone | [docs/brand.md](./docs/brand.md) |
 | Venues / venue art | [docs/venues.md](./docs/venues.md) |
+| Blackjack | `src/lib/blackjack/` — its own engine, deliberately outside `src/lib/poker/` |
 | Anything paid / gated | [docs/membership.md](./docs/membership.md) |
 | Persistence / backup / offline PWA | [docs/data-and-offline.md](./docs/data-and-offline.md) |
 | Setup / testing / conventions / deploy | [docs/development.md](./docs/development.md) |

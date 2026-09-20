@@ -113,6 +113,10 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // profile written before v18 has no such field and `pickUnhandled` would
     // otherwise leave it `undefined`, which the type does not allow.
     customTable: winner.customTable ?? loser.customTable ?? null,
+    // An open blackjack session belongs to the device holding the chips, and
+    // the chips are in the Roll that the chosen side won. Taking the loser's
+    // session would hand this device a stack the winning Roll never paid for.
+    blackjack: winner.blackjack ?? null,
 
     // The Daily is once per UTC day and abandoning counts as played, so the
     // record that says "played today" has to win or syncing becomes a re-roll.

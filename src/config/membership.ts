@@ -16,12 +16,18 @@
  * Carried by anything the membership gates: a drill kind, a venue, a cast
  * member, a cosmetic, a format.
  *
- * **Absent means free forever, and that is not a default anyone may change
- * later.** Rule 1 says we never charge for something that shipped free, so a
- * thing that ships without this flag has given itself away. A new thing meant
- * to be paid must carry it in the same commit that registers it, or it is free
- * by accident and the box the membership is priced from empties itself on the
- * way to being sold (technology#55).
+ * **Absent means free, and that is not a default anyone may change later.** A
+ * new thing meant to be paid must carry this flag in the same commit that
+ * registers it, or it is free by accident and the box the membership is priced
+ * from empties itself on the way to being sold (technology#55).
+ *
+ * Rule 1 is what stops the flag travelling in the other direction, and on
+ * 2026-09-20 it was narrowed: it now protects the **core game** — the ladder,
+ * the Rail, the Daily, the freeroll — rather than everything that happened to
+ * be free on a given day. The side tables moved behind the check in that same
+ * change, before Stripe existed and before anybody could have relied on them.
+ * `tests/sitDown.test.ts` holds the new line; docs/membership.md carries the
+ * full account, including why this is the only time it happens.
  */
 export interface MembersOnly {
   membersOnly?: boolean
@@ -131,9 +137,14 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
   },
   {
     id: 'rooms',
-    title: 'Four member rooms',
+    // Was "Four member rooms", naming The Lock-In, The Back Room, The Rematch
+    // and Last Orders — none of which have existed since they collapsed into
+    // Deep Stack (2026-09-19). A sales page naming four rooms a buyer cannot
+    // find is the exact failure this list's `shipped` flag exists to prevent,
+    // arriving by a different door: the feature was real, the names went stale.
+    title: 'Deep Stack, at five prices',
     blurb:
-      'The Lock-In, The Back Room, The Rematch and Last Orders — deep stacks, long clocks and a price on every head, with three regulars you only meet in them. Ordinary tables in every other way: they count towards your rank like any other.',
+      'Three times the usual chips and a slow clock, from 750 up to 40,000. Post-flop poker where the stacks are deep enough to actually play it. Ordinary tables in every other way: they count towards your rank like any other.',
     shipped: true,
   },
   {
@@ -148,6 +159,34 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     title: 'Pot-Limit Omaha',
     blurb:
       'Four cards each, and you must use exactly two of them with exactly three from the board. Pot-limit betting, deep stacks, and the same cast you already know. A genuinely different game, at The Big Pot.',
+    shipped: true,
+  },
+  {
+    id: 'shortdeck',
+    title: 'Short Deck',
+    blurb:
+      'Thirty-six cards — the deuces through fives are thrown away — and two rules come with them: a flush beats a full house, and the ace plays low under the six, so A-6-7-8-9 is a straight. Far more of it connects. Three stakes.',
+    shipped: true,
+  },
+  {
+    id: 'hilo',
+    title: 'Omaha Hi-Lo',
+    blurb:
+      'Every pot cut in half: one half to the best hand, the other to the best low — five different ranks, all eight or lower, ace counting as one. You still use exactly two from your hand for each half, and they are rarely the same two.',
+    shipped: true,
+  },
+  {
+    id: 'side-tables',
+    title: 'Every side table',
+    blurb:
+      'Fast, Heads-Up, Bounty and Deep — the game you know with one screw turned, at thirteen stakes between them. None of them gate your climb up the free ladder.',
+    shipped: true,
+  },
+  {
+    id: 'blackjack',
+    title: 'Blackjack, for some reason',
+    blurb:
+      'It is not poker and we are not going to pretend otherwise: there are no opponents, no position and nothing to out-play, because the dealer draws to seventeen whatever you do. Three houses, and each one tells you its edge before you sit down. A curiosity, priced honestly.',
     shipped: true,
   },
   {
@@ -192,7 +231,7 @@ export function sellableFeatures(): readonly MembershipFeature[] {
  * which is the whole mechanism this product's positioning runs on.
  */
 export const MEMBERSHIP_PROMISES = [
-  'Anything that shipped free stays free. The membership only ever adds.',
+  'The core game is free forever: the ten-venue ladder, the Rail, the Daily and the freeroll. The membership is the side tables and the games that are not Hold’em.',
   'Nothing you can buy changes a hand — not the cards, the odds, what you are shown, or a rebuy.',
 ] as const
 

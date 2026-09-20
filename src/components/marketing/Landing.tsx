@@ -364,9 +364,13 @@ function Venues() {
       </div>
 
       <div className="mt-14">
+        {/* Says what it costs, on the page that shows it off. These shipped
+            free and moved behind the membership on 2026-09-20, so a rail that
+            advertised them without saying so would be selling the free tour on
+            tables the tour no longer includes (docs/membership.md). */}
         <RailHeader
           title="Side tables"
-          hint="Same game, different pressure — none of them gate your climb"
+          hint="Same game, different pressure — they come with the membership, and none of them gate your climb"
         />
         <VenueRail venues={SIDE_TABLES} badge={formatBadge} />
       </div>

@@ -44,11 +44,13 @@ export default function TermsPage() {
           before checkout is, on purpose. */}
       <Section title="The membership">
         <p>
-          Pip is free to play and always will be: everything that has shipped free stays free. There
-          is also an optional paid <A href="/membership">membership</A>, which adds to the game and
-          never removes anything from it. It costs {MEMBERSHIP_PRICE.monthly} a month or{' '}
-          {MEMBERSHIP_PRICE.annual} a year, in pounds. Those prices include any tax that applies
-          where you are, so the amount shown is the amount charged.
+          Pip is free to play and always will be: the ten-venue ladder, the Rail&rsquo;s cash games,
+          the Daily and the freeroll stay free forever, and you can never be chip-blocked,
+          timer-blocked or ad-blocked out of any of them. There is also an optional paid{' '}
+          <A href="/membership">membership</A>, which adds the side tables, the games that
+          aren&rsquo;t Hold&rsquo;em and the tools beside them. It costs {MEMBERSHIP_PRICE.monthly}{' '}
+          a month or {MEMBERSHIP_PRICE.annual} a year, in pounds. Those prices include any tax that
+          applies where you are, so the amount shown is the amount charged.
         </p>
         <p>
           <strong>It renews automatically</strong> — monthly or annually, matching what you chose —

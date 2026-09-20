@@ -542,6 +542,24 @@ export const CAST: readonly Character[] = [
     },
   },
   {
+    id: 'vic',
+    name: 'Vic',
+    bio: 'Deals blackjack. Has never once had an opinion about your cards.',
+    avatar: av('vic', 'b6e3f4'),
+    // Pinned, so Vic never turns up as a challenger. That is not tidiness: a
+    // challenge is a heads-up poker table and Vic does not play poker, deals
+    // to a fixed rule and cannot be beaten by out-playing them. It also keeps
+    // the scalp shelf at twenty-two (tests/challenge.test.ts) — a dealer you
+    // cannot challenge must not enlarge the collection you are counting.
+    bands: ['mid'],
+    only: ['blackjack'],
+    lines: {
+      seat: ['Vic squares the shoe and waits.', 'Vic deals without looking up.'],
+      win: ['Vic pays it out. No comment.', 'Vic slides the chips across, already shuffling.'],
+      bust: ['Vic takes the chips. Nothing personal — there is no personal.'],
+    },
+  },
+  {
     id: 'sable',
     name: 'Sable',
     bio: 'The Vault’s last lock. Nobody’s picked it twice.',

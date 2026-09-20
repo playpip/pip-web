@@ -92,7 +92,7 @@ test('every band has a pool to draw from', (t) => {
 })
 
 test('the collection is 22, not the whole cast of 28', (t) => {
-  // Six characters are pinned to a venue. The scalp shelf has to be sized to
+  // Seven characters are pinned to a venue. The scalp shelf has to be sized to
   // what is actually winnable or it can never be completed.
   //
   // **The member rooms' three regulars went in and this number did not move**,
@@ -104,8 +104,14 @@ test('the collection is 22, not the whole cast of 28', (t) => {
   //
   // If a later member character is ever *not* pinned, this test is what fails,
   // and the fix is to pin them — not to raise the 22.
+  //
+  // Vic, the blackjack dealer, is the seventh pin (2026-09-20) and moved the
+  // cast to 29 without touching the 22 — which is this rule working rather
+  // than being bent. The two numbers are here precisely so that a change can
+  // be told apart: the left one growing is a new character, the right one
+  // growing is a promise being broken.
   const collectible = new Set(BANDS.flatMap((b) => challengeable(b).map((ch) => ch.id)))
-  t.is(CAST.length, 28)
+  t.is(CAST.length, 29)
   t.is(collectible.size, 22)
 })
 

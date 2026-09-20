@@ -42,10 +42,25 @@ export function mulberry32(seed: number): Rng {
   }
 }
 
-/** Fresh, ordered 52-card deck. */
-export function createDeck(): Card[] {
+/**
+ * Short Deck (6+) uses thirty-six cards: the deuces through fives are thrown
+ * away before the game starts.
+ *
+ * Here rather than in handEval because a deck is a deck — the *ranking* rules
+ * that come with a short deck are that file's business, and this one has no
+ * opinion about which hand beats which.
+ */
+export const SHORT_DECK_RANKS: readonly Rank[] = ['6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
+
+/**
+ * Fresh, ordered deck — fifty-two cards, or whichever ranks you ask for.
+ *
+ * The parameter defaults to the full set so every existing caller is unchanged.
+ * Short Deck passes `SHORT_DECK_RANKS`; nothing else has ever needed to ask.
+ */
+export function createDeck(ranks: readonly Rank[] = RANKS): Card[] {
   const deck: Card[] = []
-  for (const rank of RANKS) {
+  for (const rank of ranks) {
     for (const suit of SUITS) {
       deck.push({ rank, suit })
     }
@@ -63,8 +78,8 @@ export function shuffle<T>(items: T[], rng: Rng): T[] {
 }
 
 /** A shuffled deck. Pass a seeded RNG for reproducibility. */
-export function shuffledDeck(rng: Rng): Card[] {
-  return shuffle(createDeck(), rng)
+export function shuffledDeck(rng: Rng, ranks: readonly Rank[] = RANKS): Card[] {
+  return shuffle(createDeck(ranks), rng)
 }
 
 /** Encode a card as the two-char string pokersolver expects, e.g. "Ah", "Td". */

@@ -16,6 +16,7 @@ import {
   rungFor,
 } from '@/config/customTable'
 import { ALL_VENUES, VENUES, venueById } from '@/config/venues'
+import { PERSIST_VERSION } from '@/store/profile'
 
 // Build your own table, and the one property that makes it safe to sell.
 //
@@ -169,6 +170,12 @@ test('the built table survives a sync merge', (t) => {
   t.regex(merge, /customTable:/, 'merge.ts does not carry the built table')
 
   const profile = readFileSync(new URL('../src/store/profile.ts', import.meta.url), 'utf-8')
-  t.regex(profile, /PERSIST_VERSION = 18/, 'the persisted profile was not versioned for this')
-  t.regex(profile, /fromVersion < 18/, 'there is no migration branch for the built table')
+  // The migration branch, not the version number. This used to pin
+  // `PERSIST_VERSION = 18` exactly, which made it fail on the next unrelated
+  // bump (19, for the blackjack session) — a test that fails for being
+  // out of date rather than for being wrong teaches people to edit tests.
+  // What actually matters is that the field arrived with a migration and that
+  // the version never goes backwards past it.
+  t.regex(profile, /fromVersion < 18\) s\.customTable = null/, 'no migration for the built table')
+  t.true(PERSIST_VERSION >= 18, 'the persisted profile was rolled back past the built table')
 })

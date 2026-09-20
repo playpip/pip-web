@@ -252,8 +252,9 @@ export default function PlayPokerFreeNoSignupPage() {
           You land on one screen that asks for a name and offers you a face, and that is the entire
           signup. You start with{' '}
           <strong className={strong}>200 chips, and a seat at the Friends’ Garage costs 100</strong>
-          , which is the bottom rung of a ladder of ten venues that runs up to The Main Event. Above
-          that sit side tables that bend the format, ring games, and one Daily Deal.
+          , which is the bottom rung of a ladder of ten venues that runs up to The Main Event.
+          Beside it sit the Rail&rsquo;s ring games and one Daily Deal, all free. The side tables
+          that bend the format come with the paid membership; nothing on the free ladder needs them.
         </p>
         <p>
           Win and your Roll grows, lose it all and a free table opens so you can win your way back

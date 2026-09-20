@@ -10,22 +10,26 @@ answer comes from, and which rules are enforced by tests rather than by agreemen
 
 ## The shape, in one line
 
-**Pip is free to play and most of the game is open to everybody. The membership adds rooms
-and tools beside it, and never takes anything away from it.**
+**The core game is free to play and always will be. The membership adds the side tables,
+the games that are not Hold'em, and the tools beside them — and never takes anything away
+from the core.**
 
-Free, permanently: the whole ten-venue ladder, every side table, the Rail's cash games, the
-challenge tables, the Daily Deal, the Chip Shop economy, the Kitchen Table freeroll, the
-read on every hand as you finish it, the end-of-run card, the drill called *Which hand
-wins?*, every written guide, the odds calculator, and sync.
+Free, permanently: the whole ten-venue ladder, the Rail's cash games, the challenge tables,
+the Daily Deal, the Chip Shop economy, the Kitchen Table freeroll, the read on every hand as
+you finish it, the end-of-run card, the drill called *Which hand wins?*, every written
+guide, the odds calculator, and sync.
 
-Behind the check: three more drill kinds plus the play-it-out mode, five member rooms
-(including Pot-Limit Omaha), build-your-own-table, the across-sessions play report,
-spectating after you bust, and four member card backs. Not built: multiplayer.
+Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
+Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, three more
+drill kinds plus the play-it-out mode, the across-sessions play report, spectating after you
+bust, and four member card backs. Not built: multiplayer.
 
 ## The four rules
 
-1. **Anything that shipped free is free forever.** You can never be chip-blocked,
-   timer-blocked or ad-blocked out of the game that exists today.
+1. **The core game is free forever.** The ten-venue ladder, the Rail's cash games, the Daily
+   and the Kitchen Table freeroll. You can never be chip-blocked, timer-blocked or
+   ad-blocked out of any of it, and no part of it may ever acquire the flag —
+   `tests/sitDown.test.ts` fails the build if one does.
 2. **Nothing you can buy changes a hand** — not the cards, the odds, what you are shown, or
    a rebuy. This one holds with no asterisk, in every case.
 3. **It is not pay-to-win**, which means buying an advantage over another player. Pip is
@@ -36,6 +40,30 @@ spectating after you bust, and four member card backs. Not built: multiplayer.
 4. **Nothing is metered.** A thing is the membership's or it is free, and there is no third
    shape: no sampling, no "three a week", no trial that ends mid-session. What we sell is
    another whole kind, never a slice of a free one.
+
+### Rule 1 was rewritten on 2026-09-20, and here is the honest account of it
+
+It used to read **"anything that shipped free is free forever"**, and it named every side
+table in the free list. The seven free side tables are now behind the check, so that
+sentence would be false if it stayed. It has been narrowed rather than quietly edited:
+
+- **What changed.** The promise is now about the *core game* — the ladder, the Rail, the
+  Daily, the freeroll — rather than about every screen that happened to exist on a given
+  day. The side tables and every game that is not Hold'em are the membership.
+- **Why it was allowed.** There is no Stripe account and never has been. Nobody has paid
+  for anything, nobody has been charged, and nobody chose Pip on the strength of a free
+  side table they are now losing. The promise was broken before it could be relied on,
+  which is the only circumstance in which breaking it costs a player nothing.
+- **Why it is narrower rather than deleted.** A membership with no free-forever commitment
+  at all is a membership that can eat the ladder next year. The commitment is now smaller
+  and it is exact, which makes it enforceable: rule 1 names four things and
+  `tests/sitDown.test.ts` fails the build if any of them gains `membersOnly`.
+- **What this costs us.** The right to say "we have never moved a free thing behind the
+  paywall". We have, once, before anyone could pay. Anybody who asks should be told that.
+
+⚠️ **This is the one time.** After the first payment clears, rule 1 is absolute again and
+narrowing it further is not a thing this document can authorise — that would need a player
+to be told before it happened, not after.
 
 ## Where the answer comes from
 
@@ -86,11 +114,25 @@ Two places do more than call it:
 what you cannot see — and slightly dishonest by omission. It also means the app silently
 rearranges itself the day somebody joins.
 
-So a locked drill tile, member room card or card back shows with a padlock, a plain line
-saying what it is, and **one text link** to `/membership`. Not a prompt, not a button, no CTA
-styling, nothing that appears over what the player was doing or comes back after being
-closed. The landing page ships *"No forced pop-ups, no pay-to-win, no nagging. Ever."* and
-every one of these screens is inside that sentence.
+So a locked drill tile, member room card or card back shows with a padlock and a plain line
+saying what it is. Not a prompt, nothing that appears over what the player was doing, and
+nothing that comes back after being closed. The landing page ships *"No forced pop-ups, no
+pay-to-win, no nagging. Ever."* and every one of these screens is inside that sentence.
+
+**A locked card now answers a tap by going to `/membership`** (Will, 2026-09-20), which is a
+change from "one text link, never a button" and is worth saying why. That rule was written
+when the shelf was mostly free and a locked card was the exception: a tap opened the info
+dialog, which described the table and then said you could not play it. Now that every side
+table is behind the check, that dialog is a dead end on every card on the shelf — it spends
+a screen explaining a thing and offers no way to get it.
+
+The line this stays on is **invited versus uninvited**. Nothing here interrupts, nothing
+appears over anything, nothing returns once dismissed, and nothing is styled as a sales
+button — the card still wears a padlock and still says *Comes with the membership*. What
+changed is only what a deliberate tap on a locked thing does, and sending somebody to the
+page that answers their question is the least we owe them for asking. If this ever grows
+into something that appears without being asked for, it has stopped being this and the rule
+above is what it has broken.
 
 **Nothing about buying appears in the game loop.** `tests/membershipSurfaces.test.ts` fails
 the build if anything under `src/components/table/` or `src/store/game.ts` links to

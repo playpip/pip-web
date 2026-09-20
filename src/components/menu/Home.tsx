@@ -15,11 +15,15 @@ import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
 import { ChallengeCard } from './ChallengeCard'
 import { CategoryCard } from './CategoryCard'
+import { LadderStrip } from './LadderStrip'
+import { NextUpCard } from './NextUpCard'
+import { QuickPlayCard } from './QuickPlayCard'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import { VENUES, SIDE_SHELF, RING_TABLES, KITCHEN_TABLE, THE_DAILY } from '@/config/venues'
+import { SIDE_SHELF, RING_TABLES, THE_DAILY } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
-import { challengeOnOffer, freerollOnOffer } from '@/lib/sitDown'
+import { nextUp, quickPlay } from '@/lib/nextUp'
+import { challengeOnOffer } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
 import { characterById } from '@/config/cast'
 import { accentFromSwatch } from '@/lib/avatar'
@@ -52,20 +56,20 @@ export function Home() {
   const webb = characterById('webb')
   // Clock-derived copy renders client-side only (SSR has no local hour).
   const hydrated = useHydrated()
-  // The freeroll button and the challenge card both open a table, so both are
-  // decided on the spendable Roll and by the same function the route uses
-  // (lib/sitDown): a buy-in sitting on another device's table is not being
-  // broke, and it is not a locked band. Client-only because `deviceId()` reads
-  // localStorage, which the prerender does not have, the same reason the
-  // challenge card below has always been.
+  // Everything on this screen that opens a table is decided on the spendable
+  // Roll and by the same functions the route uses (lib/sitDown, lib/nextUp): a
+  // buy-in sitting on another device's table is not being broke, and it is not
+  // a locked band. Client-only because `deviceId()` reads localStorage, which
+  // the prerender does not have.
   const escrow = useProfile((s) => s.escrow)
   const sitDown = hydrated ? { roll, escrow, venueRecords, challengeWins, challengesPlayed } : null
-  const broke = sitDown ? freerollOnOffer(sitDown, deviceId()) : false
-  // Who is waiting, derived here rather than inside the tile: the grid has to
-  // know whether there is a fifth tile before it can pick its column count.
-  // Client-only for the same reason the Daily is — it comes from the persisted
-  // profile, which the prerender doesn't have, so the first client render has
-  // to match the server's and produce the four-tile grid.
+  // The one table this screen leads with. Derived here rather than inside the
+  // card because the shelf below has to know what won the hero slot — whatever
+  // did is left off it, so the same face never appears twice down the page.
+  const pick = sitDown ? nextUp(sitDown, deviceId()) : null
+  // Somewhere to dip into for ten minutes, when the Roll can stand one.
+  const quick = sitDown ? quickPlay(sitDown, deviceId()) : null
+  // Who is waiting, derived here for the same reason.
   const challenge = sitDown ? challengeOnOffer(sitDown, deviceId()) : null
   const hour = hydrated ? new Date().getHours() : 12
   // The player's own colour — worn by the ambient backdrop and the sparkline.
@@ -113,72 +117,92 @@ export function Home() {
             )}
           </div>
         )}
-        {broke && (
-          <button
-            onClick={() => {
-              sound.play('call')
-              router.push(`/play/${KITCHEN_TABLE.id}`)
-            }}
-            className="mt-4 rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
-          >
-            Play the freeroll — win {money(KITCHEN_TABLE.prize)}
-          </button>
-        )}
+        {/* The freeroll used to be a button here, shown only when broke. It is
+            now the first thing `nextUp` offers, so a player out of chips gets
+            it as the hero rather than as a second, differently-shaped way in. */}
         {/* Under the Roll, because the Roll is the thing an account keeps.
             Signed out only, and it renders nothing until the stored session has
             been checked. */}
         <AccountOffer />
       </motion.div>
 
-      {/* the main menu — one tap into each corner, plus the three side rooms */}
+      {/* the main menu — one recommendation, the spine, the detours, the rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
-        {/* The tables come first, and that is the whole hierarchy of this
-            screen: this is a poker app, so the places you sit down sit directly
-            under the Roll. They used to sit under the shop, Learn and the
-            drills, and three full-width bands on a phone pushed them off the
-            bottom of it (Will, 14 Aug: "the venue and play cards get lost").
-            The challenger leads the row: a challenge is a table you sit at like
-            any other, and it is the one tile whose contents change on their
-            own. The row widens to hold it instead of stranding a fifth tile on
-            a row of its own. */}
-        <div
-          className={cn(
-            'grid grid-cols-2 gap-3 md:gap-4',
-            // Four tiles, five with a challenger, and it stays that way. The
-            // membership briefly added two more, and six 16:10 tiles across made
-            // every table on the row smaller — the opposite of what this row is
-            // for (Will, 2026-09-19). **The lobby does not grow a tile per
-            // feature.** Everything the membership adds is a format twist, so it
-            // lives on the side tables with the other format twists.
-            challenge ? 'md:grid-cols-5' : 'md:grid-cols-4',
-          )}
-        >
-          {challenge && <ChallengeCard challenge={challenge} delay={0.05} />}
-          {hydrated && <DailyTile delay={0.1} />}
-          <CategoryCard
-            art="rail"
-            accent="#4FB477"
-            title="The Rail"
-            subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
-            onClick={() => go('/game/rail')}
-            delay={0.15}
-          />
-          <CategoryCard
-            art="venues"
-            accent="#E0A458"
-            title="Venues"
-            subtitle={`${VENUES.length} rungs · from ${money(VENUES[0].buyIn)}`}
-            onClick={() => go('/game/ladder')}
-            delay={0.2}
-          />
-          <CategoryCard
-            art="side"
-            accent="#E06D8C"
-            title="Side Tables"
-            subtitle={`${SIDE_SHELF.length} formats`}
-            onClick={() => go('/game/side')}
-            delay={0.25}
-          />
+        {/* The spine. Everything below this pair is optional and reads as
+            optional, which is the whole point of the rearrangement (Will,
+            2026-09-20): five identically sized tiles made the ladder — the
+            game's actual progression — look like one of four alternatives, so
+            a player had to evaluate all of them before sitting anywhere, and
+            nothing on the screen ever said where they were. Now the app answers
+            "what do I play" itself, and the ladder is a position rather than a
+            door. */}
+        <div className="flex min-h-20 flex-col gap-3 md:min-h-[8.75rem] md:gap-4">
+          {/* Two questions, one row: what is next, and what if you have ten
+              minutes. They are different axes — progress and time — which is
+              the only reason a second card is allowed up here at all. A third
+              would make this a tile grid again, which is the thing the whole
+              screen was rearranged to stop being. The quick card is absent
+              whenever there is no honest stake for it, and the hero simply
+              takes the width back. */}
+          <div className="flex flex-col gap-3 md:flex-row md:gap-4">
+            {hydrated && pick && (
+              <div className="min-w-0 flex-1">
+                <NextUpCard pick={pick} delay={0.05} />
+              </div>
+            )}
+            {hydrated && quick && (
+              <div className="min-w-0 md:w-[38%]">
+                <QuickPlayCard room={quick} delay={0.1} />
+              </div>
+            )}
+          </div>
+          <LadderStrip delay={0.15} />
+        </div>
+
+        {/* The detours: the same game somewhere else, picked by mood rather
+            than by progress. Still 16:10 tiles and still one tap, but under a
+            hero and a strip they read as the alternatives they are.
+
+            **Four tiles, and the lobby does not grow one per feature.** The
+            membership briefly added two, and six 16:10 tiles across made every
+            table smaller — the opposite of what this row is for (Will,
+            2026-09-19). Everything the membership adds is a format twist, so it
+            lives on the side tables with the other format twists.
+
+            **The Daily lives here and only here** (Will, 2026-09-20). It is a
+            once-a-day novelty rather than a step up, so it never takes the hero
+            slot — and this is where its state is worth reading anyway: played,
+            placed, or priced out. The challenger is dropped from the row only
+            on the rare turn it *is* the hero, because the same face twice down
+            one screen reads as the app repeating itself. The grid keeps its
+            column count either way, so the tiles never resize — a short row
+            ends in a gap instead. */}
+        <div>
+          <h2 className="mb-2 px-1 text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+            Other ways to play
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            <CategoryCard
+              art="rail"
+              accent="#4FB477"
+              title="The Rail"
+              subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
+              onClick={() => go('/game/rail')}
+              delay={0.15}
+            />
+            <CategoryCard
+              art="side"
+              accent="#E06D8C"
+              title="Side Tables"
+              subtitle={`${SIDE_SHELF.length} ways to play`}
+              onClick={() => go('/game/side')}
+              delay={0.2}
+            />
+            {hydrated && <DailyTile delay={0.25} />}
+            {challenge && pick?.kind !== 'challenge' && (
+              <ChallengeCard challenge={challenge} delay={0.3} />
+            )}
+          </div>
         </div>
 
         {/* The three side rooms: the shop, Learn and the drills are places you

@@ -72,10 +72,14 @@ test('bestFive maps a low ace back to an ace', (t) => {
 // claim is that the first five are the hand, so assert the raw shape once here
 // rather than leaving it as a sentence in a doc comment.
 test('the solver overflows past five only where more than five are eligible', (t) => {
-  const raw = (hole: Card[], board: Card[]): string =>
-    evaluateHand(hole, board)
-      .solved.cards.map((c) => c.value + c.suit)
-      .join(' ')
+  // `solved` is optional on EvaluatedHand because Short Deck does not go
+  // through pokersolver at all. Hold'em always does, so an absent one here is
+  // a real regression rather than a variant we forgot about.
+  const raw = (hole: Card[], board: Card[]): string => {
+    const solved = evaluateHand(hole, board).solved
+    if (!solved) throw new Error('a Hold’em hand came back without a solved hand')
+    return solved.cards.map((c) => c.value + c.suit).join(' ')
+  }
 
   // Six-card flush and two trips: six cards back, hand first.
   t.is(raw(h('9d', '7d'), h('Ad', 'Td', '5h', 'Kd', '4d')), 'Ad Kd Td 9d 7d 4d')

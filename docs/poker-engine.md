@@ -122,13 +122,54 @@ the state rather than being passed around because every rule that varies has to 
 the deal that already happened: **a hand dealt four cards and then evaluated as Hold'em is
 exactly the bug this field exists to make impossible.**
 
-| | No-Limit Hold'em | Pot-Limit Omaha |
-|---|---|---|
-| `variant` | `'holdem'` (the default everywhere) | `'omaha'` |
-| Hole cards | 2 | 4 |
-| Showdown | best five of seven, free-form | **exactly two from hand + exactly three from board** |
-| Max raise | all-in | the pot after your call |
-| Where | every table | `bigpot` (The Big Pot), members only |
+| | No-Limit Hold'em | Pot-Limit Omaha | Short Deck | Omaha Hi-Lo |
+|---|---|---|---|---|
+| `variant` | `'holdem'` (the default everywhere) | `'omaha'` | `'shortdeck'` | `'omahahilo'` |
+| Deck | 52 | 52 | **36 — no 2s to 5s** | 52 |
+| Hole cards | 2 | 4 | 2 | 4 |
+| Showdown | best five of seven, free-form | **exactly two from hand + exactly three from board** | best five of seven, **re-ranked** | Omaha high **and** a separate low |
+| Max raise | all-in | the pot after your call | all-in | the pot after your call |
+| Where | every table | `bigpot`, members only | `shortdeck-*`, members only | `hilo-*`, members only |
+
+**Short Deck changes the ranking, and pokersolver cannot do it.** Two rules come with the
+thirty-six cards: a **flush beats a full house** (nine of each suit instead of thirteen
+makes flushes the rarer hand), and **A-6-7-8-9 is a straight** — a nine-high one, because
+the ace plays below the six. Ask the library and it ranks the boat over the flush and reads
+the wheel as ace-high nothing, both confidently and both silently. So `lib/poker/shortDeck.ts`
+owns the ranking and its own comparator, `determineWinners` routes short deck away from
+`Hand.winners` entirely, and `EvaluatedHand.solved` is **absent** on a short-deck hand
+because there is no pokersolver hand behind it. `tests/shortDeck.test.ts` pins both rules.
+The rule set is Triton's: three of a kind does *not* beat a straight here, which is a real
+variant rule elsewhere and a deliberate no.
+
+**Five-Card Draw has no board and a street that is not a betting round.** Five cards each,
+face down, one betting round, a discard, another betting round, a showdown — so `Street`
+gained `draw` and `postdraw`, and `Action` gained `{ type: 'draw', discard: number[] }`. Three
+things about that street are deliberate and each prevents a silent wrong hand:
+
+- **It admits all-in players.** The draw round iterates `inHand`, not `canAct`. Routing it
+  through the betting machinery would have ended the round early whenever somebody was
+  all-in, and shown them down the five they were dealt after they had paid to improve.
+- **The discard list is de-duplicated and bounds-checked.** The indices come off a screen,
+  and `[0, 0]` would throw one card away and draw two — a deck leak, not a rendering glitch.
+- **Nothing else is legal.** `legalActions` returns every betting flag false during the draw.
+  Adding that turned up a missing guard on `fold`, which had been unreachable for as long as
+  every street was a betting street; `tests/draw.test.ts` folds during the draw and is refused.
+
+Five seats, and that is arithmetic: 25 cards dealt and 25 replacements is 50 against a deck
+of 52. A sixth seat needs 60 and `applyAction` throws mid-hand. The equity panel shows an em
+dash here — `estimateEquity` works by running out a board and a draw hand has none, so asked
+anyway it would deal five community cards onto five hole cards and quote a confident
+percentage of nothing.
+
+**Omaha Hi-Lo splits every pot.** Half to the best high hand — ordinary Omaha, same
+exactly-two rule — and half to the best **low**: five cards of different ranks, all eight
+or lower, ace counting as one, straights and flushes not counting against it. Both halves
+obey the exactly-two rule independently, and they usually want different cards. Two things
+hold the arithmetic together, both in `resolveShowdown`: **no qualifying low means the high
+hand scoops** (about half of all pots — awarding half a pot to an empty winner list would
+delete it), and **the odd chip goes high**. `tests/hiLo.test.ts` plays a hundred hands and
+asserts the chips paid out equal the chips paid in every time.
 
 **The two-from-hand rule is the one everybody gets wrong**, including several commercial
 sites historically. Four hearts in your hand is not a flush unless three hearts are also on

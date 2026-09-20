@@ -10,7 +10,17 @@ import { cardFromString, cardToString, RANKS, SUITS, type Card } from '@/lib/pok
 /** Bumped if the wire format ever changes; old links refuse cleanly. */
 const LINK_VERSION = 1
 
-const ACTION_CODES = { fold: 'f', check: 'k', call: 'c', bet: 'b', raise: 'r' } as const
+// One letter per action. `d` is Five-Card Draw's discard, added with the
+// variant: an old reader meeting a new link fails on a code it does not
+// recognise, which is a clean failure, rather than on a shape it did not expect.
+const ACTION_CODES = {
+  fold: 'f',
+  check: 'k',
+  call: 'c',
+  bet: 'b',
+  raise: 'r',
+  draw: 'd',
+} as const
 const CODE_ACTIONS = Object.fromEntries(
   Object.entries(ACTION_CODES).map(([k, v]) => [v, k]),
 ) as Record<string, keyof typeof ACTION_CODES>

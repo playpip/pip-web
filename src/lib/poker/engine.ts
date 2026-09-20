@@ -5,17 +5,43 @@
 
 import type { Card, Rng } from './cards'
 import { shuffledDeck } from './cards'
-import { HOLE_CARDS, type Variant, determineWinners } from './handEval'
+import { DECK_RANKS, HOLE_CARDS, type Variant, determineWinners, isOmaha } from './handEval'
+import { determineLowWinners } from './hiLo'
 import { buildPots, type Pot } from './pots'
 
-export type Street = 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'complete'
+/**
+ * Where a hand is.
+ *
+ * `flop`/`turn`/`river` are board streets and never happen at Five-Card Draw;
+ * `draw`/`postdraw` are the draw streets and never happen anywhere else. They
+ * share one type because everything that reads a street — the pot, the pacing,
+ * the coach, the history — cares only that the hand moved on, and a second
+ * street type would have every one of those handling both.
+ */
+export type Street =
+  | 'preflop'
+  | 'flop'
+  | 'turn'
+  | 'river'
+  | 'draw'
+  | 'postdraw'
+  | 'showdown'
+  | 'complete'
 export type PlayerStatus = 'active' | 'folded' | 'allin' | 'out'
-export type ActionType = 'fold' | 'check' | 'call' | 'bet' | 'raise'
+export type ActionType = 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'draw'
 
 export interface Action {
   type: ActionType
   /** For bet/raise: the TOTAL to commit this street (the "raise to" amount). */
   amount?: number
+  /**
+   * For `draw`: which of your own cards to throw away, by index.
+   *
+   * An empty array is standing pat, which is a real and common decision rather
+   * than a no-op — it is why the draw round is a turn everybody takes rather
+   * than something that happens to them.
+   */
+  discard?: number[]
 }
 
 export interface Player {
@@ -121,7 +147,14 @@ function commit(p: Player, chips: number): void {
 
 export function startHand(opts: StartHandOptions): HandState {
   const { seats, buttonIndex, smallBlind, bigBlind } = opts
-  const deck = opts.deck ? [...opts.deck] : shuffledDeck(opts.rng ?? Math.random)
+  // The variant is read before the deck is built, because at Short Deck it
+  // decides what is in it: thirty-six cards, no deuce through five. A short-deck
+  // table dealt from a full deck is not short deck, and nothing downstream
+  // would notice — the hands would just be wrong in a way that looks like luck.
+  const variant = opts.variant ?? 'holdem'
+  const deck = opts.deck
+    ? [...opts.deck]
+    : shuffledDeck(opts.rng ?? Math.random, DECK_RANKS[variant])
 
   const players: Player[] = seats.map((s) => ({
     id: s.id,
@@ -135,8 +168,7 @@ export function startHand(opts: StartHandOptions): HandState {
   }))
 
   // Deal each dealt-in player their hole cards, one card per player per round
-  // the way a dealer does it. Two at Hold'em, four at Omaha.
-  const variant = opts.variant ?? 'holdem'
+  // the way a dealer does it. Two at Hold'em and Short Deck, four at Omaha.
   for (let round = 0; round < HOLE_CARDS[variant]; round++) {
     for (const p of players) {
       if (p.status !== 'out') p.hole.push(deck.pop()!)
@@ -206,6 +238,16 @@ export interface LegalActions {
   minRaiseTo: number
   /** Maximum "to" amount (all-in). */
   maxRaiseTo: number
+  /**
+   * The draw round, where discarding is the only thing you may do.
+   *
+   * Every betting flag above is false when this is true and vice versa: they
+   * are two different kinds of turn, and a screen that offered Fold during the
+   * draw would be offering something the engine will refuse.
+   */
+  canDraw: boolean
+  /** How many cards you may throw away. Never more than you are holding. */
+  maxDiscards: number
 }
 
 /**
@@ -230,8 +272,28 @@ function potLimitMaxTo(state: HandState, p: Player, toCall: number): number {
   return p.committedThisStreet + toCall + (pot + toCall)
 }
 
+const NO_BETTING = {
+  canFold: false,
+  canCheck: false,
+  callAmount: 0,
+  canCall: false,
+  canBet: false,
+  canRaise: false,
+  minRaiseTo: 0,
+  maxRaiseTo: 0,
+} as const
+
 export function legalActions(state: HandState): LegalActions | null {
   const p = state.players[state.toActIndex]
+
+  // The draw round admits all-in players, who still get their cards: they have
+  // no chips left to argue with and every right to a better hand. `canAct` is
+  // about betting and would shut them out of it.
+  if (state.street === 'draw') {
+    if (!p || !inHand(p) || p.hasActed) return null
+    return { ...NO_BETTING, canDraw: true, maxDiscards: p.hole.length }
+  }
+
   if (!p || !canAct(p)) return null
 
   const toCall = state.currentBet - p.committedThisStreet
@@ -241,8 +303,9 @@ export function legalActions(state: HandState): LegalActions | null {
   // Omaha is pot-limit here, and Hold'em is no-limit. They are not separate
   // settings because we do not ship the other two combinations, and a `betting`
   // field nothing varies independently would be a lie about the design.
-  const maxRaiseTo =
-    state.variant === 'omaha' ? Math.min(allInTo, potLimitMaxTo(state, p, toCall)) : allInTo
+  const maxRaiseTo = isOmaha(state.variant)
+    ? Math.min(allInTo, potLimitMaxTo(state, p, toCall))
+    : allInTo
 
   const minBetTo = state.bigBlind
   const minRaiseTo = state.currentBet + state.lastRaiseSize
@@ -260,6 +323,8 @@ export function legalActions(state: HandState): LegalActions | null {
     canRaise: betOpen && p.stack > toCall && maxRaiseTo > state.currentBet,
     minRaiseTo: Math.min(betOpen ? minRaiseTo : minBetTo, maxRaiseTo),
     maxRaiseTo,
+    canDraw: false,
+    maxDiscards: 0,
   }
 }
 
@@ -275,6 +340,12 @@ export function applyAction(prev: HandState, action: Action): HandState {
 
   switch (action.type) {
     case 'fold': {
+      // Guarded like every other action, which it was not until Five-Card Draw
+      // arrived and `tests/draw.test.ts` folded during the discard round and
+      // was allowed to. Nothing before this could reach `applyAction` with
+      // folding illegal — every betting street lets you fold — so the missing
+      // check had never been wrong until there was a turn that is not a bet.
+      if (!legal.canFold) throw new Error('Cannot fold here')
       p.status = 'folded'
       p.hasActed = true
       break
@@ -289,6 +360,30 @@ export function applyAction(prev: HandState, action: Action): HandState {
       commit(p, legal.callAmount)
       p.hasActed = true
       break
+    }
+    case 'draw': {
+      if (!legal.canDraw) throw new Error('Cannot draw outside the draw round')
+      // De-duplicated and bounds-checked, because the indices come off a
+      // screen: a repeated index would discard one card and draw two, which is
+      // a deck leak rather than a rendering glitch.
+      const discard = [...new Set(action.discard ?? [])]
+        .filter((i) => Number.isInteger(i) && i >= 0 && i < p.hole.length)
+        .sort((a, b) => a - b)
+      const kept = p.hole.filter((_, i) => !discard.includes(i))
+      const replacements: Card[] = []
+      for (let i = 0; i < discard.length; i++) {
+        const card = state.deck.pop()
+        // Cannot happen at the sizes we deal — five seats of five is
+        // twenty-five cards with twenty-five replacements at most, and the deck
+        // is fifty-two. Thrown rather than `!`-asserted so that if a bigger
+        // draw table is ever configured it fails loudly here instead of dealing
+        // `undefined` to somebody.
+        if (!card) throw new Error('the deck ran out during the draw')
+        replacements.push(card)
+      }
+      p.hole = [...kept, ...replacements]
+      p.hasActed = true
+      return advanceDraw(state)
     }
     case 'bet':
     case 'raise': {
@@ -364,8 +459,69 @@ function dealCommunity(state: HandState, n: number): void {
 
 const STREET_ORDER: Street[] = ['preflop', 'flop', 'turn', 'river', 'showdown']
 
+/**
+ * Pass the action to the next player who still owes a discard, or move on.
+ *
+ * Its own loop rather than `advance()`'s, because the draw round is not a
+ * betting round: it admits all-in players (`inHand`, not `canAct`) and it is
+ * over when everybody has drawn rather than when everybody has matched a bet.
+ * Routing it through the betting machinery would have ended the round early
+ * every time somebody was all-in, and dealt them their original five at a
+ * showdown they had paid to reach.
+ */
+function advanceDraw(state: HandState): HandState {
+  const from = state.toActIndex
+  for (let i = 1; i <= state.players.length; i++) {
+    const idx = (from + i) % state.players.length
+    const p = state.players[idx]
+    if (inHand(p) && !p.hasActed) {
+      state.toActIndex = idx
+      return state
+    }
+  }
+  return advanceStreet(state)
+}
+
+/**
+ * Five-Card Draw's streets: bet, discard, bet, show.
+ *
+ * Written out rather than folded into `STREET_ORDER` because the middle one is
+ * not a betting round and the loop below is entirely about betting rounds —
+ * dealing a board, skipping a street when nobody can act, resuming the action.
+ * The draw round does none of those things and skipping it is never right.
+ */
+function advanceDrawStreet(state: HandState): HandState {
+  if (state.street === 'preflop') {
+    state.street = 'draw'
+    for (const p of state.players) if (inHand(p)) p.hasActed = false
+    state.toActIndex = nextSeatWith(state.players, state.buttonIndex, ['active', 'allin'])
+    // Everybody left is all-in, so there is nobody to pass the action to and
+    // nothing to bet afterwards. They keep what they were dealt.
+    if (state.toActIndex === -1) {
+      state.street = 'showdown'
+      return resolveShowdown(state)
+    }
+    return state
+  }
+
+  if (state.street === 'draw') {
+    // One player or fewer can still bet, so the second round would be a formality.
+    if (state.players.filter(canAct).length <= 1) {
+      state.street = 'showdown'
+      return resolveShowdown(state)
+    }
+    state.street = 'postdraw'
+    state.toActIndex = nextSeatWith(state.players, state.buttonIndex, ['active'])
+    return state
+  }
+
+  state.street = 'showdown'
+  return resolveShowdown(state)
+}
+
 function advanceStreet(state: HandState): HandState {
   collectStreet(state)
+  if (state.variant === 'draw') return advanceDrawStreet(state)
 
   // If at most one player can still act, no further betting is possible —
   // run the remaining board out to showdown.
@@ -426,6 +582,15 @@ function resolveShowdown(state: HandState): HandState {
   const potsAwarded: PotAward[] = []
   const evaluations: Record<string, { name: string; description: string }> = {}
 
+  const award = (amount: number, winners: string[]) => {
+    if (amount <= 0 || winners.length === 0) return
+    for (const [share, id] of splitChips(amount, winners, state)) {
+      payouts[id] = (payouts[id] ?? 0) + share
+      byId.get(id)!.stack += share
+    }
+    potsAwarded.push({ amount, winners })
+  }
+
   for (const pot of pots) {
     const contenders = pot.eligible.map((id) => ({ id, hole: byId.get(id)!.hole }))
     const { winners, evaluations: evals } = determineWinners(
@@ -436,11 +601,34 @@ function resolveShowdown(state: HandState): HandState {
     for (const [id, ev] of evals) {
       evaluations[id] = { name: ev.name, description: ev.description }
     }
-    for (const [amount, id] of splitChips(pot.amount, winners, state)) {
-      payouts[id] = (payouts[id] ?? 0) + amount
-      byId.get(id)!.stack += amount
+
+    if (state.variant === 'omahahilo') {
+      // Half the pot to the best low, when there is one. Two rules hold this
+      // together and both are about chips going missing:
+      //
+      // 1. **No qualifying low means the high hand scoops.** Awarding half a
+      //    pot to an empty winner list would silently delete it, and roughly
+      //    half of all hi-lo pots have no low in them.
+      // 2. **The odd chip goes high.** Halving an odd pot leaves one chip over,
+      //    and it is the high half that gets it — the standard rule, and more
+      //    importantly a stated one, because "round it somewhere" is how a pot
+      //    stops adding up.
+      const low = determineLowWinners(contenders, state.community)
+      if (low.winners.length === 0) {
+        award(pot.amount, winners)
+      } else {
+        const lowHalf = Math.floor(pot.amount / 2)
+        award(pot.amount - lowHalf, winners)
+        award(lowHalf, low.winners)
+        for (const [id, hand] of low.lows) {
+          const shown = evaluations[id]
+          if (shown) shown.description = `${shown.description} · low ${hand.description}`
+        }
+      }
+      continue
     }
-    potsAwarded.push({ amount: pot.amount, winners })
+
+    award(pot.amount, winners)
   }
 
   state.street = 'complete'

@@ -90,6 +90,9 @@ test('the evaluator never uses more or fewer than two of your cards', (t) => {
     const board = d.slice(4, 9)
     const hand = evaluateHand(hole, board, 'omaha')
     const key = (c: { rank: string; suit: string }) => `${c.rank}${c.suit}`
+    // Omaha is solved by pokersolver (sixty exact five-card holdings), so it
+    // always has one; Short Deck is the only variant that does not.
+    if (!hand.solved) throw new Error('an Omaha hand came back without a solved hand')
     const used = hand.solved.cards
       .slice(0, 5)
       .map((c) => `${c.value === '1' ? 'A' : c.value}${c.suit}`)

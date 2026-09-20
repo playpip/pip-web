@@ -28,10 +28,14 @@ import {
 } from '@/lib/sitDown'
 import {
   ALL_VENUES,
+  CHALLENGE_TABLES,
   KITCHEN_TABLE,
+  RING_TABLES,
   SIDE_SHELF,
   SIDE_TABLES,
+  THE_DAILY,
   VENUES,
+  familiesIn,
   venueById,
 } from '@/config/venues'
 import type { Escrow } from '@/lib/sync/escrow'
@@ -183,29 +187,73 @@ test('a member room refuses for the membership before it refuses for money', (t)
   }
 })
 
-// Nothing that shipped free may acquire the flag later. This is the mechanical
-// half of "anything shipped free is free forever": the free catalogue is named
-// here, so making one of those rooms paid means editing this list, which is a
-// thing somebody has to justify rather than a one-word diff in a config file.
-test('the tables that shipped free are still free', (t) => {
-  const paid = new Set(ALL_VENUES.filter((v) => v.membersOnly).map((v) => v.id))
-  t.deepEqual(
-    [...paid].sort(),
-    [
-      'bigpot',
-      'custom',
-      'deepstack-15000',
-      'deepstack-2000',
-      'deepstack-40000',
-      'deepstack-5000',
-      'deepstack-750',
-    ],
-    'the set of paid tables changed — if a free table moved behind the membership, that is rule 1',
-  )
+// The mechanical half of rule 1, which on 2026-09-20 stopped being "anything
+// that shipped free is free forever" and became "the core game is free forever"
+// — the ladder, the Rail, the Daily, the freeroll. The seven side tables moved
+// behind the check in that change, before Stripe existed and before anybody
+// could have relied on them. docs/membership.md carries the full account.
+//
+// So this test no longer names a catalogue. Naming one was the right shape when
+// the promise was about a snapshot of the app; the promise is now about four
+// named things, and the test says those four things and nothing else.
+test('the core game is free, and every part of it', (t) => {
   // `falsy`, not `false`: the flag is absent on a free table rather than set to
   // false, and absent is the state the whole default rests on.
-  for (const venue of [...VENUES, KITCHEN_TABLE]) {
-    t.falsy(venue.membersOnly, `${venue.id} is on the free ladder and has been made paid`)
+  for (const venue of [...VENUES, ...RING_TABLES, THE_DAILY, KITCHEN_TABLE]) {
+    t.falsy(
+      venue.membersOnly,
+      `${venue.id} is part of the core game and has been moved behind the membership — that is rule 1`,
+    )
+  }
+  // The challenge tables are reached from the free ladder and pay in free
+  // chips, so they are core whether or not rule 1 lists them by name.
+  for (const venue of CHALLENGE_TABLES) {
+    t.falsy(venue.membersOnly, `${venue.id} is reachable from the free ladder and must stay free`)
+  }
+})
+
+// The other half of the same rule, in the other direction: every side table is
+// the membership's, without exception and without anybody having to remember.
+// `SIDE_TABLES` applies the flag in one map precisely so an eighth room is
+// gated on the day it is added — this fails if somebody unpicks that.
+test('every side table is behind the membership', (t) => {
+  t.true(SIDE_TABLES.length > 0, 'the side tables vanished')
+  for (const venue of SIDE_TABLES) {
+    t.true(venue.membersOnly, `${venue.id} is a side table that is not behind the membership`)
+  }
+  // And the shelf the player actually sees agrees with the list — card and
+  // room both, because the card is what carries the padlock and the room is
+  // what `refuseSitDown` actually turns somebody away from.
+  for (const family of SIDE_SHELF) {
+    t.true(family.membersOnly, `the ${family.id} card is not gated`)
+    for (const room of family.rooms) {
+      t.true(room.membersOnly, `${room.id} is behind the ${family.id} card and is not gated`)
+    }
+  }
+})
+
+// A family is one idea with its rooms priced behind it, and the two things that
+// make it readable are that the rooms are in price order and that no room is on
+// two cards. Both are the sort of thing that survives a careless edit and then
+// reads as the app losing track of its own prices.
+test('every family is one idea, in price order, with no room on two cards', (t) => {
+  const seen = new Set<string>()
+  for (const family of SIDE_SHELF) {
+    t.true(family.rooms.length > 0, `the ${family.id} card has nothing behind it`)
+    for (const room of family.rooms) {
+      t.false(seen.has(room.id), `${room.id} is behind more than one card`)
+      seen.add(room.id)
+      // A card cannot offer a room the routes were never generated for.
+      t.truthy(venueById(room.id), `${room.id} is on a card and not in ALL_VENUES`)
+    }
+    const prices = family.rooms.map((r) => r.buyIn)
+    t.deepEqual(
+      prices,
+      [...prices].sort((a, b) => a - b),
+      `the ${family.id} rooms are out of order`,
+    )
+    // The art is borrowed from a real painting, never invented.
+    t.truthy(venueById(family.art), `the ${family.id} card wears art for a venue that is gone`)
   }
 })
 
@@ -256,14 +304,19 @@ test('the side-tables tile counts the shelf it links to', (t) => {
     'utf-8',
   )
   t.regex(home, /SIDE_SHELF\.length/, 'the lobby tile counts something other than the shelf')
-  t.regex(shelf, /venues=\{SIDE_SHELF\}/, 'the shelf renders something other than SIDE_SHELF')
-  // And the shelf is the free side tables plus what the membership adds — if
-  // that stops being true, the sentence on the tile needs re-reading too.
-  t.is(SIDE_SHELF.length, SIDE_TABLES.length + 2)
-  t.true(
-    SIDE_SHELF.some((v) => v.membersOnly),
-    'the shelf lost its member tables',
+  t.regex(shelf, /familiesIn\(/, 'the shelf page no longer derives its cards from the shelf list')
+  // Every card is on one of the two shelves the page actually renders, so the
+  // count on the lobby tile is the number of cards a player will find.
+  t.is(
+    SIDE_SHELF.length,
+    familiesIn('games').length + familiesIn('twists').length,
+    'a card belongs to a section the page does not render',
   )
+  // And every room that used to be its own card is still reachable behind one.
+  const behindACard = new Set(SIDE_SHELF.flatMap((f) => f.rooms.map((r) => r.id)))
+  for (const room of SIDE_TABLES) {
+    t.true(behindACard.has(room.id), `${room.id} was dropped from the shelf rather than regrouped`)
+  }
 })
 
 // --- the drift guard ---------------------------------------------------------

@@ -133,6 +133,17 @@ export function Table() {
 
   const metaById = useMemo(() => new Map(seats.map((s) => [s.id, s])), [seats])
 
+  // Five-Card Draw: which of your own cards you have marked to throw away.
+  //
+  // Up here with the other hooks because everything below the early return is
+  // conditional, and a `useState` after it is the rules-of-hooks violation
+  // biome catches. Cleared by `ActionBar` on the way out rather than by an
+  // effect watching the street: `set-state-in-effect` is ruled out
+  // (docs/development.md), and a fresh deal re-mounts the cards regardless.
+  const [marked, setMarked] = useState<number[]>([])
+  const toggleMark = (i: number) =>
+    setMarked((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))
+
   if (!hand || !venue) return <div className="min-h-dvh" />
 
   const buttonPlayerId = hand.players[hand.buttonIndex]?.id
@@ -187,18 +198,26 @@ export function Table() {
       />
     ))
 
-  const communityCards = (
-    <div className="flex items-center justify-center gap-1 sm:gap-2 lg:gap-2.5">
-      {Array.from({ length: 5 }).map((_, i) => {
-        const card = hand.community[i]
-        return card ? (
-          <DealtCard key={i} index={i} card={card} size="board" />
-        ) : (
-          <CardBack key={i} design={cardBack} size="board" />
-        )
-      })}
-    </div>
-  )
+  // **Five-Card Draw has no board, so it gets no board slots.** The five card
+  // backs are placeholders for cards that are coming; at a draw table nothing
+  // is ever coming, and rendering them promised a flop that never arrives. The
+  // space collapses instead, which is also what puts the pot and the hands
+  // where a draw table actually wants them.
+  const communityCards =
+    hand.variant === 'draw' ? null : (
+      <div className="flex items-center justify-center gap-1 sm:gap-2 lg:gap-2.5">
+        {Array.from({ length: 5 }).map((_, i) => {
+          const card = hand.community[i]
+          return card ? (
+            <DealtCard key={i} index={i} card={card} size="board" />
+          ) : (
+            <CardBack key={i} design={cardBack} size="board" />
+          )
+        })}
+      </div>
+    )
+
+  const drawing = hand.street === 'draw' && hand.players[hand.toActIndex]?.id === 'hero'
 
   const actionArea = spectating ? (
     // No buttons: there is nobody to press them. What sits here instead is the
@@ -227,7 +246,7 @@ export function Table() {
       </button>
     </motion.div>
   ) : (
-    <ActionBar hand={hand} />
+    <ActionBar hand={hand} marked={marked} onDrawn={() => setMarked([])} />
   )
 
   // Table talk lives with the board — under the community cards, across from
@@ -374,24 +393,64 @@ export function Table() {
           <div className="px-3">{actionArea}</div>
 
           {/* hero: big fanned hole cards + a swipeable profile / odds panel */}
-          {hero && heroMeta && (
-            <div className="flex items-stretch gap-3 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
-              {/* cards and panel each get exactly half the row; cards align
-                  with the left edge of the action buttons (pl offsets the
-                  first card's tilt so its corner doesn't poke past) */}
-              <div className="flex flex-1 basis-0 items-end justify-start pl-2">
-                <HeroCards hero={hero} hand={hand} size="hero" fanned />
+          {hero &&
+            heroMeta &&
+            (hand.variant === 'draw' ? (
+              /* **Five cards do not fit beside the panel on a phone.** The row
+                 below splits the width in two, which works at two hole cards
+                 and just about at four; at five they run off the screen and
+                 under the panel. So a draw table stacks instead: the cards get
+                 the whole width on their own line — which they need anyway,
+                 because during the draw round they are buttons you have to be
+                 able to hit — and the panel sits under them. */
+              <div className="flex flex-col gap-2 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
+                <div className="flex justify-center">
+                  <HeroCards
+                    hero={hero}
+                    hand={hand}
+                    size="drill"
+                    discarding={drawing}
+                    marked={marked}
+                    onToggle={toggleMark}
+                  />
+                </div>
+                <div className="flex items-stretch">
+                  <HeroPanel
+                    hero={hero}
+                    avatar={heroMeta.avatar}
+                    hand={hand}
+                    equity={heroEquity}
+                    isButton={hero.id === buttonPlayerId}
+                    isActive={activeId === hero.id}
+                  />
+                </div>
               </div>
-              <HeroPanel
-                hero={hero}
-                avatar={heroMeta.avatar}
-                hand={hand}
-                equity={heroEquity}
-                isButton={hero.id === buttonPlayerId}
-                isActive={activeId === hero.id}
-              />
-            </div>
-          )}
+            ) : (
+              <div className="flex items-stretch gap-3 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
+                {/* cards and panel each get exactly half the row; cards align
+                    with the left edge of the action buttons (pl offsets the
+                    first card's tilt so its corner doesn't poke past) */}
+                <div className="flex flex-1 basis-0 items-end justify-start pl-2">
+                  <HeroCards
+                    hero={hero}
+                    hand={hand}
+                    size="hero"
+                    fanned
+                    discarding={drawing}
+                    marked={marked}
+                    onToggle={toggleMark}
+                  />
+                </div>
+                <HeroPanel
+                  hero={hero}
+                  avatar={heroMeta.avatar}
+                  hand={hand}
+                  equity={heroEquity}
+                  isButton={hero.id === buttonPlayerId}
+                  isActive={activeId === hero.id}
+                />
+              </div>
+            ))}
         </>
       ) : (
         /* ------------------------------ DESKTOP ----------------------------- */
@@ -455,7 +514,14 @@ export function Table() {
           {hero && heroMeta && (
             <div className="z-20 flex flex-col items-center gap-4 px-6 pb-8">
               <div className="flex items-stretch gap-6">
-                <HeroCards hero={hero} hand={hand} size="board" />
+                <HeroCards
+                  hero={hero}
+                  hand={hand}
+                  size="board"
+                  discarding={drawing}
+                  marked={marked}
+                  onToggle={toggleMark}
+                />
                 <div className="flex w-44">
                   <HeroPanel
                     hero={hero}
@@ -779,34 +845,62 @@ function HeroCards({
   hand,
   size,
   fanned = false,
+  discarding,
+  marked,
+  onToggle,
 }: {
   hero: Player
   hand: HandState
   size: CardSize
   fanned?: boolean
+  /** Five-Card Draw's discard round: the cards become buttons. */
+  discarding?: boolean
+  marked?: readonly number[]
+  onToggle?: (index: number) => void
 }) {
   const folded = hero.status === 'folded'
   const nickname = nicknameFor(hero.hole)
   return (
     <div className={cn('flex flex-col items-center gap-1.5', folded && 'opacity-40')}>
-      <div className={cn('flex items-end', fanned ? '-space-x-6' : 'gap-2')}>
-        {hero.hole.map((card, i) => (
+      {/* Not fanned while you are choosing: overlapping cards are lovely to
+          look at and impossible to tap one of. */}
+      <div className={cn('flex items-end', fanned && !discarding ? '-space-x-6' : 'gap-2')}>
+        {hero.hole.map((card, i) => {
+          const isMarked = discarding && marked?.includes(i)
           // Key by the card so a new deal re-mounts and replays the animation.
-          <DealtCard
-            key={`${card.rank}${card.suit}`}
-            index={i}
-            card={card}
-            size={size}
-            className={cn(
-              fanned && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'),
-              // A dimmed (opacity-40) rounded card with a drop shadow renders a
-              // bright halo along its bottom edge on iOS Safari — the shadow
-              // inverts under fractional opacity. Folded cards don't need a
-              // shadow anyway, so drop it and the artifact goes with it.
-              folded && 'shadow-none dark:shadow-none',
-            )}
-          />
-        ))}
+          const dealt = (
+            <DealtCard
+              key={`${card.rank}${card.suit}`}
+              index={i}
+              card={card}
+              size={size}
+              className={cn(
+                fanned && !discarding && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'),
+                // A dimmed (opacity-40) rounded card with a drop shadow renders a
+                // bright halo along its bottom edge on iOS Safari — the shadow
+                // inverts under fractional opacity. Folded cards don't need a
+                // shadow anyway, so drop it and the artifact goes with it.
+                folded && 'shadow-none dark:shadow-none',
+                // Marked cards drop and fade: the gesture is "push it away",
+                // and it has to read at a glance across five of them.
+                isMarked && 'translate-y-3 opacity-40 saturate-50',
+              )}
+            />
+          )
+          if (!discarding) return dealt
+          return (
+            <button
+              key={`${card.rank}${card.suit}`}
+              type="button"
+              onClick={() => onToggle?.(i)}
+              aria-pressed={Boolean(isMarked)}
+              aria-label={`${isMarked ? 'Keep' : 'Throw away'} the ${card.rank}${card.suit}`}
+              className="rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50"
+            >
+              {dealt}
+            </button>
+          )
+        })}
         <span className="sr-only">{hand.street}</span>
       </div>
       {nickname && (

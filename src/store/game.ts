@@ -33,6 +33,7 @@ import {
   type SeatConfig,
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity } from '@/lib/poker/ai/policy'
+import { decideDiscard } from '@/lib/poker/ai/draw'
 import { estimateEquity } from '@/lib/poker/equity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
 import {
@@ -618,7 +619,15 @@ export const useGame = create<GameState>((set, get) => {
       if (!cur || isHandComplete(cur)) return
       const venue = get().venue!
       const seatAi = get().seats.find((s) => s.id === toAct.id)?.ai
-      const action = decideAction(cur, seatAi ?? venue.ai, dailyAiRng ?? Math.random)
+      const rng = dailyAiRng ?? Math.random
+      // The draw round is not a betting round, so it does not go through the
+      // betting policy. Everything after this — the sound, the history, the
+      // snapshot — is identical, because to the rest of the loop a discard is
+      // just another action somebody took.
+      const action: Action =
+        cur.street === 'draw'
+          ? { type: 'draw', discard: decideDiscard(cur.players[cur.toActIndex].hole, rng) }
+          : decideAction(cur, seatAi ?? venue.ai, rng)
       playActionSound(action, cur)
       const next = applyAction(cur, action)
       recordStep(cur, action, next)
@@ -1365,6 +1374,13 @@ function subtractStats(total: SeatStats, part: SeatStats): SeatStats {
 function computeHeroEquity(hand: HandState): number | null {
   const hero = hand.players.find((p) => p.id === HUMAN_ID)
   if (!hero || hero.hole.length < 2) return null
+  // **No number at all at Five-Card Draw**, which is better than a wrong one.
+  // `estimateEquity` works by running out a board, and a draw hand has none:
+  // asked anyway it deals five community cards onto five hole cards and
+  // evaluates ten, which produces a confident percentage of nothing. The real
+  // answer would have to model what four opponents are about to discard, and
+  // until that exists the odds panel shows an em dash.
+  if (hand.variant === 'draw') return null
   const opponents = hand.players.filter(
     (p) => p.id !== HUMAN_ID && p.status !== 'folded' && p.status !== 'out',
   )
@@ -1389,6 +1405,13 @@ function buzz(cue: Buzz) {
 }
 
 function playActionSound(action: Action, hand: HandState) {
+  // Cards going away and coming back has its own cue; `action.type` is not a
+  // sound name for this one because "draw" is the only action that is not
+  // about chips.
+  if (action.type === 'draw') {
+    sound.play('draw')
+    return
+  }
   const legal = legalActions(hand)
   if (action.type === 'raise' || action.type === 'bet') {
     const allIn = legal && action.amount === legal.maxRaiseTo
