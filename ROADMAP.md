@@ -56,8 +56,8 @@ surprise you.
 a demo, and — the part that actually matters — **nothing that shipped free ever gets metered
 later.** Free, permanently: the whole ten-venue ladder and every side table, the Rail's cash
 games, the challenge tables, the Daily Deal, the Chip Shop economy, the Kitchen Table
-freeroll, the read on every hand as you finish it, the card at the end of a run, a drill kind
-played as often as you like, every written guide, the odds calculator, and moving your
+freeroll, the read on every hand as you finish it, the card at the end of a run, two drill
+kinds played as often as you like, every written guide, the odds calculator, and moving your
 profile between devices. You can play Pip for years and never see a price.
 
 **There is also a membership, and it is a real fence.** It does not unlock the game above —
@@ -65,14 +65,16 @@ it adds rooms and tools beside it. We would rather say "fence" than pretend othe
 
 There will eventually be a **membership**, for the things that cost real money to run or
 that don't exist yet. **Built and sitting behind the check today**: the drills called
-"Count your outs", "Pot odds" and "Who gets there?" plus the play-it-out mode; four member
-rooms with three regulars of their own; build-your-own-table; Pot-Limit Omaha; a report that
-reads your play across every hand you have ever played; watching a tournament out after you
-bust; and four member card backs. **Not built**: multiplayer, which is the big one and is
-honestly some way off.
+"Which five play?", "Count your outs", "Pot odds" and "Who gets there?" plus the play-it-out
+mode; four member rooms with three regulars of their own; build-your-own-table; Pot-Limit
+Omaha; a report that reads your play across every hand you have ever played; watching a
+tournament out after you bust; and four member card backs. **Not built**: multiplayer, which
+is the big one and is honestly some way off.
 
-The drill that shipped free stays free and unmetered, which is the paragraph above applied
-to the thing most likely to test it. The full list, including which parts are real, is at
+The drills that shipped free stay free and unmetered, which is the paragraph above applied
+to the thing most likely to test it. Two of the six are free, and the free pair is the pair
+a beginner starts on: naming the hand you are holding, and reading two finished hands
+against each other. The full list, including which parts are real, is at
 [/membership](https://playpip.io/membership) — that page is generated from the same data
 this paragraph is written from, and a test stops it advertising anything unbuilt.
 

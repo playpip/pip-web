@@ -164,6 +164,7 @@ test('the filter rejects for the reasons this kind has, and no others', (t) => {
     'chop-possible': 0,
     'drawing-dead': 0,
     ambiguous: 0,
+    'free-guess': 0,
   }
   let kept = 0
   for (let seed = 1; seed <= 4_000; seed++) {

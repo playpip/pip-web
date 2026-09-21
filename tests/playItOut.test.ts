@@ -135,11 +135,13 @@ test('the mode registers nothing, so nothing became free by accident', (t) => {
   // The ruling: a mode of pot odds, not a fifth kind. If this ever fails, some
   // future change has registered a kind, and a kind that ships without
   // `membersOnly` in the same commit is free forever under rule #8.
-  t.is(DRILL_KINDS.length, 4)
+  t.is(DRILL_KINDS.length, 6)
   t.deepEqual(DRILL_KINDS.map((kind) => kind.id).sort(), [
     'count-your-outs',
     'hand-strength',
     'pot-odds',
+    'whats-your-hand',
+    'which-five-play',
     'which-hand-wins',
   ])
   // Every street it grades is a pot-odds street, which is what makes it inherit

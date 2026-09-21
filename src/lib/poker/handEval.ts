@@ -216,6 +216,31 @@ export function handPhrase(hand: Pick<EvaluatedHand, 'name' | 'description'>): s
   return HAND_PHRASES[hand.name] ?? null
 }
 
+/**
+ * Every category a Hold'em hand can be, weakest first.
+ *
+ * The keys of {@link HAND_PHRASES} in the solver's own order, written out
+ * rather than derived from it, because object key order is not a guarantee
+ * anybody should have to rely on for a ranking.
+ *
+ * It exists for the drill that asks a player to *name* what they have: that
+ * question needs the categories a hand was not, which is the one thing an
+ * evaluation of a real hand cannot supply. Nothing here settles a pot.
+ * `tests/handEval.test.ts` holds it against the solver, so a category the
+ * library can return and this list has never heard of fails the build.
+ */
+export const HAND_CATEGORIES: readonly string[] = [
+  'High Card',
+  'Pair',
+  'Two Pair',
+  'Three of a Kind',
+  'Straight',
+  'Flush',
+  'Full House',
+  'Four of a Kind',
+  'Straight Flush',
+]
+
 export interface HandContenders<T> {
   /** Caller-supplied id/handle for a player. */
   id: T

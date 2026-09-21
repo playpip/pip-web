@@ -88,6 +88,23 @@ export function Seat({
             <span className="absolute inset-0 rounded-full bg-pip ring-2 ring-background" />
           </span>
         )}
+
+        {/* The review's chance-to-win badge, worn on the chin rather than hung
+            under the stack.
+            **It used to be a reserved row at the foot of the seat, and that row
+            is what made the seats collide with the board on a short window**
+            (Will, 2026-09-21). Both screens lay the felt out the same way —
+            seats on an arc whose lowest point is 56% of the height, the board
+            absolutely placed at 62% — so a seat that is eighteen pixels taller
+            than the live table's reaches into the cards, and the badge, being
+            last, is what disappears under them.
+            Anchored to the avatar it costs no height at all, so the review's
+            seat is exactly the live table's seat again, and nothing shifts when
+            a badge appears or goes: the reserved slot existed to stop that
+            shift and an absolute badge cannot cause one. */}
+        {badge !== undefined && (
+          <span className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2">{badge}</span>
+        )}
         <AnimatePresence>
           {folded && (
             <motion.div
@@ -165,13 +182,6 @@ export function Seat({
           </span>
         )}
       </span>
-
-      {/* Reserved whether or not there is anything in it, like the bet-chip
-          slot above: a badge appearing when a player folds out of the odds
-          shunted every seat on the arc, and the cards under them on a phone. */}
-      {badge !== undefined && (
-        <span className="flex min-h-[1.125rem] items-start justify-center">{badge}</span>
-      )}
 
       {/* row: revealed cards below the seat */}
       {row && reveal && player.hole.length >= 2 && (

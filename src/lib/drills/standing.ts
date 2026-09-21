@@ -1,12 +1,17 @@
 import type { DrillKindId } from './types'
 import {
+  type FiveShape,
   type OutsShape,
   type PriceShape,
+  type ReadShape,
   type SettledBy,
   type SpotKind,
   type StrengthShape,
+  fiveDifficulty,
   outsDifficulty,
   priceDifficulty,
+  readDifficulty,
+  STARTING_RATING,
   spotDifficulty,
   strengthDifficulty,
 } from './rating'
@@ -138,6 +143,47 @@ const HAND_STRENGTH: SpotShape[] = [
   strengthShape('draw-is-favourite', 'flops where the best hand is not the favourite'),
 ]
 
+const readShape = (settledBy: ReadShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: readDifficulty(settledBy, false),
+})
+
+/**
+ * The shapes "what have you got" deals, easiest first.
+ *
+ * The ladder here is how much of the hand is yours, for the reason set out on
+ * {@link ReadShape}: naming two pair when both your cards are in it is the read
+ * everybody makes, and naming it when the board has it on its own is the read
+ * almost nobody does. The rungs are stated as what you can do rather than as
+ * what a spot is, because this is the ladder a beginner is standing on.
+ */
+const WHATS_YOUR_HAND: SpotShape[] = [
+  readShape('uses-both', 'hands built from both your cards'),
+  readShape('uses-one', 'hands where only one of your cards counts'),
+  readShape('plays-the-board', 'boards that play on their own'),
+]
+
+const fiveShape = (settledBy: FiveShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: fiveDifficulty(settledBy),
+})
+
+/**
+ * The shapes "which five play" deals, easiest first.
+ *
+ * The ladder here is how much choosing there is once the hand has been read: a
+ * straight is five cards and there is nothing to decide, a pair is two and the
+ * other three are the highest left, and a board that plays on its own is the
+ * one where the right answer means letting go of both your cards.
+ */
+const WHICH_FIVE_PLAY: SpotShape[] = [
+  fiveShape('made-five', 'hands that use all five cards'),
+  fiveShape('kickers-matter', 'hands where the kickers decide'),
+  fiveShape('board-plays', 'boards that play on their own'),
+]
+
 /**
  * Every kind's ladder, or an explicit `null` for a kind that has none.
  *
@@ -148,6 +194,8 @@ const HAND_STRENGTH: SpotShape[] = [
  * costs the kind nothing but this line of prose.
  */
 const LADDERS: Record<DrillKindId, SpotShape[] | null> = {
+  'whats-your-hand': WHATS_YOUR_HAND,
+  'which-five-play': WHICH_FIVE_PLAY,
   'which-hand-wins': WHICH_HAND_WINS,
   'count-your-outs': COUNT_YOUR_OUTS,
   'pot-odds': POT_ODDS,
@@ -159,6 +207,22 @@ export function spotLadder(kind: DrillKindId): SpotShape[] | null {
   return LADDERS[kind]
 }
 
+/**
+ * The bottom of a kind's ladder: what its easiest shape is rated.
+ *
+ * Where a player who has never answered one of these is met — see `aimFor` in
+ * ./rating, which walks from here to the rating as the record fills in. Read
+ * off the ladder rather than written down again, so a kind whose shapes are
+ * ever re-rated from real accuracy moves its own floor with them.
+ *
+ * `STARTING_RATING` is the answer for a kind with no ladder, because a kind
+ * with no shapes has no easy end to open at and aiming at where everybody
+ * starts is the same as not aiming.
+ */
+export function kindFloor(kind: DrillKindId): number {
+  return spotLadder(kind)?.[0]?.rating ?? STARTING_RATING
+}
+
 /** Where a rating sits on a kind's ladder. */
 export interface Standing {
   /**
@@ -168,6 +232,50 @@ export interface Standing {
   cleared: SpotShape[]
   /** The next shape up, or null when the rating is above all of them. */
   next: SpotShape | null
+}
+
+/** How many levels a kind's difficulty is said in. */
+export const DIFFICULTY_LEVELS = 5
+
+/**
+ * The thresholds between those levels, on the spots' own rating scale.
+ *
+ * A kind sits at level 1 while the middle of its ladder is under the first
+ * number, level 2 under the second, and so on. They are 150 apart, which is
+ * roughly the gap between two rungs of any one kind's ladder — so a kind has to
+ * be about a whole shape harder than another to be shown as harder.
+ *
+ * **Where they start is chosen so the two easiest kinds are told apart**, and
+ * that is the reader this is for: somebody standing in front of six tiles
+ * deciding which to open first is best served by the bottom of the ladder being
+ * legible, and least served by both of its rungs showing one pip. The six kinds
+ * currently fall 1, 2, 3, 4, 4, 5.
+ */
+const DIFFICULTY_AT: readonly number[] = [850, 1_000, 1_150, 1_250]
+
+/**
+ * How hard this kind is, 1 to {@link DIFFICULTY_LEVELS}.
+ *
+ * **Read off the ratings the spots already carry, not asserted.** The middle of
+ * a kind's ladder — halfway between its easiest shape and its hardest — is the
+ * spot a player meets once they have settled on it, and comparing that number
+ * between kinds is the same comparison Elo makes everywhere else in this
+ * folder. Re-rate a shape and this moves with it.
+ *
+ * The midpoint rather than the floor, because the floor misranks: the flop kind
+ * opens easier than counting outs and finishes far harder, and a player asking
+ * "how hard is this one" is asking about the whole of it.
+ *
+ * **It is a comparison between these kinds, not a claim about poker.** Two
+ * kinds can share a level, and they do: the two reading kinds both sit at 1,
+ * which is the honest picture of a room whose easy end is two drills and whose
+ * next step up is a long one.
+ */
+export function kindDifficulty(kind: DrillKindId): number {
+  const ladder = spotLadder(kind)
+  if (!ladder || ladder.length === 0) return 1
+  const middle = (ladder[0].rating + ladder[ladder.length - 1].rating) / 2
+  return DIFFICULTY_AT.filter((at) => middle >= at).length + 1
 }
 
 /**

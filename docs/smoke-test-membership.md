@@ -146,8 +146,12 @@ Use a **custom table at 3 seats** — quickest and cheapest way to bust on purpo
 
 ### 8. Drills and cosmetics
 
-- [ ] `/game/drills` — **all four kinds** open, no padlocks
-- [ ] Pot odds → the **play-it-out** mode switch works
+- [ ] `/game/drills` — **all six kinds** open, no padlocks
+- [ ] Each one deals on the felt: board at table size, your cards bottom-centre, answers in
+      the action bar where fold / check / raise live
+- [ ] "Which five play?" → tapping five cards grades on the fifth tap; a sixth swaps
+- [ ] Pot odds → the **play-it-out** mode switch works, and the rating in the bar changes
+      with the segment (the two modes keep separate records)
 - [ ] Settings → Style → **four member card backs** (Lock-In, Back Room, Nightcap, Last
       Orders) unlocked and selectable. Their ids still name rooms that no longer exist,
       deliberately: renaming an id would orphan a player's saved choice for nothing
@@ -167,8 +171,11 @@ Use a **custom table at 3 seats** — quickest and cheapest way to bust on purpo
 - [ ] The free side tables beside them are unaffected
 - [ ] Open Deep Stack's dialog: the stake picker still works and the numbers still follow
       it — you can read what you would be buying — but Play is locked
-- [ ] `/game/drills`: three kinds locked with a padlock, card backs instead of a live board,
-      and one plain line — "Comes with the membership. **What that is**" → `/membership`
+- [ ] `/game/drills`: four kinds locked with a padlock and the member star, each showing **a
+      real board** rather than card backs, reading "Comes with the membership"; tapping any
+      of them goes to `/membership`
+- [ ] Open a locked kind directly: it **deals a real spot**, dimmed, with one line where the
+      answers go → `/membership`. Nothing there is gradeable and no rating moves
 - [ ] Settings → Style: member backs locked; tapping one gives a hint, not a purchase
 - [ ] `/game/custom`: you can still build and see the numbers, but **Deal it is disabled**,
       with a line above explaining why

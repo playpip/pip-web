@@ -64,7 +64,32 @@ export interface DrillKind extends MembersOnly {
 // (Will, 14 Aug). Both screens deal from `randomSeed()` on mount now, and show
 // card backs for the frame before it lands.
 
+// **In ladder order, easiest first, and the order is load-bearing**
+// (Will, 2026-09-21). The room used to open on "Which hand wins?", which is the
+// whole ranking table applied to two seven-card hands, and a beginner's next
+// step up from there was counting outs. There was no first rung. The two kinds
+// at the top of this list are that rung: read the hand in front of you, then
+// say exactly which five of the seven make it. Everything below them assumes
+// both, and now says so by sitting below them.
 export const DRILL_KINDS: DrillKind[] = [
+  {
+    id: 'whats-your-hand',
+    title: 'What have you got?',
+    blurb: 'Your two cards, a finished board. Name the hand you are holding.',
+    question: 'What have you got?',
+    gradedBy: 'Settled by the same code that reads a hand at showdown.',
+    boardCards: 5,
+  },
+  {
+    id: 'which-five-play',
+    title: 'Which five play?',
+    blurb: 'Seven cards are yours to use and only five of them count. Tap the five.',
+    question: 'Tap the five cards that play.',
+    gradedBy:
+      'Settled by ranking all twenty-one ways to take five from seven, so any set that ties the best hand is right.',
+    boardCards: 5,
+    membersOnly: true,
+  },
   {
     id: 'which-hand-wins',
     title: 'Which hand wins?',

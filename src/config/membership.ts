@@ -132,7 +132,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'drills',
     title: 'Every drill',
     blurb:
-      'Count your outs, pot odds, who gets there, and the play-it-out mode — graded by the engine, never metered. "Which hand wins?" stays free for everyone, forever.',
+      'Which five play, count your outs, pot odds, who gets there, and the play-it-out mode — graded by the engine, never metered, and pitched at the level you are actually reading at. "What have you got?" and "Which hand wins?" stay free for everyone, forever.',
     shipped: true,
   },
   {

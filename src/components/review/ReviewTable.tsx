@@ -207,11 +207,14 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
     if (value === undefined) return null
     return (
       <span
+        // Opaque, because it is worn on the avatar's chin now rather than hung
+        // in a row under the stack (see `Seat`), and a translucent pill over a
+        // face reads as a smudge on the face.
         className={cn(
-          'rounded-full px-1.5 py-0.5 text-3xs font-semibold tabular-nums',
+          'rounded-full px-1.5 py-0.5 text-3xs font-semibold tabular-nums shadow-sm ring-1',
           value >= 0.5
-            ? 'bg-emerald-500/15 text-emerald-500'
-            : 'bg-foreground/[0.06] text-muted-foreground',
+            ? 'bg-background text-emerald-500 ring-emerald-500/40'
+            : 'bg-background text-muted-foreground ring-foreground/15',
         )}
       >
         {odds?.exact ? '' : '≈'}

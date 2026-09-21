@@ -16,13 +16,19 @@ from the core.**
 
 Free, permanently: the whole ten-venue ladder, the Rail's cash games, the challenge tables,
 the Daily Deal, the Chip Shop economy, the Kitchen Table freeroll, the read on every hand as
-you finish it, the end-of-run card, the drill called *Which hand wins?*, every written
-guide, the odds calculator, and sync.
+you finish it, the end-of-run card, the two drills a beginner starts on — *What have you
+got?* and *Which hand wins?* — every written guide, the odds calculator, and sync.
 
 Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
-Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, three more
+Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, four more
 drill kinds plus the play-it-out mode, the across-sessions play report, the session review,
 spectating after you bust, and four member card backs. Not built: multiplayer.
+
+**The free half of the drills is where a beginner learns to read a hand, and the paid half
+is where they learn to price one** (Will, 2026-09-21). That is the line the two sides fall
+on rather than a count: naming what you are holding is free forever, and so is reading two
+finished hands against each other. Everything that asks what a hand is *worth* — which five
+of the seven play, how many cards win it, what the pot is charging — is the membership.
 
 ## The four rules
 
@@ -119,8 +125,18 @@ saying what it is. Not a prompt, nothing that appears over what the player was d
 nothing that comes back after being closed. The landing page ships *"No forced pop-ups, no
 pay-to-win, no nagging. Ever."* and every one of these screens is inside that sentence.
 
-**A locked card now answers a tap by going to `/membership`** (Will, 2026-09-20), which is a
-change from "one text link, never a button" and is worth saying why. That rule was written
+**And it shows the thing, not a picture of a locked door** (Will, 2026-09-21: "we shouldn't
+hide drills we don't have access to, we should tease the membership, like side tables
+does"). A locked drill tile used to draw card backs where the spot goes, on the argument
+that dealing a real board behind a lock was showing the thing while refusing it. That
+argument is now retired everywhere: a locked drill tile deals a real board, and opening a
+locked kind deals a real spot on the felt and dims it, with the answers replaced by one line
+about the membership. Nothing on those screens is gradeable and nothing counts — the spot is
+a window, not a sample.
+
+**A locked card now answers a tap by going to `/membership`** (Will, 2026-09-20; the drills
+index followed on 2026-09-21), which is a change from "one text link, never a button" and is
+worth saying why. That rule was written
 when the shelf was mostly free and a locked card was the exception: a tap opened the info
 dialog, which described the table and then said you could not play it. Now that every side
 table is behind the check, that dialog is a dead end on every card on the shelf — it spends

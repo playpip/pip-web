@@ -2,17 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { MotionConfig, motion } from 'framer-motion'
 import { ChevronRight, Lock } from 'lucide-react'
 import { SectionScreen } from '@/components/menu/SectionScreen'
+import { PremiumStar } from '@/components/menu/venueCard'
 import { DRILL_KINDS, type DrillKind, canPlayDrill } from '@/config/drills'
 import { nextDrill, randomSeed } from '@/lib/drills'
+import { DIFFICULTY_LEVELS, kindDifficulty } from '@/lib/drills/standing'
 import { PlayingCard } from '@/components/PlayingCard'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
 import { useEntitlement } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
+import { cn } from '@/lib/utils'
 
 /**
  * The drills room: one tile per kind, the same shape as the venue browsers.
@@ -26,18 +28,25 @@ import { useProfile } from '@/store/profile'
  * countdown and nothing you can be behind on — see the note at the top of
  * lib/drills/rating.ts.
  *
- * **A kind that comes with the membership stays on the shelf, locked.** This
- * used to filter them out, with a note saying the honest surface was the tile
- * still being here and that it was waiting on `/membership` to exist to point
- * at. That page exists now, so the filter is gone: you cannot buy what you
- * cannot see, and hiding a paid kind is dishonest by omission.
+ * **A kind that comes with the membership stays on the shelf, and it shows its
+ * spot.** This used to filter them out; then it showed them with card backs and
+ * one text link, on the argument that dealing a real board behind a lock was
+ * showing the thing while refusing it.
  *
- * What a locked tile is allowed to be is the narrow part. It is a plain line
- * saying what the thing is and one text link — not a prompt, not a button, no
- * CTA styling, and nothing that appears over what the player was doing or comes
- * back after being closed. The landing page ships "no forced pop-ups, no
- * nagging… Ever." and this screen is inside that sentence (technology#52
- * item 1).
+ * Both are now wrong (Will, 2026-09-21: "we shouldn't hide drills we don't have
+ * access to, we should tease the membership, like side tables does"). The side
+ * tables settled the same question on 2026-09-20 and this follows them exactly:
+ * a real spot on the artwork, a padlock and the member star in the corners, and
+ * a deliberate tap goes to `/membership` rather than nowhere. Card backs told a
+ * reader nothing about what they were being offered, which is a strange way to
+ * sell something.
+ *
+ * The line this stays on is **invited versus uninvited**. Nothing here
+ * interrupts, nothing appears over what anybody was doing, nothing comes back
+ * after being dismissed, and nothing is styled as a sales button — the tile
+ * still wears a padlock and still says *Comes with the membership*. The landing
+ * page ships "no forced pop-ups, no nagging… Ever." and this screen is inside
+ * that sentence (technology#52 item 1, and docs/membership.md).
  */
 export function DrillIndex() {
   const member = useEntitlement()
@@ -81,11 +90,6 @@ function DrillTile({ kind, gated, delay }: { kind: DrillKind; gated: boolean; de
   const router = useRouter()
   const hydrated = useHydrated()
 
-  // A gated tile is a div, not a disabled button. Nothing here is clickable
-  // except the one text link below it, so a tap on the artwork does nothing
-  // rather than doing something salesy.
-  const Frame = gated ? 'div' : 'button'
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -93,30 +97,35 @@ function DrillTile({ kind, gated, delay }: { kind: DrillKind; gated: boolean; de
       transition={{ delay, duration: 0.35, ease: 'easeOut' }}
       className="w-full"
     >
-      <Frame
-        {...(gated
-          ? {}
-          : {
-              onClick: () => {
-                sound.play('tap')
-                router.push(`/game/drills/${kind.id}`)
-              },
-            })}
-        className={
-          gated
-            ? 'flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left'
-            : 'group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100'
-        }
+      <button
+        type="button"
+        onClick={() => {
+          sound.play('tap')
+          // **A locked tap goes to the page, not nowhere** — the same move every
+          // locked card on the side-tables shelf makes. Answering a deliberate
+          // tap with the page that explains the thing is the least we owe
+          // somebody for asking.
+          router.push(gated ? '/membership' : `/game/drills/${kind.id}`)
+        }}
+        aria-label={gated ? `${kind.title} — what the membership is` : undefined}
+        className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
       >
         <div className="relative flex w-full items-center justify-center gap-1.5 bg-foreground/[0.04] px-4 py-6">
-          {/* A locked tile shows card backs rather than a real spot. Dealing a
-              genuine board behind a lock would be showing the thing while
-              refusing it, which reads worse than not showing it. */}
-          {hydrated && !gated ? (
-            <TileBoard kind={kind} />
+          {/* A real spot, locked or not. Card backs behind a padlock told a
+              reader nothing about the thing they were being offered. */}
+          {hydrated ? (
+            <TileBoard kind={kind} dim={gated} />
           ) : (
             Array.from({ length: kind.boardCards }, (_, i) => <PlayingCard key={i} size="sm" />)
           )}
+          {gated && (
+            <span className="absolute left-2 top-2">
+              <PremiumStar accent={MEMBER_ACCENT} />
+            </span>
+          )}
+          <span className="absolute bottom-2 left-2">
+            <Difficulty kind={kind} />
+          </span>
           <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/30 backdrop-blur-sm">
             {gated ? (
               <Lock className="size-3.5 text-white/85" />
@@ -132,22 +141,56 @@ function DrillTile({ kind, gated, delay }: { kind: DrillKind; gated: boolean; de
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">{kind.blurb}</p>
           {gated && (
-            // The whole of the "prompt". A sentence and a link, in the body
-            // text's own colour and size, with no button around it.
-            <p className="mt-2 text-sm text-muted-foreground">
-              Comes with the membership.{' '}
-              <Link
-                href="/membership"
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                What that is
-              </Link>
-              .
-            </p>
+            // The tile's own line, at the body text's size and colour, with no
+            // button around it: the whole tile is already the control.
+            <p className="mt-2 text-sm text-muted-foreground">Comes with the membership.</p>
           )}
         </div>
-      </Frame>
+      </button>
     </motion.div>
+  )
+}
+
+/**
+ * The colour the member star wears here.
+ *
+ * The drills have no venue art and therefore no accent of their own, so the
+ * star borrows the one the builder's tile uses on the side-tables shelf — the
+ * other member thing on a shelf with no painting behind it.
+ */
+const MEMBER_ACCENT = '#8A8F98'
+
+/**
+ * How hard this kind is, as pips on the artwork.
+ *
+ * **A fact about the kind, where the rating beside the title is a fact about
+ * you** (Will, 2026-09-21). The room is a ladder now and the order of the tiles
+ * says so, but order is a weak signal on a two-column grid — the second tile on
+ * a phone is the second row, and nothing on it said it was harder than the one
+ * above.
+ *
+ * The number comes from `kindDifficulty`, which reads the ratings the spots
+ * already carry rather than anybody's opinion of them. Pips rather than a word
+ * because there are five levels and no honest one-word name for the middle
+ * three; the reader who wants the real number has it on the screen itself, on
+ * the same scale.
+ */
+function Difficulty({ kind }: { kind: DrillKind }) {
+  const level = kindDifficulty(kind.id)
+  return (
+    <span
+      className="flex items-center gap-1 rounded-md bg-black/30 px-1.5 py-1 backdrop-blur-sm"
+      role="img"
+      aria-label={`Difficulty ${level} of ${DIFFICULTY_LEVELS}`}
+      title={`Difficulty ${level} of ${DIFFICULTY_LEVELS}`}
+    >
+      {Array.from({ length: DIFFICULTY_LEVELS }, (_, i) => (
+        <span
+          key={i}
+          className={cn('size-1.5 rounded-full', i < level ? 'bg-white/90' : 'bg-white/25')}
+        />
+      ))}
+    </span>
   )
 }
 
@@ -169,14 +212,20 @@ function Standing({ kind }: { kind: DrillKind }) {
   )
 }
 
-/** One real board from the kind, dealt on mount. Held so it is stable. */
-function TileBoard({ kind }: { kind: DrillKind }) {
+/**
+ * One real board from the kind, dealt on mount. Held so it is stable.
+ *
+ * A locked tile draws the same board played down rather than a different thing
+ * entirely: it is a window into the kind, and a window you have not paid for is
+ * still a window.
+ */
+function TileBoard({ kind, dim = false }: { kind: DrillKind; dim?: boolean }) {
   const [drill] = useState(() => nextDrill(kind.id, randomSeed()))
   return (
-    <>
+    <span className={cn('flex items-center gap-1.5', dim && 'opacity-60')}>
       {drill.board.map((card) => (
         <PlayingCard key={`${card.rank}${card.suit}`} card={card} size="sm" />
       ))}
-    </>
+    </span>
   )
 }

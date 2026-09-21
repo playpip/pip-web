@@ -214,6 +214,7 @@ test('the filter throws away the spots that are not questions', (t) => {
     'chop-possible': 0,
     'drawing-dead': 0,
     ambiguous: 0,
+    'free-guess': 0,
   }
   let kept = 0
   for (let seed = 1; seed <= 4_000; seed++) {
@@ -331,10 +332,11 @@ test("pot odds is registered as the membership's, not as free", (t) => {
   t.true(canPlayDrill(kind, true), 'a member cannot open the kind they paid for')
 })
 
-test('the membership has more than one kind in it, and the free one is still free', (t) => {
+test('the membership has more than one kind in it, and the free ones are still free', (t) => {
   const paid = DRILL_KINDS.filter((kind) => kind.membersOnly).map((kind) => kind.id)
-  t.deepEqual(paid.sort(), ['count-your-outs', 'hand-strength', 'pot-odds'])
+  t.deepEqual(paid.sort(), ['count-your-outs', 'hand-strength', 'pot-odds', 'which-five-play'])
   t.true(canPlayDrill(drillKind('which-hand-wins'), false), 'the free kind is no longer free')
+  t.true(canPlayDrill(drillKind('whats-your-hand'), false), 'the beginners’ kind is no longer free')
 })
 
 // Only the kind that asks about money carries any. A stray price on another
