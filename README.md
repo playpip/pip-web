@@ -127,6 +127,29 @@ Full documentation lives in [`docs/`](docs/README.md):
 Agents working in this repo should start with [`CLAUDE.md`](CLAUDE.md) /
 [`AGENTS.md`](AGENTS.md).
 
+## Posts about this code
+
+Each one is about a file in this repo, and links it:
+
+- [The mock-ups on your landing page are untested claims](https://playpip.io/blog/landing-page-mockups?utm_source=github&utm_medium=readme).
+  Three of the four cards on the home page were pictures of our own output, typed by
+  hand, and all three had drifted.
+- [Your Cloudflare Pages site is on Google twice](https://playpip.io/blog/cloudflare-pages-dev-duplicate?utm_source=github&utm_medium=readme).
+  The production `pages.dev` alias serves your whole site on a second host. Ours did,
+  for five weeks, with a correct canonical tag on every page.
+- [A route missing from your sitemap is not noindexed](https://playpip.io/blog/sitemap-is-not-noindex?utm_source=github&utm_medium=readme).
+  Leaving `/game` out instructed nobody: Google indexed it anyway, wearing the home
+  page's title.
+- [How accurate is a poker equity calculator?](https://playpip.io/blog/how-accurate-is-a-poker-equity-calculator?utm_source=github&utm_medium=readme)
+  There is exactly one spot where the true answer is countable, so we checked the
+  printed error bar against it.
+- [Five things pokersolver does that its README does not mention](https://playpip.io/blog/pokersolver-undocumented?utm_source=github&utm_medium=readme).
+  The edges `src/lib/poker/handEval.ts` has to absorb, each with the input that
+  produces it.
+- [Verify today's deal yourself](https://playpip.io/blog/verify-todays-deal?utm_source=github&utm_medium=readme).
+  The six steps that turn a date into the Daily's shuffle, and one day's deck to check
+  yourself against.
+
 ## Privacy
 
 No account needed, no cookies, no personal data. Your profile lives in your browser.
