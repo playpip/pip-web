@@ -205,8 +205,7 @@ function ModeSwitch({
 function Dealing({ kind }: { kind: DrillKind }) {
   return (
     <>
-      <Header title={kind.title} />
-      <p className="text-center text-sm text-muted-foreground">{kind.question}</p>
+      <Header eyebrow={kind.title} title={kind.question} />
       <div className="mt-3 flex items-center justify-center gap-1 sm:gap-2" aria-hidden>
         {Array.from({ length: kind.boardCards }, (_, i) => (
           <PlayingCard key={i} size="drill" />
@@ -331,7 +330,8 @@ function Run({ kind }: { kind: DrillKind }) {
   return (
     <>
       <Header
-        title={kind.title}
+        eyebrow={kind.title}
+        title={kind.question}
         rating={progress.rating}
         delta={before === null ? null : progress.rating - before.rating}
         run={run}
@@ -348,7 +348,6 @@ function Run({ kind }: { kind: DrillKind }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
       >
-        <p className="text-center text-sm text-muted-foreground">{kind.question}</p>
         {drill.stakes && <Stakes stakes={drill.stakes} />}
         <div className="mt-3 flex items-center justify-center gap-1 sm:gap-2">
           {drill.board.map((card) => (

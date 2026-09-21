@@ -174,8 +174,7 @@ export function PlayItOut({ title }: { title: string }) {
 function Dealing({ title }: { title: string }) {
   return (
     <>
-      <Header title={title} />
-      <p className="text-center text-sm text-muted-foreground">Dealing.</p>
+      <Header eyebrow={title} title="Dealing." />
       <div className="mt-3 flex items-center justify-center gap-1 sm:gap-2" aria-hidden>
         {Array.from({ length: BOARD_CARDS }, (_, i) => (
           <PlayingCard key={i} size="drill" />
@@ -290,7 +289,13 @@ function Hand({
   return (
     <MotionConfig reducedMotion="user">
       <Header
-        title={title}
+        eyebrow={title}
+        // The heading is the question, the same as on the four face-up kinds,
+        // and here the question changes street by street rather than once per
+        // screen. It sits outside the block below because the block is keyed by
+        // street and slides in: a heading that slid with it would be the one
+        // thing on the screen moving while you read it.
+        title={drill === null ? 'They check.' : 'Call or fold?'}
         rating={progress.rating}
         delta={before === null ? null : progress.rating - before.rating}
         run={run}
@@ -306,9 +311,6 @@ function Hand({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
       >
-        <p className="text-center text-sm text-muted-foreground">
-          {drill === null ? 'They check.' : 'Call or fold?'}
-        </p>
         {drill?.stakes && <Stakes stakes={drill.stakes} />}
 
         {/* The board at its finished width from the first street, with backs

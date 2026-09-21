@@ -246,6 +246,16 @@ test('every registered kind is complete and generates', (t) => {
   }
 })
 
+// The question is the heading on a kind's screen (parts.tsx `Header`), and the
+// four screens are one component, so two kinds sharing a question would be two
+// screens a player cannot tell apart at a glance. That is the complaint this
+// answered in the first place (Will, 9 Sep), so the registry holds the line
+// rather than the component.
+test('no two kinds ask the same question', (t) => {
+  const questions = DRILL_KINDS.map((kind) => kind.question)
+  t.is(new Set(questions).size, questions.length, questions.join(' / '))
+})
+
 // The bug this pins shipped, and it was invisible from every angle a test
 // usually looks from: the engine was right, the grades were right, and the
 // screen still showed one player the same nine cards every time they opened it

@@ -17,18 +17,28 @@ import { cn } from '@/lib/utils'
 // changes it in both places rather than in the one somebody remembered.
 
 /**
- * The title and the score.
+ * The heading and the score.
  *
- * One line of numbers under the title rather than a panel: a scoreboard that
+ * One line of numbers under the heading rather than a panel: a scoreboard that
  * takes a quarter of a phone screen is competing with the cards, and the cards
- * are the drill. The rating sits opposite the title where the eye lands on
+ * are the drill. The rating sits opposite the heading where the eye lands on
  * arriving, and everything else is one muted line of facts.
  *
  * The delta is the reason the rating is worth showing at all. A number that
  * only ever appears in its settled state is furniture; a number you watch move
  * is the thing you came back for.
+ *
+ * **The heading is the question on a kind's screen, with the kind's name the
+ * small line above it** (Will, 9 Sep: the drills screens "look a little bit
+ * same-like"). Four kinds drawn by one component differ in the question and
+ * almost nothing else, and the question used to be the smallest text on the
+ * screen while the kind's name, which the tile you just pressed already said,
+ * was the largest. A question is longer than a name, so it takes a step down in
+ * size when there is an eyebrow over it: the heading is there to be read once,
+ * and the cards still have to fit on a phone under it.
  */
 export function Header({
+  eyebrow,
   title,
   rating,
   delta = null,
@@ -37,6 +47,8 @@ export function Header({
   correct = 0,
   bestRun = 0,
 }: {
+  /** The small line over the heading. The kind's name, where the heading is its question. */
+  eyebrow?: string
   title: string
   rating?: number
   delta?: number | null
@@ -57,7 +69,19 @@ export function Header({
   return (
     <div className="mb-6 flex items-start justify-between gap-3 px-1">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+        {eyebrow && (
+          <p className="mb-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+            {eyebrow}
+          </p>
+        )}
+        <h1
+          className={cn(
+            'font-semibold tracking-tight',
+            eyebrow ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl',
+          )}
+        >
+          {title}
+        </h1>
         {facts.length > 0 && (
           <p className="mt-1 text-xs tabular-nums text-muted-foreground">{facts.join(' · ')}</p>
         )}
