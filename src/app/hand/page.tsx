@@ -7,22 +7,29 @@
 // best advert, so this page is built to convert a non-player — it autoplays,
 // pays off, and invites. Works with no profile at all.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronRight } from 'lucide-react'
 import { DealtCard, PlayingCard } from '@/components/PlayingCard'
 import { HandTimeline } from '@/components/HandTimeline'
 import { CountUp } from '@/components/CountUp'
 import { Splash } from '@/components/Splash'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { Transport } from '@/components/replay/Transport'
+import {
+  narrate,
+  parseOutcome,
+  useFinishChime,
+  useReplay,
+  type Outcome,
+} from '@/components/replay/useReplay'
 import { decodeHand } from '@/lib/handLink'
 import { nicknameFor } from '@/config/handNames'
 import { useHydrated } from '@/lib/useHydrated'
 import { formatChips, useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
-import { cn } from '@/lib/utils'
-import type { HandEvent, HandRecord } from '@/store/game'
+import type { HandRecord } from '@/store/game'
 import type { Card } from '@/lib/poker/cards'
 
 export default function HandPage() {
@@ -41,59 +48,13 @@ export default function HandPage() {
 /** The cinematic replay: board, hero cards, narration, transport, outcome. */
 function Replay({ record }: { record: HandRecord }) {
   const money = useMoney()
-  const reduce = useReducedMotion() ?? false
-  const total = record.events.length
-
-  // Reduced motion (or an empty hand) shows the whole thing at rest.
-  const [step, setStep] = useState(reduce ? total : 0)
-  const [playing, setPlaying] = useState(!reduce && total > 0)
-  const finished = step >= total
-  const chimed = useRef(false)
-
-  // Autoplay: advance a beat at a time, board deals lingering a touch longer so
-  // the cards can be admired. The sound plays inside the timer (a real user
-  // gesture unlocks audio; before that it's a silent no-op, never an error).
-  useEffect(() => {
-    if (!playing || step >= total) return
-    const next = record.events[step]
-    const delay = next?.kind === 'board' ? 1000 : 640
-    const t = setTimeout(() => {
-      if (next) sound.play(cueFor(next))
-      setStep((s) => s + 1)
-    }, delay)
-    return () => clearTimeout(t)
-  }, [playing, step, total, record])
-
-  // The payoff chime — once, when the replay lands on the result.
-  useEffect(() => {
-    if (finished && total > 0 && !chimed.current) {
-      chimed.current = true
-      sound.play('win')
-    }
-  }, [finished, total])
-
-  const restart = () => {
-    chimed.current = false
-    setStep(0)
-    setPlaying(true)
-    sound.play('tap')
-  }
-  const toggle = () => {
-    sound.play('tap')
-    if (finished) return restart()
-    setPlaying((p) => !p)
-  }
-  const seek = (n: number) => {
-    setPlaying(false)
-    if (n < total) chimed.current = false
-    setStep(n)
-    sound.play('tap')
-  }
-
-  // The board as of this step: the latest board event already shown is cumulative.
-  const shown = record.events.slice(0, step)
-  const community = [...shown].reverse().find((e) => e.kind === 'board')?.cards ?? []
-  const current = shown[shown.length - 1]
+  // A shared hand is a highlight reel: it opens at the top of the hand and
+  // plays itself in. The session review opens the same machinery at the end of
+  // the hand instead, because somebody who clicked hand 14 wants to see hand 14
+  // rather than watch it arrive.
+  const replay = useReplay(record, { autoplay: true, opens: 'start' })
+  const { step, total, finished, community, current, reduce } = replay
+  useFinishChime(finished, total)
 
   // The sharer's cards, kept on the felt so the receiver can follow the decisions.
   const heroReveal = record.reveals.find((r) => r.playerId === 'hero')
@@ -152,14 +113,7 @@ function Replay({ record }: { record: HandRecord }) {
           </AnimatePresence>
         </div>
 
-        <Transport
-          playing={playing}
-          finished={finished}
-          step={step}
-          total={total}
-          onToggle={toggle}
-          onSeek={seek}
-        />
+        <Transport replay={replay} className="mt-6" />
 
         {/* the curious can read the whole thing */}
         {total > 0 && (
@@ -227,76 +181,6 @@ function OutcomeHeadline({ outcome, finished }: { outcome: Outcome | null; finis
   )
 }
 
-/** Play/pause + a seekable segmented track + step nudges. */
-function Transport({
-  playing,
-  finished,
-  step,
-  total,
-  onToggle,
-  onSeek,
-}: {
-  playing: boolean
-  finished: boolean
-  step: number
-  total: number
-  onToggle: () => void
-  onSeek: (n: number) => void
-}) {
-  if (total === 0) return null
-  return (
-    <div className="mt-6 flex flex-col items-center gap-4">
-      <div className="flex w-full max-w-xs items-center gap-1">
-        {Array.from({ length: total }).map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-label={`Jump to move ${i + 1}`}
-            onClick={() => onSeek(i + 1)}
-            className={cn(
-              'h-1.5 flex-1 rounded-full transition-colors',
-              i < step ? 'bg-pip' : 'bg-foreground/10 hover:bg-foreground/25',
-            )}
-          />
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2.5">
-        <StepButton
-          onClick={() => onSeek(Math.max(0, step - 1))}
-          disabled={step === 0}
-          aria-label="Back"
-        >
-          <ChevronLeft className="size-4" />
-        </StepButton>
-
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={finished ? 'Replay' : playing ? 'Pause' : 'Play'}
-          className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-black/10 transition hover:bg-primary/90 active:scale-95 dark:shadow-black/40"
-        >
-          {finished ? (
-            <RotateCcw className="size-5" />
-          ) : playing ? (
-            <Pause className="size-5 fill-current" />
-          ) : (
-            <Play className="size-5 fill-current" />
-          )}
-        </button>
-
-        <StepButton
-          onClick={() => onSeek(Math.min(total, step + 1))}
-          disabled={finished}
-          aria-label="Next"
-        >
-          <ChevronRight className="size-4" />
-        </StepButton>
-      </div>
-    </div>
-  )
-}
-
 /** The invite — always in view, pinned to the bottom over a soft fade. */
 function StickyCta({ eyebrow }: { eyebrow: string }) {
   return (
@@ -357,60 +241,4 @@ function Shell({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   )
-}
-
-function StepButton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  return (
-    <button
-      type="button"
-      {...props}
-      className={cn(
-        'flex size-10 items-center justify-center rounded-full border border-foreground/10 bg-foreground/[0.03] text-muted-foreground transition hover:bg-foreground/10 active:scale-95 disabled:pointer-events-none disabled:opacity-30',
-        className,
-      )}
-    />
-  )
-}
-
-// --- narration + outcome parsing ---------------------------------------------
-
-/** The sound cue for the beat about to be revealed. */
-function cueFor(ev: HandEvent) {
-  if (ev.kind === 'board') return 'deal' as const
-  return ev.type
-}
-
-/** One line of commentary for the current beat. */
-function narrate(ev: HandEvent | undefined, money: (n: number) => string): string {
-  if (!ev) return 'Watch it back, move by move.'
-  if (ev.kind === 'board') return `The ${ev.label}`
-  switch (ev.type) {
-    case 'fold':
-      return `${ev.playerName} folds`
-    case 'check':
-      return `${ev.playerName} checks`
-    case 'call':
-      return `${ev.playerName} calls ${money(ev.amount ?? 0)}`
-    case 'bet':
-      return `${ev.playerName} bets ${money(ev.amount ?? 0)}`
-    default:
-      return `${ev.playerName} raises to ${money(ev.amount ?? 0)}`
-  }
-}
-
-type Outcome =
-  | { kind: 'win'; winner: string; amount: number; detail?: string }
-  | { kind: 'text'; text: string }
-
-/** Split the store's summary ("Alex wins 1,240 with a flush") for the headline. */
-function parseOutcome(summary: string): Outcome | null {
-  if (!summary) return null
-  const m = /^(.+?) wins ([\d,]+)(?: with (.+))?$/.exec(summary)
-  if (!m) return { kind: 'text', text: summary }
-  return {
-    kind: 'win',
-    winner: m[1],
-    amount: Number(m[2].replace(/,/g, '')),
-    detail: m[3],
-  }
 }

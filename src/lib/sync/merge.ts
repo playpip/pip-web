@@ -23,6 +23,7 @@ import type {
   VenueRecord,
 } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
+import { emptyReviewStats } from '@/lib/review/stats'
 import { STARTING_ROLL } from '@/config/venues'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
@@ -61,6 +62,11 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // with it rather than being independently wrong.
     stats: winner.stats,
     tendencies: winner.tendencies,
+    // The career table of priced decisions follows them, and for the same
+    // reason: it is counted hand by hand out of the same hands `tendencies` is,
+    // so a merge that took one side's hands and the other side's verdicts about
+    // them would describe a player who does not exist.
+    reviewStats: winner.reviewStats ?? emptyReviewStats(),
     // The other half of the Roll, so it follows the Roll (lib/sync/escrow).
     // `pickUnhandled` would have taken `winner.escrow ?? loser.escrow`, which
     // is the one wrong answer available: a winner holding nothing would inherit
@@ -362,6 +368,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'roll',
     'stats',
     'tendencies',
+    'reviewStats',
     'peakRoll',
     'awards',
     'owned',

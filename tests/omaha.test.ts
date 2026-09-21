@@ -296,9 +296,13 @@ test('the Omaha table is registered, gated, and deep enough to play', (t) => {
 // variant the first time: four hearts in hand plus one on the board read
 // "Flush". Pinned as source rather than behaviour because there is no browser
 // here to render it in.
+//
+// **It reads `parts.tsx`, which is where the felt's furniture lives** since the
+// session review started rendering the same seats and the same hero panel
+// (2026-09-21). The rule is unchanged and now covers both screens at once.
 test('the hand label under your own cards is read under the table’s own rules', (t) => {
   const source = readFileSync(
-    new URL('../src/components/table/Table.tsx', import.meta.url),
+    new URL('../src/components/table/parts.tsx', import.meta.url),
     'utf-8',
   )
     .replace(/\/\*[\s\S]*?\*\//g, ' ')

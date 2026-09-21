@@ -203,3 +203,109 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     iterations,
   }
 }
+
+// --- every hand face up ------------------------------------------------------
+
+/**
+ * How often each of a set of *known* hands wins from here.
+ *
+ * The estimate above answers "how do I do against strangers"; this one answers
+ * "who is ahead", and it is a different question with a better answer
+ * available: when every hole card is known the only unknown left is the board,
+ * and the board can be dealt out exhaustively rather than sampled. The session
+ * review is the one surface that can ask it — the hand is over, every card is
+ * recorded, and nothing anybody learns from it can be played.
+ *
+ * Exact wherever exact is affordable: one runout on the river, forty-odd on the
+ * turn, a few hundred on the flop. Preflop the five-card runout runs to
+ * millions, so it samples and says so through `exact`.
+ */
+export interface ShowdownOdds {
+  /** Share of the pot per player id, summing to 1. Chops split their share. */
+  share: Record<string, number>
+  /** True when every remaining board was dealt rather than sampled. */
+  exact: boolean
+  /** Runouts read. */
+  runouts: number
+}
+
+/**
+ * How much work one of these may do, counted in showdowns rather than in
+ * boards.
+ *
+ * A board costs one evaluation *per player*, so "666 runouts" is cheap
+ * heads-up and four times the work five-handed. Budgeting the product is what
+ * keeps a step on the review feeling instant whoever is still in the pot: at a
+ * few thousand a step it crawled, and the first preflop step of a five-handed
+ * hand took a full second (Will, 2026-09-21).
+ */
+const MAX_EXACT_SOLVES = 4_000
+/** And the same budget for the sampled case, which is preflop and only preflop. */
+const SAMPLE_SOLVES = 1_500
+/** However few players are in, never fewer samples than this. */
+const MIN_SAMPLES = 250
+
+export function showdownOdds(
+  hands: readonly { id: string; hole: readonly Card[] }[],
+  community: readonly Card[],
+  opts: { rng?: Rng; samples?: number; variant?: Variant } = {},
+): ShowdownOdds {
+  const variant = opts.variant ?? 'holdem'
+  const share: Record<string, number> = Object.fromEntries(hands.map((h) => [h.id, 0]))
+  if (hands.length === 0) return { share, exact: true, runouts: 0 }
+  if (hands.length === 1) return { share: { [hands[0].id]: 1 }, exact: true, runouts: 0 }
+
+  const contenders = hands.map((h) => ({ id: h.id, hole: [...h.hole] }))
+  const known = [...community, ...hands.flatMap((h) => h.hole)]
+  const rest = remainingDeck(known, DECK_RANKS[variant])
+  const toCome = 5 - community.length
+
+  const award = (board: Card[]) => {
+    const { winners } = determineWinners(contenders, board, variant)
+    for (const id of winners) share[id] += 1 / winners.length
+  }
+
+  let runouts = 0
+  let exact = true
+  if (toCome <= 0) {
+    award([...community])
+    runouts = 1
+  } else if (toCome === 1) {
+    for (const card of rest) {
+      award([...community, card])
+      runouts++
+    }
+  } else if (
+    toCome === 2 &&
+    ((rest.length * (rest.length - 1)) / 2) * hands.length <= MAX_EXACT_SOLVES
+  ) {
+    for (let i = 0; i < rest.length; i++) {
+      for (let j = i + 1; j < rest.length; j++) {
+        award([...community, rest[i], rest[j]])
+        runouts++
+      }
+    }
+  } else {
+    // Too many boards to deal them all. Sample, and say so.
+    exact = false
+    const rng = opts.rng ?? Math.random
+    // Scaled by how many hands are being read, so the cost of a sampled answer
+    // does not multiply with the size of the pot. The screen prints "about" off
+    // `exact`, so the band this trades away is already declared.
+    const samples = opts.samples ?? Math.max(MIN_SAMPLES, Math.round(SAMPLE_SOLVES / hands.length))
+    const pool = [...rest]
+    for (let s = 0; s < samples; s++) {
+      // Partial Fisher-Yates over the head of the pool: `toCome` swaps, not a
+      // whole shuffle, because the tail is never looked at.
+      for (let i = 0; i < toCome; i++) {
+        const j = i + Math.floor(rng() * (pool.length - i))
+        ;[pool[i], pool[j]] = [pool[j], pool[i]]
+      }
+      award([...community, ...pool.slice(0, toCome)])
+      runouts++
+    }
+  }
+
+  for (const id of Object.keys(share)) share[id] /= runouts
+  return { share, exact, runouts }
+}

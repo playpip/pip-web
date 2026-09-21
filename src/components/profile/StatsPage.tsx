@@ -1,12 +1,17 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { PageShell } from '@/components/PageShell'
+import { Reveal } from '@/components/Reveal'
 import { RollGraph } from '@/components/RollGraph'
 import { CountUp } from '@/components/CountUp'
 import Link from 'next/link'
 import { PlayStyleChart } from './PlayStyleChart'
+import { Card, CardLabel, Mini, Stat } from './bento'
+import { RangePicker } from './RangePicker'
+import { ROLL_RANGES, type RollRange, pointsInRange } from '@/lib/rollRange'
 import { RankLadder } from './RankLadder'
 import { useProfile } from '@/store/profile'
 import { VENUES, SIDE_TABLES, KITCHEN_TABLE } from '@/config/venues'
@@ -18,7 +23,6 @@ import { rankFor } from '@/config/ranks'
 import { derivePlayStyle } from '@/lib/playStyle'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
-import { cn } from '@/lib/utils'
 
 const ALL_VENUES = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE]
 
@@ -42,8 +46,11 @@ export function StatsPage() {
       ? Math.round((stats.tournamentsWon / stats.tournamentsEntered) * 100)
       : null
 
-  const min = rollHistory.length > 0 ? Math.min(...rollHistory.map((p) => p.roll)) : null
-  const max = rollHistory.length > 0 ? Math.max(...rollHistory.map((p) => p.roll)) : null
+  // The graph's span, and the moment it is measured from. `now` is frozen once
+  // per mount so the picker and the filter cannot disagree by a render.
+  const [now] = useState(() => Date.now())
+  const [range, setRange] = useState<RollRange>(ROLL_RANGES[ROLL_RANGES.length - 1])
+  const shown = useMemo(() => pointsInRange(rollHistory, range, now), [rollHistory, range, now])
 
   // A kind you have answered at least one spot in. Absent otherwise, so the
   // whole section is missing for a player who has never opened a drill rather
@@ -143,37 +150,65 @@ export function StatsPage() {
             </p>
           )}
           {/* The chart says where you are; the report says what it is costing
-              you and what to do about it. One text link, on the page that is
-              already about your own play — not a banner, and nowhere near a
+              you and what to do about it. Two text links, and the second one is the same rule as the first:
+              the page is already about your own play, so this is the one place
+              a way into the coaching belongs. Not a banner, and nowhere near a
               hand. */}
-          <Link
-            href="/game/report"
-            className="mt-4 text-center text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
-          >
-            Read the full report
-          </Link>
+          <div className="mt-4 flex flex-col items-center gap-1.5">
+            <Link
+              href="/game/report"
+              className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+            >
+              Read the full report
+            </Link>
+            <Link
+              href="/game/review"
+              className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+            >
+              Review your last session
+            </Link>
+          </div>
         </Card>
 
         {/* right column: roll graph over a grid of numbers */}
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
-            <div className="flex items-baseline justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <CardLabel>Your Roll</CardLabel>
               <p className="text-2xl font-semibold tabular-nums">{money(roll)}</p>
             </div>
             {rollHistory.length >= 2 ? (
-              <div className="mt-3">
-                <RollGraph
+              <>
+                <RangePicker
+                  className="mt-3"
                   points={rollHistory}
-                  format={money}
-                  className="h-40 w-full"
-                  accent={accent}
+                  now={now}
+                  value={range}
+                  onPick={setRange}
                 />
-                <div className="mt-1 flex justify-between text-2xs tabular-nums text-muted-foreground/70">
-                  <span>low {money(min!)}</span>
-                  <span>high {money(max!)}</span>
-                </div>
-              </div>
+                {shown.length >= 2 ? (
+                  <div className="mt-3">
+                    {/* Keyed on the span so switching redraws the line. */}
+                    <RollGraph
+                      key={range.id}
+                      points={shown}
+                      format={money}
+                      className="h-40 w-full"
+                      accent={accent}
+                    />
+                    {/* Low and high are of what is drawn, not of the career:
+                        a span that hides a crash must not keep reporting it. */}
+                    <div className="mt-1 flex justify-between text-2xs tabular-nums text-muted-foreground/70">
+                      <span>low {money(Math.min(...shown.map((p) => p.roll)))}</span>
+                      <span>high {money(Math.max(...shown.map((p) => p.roll)))}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex h-40 items-center justify-center rounded-xl bg-foreground/[0.03]">
+                    <p className="text-sm text-muted-foreground">Nothing recorded in this span.</p>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="mt-3 flex h-40 items-center justify-center rounded-xl bg-foreground/[0.03]">
                 <p className="text-sm text-muted-foreground">
@@ -208,12 +243,9 @@ export function StatsPage() {
 
       {/* venues — full-width footer */}
       {playedVenues.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4, ease: 'easeOut' }}
-          className="mt-4"
-        >
+        // Below the fold, so it arrives when you reach it rather than a tenth
+        // of a second after the page loads, off-screen, where nobody sees it.
+        <Reveal className="mt-4">
           <Card>
             <div className="mb-3 flex items-baseline justify-between">
               <CardLabel>Venues</CardLabel>
@@ -245,17 +277,12 @@ export function StatsPage() {
               })}
             </div>
           </Card>
-        </motion.section>
+        </Reveal>
       )}
 
       {/* drills: the practice room's side of the story, under the table's */}
       {playedDrills.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12, duration: 0.4, ease: 'easeOut' }}
-          className="mt-4"
-        >
+        <Reveal className="mt-4">
           <Card>
             <div className="mb-3 flex items-baseline justify-between gap-4">
               <CardLabel>Drills</CardLabel>
@@ -270,7 +297,7 @@ export function StatsPage() {
               ))}
             </div>
           </Card>
-        </motion.section>
+        </Reveal>
       )}
     </PageShell>
   )
@@ -338,44 +365,6 @@ function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }
           ))}
         </dl>
       )}
-    </div>
-  )
-}
-
-function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn('rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5', className)}
-    >
-      {children}
-    </div>
-  )
-}
-
-function CardLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{children}</p>
-}
-
-function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return (
-    <div className="flex flex-col justify-center rounded-2xl bg-foreground/[0.04] p-4">
-      <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">
-        {value}
-        {detail && (
-          <span className="ml-1.5 text-sm font-medium text-muted-foreground">{detail}</span>
-        )}
-      </p>
-    </div>
-  )
-}
-
-function Mini({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div className="rounded-xl bg-foreground/[0.04] px-2 py-2.5 text-center">
-      <p className="text-lg font-semibold tabular-nums leading-none">{value}</p>
-      <p className="mt-1 text-3xs uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
-      <p className="text-3xs text-muted-foreground/60">{sub}</p>
     </div>
   )
 }

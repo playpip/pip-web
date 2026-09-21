@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs'
 import test from 'ava'
-import { DEEP_MIN_HANDS, DEEP_MIN_SHOWDOWNS, type DeepCoachInput, deepRead } from '@/lib/deepCoach'
+import {
+  BANDS,
+  DEEP_MIN_HANDS,
+  DEEP_MIN_SHOWDOWNS,
+  type DeepCoachInput,
+  deepRead,
+} from '@/lib/deepCoach'
 import { emptySeatStats } from '@/lib/reads'
+import { emptyReviewStats } from '@/lib/review/stats'
 
 // Coaching across hands (technology#56).
 //
@@ -190,6 +197,80 @@ test('a sound player is told what is going right', (t) => {
   t.true(read.strengths.length >= 2, `a sound player got ${read.strengths.length} strengths`)
 })
 
+// --- where the money goes ---------------------------------------------------
+
+test('the street that is costing you is named, with the decisions behind it', (t) => {
+  const stats = emptyReviewStats()
+  stats.hands = 600
+  // 18 big blinds given up on the river over 600 hands — 3bb/100, and a real
+  // sample under it. The flop is quiet.
+  stats.byStreet.river = { priced: 70, right: 30, bbLost: 18 }
+  stats.byStreet.flop = { priced: 90, right: 80, bbLost: 1 }
+  stats.calls = { priced: 120, right: 70, bbLost: 17 }
+  stats.folds = { priced: 40, right: 32, bbLost: 2 }
+
+  const read = deepRead(input({ tendencies: played(600), reviewStats: stats }))
+  const leak = read.leaks.find((l) => l.id === 'leaky-river')
+  t.truthy(leak, 'the worst street was not named')
+  t.regex(leak?.finding ?? '', /3\.0 big blinds per hundred hands/)
+  t.regex(leak?.finding ?? '', /70 priced decisions/, 'a finding arrived without its sample')
+  t.is(read.streets[0]?.settled, 70)
+  t.is(leak?.evidence, 'river-call', 'the river finding cannot show a river hand')
+
+  // The chart reads the same numbers, worst first.
+  t.is(read.streets[0]?.street, 'river')
+  t.is(read.cost?.right, 102)
+  t.is(read.cost?.wrong, 58)
+})
+
+test('a street with almost no decisions behind it is never named', (t) => {
+  // Four big blinds off nine calls is 0.7bb/100 and means nothing. The rule is
+  // the same one the whole file runs on: no claim below its own sample.
+  const stats = emptyReviewStats()
+  stats.hands = 600
+  stats.byStreet.turn = { priced: 9, right: 4, bbLost: 4 }
+  const read = deepRead(input({ tendencies: played(600), reviewStats: stats }))
+  t.falsy(read.leaks.find((l) => l.id.startsWith('leaky-')))
+  t.deepEqual(read.streets, [])
+})
+
+test('which way the mistakes go is a finding of its own', (t) => {
+  const loose = emptyReviewStats()
+  loose.hands = 700
+  loose.calls = { priced: 120, right: 60, bbLost: 40 }
+  loose.folds = { priced: 60, right: 55, bbLost: 3 }
+  const callsRead = deepRead(input({ tendencies: played(700), reviewStats: loose }))
+  t.truthy(callsRead.leaks.find((l) => l.id === 'costly-calls'))
+  t.falsy(callsRead.leaks.find((l) => l.id === 'costly-folds'))
+
+  const tight = emptyReviewStats()
+  tight.hands = 700
+  tight.calls = { priced: 60, right: 55, bbLost: 3 }
+  tight.folds = { priced: 120, right: 60, bbLost: 40 }
+  const foldsRead = deepRead(input({ tendencies: played(700), reviewStats: tight }))
+  t.truthy(foldsRead.leaks.find((l) => l.id === 'costly-folds'))
+})
+
+test('a profile with no priced decisions still gets a report', (t) => {
+  // Everything about the table of decisions is optional: a row synced from a
+  // device that predates it, or a player whose hands were all at tables the
+  // review does not cover. The rate-based findings still work.
+  const read = deepRead(input({ tendencies: played(400, { vpipHands: 300 }) }))
+  t.is(read.cost, null)
+  t.deepEqual(read.streets, [])
+  t.truthy(read.leaks.find((l) => l.id === 'too-loose'))
+})
+
+test('every meter is drawn from the same band the verdict was reached on', (t) => {
+  // The failure this prevents: a component with its own idea of "healthy",
+  // drawing a marker inside a green band under a sentence calling it a leak.
+  const read = deepRead(input({ tendencies: played(400, { vpipHands: 300 }) }))
+  const loose = read.leaks.find((l) => l.id === 'too-loose')
+  t.truthy(loose?.metric)
+  t.deepEqual(loose?.metric?.band, BANDS.vpip.band)
+  t.true((loose?.metric?.value ?? 0) > BANDS.vpip.band[1], 'the marker sits inside the band')
+})
+
 // The rule that matters most, enforced mechanically rather than agreed. Every
 // piece of advice has to be something you can do *at a table*, not a reason to
 // go and sit at another one.
@@ -209,13 +290,37 @@ test('nothing here can be fixed by playing more', (t) => {
   }
 })
 
-// The free per-hand read does not grow a paid branch inside it, and this module
-// does not reach into it. Both halves of technology#56's standing constraint.
-test('the free coach and the paid coach do not touch', (t) => {
-  const deep = readFileSync(new URL('../src/lib/deepCoach.ts', import.meta.url), 'utf-8')
-  t.notRegex(deep, /from '@\/lib\/coach'/, 'the paid coach imports the free one')
-
+// technology#56's standing constraint, stated as the property it protects
+// rather than as the import graph that used to stand in for it.
+//
+// The old version of this test said the paid module must not import the free
+// one at all. It does now — for `PricedStreet`, because there is one set of
+// four streets and two spellings of it would be worse — so the test says the
+// thing that actually matters instead: **the free read cannot know who is
+// paying, and cannot be given behaviour by the paid one.** A type is erased at
+// build time and can carry neither.
+test('the free per-hand read cannot tell a member from anybody else', (t) => {
+  // Imports only — the prose in there is allowed to name the paid surfaces, and
+  // does, because a rule is easier to keep when the file says what it is for.
   const free = readFileSync(new URL('../src/lib/coach.ts', import.meta.url), 'utf-8')
-  t.notRegex(free, /deepCoach/, 'the free coach knows about the paid one')
-  t.notRegex(free, /membersOnly|useEntitlement/, 'the free per-hand read grew a paid branch')
+  for (const line of free.split('\n')) {
+    if (!/^import /.test(line)) continue
+    t.notRegex(line, /deepCoach|lib\/review/, 'the free coach reached into a paid module')
+    t.notRegex(line, /membership|entitlement/i, 'the free per-hand read can see who is paying')
+  }
+  t.notRegex(
+    free.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' '),
+    /membersOnly|useEntitlement/,
+    'the free per-hand read grew a paid branch',
+  )
+
+  const deep = readFileSync(new URL('../src/lib/deepCoach.ts', import.meta.url), 'utf-8')
+  for (const line of deep.split('\n')) {
+    if (!line.includes("from '@/lib/coach'")) continue
+    t.regex(
+      line,
+      /^import type /,
+      'the paid coach imports behaviour from the free read, not just a type',
+    )
+  }
 })

@@ -14,6 +14,8 @@ import type { BlackjackSession } from '@/lib/blackjack/session'
 import type { CustomTableSpec } from '@/config/customTable'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
 import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
+import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
+import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
 
 export interface LifetimeStats {
@@ -181,6 +183,15 @@ export interface ProfileState {
    */
   escrow: Escrow | null
   /**
+   * Every priced decision you have ever been graded on, in big blinds.
+   *
+   * Counted at every reviewed table for everybody, member or not (see
+   * lib/review/stats). It is what lets the report name the street the money
+   * leaves by rather than only the rate you fold at, and counting it for
+   * everybody is what stops the report being empty on the day somebody joins.
+   */
+  reviewStats: ReviewStats
+  /**
    * The last table this player built, or null.
    *
    * One slot rather than a library: the value is in building the thing, and a
@@ -275,10 +286,12 @@ export interface ProfileState {
    * many. Zero, and no write, when there is nothing to take.
    */
   reclaimEscrow: (deviceId: string) => number
+  /** Fold one reviewed hand into the career table of priced decisions. */
+  recordReviewHand: (hand: ReviewHand) => void
   reset: () => void
 }
 
-export const PERSIST_VERSION = 19
+export const PERSIST_VERSION = 20
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -318,6 +331,7 @@ export const useProfile = create<ProfileState>()(
       drills: {},
       escrow: null,
       customTable: null,
+      reviewStats: emptyReviewStats(),
       blackjack: null,
 
       createProfile: (name, avatar) => {
@@ -475,6 +489,7 @@ export const useProfile = create<ProfileState>()(
         })
         return escrow.chips
       },
+      recordReviewHand: (hand) => set((s) => ({ reviewStats: foldHand(s.reviewStats, hand) })),
       reset: () =>
         set({
           created: false,
@@ -502,6 +517,7 @@ export const useProfile = create<ProfileState>()(
           drills: {},
           escrow: null,
           customTable: null,
+          reviewStats: emptyReviewStats(),
           blackjack: null,
         }),
     }),
@@ -614,6 +630,14 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   if (fromVersion < 18) s.customTable = null
   // v18 → v19: blackjack, whose stack has to survive a refresh (see the field).
   if (fromVersion < 19) s.blackjack = null
+  // v19 → v20: the career table of priced decisions (lib/review/stats). Empty
+  // for everybody, including a player with a thousand hands behind them: the
+  // hands are gone, nothing was kept that could be re-scored, and seeding it
+  // from the tendency counters would be a claim about *where* the money went
+  // made out of numbers that only say how often you called. So the table
+  // starts at zero here and fills from the next hand on, which is the same
+  // answer v15 gave the drills for the same reason.
+  if (fromVersion < 20) s.reviewStats = emptyReviewStats()
   return s
 }
 

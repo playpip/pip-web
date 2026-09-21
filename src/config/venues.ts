@@ -1145,6 +1145,35 @@ export function canAfford(venue: Venue, roll: number): boolean {
   return roll >= venue.buyIn
 }
 
+/**
+ * The tables whose sessions are kept for review: the core game, and only the
+ * core game.
+ *
+ * **A list of ids rather than a shape test**, because the question "which
+ * tables" is a product decision and a shape test would answer it by accident.
+ * A Deep Stack room and a ladder rung are the same shape; one is reviewed and
+ * one is not, and there is nowhere else that difference could be written down.
+ *
+ * The four it names are the four rule 1 protects — the ladder, the Rail, the
+ * Daily and the freeroll — plus the requirement that the table deals Hold'em.
+ * The review's arithmetic is `lib/coach.ts`'s, which prices a call against
+ * two-card equity, so Omaha, Short Deck, Hi-Lo and Draw are excluded until
+ * somebody writes the maths rather than being quietly graded by the wrong one.
+ *
+ * Side tables, Deep Stack, the challenge tables and anything built in the
+ * builder are out by omission, which is the answer Will gave: the review is for
+ * the game you actually climb.
+ */
+const REVIEWED_VENUE_IDS: ReadonlySet<string> = new Set(
+  [...VENUES, ...RING_TABLES, THE_DAILY, KITCHEN_TABLE].map((v) => v.id),
+)
+
+/** Is this a table whose session the review keeps? */
+export function reviewableVenue(venue: Venue): boolean {
+  if (venue.variant && venue.variant !== 'holdem') return false
+  return REVIEWED_VENUE_IDS.has(venue.id)
+}
+
 /** The table stack a venue seats you with (game.ts derives it the same way). */
 function tableStack(venue: Venue): number {
   return venue.startingStack ?? venue.buyIn

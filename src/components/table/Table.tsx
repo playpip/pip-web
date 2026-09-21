@@ -7,11 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { HelpCircle, History } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
-import { PlayerAvatar } from '@/components/PlayerAvatar'
-import { DealtCard, PlayingCard, type CardSize } from '@/components/PlayingCard'
+import { DealtCard } from '@/components/PlayingCard'
 import { CardBack } from '@/components/CardBack'
 import { CountUp } from '@/components/CountUp'
 import { ActionBar } from './ActionBar'
+import { HeroCards, HeroPanel, Seat } from './parts'
 import { HandHistoryDialog } from './HandHistoryDialog'
 import { HandsHelpDialog } from './HandsHelpDialog'
 import { LeaveDialog } from './LeaveDialog'
@@ -19,35 +19,17 @@ import { PlayerDialog } from './PlayerDialog'
 import { RunRecap } from './RunRecap'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
-import { potSize, type HandState, type Player } from '@/lib/poker/engine'
-import { evaluateHand } from '@/lib/poker/handEval'
+import { potSize } from '@/lib/poker/engine'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { useFreerollOnOffer } from '@/lib/useSpendableRoll'
 import { ordinal } from '@/lib/recap'
-import { KITCHEN_TABLE, cashOutValue } from '@/config/venues'
-import { nicknameFor } from '@/config/handNames'
+import { KITCHEN_TABLE, cashOutValue, reviewableVenue } from '@/config/venues'
 import { tableFinishById } from '@/config/shop'
 import { cardBackById } from '@/config/cardBacks'
-import type { AvatarSpec } from '@/lib/avatar'
-
-/** Positions for N opponents spread along the top arc of an ellipse (y grows down). */
-function opponentPositions(n: number): { left: string; top: string }[] {
-  const RX = 41
-  const RY = 34
-  const CY = 56 // arc centre sits below the table midline, matching the board
-  return Array.from({ length: n }, (_, k) => {
-    const t = (k + 1) / (n + 1) // 0..1 across the arc
-    const deg = 180 + t * 180 // 180° (left) → 360° (right), over the top
-    const rad = (deg * Math.PI) / 180
-    return {
-      left: `${50 + RX * Math.cos(rad)}%`,
-      top: `${CY + RY * Math.sin(rad)}%`,
-    }
-  })
-}
+import { opponentPositions } from '@/lib/tableSeats'
 
 type Point = { left: string; top: string }
 
@@ -181,6 +163,21 @@ export function Table() {
     if (hero) adjustRoll(cashOutValue(venue, hero.stack))
     useProfile.getState().recordRollPoint()
     goHome()
+  }
+  // Offered only where there is a session to read and only to somebody it is
+  // for — `member` was handed in at sit-down, exactly as "Watch it out" gets
+  // it, so nothing here looks up entitlement and nothing about buying reaches
+  // the game loop (tests/membershipSurfaces.test.ts).
+  const canReview = member && reviewableVenue(venue)
+  const goReview = () => {
+    sound.play('tap')
+    leave()
+    router.push('/game/review')
+  }
+  const cashOutAndReview = () => {
+    if (hero) adjustRoll(cashOutValue(venue, hero.stack))
+    useProfile.getState().recordRollPoint()
+    goReview()
   }
   const selectSeat = (id: string) => {
     sound.play('tap')
@@ -551,6 +548,7 @@ export function Table() {
         freeroll={venue.freeroll === true}
         cash={venue.cash === true}
         onConfirm={cashOutAndLeave}
+        onReview={canReview ? cashOutAndReview : undefined}
       />
       <PlayerDialog
         hole={spectatorHole}
@@ -609,6 +607,7 @@ export function Table() {
               title="Out of chips"
               subtitle="The table’s still running — buy back in, or call it a session."
               onHome={goHome}
+              onReview={canReview ? goReview : undefined}
               primaryLabel={
                 freerollOffered
                   ? 'Play the freeroll'
@@ -638,6 +637,7 @@ export function Table() {
               subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
               detail={recap && <RunRecap recap={recap} />}
               onHome={goHome}
+              onReview={canReview ? goReview : undefined}
               secondaryLabel={canWatch ? 'Watch it out' : undefined}
               onSecondary={
                 canWatch
@@ -690,6 +690,7 @@ export function Table() {
               </>
             }
             onHome={goHome}
+            onReview={canReview ? goReview : undefined}
             celebrate
           />
         )}
@@ -699,336 +700,6 @@ export function Table() {
 }
 
 // --- seat -------------------------------------------------------------------
-
-function Seat({
-  player,
-  name,
-  avatarSpec,
-  isDealer,
-  isActive,
-  isThinking,
-  reveal,
-  cardsSide,
-  onSelect,
-  layout = 'arc',
-}: {
-  player: Player
-  name: string
-  avatarSpec: AvatarSpec
-  isDealer: boolean
-  isActive: boolean
-  isThinking: boolean
-  reveal: boolean
-  cardsSide: 'left' | 'right'
-  onSelect: () => void
-  layout?: 'arc' | 'row'
-}) {
-  const folded = player.status === 'folded'
-  const money = useMoney()
-  const row = layout === 'row'
-  const avatarSize = row ? 48 : 52
-  const dealerSide = row ? '-right-1' : cardsSide === 'right' ? '-left-1' : '-right-1'
-
-  return (
-    <div className={cn('flex flex-col items-center', row ? 'w-16 gap-0.5' : 'w-20 gap-1')}>
-      <div className="relative">
-        <motion.button
-          onClick={onSelect}
-          aria-label={`About ${name}`}
-          animate={isActive ? { scale: 1.08 } : { scale: 1 }}
-          className={cn(
-            'rounded-full transition hover:brightness-110',
-            isActive && 'ring-2 ring-foreground/80',
-          )}
-        >
-          <PlayerAvatar spec={avatarSpec} size={avatarSize} dimmed={folded} />
-        </motion.button>
-        {isDealer && !folded && (
-          <span
-            className={cn(
-              'absolute -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.5625rem] font-bold text-primary-foreground',
-              dealerSide,
-            )}
-          >
-            D
-          </span>
-        )}
-        {isThinking && (
-          <span className="absolute -top-2.5 left-1/2 size-3 -translate-x-1/2">
-            <span className="absolute inset-0 animate-ping rounded-full bg-pip/70" />
-            <span className="absolute inset-0 rounded-full bg-pip ring-2 ring-background" />
-          </span>
-        )}
-        <AnimatePresence>
-          {folded && (
-            <motion.div
-              initial={{ opacity: 0, scale: 1.9, rotate: -18 }}
-              animate={{ opacity: 1, scale: 1, rotate: -9 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 16 }}
-              className="pointer-events-none absolute inset-0 flex items-center justify-center"
-            >
-              <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-[0.18em] text-foreground backdrop-blur-[1px]">
-                fold
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* arc: revealed cards fanned beside the avatar */}
-        {!row && reveal && player.hole.length >= 2 && (
-          <div
-            className={cn(
-              'absolute top-1/2 flex -translate-y-1/2 -space-x-1.5',
-              cardsSide === 'right' ? 'left-[42px]' : 'right-[42px] flex-row-reverse',
-            )}
-          >
-            {player.hole.map((card, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.7, x: cardsSide === 'right' ? -18 : 18 }}
-                animate={{ opacity: 1, scale: 1, x: 0, rotate: i === 0 ? -7 : 8 }}
-                transition={{ type: 'spring', stiffness: 340, damping: 18, delay: 0.14 + i * 0.1 }}
-              >
-                <PlayingCard card={card} size="xs" />
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <span
-        className={cn(
-          'max-w-full truncate',
-          row ? 'text-2xs' : 'text-xs',
-          folded ? 'text-muted-foreground/50' : 'text-muted-foreground',
-        )}
-      >
-        {name}
-      </span>
-      <span
-        className={cn(
-          'font-semibold tabular-nums',
-          row ? 'text-xs' : 'text-sm',
-          folded && 'text-muted-foreground/50',
-        )}
-      >
-        {money(player.stack)}
-      </span>
-      {/* Reserve the bet-chip slot always, so a bet appearing/clearing never
-          changes the seat's height (which would nudge the board via the
-          justify-evenly column on mobile). */}
-      <span className="flex h-[18px] items-center justify-center">
-        {player.committedThisStreet > 0 && (
-          <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-3xs font-medium tabular-nums">
-            {money(player.committedThisStreet)}
-          </span>
-        )}
-      </span>
-
-      {/* row: revealed cards below the seat */}
-      {row && reveal && player.hole.length >= 2 && (
-        <div className="mt-0.5 flex gap-0.5">
-          {player.hole.map((card, i) => (
-            <PlayingCard key={i} card={card} size="xs" />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// --- hero bits --------------------------------------------------------------
-
-function HeroCards({
-  hero,
-  hand,
-  size,
-  fanned = false,
-  discarding,
-  marked,
-  onToggle,
-}: {
-  hero: Player
-  hand: HandState
-  size: CardSize
-  fanned?: boolean
-  /** Five-Card Draw's discard round: the cards become buttons. */
-  discarding?: boolean
-  marked?: readonly number[]
-  onToggle?: (index: number) => void
-}) {
-  const folded = hero.status === 'folded'
-  const nickname = nicknameFor(hero.hole)
-  return (
-    <div className={cn('flex flex-col items-center gap-1.5', folded && 'opacity-40')}>
-      {/* Not fanned while you are choosing: overlapping cards are lovely to
-          look at and impossible to tap one of. */}
-      <div className={cn('flex items-end', fanned && !discarding ? '-space-x-6' : 'gap-2')}>
-        {hero.hole.map((card, i) => {
-          const isMarked = discarding && marked?.includes(i)
-          // Key by the card so a new deal re-mounts and replays the animation.
-          const dealt = (
-            <DealtCard
-              key={`${card.rank}${card.suit}`}
-              index={i}
-              card={card}
-              size={size}
-              className={cn(
-                fanned && !discarding && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'),
-                // A dimmed (opacity-40) rounded card with a drop shadow renders a
-                // bright halo along its bottom edge on iOS Safari — the shadow
-                // inverts under fractional opacity. Folded cards don't need a
-                // shadow anyway, so drop it and the artifact goes with it.
-                folded && 'shadow-none dark:shadow-none',
-                // Marked cards drop and fade: the gesture is "push it away",
-                // and it has to read at a glance across five of them.
-                isMarked && 'translate-y-3 opacity-40 saturate-50',
-              )}
-            />
-          )
-          if (!discarding) return dealt
-          return (
-            <button
-              key={`${card.rank}${card.suit}`}
-              type="button"
-              onClick={() => onToggle?.(i)}
-              aria-pressed={Boolean(isMarked)}
-              aria-label={`${isMarked ? 'Keep' : 'Throw away'} the ${card.rank}${card.suit}`}
-              className="rounded-xl transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50"
-            >
-              {dealt}
-            </button>
-          )
-        })}
-        <span className="sr-only">{hand.street}</span>
-      </div>
-      {nickname && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-2xs text-muted-foreground/70"
-        >
-          {nickname}
-        </motion.span>
-      )}
-    </div>
-  )
-}
-
-function useHandLabel(hero: Player, hand: HandState) {
-  return useMemo(() => {
-    if (hero.hole.length < 2) return null
-    if (hero.hole.length + hand.community.length < 5) return nicknameFor(hero.hole) ?? 'Hole cards'
-    try {
-      // **The variant is not optional here.** Without it an Omaha hand is read
-      // free-form, so four hearts in your hand and one on the board would put
-      // "Flush" under your cards — a wrong claim, at the table, that the player
-      // would act on. `nicknameFor` needs no such care: it returns null for
-      // anything that is not exactly two cards.
-      return evaluateHand(hero.hole, hand.community, hand.variant).name
-    } catch {
-      return null
-    }
-  }, [hero.hole, hand.community, hand.variant])
-}
-
-/** Mobile hero panel — swipe or tap the dots to flip between profile and odds. */
-function HeroPanel({
-  hero,
-  avatar,
-  hand,
-  equity,
-  isButton,
-  isActive,
-}: {
-  hero: Player
-  avatar: AvatarSpec
-  hand: HandState
-  equity: number | null
-  isButton: boolean
-  isActive: boolean
-}) {
-  const money = useMoney()
-  const label = useHandLabel(hero, hand)
-  const folded = hero.status === 'folded'
-  const [page, setPage] = useState(0)
-
-  return (
-    <div className="relative flex min-h-[90px] min-w-0 flex-1 basis-0 flex-col items-center justify-center overflow-hidden rounded-2xl bg-foreground/[0.04]">
-      <motion.div
-        className="flex size-full items-center justify-center pb-3"
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.12}
-        onDragEnd={(_, info) => {
-          if (info.offset.x < -28) setPage(1)
-          else if (info.offset.x > 28) setPage(0)
-        }}
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          {page === 0 ? (
-            <motion.div
-              key="profile"
-              initial={{ opacity: 0, x: 14 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -14 }}
-              transition={{ duration: 0.16 }}
-              className="pointer-events-none flex flex-col items-center gap-0.5"
-            >
-              <div className="relative">
-                <div className={cn('rounded-full', isActive && 'ring-2 ring-foreground/80')}>
-                  <PlayerAvatar spec={avatar} size={36} dimmed={folded} />
-                </div>
-                {isButton && (
-                  <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.5625rem] font-bold text-primary-foreground">
-                    D
-                  </span>
-                )}
-              </div>
-              <span className="text-xs font-semibold tabular-nums">{money(hero.stack)}</span>
-              {hero.committedThisStreet > 0 && (
-                <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-3xs font-medium tabular-nums">
-                  {money(hero.committedThisStreet)}
-                </span>
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="odds"
-              initial={{ opacity: 0, x: 14 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -14 }}
-              transition={{ duration: 0.16 }}
-              className="pointer-events-none flex flex-col items-center"
-            >
-              <span className="text-2xs text-muted-foreground">{label ?? '—'}</span>
-              <span className="text-2xl font-semibold tabular-nums">
-                {equity !== null ? `${Math.round(equity * 100)}%` : '—'}
-              </span>
-              <span className="text-3xs uppercase tracking-wider text-muted-foreground">win</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      <div className="absolute bottom-1.5 flex gap-1.5">
-        {[0, 1].map((i) => (
-          <button
-            key={i}
-            onClick={() => setPage(i)}
-            aria-label={i === 0 ? 'Show profile' : 'Show odds'}
-            className={cn(
-              'size-1.5 rounded-full transition',
-              page === i ? 'bg-foreground/70' : 'bg-foreground/25',
-            )}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 // --- chrome -----------------------------------------------------------------
 
@@ -1061,6 +732,7 @@ function EndOverlay({
   onPrimary,
   secondaryLabel,
   onSecondary,
+  onReview,
 }: {
   title: string
   subtitle: string
@@ -1078,6 +750,16 @@ function EndOverlay({
    */
   secondaryLabel?: string
   onSecondary?: () => void
+  /**
+   * Open the session review.
+   *
+   * Sits with the recap card rather than in the stack of buttons below,
+   * because it belongs to the account of how the run went rather than to the
+   * decision about what to do next. Absent unless the table is one the review
+   * covers and the player is one it is for — decided by the caller from what
+   * the store was handed at sit-down, never by asking here.
+   */
+  onReview?: () => void
 }) {
   return (
     <motion.div
@@ -1107,6 +789,15 @@ function EndOverlay({
           </h2>
           <p className="mt-3 text-white/60">{subtitle}</p>
           {detail}
+          {onReview && (
+            <button
+              onClick={onReview}
+              className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 active:scale-[0.98]"
+            >
+              <History className="size-4" />
+              Review the session
+            </button>
+          )}
         </motion.div>
         <div className="flex flex-col items-center gap-3">
           {primaryLabel && onPrimary && (

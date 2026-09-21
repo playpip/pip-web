@@ -44,6 +44,15 @@ src/
     rating.ts               # the Elo arithmetic: what a spot is worth, what an answer moves
     index.ts                # nextDrill (a filtered stream of spots) + gradeDrill
 
+  lib/review/               # ── COACHING ACROSS HANDS (pure; the membership's) ──
+    grade.ts                # what a scored decision is worth saying, in big blinds
+    handState.ts            # a finished hand rebuilt into the engine's HandState at step N
+    commentary.ts           # what to say at each step
+    moveGrade.ts            # every move graded against the cards they actually held
+    session.ts              # the session being kept for review (localStorage `pip.review`)
+    highlights.ts           # which hands are worth opening first
+    stats.ts                # the career table of priced decisions (profile.reviewStats)
+
   lib/
     avatar.ts               # notionists render helpers + seeds
     sound.ts                # Web Audio SFX engine (cue-based)
@@ -73,7 +82,9 @@ src/
     onboarding/             # first-launch flow
     profile/                # AvatarEditor (shared), ProfileDialog
     settings/               # SettingsDialog (table talk + backup/transfer), RestoreConfirm, ImportHandler
-    table/                  # Table, ActionBar
+    table/                  # Table, ActionBar, parts (Seat/HeroCards/HeroPanel — shared with the review)
+    replay/                 # the shared hand replay: state machine + transport (/hand, the report's evidence)
+    review/                 # the session review: the table, the hand sheet, the evidence dialog
     ui/                     # shadcn primitives (button, dialog)
     AppBoot.tsx             # boot work: storage.persist(), roll-graph seed
     UpdatePrompt.tsx        # "new version ready → Reload" nudge (uses useServiceWorker)

@@ -21,8 +21,8 @@ guide, the odds calculator, and sync.
 
 Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
 Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, three more
-drill kinds plus the play-it-out mode, the across-sessions play report, spectating after you
-bust, and four member card backs. Not built: multiplayer.
+drill kinds plus the play-it-out mode, the across-sessions play report, the session review,
+spectating after you bust, and four member card backs. Not built: multiplayer.
 
 ## The four rules
 
@@ -162,8 +162,17 @@ Worth listing, because each was considered:
 
 - **The read on every hand as you finish it.** The hand is free, the player is paid
   (Will, 2026-07-30). `lib/coach.ts` stays `HandRecord → HandRead | null` and must never grow
-  a paid branch inside it; `lib/deepCoach.ts` is the paid module and neither imports the
-  other.
+  a paid branch inside it.
+
+  **This used to end "and neither imports the other", which was a proxy for the rule rather
+  than the rule** (2026-09-21). `lib/deepCoach.ts` now takes the `PricedStreet` *type* from
+  `lib/coach.ts`, and `lib/review/` takes `scoreDecisions` from it, because there is one set
+  of four streets and one piece of pricing arithmetic and two spellings of either would be
+  worse. What is actually being protected is that **`lib/coach.ts` never behaves differently
+  for a member**, and that holds by there being nothing in the file to gate: no entitlement
+  import, no membership import, no branch. `tests/deepCoach.test.ts` enforces that directly —
+  the free module may import no paid one, and a paid module may take a type from it and
+  nothing else. See [review.md](./review.md).
 - **The end-of-run card.** It reads one run and stores nothing.
 - **The odds calculator.** It generates nothing, grades nobody and remembers nothing.
 - **The whole free ladder, the Rail, the Daily and the freeroll.** Rule 1.
@@ -181,6 +190,7 @@ Worth listing, because each was considered:
 | `tests/spectate.test.ts` | The spectator view answering while a hand is live |
 | `tests/challenge.test.ts` | Member content enlarging a free player's denominator |
 | `tests/roadmapDrills.test.ts` | The public roadmap going stale about which drills are paid |
+| `tests/review.test.ts` | A free table being kept for review; the grading reaching for a card the player could not see |
 
 ## Still to build
 
@@ -198,4 +208,5 @@ payment or a player can delete their account and keep being billed.
 | What counts as an entitling subscription | `src/lib/membership/entitlement.ts` |
 | Gate a new thing | add `membersOnly` to its config entry, in the commit that adds it |
 | A new member room | `MEMBER_TABLES` in `config/venues.ts` — see [venues.md](./venues.md) |
+| Which tables the session review keeps | `reviewableVenue` in `config/venues.ts` — see [review.md](./review.md) |
 | The page copy | `src/app/membership/page.tsx`; the billing section is in `/terms` |

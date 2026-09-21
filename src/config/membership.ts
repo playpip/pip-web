@@ -193,7 +193,14 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'coaching',
     title: 'Coaching that reads you, not just the hand',
     blurb:
-      'A report drawn from every hand you have played: what is costing you, what is working, and what to do differently. Every line is a ratio of two things that were counted, and each one shows the sample it came from. The per-hand read stays free.',
+      'A report drawn from every hand you have played: what it is costing you in big blinds, which street the money leaves by, and the hands it happened in. Every line is a ratio of two things that were counted, shown against where a sound player sits. The per-hand read stays free.',
+    shipped: true,
+  },
+  {
+    id: 'review',
+    title: 'Every session, back on the felt',
+    blurb:
+      'Stand up and play the whole session again, hand by hand — the board dealing in, your cards, and what the pot was charging at each call you made. The hands worth a second look are picked out for you. Ladder, Rail and the Daily.',
     shipped: true,
   },
   {

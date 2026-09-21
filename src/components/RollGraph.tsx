@@ -1,7 +1,7 @@
 'use client'
 
-import { useId, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { useId, useRef, useState } from 'react'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
 import type { RollPoint } from '@/store/profile'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +13,25 @@ const PAD_Y = 4
 
 /** How long the line takes to draw itself; the dots land as it passes them. */
 const DRAW_S = 1
+
+/**
+ * The line draws when the chart is *looked at*, not when it mounts.
+ *
+ * On `/stats` the graph is above the fold and the two are the same moment. On
+ * the report it is most of a page down, and a chart that drew itself while it
+ * was off-screen is a chart you only ever meet already finished.
+ *
+ * **Driven by `useInView` and a plain `animate`, not by `whileInView`.** The
+ * declarative version left the wipe shut — the element kept
+ * `clip-path: inset(0 100% 0 0)` and the line and the fill never appeared at
+ * all, so the chart rendered as a scatter of loose dots (Will, 2026-09-21).
+ * One observer, read once, and every animation on the chart keys off the same
+ * boolean.
+ */
+const IN_VIEW = { once: true, amount: 0.3 } as const
+
+/** Points beyond which a dot each stops being punctuation and becomes noise. */
+const MAX_DOTS = 40
 
 type XY = { x: number; y: number }
 
@@ -58,6 +77,8 @@ export function RollGraph({
 }) {
   const gradientId = useId()
   const reduced = useReducedMotion()
+  const box = useRef<HTMLDivElement>(null)
+  const seen = useInView(box, IN_VIEW)
   const [active, setActive] = useState<number | null>(null)
   const tint = (pct: number) => `color-mix(in srgb, ${accent} ${pct}%, transparent)`
 
@@ -71,6 +92,12 @@ export function RollGraph({
     y: H - PAD_Y - ((p.roll - min) / span) * (H - PAD_Y * 2),
   }))
 
+  // A dot per recorded point is a nice texture over twenty results and a wall
+  // of ink over three hundred — at which point the dots *are* the chart and the
+  // line they are meant to punctuate disappears behind them (Will,
+  // 2026-09-21). Past the threshold the line stands on its own and only the
+  // "now" dot stays, which is the one that means something.
+  const showDots = points.length <= MAX_DOTS
   const line = smoothPath(xy)
   const area = `${line} L ${W} ${H} L 0 ${H} Z`
   const lastIndex = points.length - 1
@@ -93,7 +120,7 @@ export function RollGraph({
     // The dots live as HTML overlays, not SVG <circle>s: under
     // preserveAspectRatio="none" a circle scales into a clipped ellipse. As
     // divs they stay perfectly round however the box is stretched.
-    <div className={cn('relative', className)}>
+    <div ref={box} className={cn('relative', className)}>
       {/* The line draws itself with a left-to-right clip wipe on the wrapper.
           NOTE: not Framer's pathLength — that dasharray trick fights
           vector-effect:non-scaling-stroke under non-uniform scaling
@@ -102,7 +129,7 @@ export function RollGraph({
       <motion.div
         className="size-full"
         initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
-        animate={{ clipPath: 'inset(0 0% 0 0)' }}
+        animate={seen ? { clipPath: 'inset(0 0% 0 0)' } : undefined}
         transition={{ duration: DRAW_S, ease: 'easeOut' }}
       >
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="size-full" aria-hidden>
@@ -130,14 +157,14 @@ export function RollGraph({
           so each fades in as the wipe reaches its x. Rendered even when active
           — the bigger active dot covers this one — because skipping it would
           remount and re-run the entrance on every hover. */}
-      {xy.map((p, i) =>
+      {(showDots ? xy : []).map((p, i) =>
         i === lastIndex ? null : (
           <motion.span
             key={i}
             className="absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{ left: `${p.x}%`, top: `${(p.y / H) * 100}%`, backgroundColor: tint(45) }}
             initial={reduced ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={seen ? { opacity: 1 } : undefined}
             transition={{ duration: 0.2, delay: reduced ? 0 : (p.x / W) * DRAW_S }}
           />
         ),
@@ -152,7 +179,7 @@ export function RollGraph({
           backgroundColor: accent,
         }}
         initial={reduced ? false : { opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
+        animate={seen ? { opacity: 1, scale: 1 } : undefined}
         transition={{ delay: reduced ? 0 : DRAW_S, type: 'spring', stiffness: 400, damping: 20 }}
       />
 

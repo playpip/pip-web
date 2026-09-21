@@ -12,6 +12,7 @@ import {
   type ProfileData,
 } from '../src/lib/sync/merge'
 import { emptySeatStats } from '../src/lib/reads'
+import { emptyReviewStats } from '../src/lib/review/stats'
 import { STARTING_ROLL } from '../src/config/venues'
 import { currentChallenge } from '../src/lib/challenge'
 
@@ -47,6 +48,7 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     challengeWins: [],
     challengesPlayed: 0,
     drills: {},
+    reviewStats: emptyReviewStats(),
     ...over,
   } as ProfileData
 }
@@ -107,6 +109,28 @@ test('merge › lifetime stats follow the same side as the roll', (t) => {
 })
 
 // --- the additive fields, which must merge whichever side wins -------------
+
+test('merge › the priced-decision table follows the same side as the hands it counted', (t) => {
+  // It is counted out of the same hands `tendencies` is. Taking one side's
+  // hands and the other side's verdicts about them describes a player who does
+  // not exist, and the number it would print — big blinds given up per hundred
+  // hands — is a ratio of the two.
+  const busy = emptyReviewStats()
+  busy.hands = 400
+  busy.byStreet.river = { priced: 60, right: 30, bbLost: 48 }
+  const local = profile({ reviewStats: busy })
+  const remote = profile({ reviewStats: emptyReviewStats() })
+  t.is(mergeProfiles(local, remote, 'local').reviewStats.hands, 400)
+  t.is(mergeProfiles(local, remote, 'remote').reviewStats.hands, 0)
+})
+
+test('merge › a profile synced from before the table existed still merges', (t) => {
+  // An older device's row has no such field. `pickUnhandled` would leave it
+  // undefined and every reader of it would throw on the next render.
+  const old = profile()
+  ;(old as { reviewStats?: unknown }).reviewStats = undefined
+  t.deepEqual(mergeProfiles(old, profile(), 'local').reviewStats, emptyReviewStats())
+})
 
 test('merge › peak Roll is monotonic regardless of side', (t) => {
   const local = profile({ peakRoll: 5_000 })

@@ -14,11 +14,24 @@ import { draftCast, profileFor, characterById } from '@/config/cast'
 import { styleFor, randomBankroll } from '@/config/opponents'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
-import { freerollOpen, type Venue } from '@/config/venues'
+import { cashOutValue, freerollOpen, reviewableVenue, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
-import { heroDecision, readHand, type HandRead, type HeroDecision } from '@/lib/coach'
+import {
+  heroDecision,
+  readFrom,
+  scoreDecisions,
+  type HandRead,
+  type HeroDecision,
+} from '@/lib/coach'
+import {
+  appendReviewHand,
+  clearReview,
+  endReviewSession,
+  loadReview,
+  startReviewSession,
+} from '@/lib/review/session'
 import { buildRecap, type Recap } from '@/lib/recap'
 import { deviceId } from '@/lib/sync/client'
 import { type Escrow, tableIsBacked } from '@/lib/sync/escrow'
@@ -92,6 +105,23 @@ export interface HandActionEvent {
    * none of these and gets no read. That is the intended behaviour.
    */
   decision?: HeroDecision
+  /**
+   * The pot, and every stack, immediately after this action.
+   *
+   * Recorded rather than rebuilt for the same reason `decision` is: the pot at
+   * a given moment *can* be derived by replaying blinds and per-street totals
+   * out of the event list, and that arithmetic goes quietly wrong. Taken off
+   * the live `HandState` it cannot, and the review can draw the table exactly
+   * as it stood at any step instead of approximately.
+   *
+   * Optional because a hand recorded before the review shipped has neither,
+   * and a hand decoded from a `/hand` permalink never will — the wire format
+   * does not carry them.
+   */
+  pot?: number
+  stacks?: Record<string, number>
+  /** Chips in front of each player this betting round, after this action. */
+  committed?: Record<string, number>
 }
 
 export interface HandBoardEvent {
@@ -111,10 +141,55 @@ export interface HandRecord {
   community: Card[]
   /** Hole cards known at the end: the hero's always, everyone live at showdown. */
   reveals: { playerId: string; playerName: string; cards: Card[]; handName?: string }[]
+  /**
+   * Who was at the table, in seat order, with the avatar each of them wore.
+   *
+   * So the review can draw the hand as the table drew it. Optional: a hand
+   * recorded before the review shipped has none, and one decoded from a
+   * `/hand` link never will.
+   */
+  seats?: { id: string; name: string; avatar: AvatarSpec }[]
+  /**
+   * **Every** hand that was dealt, including the ones that folded and were
+   * never shown.
+   *
+   * Separate from `reveals`, which is what the table actually turned over, and
+   * deliberately not part of the `/hand` wire format: a shared hand shows what
+   * the players showed. This is for the review, where the hand is over, the
+   * result is recorded, and nothing anybody learns can be played — the same
+   * argument that lets a busted player watch a tournament out.
+   */
+  hole?: { playerId: string; cards: Card[] }[]
+  /** Who had the button. Optional for the same reason `seats` is. */
+  buttonId?: string
+  /** The table as the cards landed: stacks and blinds before anybody acted. */
+  start?: { stacks: Record<string, number>; committed: Record<string, number>; pot: number }
   summary: string
+  /**
+   * What the hand did to the hero's stack — chips won less chips put in.
+   *
+   * Recorded rather than derived, for the same reason `HeroDecision` is: it can
+   * be rebuilt by walking the events and the pots, and that arithmetic goes
+   * quietly wrong. Taken as the difference between the stack the hero sat down
+   * with this hand and the one they have now, it cannot.
+   *
+   * Optional because a hand decoded from a `/hand` permalink has none: the wire
+   * format predates it and does not carry it (see lib/handLink).
+   */
+  heroDelta?: number
 }
 
 const HUMAN_ID = 'hero'
+/**
+ * Priced decisions scored per hand.
+ *
+ * Higher than the free read's own cap, which keeps the four biggest pots
+ * because it only ever names one of them. A review listing every hand has to
+ * account for the hand where the fifth decision was the expensive one — that is
+ * exactly the hand somebody opens the review to find. Eight is past the longest
+ * raise war six-handed poker produces, so in practice nothing is dropped.
+ */
+const MAX_REVIEWED_DECISIONS = 8
 // AI acts a touch slower while the human is still contesting the pot (so it's
 // followable), and briskly once the human has folded and is just spectating.
 const AI_DELAY_IN_HAND = 1050
@@ -390,6 +465,20 @@ let runTally: RunTally = emptyRunTally(0)
 let seatStatsLive: Record<string, SeatStats> = {}
 /** Hero tendencies already pushed to the lifetime profile — the flush baseline. */
 let heroTendencyFlushed: SeatStats = emptySeatStats()
+/**
+ * The table at the moment of the deal, for the review's opening step.
+ *
+ * Module-level like `currentEvents`, and for the same reason: it belongs to the
+ * hand being played rather than to any screen, and the record is only built at
+ * the end.
+ */
+let handStart: { stacks: Record<string, number>; committed: Record<string, number>; pot: number } =
+  {
+    stacks: {},
+    committed: {},
+    pot: 0,
+  }
+
 /** Cast tendencies already pushed to career records — flush baselines by seat. */
 let castFlushed: Record<string, SeatStats> = {}
 
@@ -465,6 +554,9 @@ function recordStep(prev: HandState, action: Action, next: HandState) {
       amount,
       decision:
         actor.id === HUMAN_ID ? heroDecision(prev, HUMAN_ID, legal?.callAmount ?? 0) : undefined,
+      pot: potSize(next),
+      stacks: Object.fromEntries(next.players.map((p) => [p.id, p.stack])),
+      committed: Object.fromEntries(next.players.map((p) => [p.id, p.committedThisStreet])),
     })
 
     // Tendencies (feeds the reads in the player dialog).
@@ -569,6 +661,15 @@ export const useGame = create<GameState>((set, get) => {
     // busy session doesn't drown the signal; anonymous.
     trackOnce('first-hand')
     currentEvents = []
+    // The table as the cards land, before anybody has acted: stacks after the
+    // blinds, and the blinds themselves sitting in front. The review's first
+    // step draws from this — without it the felt opens on stacks of zero and an
+    // empty pot, because nothing had been recorded yet.
+    handStart = {
+      stacks: Object.fromEntries(hand.players.map((p) => [p.id, p.stack])),
+      committed: Object.fromEntries(hand.players.map((p) => [p.id, p.committedThisStreet])),
+      pot: potSize(hand),
+    }
     vpipThisHand = new Set()
     for (const c of configs) statsFor(c.id).handsDealt++
     set({
@@ -650,14 +751,28 @@ export const useGame = create<GameState>((set, get) => {
         if (p.status !== 'folded' && p.status !== 'out') statsFor(p.id).showdowns++
       }
     }
-    // The read runs here rather than in the render path: it is several Monte
+    // The scoring runs here rather than in the render path: it is several Monte
     // Carlo estimates and the hand is already over, so nobody is waiting on it.
-    const record = buildHandRecord(hand, get())
+    //
+    // **One pass, two readers.** `scoreDecisions` prices every decision the
+    // hero was charged for; the banner's free read takes the biggest of them
+    // and the session being kept for review keeps all of them. Scoring twice
+    // would be three thousand simulations a hand for one answer.
+    const heroStackBefore = seats.find((s) => s.id === HUMAN_ID)?.stack ?? 0
+    const record = buildHandRecord(hand, { ...get(), heroStackBefore })
+    const scored = scoreDecisions(record, { max: MAX_REVIEWED_DECISIONS })
     set({
       lastHand: record,
-      lastRead: useProfile.getState().handCoaching ? readHand(record) : null,
+      lastRead: useProfile.getState().handCoaching ? readFrom(scored, record) : null,
       seatStats: { ...seatStatsLive },
     })
+    // No-ops at every table the review does not cover — nothing opened a
+    // session there. The store never asks who is paying (see the `member`
+    // field): collecting is free, the screen that reads it is not.
+    const reviewed = appendReviewHand(record, scored)
+    // The career table behind the report. Same rule: written at reviewed tables
+    // only, for everybody, and the screen that reads it is the gated one.
+    if (reviewed) useProfile.getState().recordReviewHand(reviewed)
     const heroWon = !!result && (result.payouts[HUMAN_ID] ?? 0) > 0
     const pot = potSize(hand)
 
@@ -805,6 +920,7 @@ export const useGame = create<GameState>((set, get) => {
         profile.setCameFromFreeroll(false)
       }
       buzz('bust')
+      endReviewSession({ kind: 'busted', place, seats: seats.length })
       set({
         seats: nextSeats,
         hand,
@@ -828,6 +944,7 @@ export const useGame = create<GameState>((set, get) => {
       if (venue.freeroll) profile.setCameFromFreeroll(true)
       const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut, eliminatedCount)
       buzz('finish')
+      endReviewSession({ kind: 'won', seats: seats.length })
       set({
         seats: nextSeats,
         hand,
@@ -1172,6 +1289,11 @@ export const useGame = create<GameState>((set, get) => {
         talk: null,
         cashInvested: venue.buyIn,
       })
+      // Open the session the review will read, or throw away the last one: a
+      // table that is not reviewed must not leave the previous table's session
+      // sitting there looking like it belongs to this one.
+      if (reviewableVenue(venue)) startReviewSession(venue)
+      else clearReview()
       dealHand(seats[0].id)
       // Someone might say hello — one line at most, often nobody.
       const speaker = aiSeats[Math.floor(Math.random() * aiSeats.length)]
@@ -1219,6 +1341,14 @@ export const useGame = create<GameState>((set, get) => {
         talk: null,
         cashInvested: snapshot.cashInvested ?? venue.buyIn,
       })
+      // A refresh mid-run keeps the session it was collecting — the hands
+      // already in it are this table's. Anything else (a stale session from
+      // another venue, or none) starts over, because appending this run's hands
+      // to another table's session would be the one way this feature could lie.
+      if (reviewableVenue(venue)) {
+        const open = loadReview()
+        if (!open || open.venueId !== venue.id || open.endedAt !== null) startReviewSession(venue)
+      } else clearReview()
 
       // Between hands: deal the next one. Mid-hand: pick the hand back up on
       // the street it was on, with the same deck (#22).
@@ -1325,6 +1455,21 @@ export const useGame = create<GameState>((set, get) => {
       clearTimers()
       clearTableSnapshot()
       armDaily(null)
+      // Standing up closes the session, unless it closed itself: busting and
+      // winning are already stamped, and `endReviewSession` leaves those alone
+      // rather than relabelling a knockout as a walk to the door.
+      //
+      // The P/L is the one `LeaveDialog` shows — what the stack cashes for,
+      // less everything bought in, rebuys included. Not the stack: two venues
+      // deal chips that are not Roll chips (see `cashOutValue`).
+      const { venue: leaving, seats: leavingSeats, cashInvested: invested } = get()
+      if (leaving) {
+        const stack = leavingSeats.find((s) => s.id === HUMAN_ID)?.stack ?? 0
+        endReviewSession({
+          kind: 'stood-up',
+          rollDelta: cashOutValue(leaving, stack) - invested,
+        })
+      }
       set({
         venue: null,
         seats: [],
@@ -1438,7 +1583,13 @@ function nextButtonSeatId(
 
 function buildHandRecord(
   hand: HandState,
-  ctx: { handIndex: number; smallBlind: number; bigBlind: number },
+  ctx: {
+    handIndex: number
+    smallBlind: number
+    bigBlind: number
+    heroStackBefore: number
+    seats: SeatMeta[]
+  },
 ): HandRecord {
   const showdown = hand.result?.showdown === true
   const reveals = hand.players
@@ -1460,7 +1611,16 @@ function buildHandRecord(
     events: currentEvents,
     community: hand.community.slice(),
     reveals,
+    seats: ctx.seats.map((s) => ({ id: s.id, name: s.name, avatar: s.avatar })),
+    buttonId: hand.players[hand.buttonIndex]?.id,
+    start: handStart,
+    hole: hand.players
+      .filter((p) => p.hole.length >= 2)
+      .map((p) => ({ playerId: p.id, cards: p.hole.slice() })),
     summary: describeResult(hand),
+    heroDelta:
+      (hand.players.find((p) => p.id === HUMAN_ID)?.stack ?? ctx.heroStackBefore) -
+      ctx.heroStackBefore,
   }
 }
 
