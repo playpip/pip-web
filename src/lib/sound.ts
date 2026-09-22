@@ -45,10 +45,39 @@ const VOICES: Record<Cue, Voice> = {
   draw: { freq: 340, type: 'triangle', duration: 0.06, gain: 0.11, sweepTo: 240 },
 }
 
+/**
+ * A sound pack, as a transform of the twelve voices above rather than a second
+ * copy of them.
+ *
+ * **The cues were tuned against each other** — `fold` sits under `check`, `win`
+ * answers `lose`, `draw` is `deal` shortened so a five-player draw round is not
+ * a drum solo — and a pack that re-authored all twelve would let one of those
+ * relationships drift on an afternoon nobody was listening carefully. Scaling
+ * the whole set preserves the shape by construction, and it means a pack is
+ * four numbers, which is the reason there can be six of them.
+ *
+ * Structural rather than imported from config/cosmetics: this file is the
+ * lowest thing in the stack and does not need to know that packs are something
+ * you buy.
+ */
+export interface SoundShape {
+  /** Multiplies every cue's frequency, and its glide target with it. */
+  pitch: number
+  /** Multiplies every cue's peak gain. */
+  gain: number
+  /** Multiplies every cue's duration. */
+  length: number
+  /** Replaces every cue's oscillator. Absent keeps each cue's own. */
+  timbre?: OscillatorType
+}
+
+const HOUSE: SoundShape = { pitch: 1, gain: 1, length: 1 }
+
 class SoundEngine {
   private ctx: AudioContext | null = null
   private muted = false
   private volume = 0.7
+  private pack: SoundShape = HOUSE
   private lastPlayed: Partial<Record<Cue, number>> = {}
 
   setMuted(muted: boolean) {
@@ -59,6 +88,14 @@ class SoundEngine {
   }
   setVolume(v: number) {
     this.volume = Math.max(0, Math.min(1, v))
+  }
+  /**
+   * Swap the pack. Takes effect on the next cue and never on a playing one:
+   * every `play` builds its own oscillator and reads this as it goes, so
+   * changing packs mid-hand cannot cut a sound off halfway.
+   */
+  setPack(pack: SoundShape) {
+    this.pack = pack
   }
 
   private context(): AudioContext | null {
@@ -85,21 +122,26 @@ class SoundEngine {
     this.lastPlayed[cue] = now
 
     const v = VOICES[cue]
+    const pack = this.pack
+    // The pack's three multipliers, applied once here so that every cue and
+    // every future cue gets them without remembering to.
+    const duration = v.duration * pack.length
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
 
-    osc.type = v.type
-    osc.frequency.setValueAtTime(v.freq, now)
-    if (v.sweepTo) osc.frequency.exponentialRampToValueAtTime(v.sweepTo, now + v.duration)
+    osc.type = pack.timbre ?? v.type
+    osc.frequency.setValueAtTime(v.freq * pack.pitch, now)
+    if (v.sweepTo)
+      osc.frequency.exponentialRampToValueAtTime(v.sweepTo * pack.pitch, now + duration)
 
-    const peak = v.gain * this.volume
+    const peak = v.gain * pack.gain * this.volume
     gain.gain.setValueAtTime(0.0001, now)
     gain.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0002), now + 0.008)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + v.duration)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
 
     osc.connect(gain).connect(ctx.destination)
     osc.start(now)
-    osc.stop(now + v.duration + 0.02)
+    osc.stop(now + duration + 0.02)
   }
 }
 

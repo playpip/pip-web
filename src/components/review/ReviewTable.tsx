@@ -26,11 +26,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, List } from 'lucide-react'
-import { AppBar, AppBarAction } from '@/components/AppBar'
+import { AppBar } from '@/components/AppBar'
 import { CardBack } from '@/components/CardBack'
 import { CountUp } from '@/components/CountUp'
 import { DealtCard } from '@/components/PlayingCard'
-import { HeroCards, HeroPanel, Seat } from '@/components/table/parts'
+import { HeroCards, HeroPanel, Seat, TableStyleContext } from '@/components/table/parts'
 import { MoveChip } from './GradeChip'
 import { HandPicker, type HandFilter } from './HandPicker'
 import type { Card } from '@/lib/poker/cards'
@@ -41,6 +41,7 @@ import type { ReviewSession } from '@/lib/review/session'
 import { opponentPositions } from '@/lib/tableSeats'
 import { cardBackById } from '@/config/cardBacks'
 import { useProfile } from '@/store/profile'
+import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -51,6 +52,13 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
   const money = useMoney()
   const isMobile = useIsMobile()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
+  // The review is the table, so it wears what the table wears — the same ring
+  // and the same dealer button. A session played back with the house's button
+  // when you have been using the brass one all evening is a small lie about
+  // what happened.
+  const ring = avatarRingById(useProfile((s) => s.avatarRing))
+  const dealerButton = dealerButtonById(useProfile((s) => s.dealerButton))
+  const tableStyle = useMemo(() => ({ ring, button: dealerButton }), [ring, dealerButton])
 
   // Where you are: which hand, and how far into it. **One piece of state, not
   // two**, because stepping off the end of a hand moves both — the forward
@@ -292,13 +300,26 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
   // **A fixed height, not a minimum.** Two lines' worth, with the verdict
   // clamped to fit: a `min-h` still grew the moment a sentence wrapped, and the
   // board, the seats and the cards all shifted with it on every other step.
+  //
+  // **3.5rem, and the arithmetic is the point** (Will, 2026-09-21: the read was
+  // cut off at the bottom on mobile). It was 3.25rem — 52px — against a
+  // two-line verdict that needs 52.25px on mobile (20px for the move line, 2px
+  // of margin, and 2 × 15.125px of `text-2xs`/`leading-snug`) and 55px at `sm:`,
+  // where the verdict is `text-xs`. Both overflowed, so `overflow-hidden` did
+  // what it was asked to and sliced the descenders off the last line. A box
+  // sized a quarter of a pixel under its contents reads as a broken font rather
+  // than as a design, which is why this is worth four extra pixels of felt.
+  //
+  // `line-clamp-2` is the other half: a third line is still possible on a very
+  // narrow phone with a long read, and an ellipsis is an honest way to end
+  // early where a cut through the middle of a word is not.
   const commentaryLine = commentary && (
     <motion.div
       key={`${handIndex}:${step}`}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
-      className="h-[3.25rem] min-w-0 overflow-hidden"
+      className="h-[3.5rem] min-w-0 overflow-hidden"
     >
       {/* The rating leads, and **every** move has one — a step that showed
           nothing read as a step where the feature had failed. "Fine" is a
@@ -310,7 +331,7 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
       {commentary.verdict && (
         <p
           className={cn(
-            'mt-0.5 text-2xs leading-snug sm:text-xs',
+            'mt-0.5 line-clamp-2 text-2xs leading-snug sm:text-xs',
             commentary.tone === 'good'
               ? 'text-emerald-500'
               : commentary.tone === 'bad'
@@ -325,147 +346,149 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
   )
 
   return (
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden">
-      <AppBar
-        className="z-20"
-        leading="back"
-        backLabel="Menu"
-        showWordmark={false}
-        onBack={() => router.push('/game')}
-        title={
-          <>
-            <span className="text-sm font-medium text-muted-foreground">{session.venueName}</span>
-            <span className="text-2xs tabular-nums text-muted-foreground/60">
-              Hand #{record.handNo} · Blinds {record.smallBlind.toLocaleString()}/
-              {record.bigBlind.toLocaleString()}
-            </span>
-          </>
-        }
-        actions={
-          <AppBarAction label="Jump to a hand" onClick={() => setPicking(true)}>
-            <List className="size-4" />
-          </AppBarAction>
-        }
-      />
+    <TableStyleContext.Provider value={tableStyle}>
+      <div className="relative flex h-dvh w-full flex-col overflow-hidden">
+        <AppBar
+          className="z-20"
+          leading="back"
+          backLabel="Menu"
+          showWordmark={false}
+          onBack={() => router.push('/game')}
+          title={
+            <>
+              <span className="text-sm font-medium text-muted-foreground">{session.venueName}</span>
+              <span className="text-2xs tabular-nums text-muted-foreground/60">
+                Hand #{record.handNo} · Blinds {record.smallBlind.toLocaleString()}/
+                {record.bigBlind.toLocaleString()}
+              </span>
+            </>
+          }
+          // No actions. The jump-to-a-hand list used to sit up here as well as on
+          // the controls row, which is the same button twice on one screen — and
+          // the top-bar copy was the worse of the two, being an unlabelled icon
+          // next to a labelled "Hand 3 of 41" that does the identical thing
+          // (Will, 2026-09-21).
+        />
 
-      {isMobile ? (
-        <div className="relative flex min-h-0 flex-1 flex-col justify-evenly px-2 pb-2">
-          <div className="flex items-start justify-evenly">
-            {opponents.map((p) => {
+        {isMobile ? (
+          <div className="relative flex min-h-0 flex-1 flex-col justify-evenly px-2 pb-2">
+            <div className="flex items-start justify-evenly">
+              {opponents.map((p) => {
+                const seat = frame.seats.find((s) => s.id === p.id)
+                if (!seat) return null
+                return (
+                  <Seat
+                    key={p.id}
+                    layout="row"
+                    player={p}
+                    name={seat.name}
+                    avatarSpec={seat.avatar}
+                    isDealer={hand.players[hand.buttonIndex]?.id === p.id}
+                    isActive={frame.last?.playerId === p.id}
+                    isThinking={false}
+                    reveal
+                    cardsSide="right"
+                    onSelect={() => {}}
+                    badge={seatBadge(p.id)}
+                  />
+                )
+              })}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {board}
+              <div className="flex items-end justify-between gap-3 px-2">
+                <div className="min-w-0 flex-1">{commentaryLine}</div>
+                {potLine}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="relative flex-1">
+            {opponents.map((p, i) => {
               const seat = frame.seats.find((s) => s.id === p.id)
               if (!seat) return null
               return (
-                <Seat
+                <div
                   key={p.id}
-                  layout="row"
-                  player={p}
-                  name={seat.name}
-                  avatarSpec={seat.avatar}
-                  isDealer={hand.players[hand.buttonIndex]?.id === p.id}
-                  isActive={frame.last?.playerId === p.id}
-                  isThinking={false}
-                  reveal
-                  cardsSide="right"
-                  onSelect={() => {}}
-                  badge={seatBadge(p.id)}
-                />
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={positions[i]}
+                >
+                  <Seat
+                    player={p}
+                    name={seat.name}
+                    avatarSpec={seat.avatar}
+                    isDealer={hand.players[hand.buttonIndex]?.id === p.id}
+                    isActive={frame.last?.playerId === p.id}
+                    isThinking={false}
+                    reveal
+                    cardsSide={Number.parseFloat(positions[i].left) > 50 ? 'left' : 'right'}
+                    onSelect={() => {}}
+                    badge={seatBadge(p.id)}
+                  />
+                </div>
               )
             })}
-          </div>
 
-          <div className="flex flex-col gap-2">
-            {board}
-            <div className="flex items-end justify-between gap-3 px-2">
-              <div className="min-w-0 flex-1">{commentaryLine}</div>
-              {potLine}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="relative flex-1">
-          {opponents.map((p, i) => {
-            const seat = frame.seats.find((s) => s.id === p.id)
-            if (!seat) return null
-            return (
-              <div
-                key={p.id}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
-                style={positions[i]}
-              >
-                <Seat
-                  player={p}
-                  name={seat.name}
-                  avatarSpec={seat.avatar}
-                  isDealer={hand.players[hand.buttonIndex]?.id === p.id}
-                  isActive={frame.last?.playerId === p.id}
-                  isThinking={false}
-                  reveal
-                  cardsSide={Number.parseFloat(positions[i].left) > 50 ? 'left' : 'right'}
-                  onSelect={() => {}}
-                  badge={seatBadge(p.id)}
-                />
+            <div className="absolute left-1/2 top-[62%] flex w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4 px-6">
+              {board}
+              <div className="flex w-full items-end justify-between gap-6">
+                <div className="min-w-0 flex-1">{commentaryLine}</div>
+                {potLine}
               </div>
-            )
-          })}
-
-          <div className="absolute left-1/2 top-[62%] flex w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4 px-6">
-            {board}
-            <div className="flex w-full items-end justify-between gap-6">
-              <div className="min-w-0 flex-1">{commentaryLine}</div>
-              {potLine}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* hero zone — cards, panel, and the controls where the actions were */}
-      {hero && heroSeat && (
-        <div
-          className={cn(
-            'z-20 mx-auto flex w-full max-w-xl flex-col items-center gap-3',
-            isMobile ? 'px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2' : 'px-6 pb-8',
-          )}
-        >
-          {/* **The panel is a flex child in its own right**, exactly as the
+        {/* hero zone — cards, panel, and the controls where the actions were */}
+        {hero && heroSeat && (
+          <div
+            className={cn(
+              'z-20 mx-auto flex w-full max-w-xl flex-col items-center gap-3',
+              isMobile ? 'px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2' : 'px-6 pb-8',
+            )}
+          >
+            {/* **The panel is a flex child in its own right**, exactly as the
               live table renders it. Wrapped in a plain `div`, its own
               `flex-1 basis-0` applied inside the wrapper instead of against the
               row, so it sized to its content and ran off the side of a phone
               (Will, 2026-09-21). */}
-          <div className={cn('flex w-full items-stretch', isMobile ? 'gap-3' : 'gap-6')}>
-            <div className="flex flex-1 basis-0 items-end justify-start pl-2">
-              <HeroCards
+            <div className={cn('flex w-full items-stretch', isMobile ? 'gap-3' : 'gap-6')}>
+              <div className="flex flex-1 basis-0 items-end justify-start pl-2">
+                <HeroCards
+                  hero={hero}
+                  hand={hand}
+                  size={isMobile ? 'hero' : 'board'}
+                  fanned={isMobile}
+                />
+              </div>
+              <HeroPanel
                 hero={hero}
+                avatar={heroSeat.avatar}
                 hand={hand}
-                size={isMobile ? 'hero' : 'board'}
-                fanned={isMobile}
+                equity={share(HERO_ID) ?? null}
+                isButton={hand.players[hand.buttonIndex]?.id === HERO_ID}
+                isActive={frame.last?.playerId === HERO_ID}
+                defaultPage={1}
+                oddsLabel={odds?.exact === false ? '≈ to win' : 'to win'}
               />
             </div>
-            <HeroPanel
-              hero={hero}
-              avatar={heroSeat.avatar}
-              hand={hand}
-              equity={share(HERO_ID) ?? null}
-              isButton={hand.players[hand.buttonIndex]?.id === HERO_ID}
-              isActive={frame.last?.playerId === HERO_ID}
-              defaultPage={1}
-              oddsLabel={odds?.exact === false ? '≈ to win' : 'to win'}
-            />
+
+            <div className="w-full max-w-xl">{controls}</div>
           </div>
+        )}
 
-          <div className="w-full max-w-xl">{controls}</div>
-        </div>
-      )}
-
-      <HandPicker
-        open={picking}
-        onOpenChange={setPicking}
-        session={session}
-        selected={handIndex}
-        filter={filter}
-        onFilter={setFilter}
-        onPick={goHand}
-      />
-    </div>
+        <HandPicker
+          open={picking}
+          onOpenChange={setPicking}
+          session={session}
+          selected={handIndex}
+          filter={filter}
+          onFilter={setFilter}
+          onPick={goHand}
+        />
+      </div>
+    </TableStyleContext.Provider>
   )
 }
 

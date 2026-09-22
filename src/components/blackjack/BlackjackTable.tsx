@@ -26,6 +26,7 @@ import { betLadder, minimumBet } from '@/lib/blackjack/session'
 import { mulberry32 } from '@/lib/poker/cards'
 import { characterById } from '@/config/cast'
 import { tableFinishById } from '@/config/shop'
+import { avatarRingById } from '@/config/cosmetics'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { useProfile } from '@/store/profile'
@@ -77,6 +78,8 @@ export function BlackjackTable({
   const adjustRoll = useProfile((s) => s.adjustRoll)
   const setSession = useProfile((s) => s.setBlackjack)
   const avatar = useProfile((s) => s.avatar)
+  // The player's own ring. Vic deals in his own face and wears nothing.
+  const ring = avatarRingById(useProfile((s) => s.avatarRing))
   const finish = tableFinishById(useProfile((s) => s.tableFinish))
   const dealer = characterById('vic')
 
@@ -285,7 +288,7 @@ export function BlackjackTable({
         </div>
 
         <div className="flex items-center gap-2">
-          {avatar && <PlayerAvatar spec={avatar} size={32} />}
+          {avatar && <PlayerAvatar spec={avatar} size={32} ring={ring} />}
           <CountUp
             value={game.stack}
             format={money}

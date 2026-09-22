@@ -14,6 +14,7 @@ import { RangePicker } from './RangePicker'
 import { ROLL_RANGES, type RollRange, pointsInRange } from '@/lib/rollRange'
 import { RankLadder } from './RankLadder'
 import { useProfile } from '@/store/profile'
+import { avatarRingById } from '@/config/cosmetics'
 import { VENUES, SIDE_TABLES, KITCHEN_TABLE } from '@/config/venues'
 import { DRILL_KINDS } from '@/config/drills'
 import type { DrillKindId } from '@/lib/drills/types'
@@ -28,8 +29,19 @@ const ALL_VENUES = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE]
 
 /** Lifetime stats — a full-page bento, the play-style quadrant at its centre. */
 export function StatsPage() {
-  const { name, avatar, roll, peakRoll, stats, rollHistory, venueRecords, tendencies, drills } =
-    useProfile()
+  const {
+    name,
+    avatar,
+    roll,
+    peakRoll,
+    stats,
+    rollHistory,
+    venueRecords,
+    tendencies,
+    drills,
+    avatarRing,
+  } = useProfile()
+  const ring = avatarRingById(avatarRing)
   const money = useMoney()
 
   const style = derivePlayStyle(tendencies)
@@ -74,7 +86,7 @@ export function StatsPage() {
         className="mb-6 flex flex-wrap items-center justify-between gap-6"
       >
         <div className="flex items-center gap-4">
-          {avatar && <PlayerAvatar spec={avatar} size={64} />}
+          {avatar && <PlayerAvatar spec={avatar} size={64} ring={ring} />}
           <div>
             <p className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
               The story so far

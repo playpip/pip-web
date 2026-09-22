@@ -15,16 +15,44 @@
 // open on the odds rather than on the profile. Neither changes what a live
 // table draws.
 
-import { useMemo, useState } from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { DealtCard, PlayingCard, type CardSize } from '@/components/PlayingCard'
 import { evaluateHand } from '@/lib/poker/handEval'
 import type { HandState, Player } from '@/lib/poker/engine'
 import { nicknameFor } from '@/config/handNames'
+import { dealerButtonById, type AvatarRing, type DealerButton } from '@/config/cosmetics'
 import type { AvatarSpec } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
+
+/**
+ * The player's own furniture — the ring on their avatar and the dealer button
+ * on the table.
+ *
+ * **A context rather than props, and rather than a store read.** The rule at
+ * the top of this file is that nothing here reaches for state, which is what
+ * lets the review render the real table instead of a drawing of it; a
+ * `useProfile` call in `Seat` would falsify that sentence for a cosmetic.
+ * Threading two props instead would have touched eight call sites across two
+ * screens, and a ninth added later would silently draw the house's button.
+ *
+ * So it is one value, provided once per screen by whoever already knows the
+ * profile (`Table` and `ReviewTable`), with a default that is exactly what a
+ * player who has bought nothing sees. Anything that renders these parts without
+ * a provider — a test, a future screen — gets the free furniture and is right.
+ */
+export interface TableStyle {
+  /** The player's own avatar ring, or nothing. Never worn by the cast. */
+  ring?: AvatarRing
+  /** The dealer button in play. Always one; the house's is free. */
+  button: DealerButton
+}
+
+export const TableStyleContext = createContext<TableStyle>({
+  button: dealerButtonById(undefined),
+})
 
 export function Seat({
   player,
@@ -54,6 +82,7 @@ export function Seat({
 }) {
   const folded = player.status === 'folded'
   const money = useMoney()
+  const button = useContext(TableStyleContext).button
   const row = layout === 'row'
   const avatarSize = row ? 48 : 52
   const dealerSide = row ? '-right-1' : cardsSide === 'right' ? '-left-1' : '-right-1'
@@ -75,9 +104,17 @@ export function Seat({
         {isDealer && !folded && (
           <span
             className={cn(
-              'absolute -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.5625rem] font-bold text-primary-foreground',
+              'absolute -top-1 flex size-4 items-center justify-center rounded-full text-[0.5625rem] font-bold',
               dealerSide,
             )}
+            // The disc's own colours, from whichever button is in play. The
+            // house's are the two theme tokens this used to hardcode, so a
+            // player who has bought nothing sees exactly what they did before.
+            style={{
+              background: button.face,
+              color: button.ink,
+              boxShadow: button.edge ? `inset 0 0 0 1px ${button.edge}` : undefined,
+            }}
           >
             D
           </span>
@@ -316,6 +353,9 @@ export function HeroPanel({
   const money = useMoney()
   const label = useHandLabel(hero, hand)
   const folded = hero.status === 'folded'
+  // The one avatar in the app that is the player's own, so the one that wears
+  // the ring. Every other face at the table belongs to somebody in the cast.
+  const { ring, button } = useContext(TableStyleContext)
   const [page, setPage] = useState(defaultPage)
 
   return (
@@ -342,10 +382,17 @@ export function HeroPanel({
             >
               <div className="relative">
                 <div className={cn('rounded-full', isActive && 'ring-2 ring-foreground/80')}>
-                  <PlayerAvatar spec={avatar} size={36} dimmed={folded} />
+                  <PlayerAvatar spec={avatar} size={36} dimmed={folded} ring={ring} />
                 </div>
                 {isButton && (
-                  <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.5625rem] font-bold text-primary-foreground">
+                  <span
+                    className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full text-[0.5625rem] font-bold"
+                    style={{
+                      background: button.face,
+                      color: button.ink,
+                      boxShadow: button.edge ? `inset 0 0 0 1px ${button.edge}` : undefined,
+                    }}
+                  >
                     D
                   </span>
                 )}

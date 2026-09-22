@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { useMembership } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
+import { soundPackById } from '@/config/cosmetics'
+import { sound } from '@/lib/sound'
 
 /**
  * One-time client boot work, mounted from the root layout:
@@ -23,6 +25,20 @@ export function AppBoot() {
 
     const profile = useProfile.getState()
     if (profile.created && profile.rollHistory.length === 0) profile.recordRollPoint()
+
+    // The chosen sound pack, handed to the engine once. `lib/sound` holds a
+    // live AudioContext and the profile is persisted state, so the two are
+    // joined here rather than inside the store — a store that reached into an
+    // AudioContext would make every test that touches a profile need a stub.
+    //
+    // **What is equipped is what plays, and nothing here asks about a
+    // membership.** That is the same rule the card back at the table follows
+    // (`Table.tsx` looks the design up and draws it): the gate is on the
+    // picker, where a locked thing cannot be chosen, not on the render. The
+    // cost is that somebody whose membership lapsed keeps hearing the pack
+    // they chose until they pick another, and taking a sound away from
+    // somebody mid-session is worse than that.
+    sound.setPack(soundPackById(profile.soundPack))
 
     // No-op unless the player has an account: with no stored session this
     // reads localStorage, finds nothing and stops. No request, no identity.

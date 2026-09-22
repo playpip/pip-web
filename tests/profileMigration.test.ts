@@ -165,6 +165,30 @@ test('v19 → v20 starts the priced-decision table empty, even for a busy player
   t.deepEqual(p.reviewStats.evidence, {})
 })
 
+test('v20 → v21 adds the new cosmetics on their free defaults and hands out nothing', (t) => {
+  // Rings, dealer buttons and sound packs. Unlike v10 → v11, which
+  // grandfathered three card backs that were genuinely being taken away, none
+  // of this existed before — so an old profile starts exactly where a new one
+  // does, and `owned` is not touched on the way through.
+  const v20 = {
+    ...v11(),
+    challengeWins: [],
+    challengesPlayed: 0,
+    drills: {},
+    blackjack: null,
+    reviewStats: { hands: 0 },
+    owned: ['ocean', 'back-noir'],
+  }
+  const p = migrateProfile(v20, 20)
+
+  t.is(p.avatarRing, null, 'a profile was handed a ring it never chose')
+  t.is(p.dealerButton, 'button-house')
+  t.is(p.soundPack, 'sound-house')
+  // The free defaults are genuinely free: nothing had to be bought to arrive
+  // in this state, so nothing was added to the purchase list.
+  t.deepEqual([...p.owned].sort(), ['back-noir', 'ocean'])
+})
+
 test('an ancient profile survives the whole chain', (t) => {
   // A v1 save is a name, a Roll and nothing else. Every branch has to fire.
   const ancient = { created: true, name: 'Player', avatar: null, roll: 800 }
@@ -180,6 +204,9 @@ test('an ancient profile survives the whole chain', (t) => {
   t.false(p.haptics)
   t.deepEqual(p.drills, {})
   t.is(p.reviewStats.hands, 0)
+  t.is(p.avatarRing, null)
+  t.is(p.dealerButton, 'button-house')
+  t.is(p.soundPack, 'sound-house')
   // v10 → v11 grandfathers the three card backs that moved into the Chip Shop.
   t.deepEqual([...p.owned].sort(), ['midnight', 'ocean', 'slate'])
 })

@@ -110,6 +110,14 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     cardBack: winner.cardBack,
     deckFace: winner.deckFace,
     tableFinish: winner.tableFinish,
+    // The three that arrived with v21. Named here rather than left to
+    // `pickUnhandled` because that helper takes `winner ?? loser`, and for
+    // `avatarRing` the commonest real value is `null` — "I took my ring off" —
+    // which `??` would read as "nothing to say" and quietly restore the ring
+    // from the other device on every sync.
+    avatarRing: winner.avatarRing ?? null,
+    dealerButton: winner.dealerButton ?? loser.dealerButton,
+    soundPack: winner.soundPack ?? loser.soundPack,
     tableTalk: winner.tableTalk,
     handCoaching: winner.handCoaching,
     haptics: winner.haptics,
@@ -381,6 +389,9 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'cardBack',
     'deckFace',
     'tableFinish',
+    'avatarRing',
+    'dealerButton',
+    'soundPack',
     'tableTalk',
     'handCoaching',
     'haptics',

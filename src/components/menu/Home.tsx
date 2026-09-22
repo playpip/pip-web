@@ -213,7 +213,7 @@ export function Home() {
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           <RoomCard
             title="Pearl’s counter"
-            blurb="Card backs, deck faces, souvenirs — style, never edge."
+            blurb="Card backs, rings, buttons, sounds, souvenirs — style, never edge."
             verb="Browse"
             icon={Store}
             face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}

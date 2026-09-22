@@ -167,10 +167,18 @@ to their rooms, so `challengeable` excludes them and the scalp shelf still reads
 `tests/challenge.test.ts` pins that number — if a future member character is not pinned, that
 test fails, and **the fix is to pin them, not to raise the 22.**
 
-Member card backs sit in `ALL_CARD_BACKS` and appear locked in the Style picker, which is a
-strip with no denominator. They carry no chip price, ever: no Chip Shop price is payable in
-cash, and allowing both would invent an exchange rate between the two economies
-(`docs/shop.md` rule 3).
+Member cosmetics sit in the same registries as everything else and appear locked in the Style
+picker, which is six strips with no denominator between them. Nothing here reaches the
+`X of N` shelves in `ChipsDialog`, and that is still the rule.
+
+**Some of them now carry a chip price, and `docs/shop.md` rule 3 was rewritten on 2026-09-21
+to allow it** (Will). The membership opens the right to buy; chips you won still buy it. What
+rule 3 was actually protecting — that no price in the Chip Shop is ever payable in money — is
+untouched, and the thing that would make it dishonest is forbidden outright: **bought is
+bought**, so a member-shelf item survives a cancelled membership forever. `cardBackUnlocked`
+and `cosmeticUnlocked` both check `price` before `membersOnly` so that holds by construction,
+and `tests/shop.test.ts` fails the build if a lapse ever repossesses something chips paid for.
+The full account, including what it costs us, is in `docs/shop.md`.
 
 ## What is deliberately not gated
 

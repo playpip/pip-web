@@ -1,9 +1,21 @@
 'use client'
 
 // The Chip Shop — Pearl's counter. Spend the Roll on style: card backs, the
-// four-colour deck, table finishes, souvenirs of venues you've conquered.
-// Style and story, never edge (docs/shop.md) — nothing here touches gameplay.
-// No sale banners, no NEW dots: the shop is here when you go looking.
+// four-colour deck, table finishes, rings, dealer buttons, the sound the table
+// makes, souvenirs of venues you've conquered. Style and story, never edge
+// (docs/shop.md) — nothing here touches gameplay. No sale banners, no NEW dots:
+// the shop is here when you go looking.
+//
+// **Two things on the shelves are new as of 2026-09-21, and both needed a
+// ruling** (docs/shop.md rule 3, rewritten):
+//
+// - **Free stock.** A zero price is a real price here now, and a free row shows
+//   "Use", never a Buy button reading 0. Pearl giving something away is better
+//   than three new categories a free player can only look at.
+// - **The members' shelf**, at the bottom and clearly its own. Some of it comes
+//   with the membership and says "Included"; the rest the membership lets you
+//   *buy*, with chips you won, at prices above the open shelf. Nothing on any
+//   shelf in this room has ever been payable in cash and that has not changed.
 
 import { useMemo, useState } from 'react'
 import { Lock, XIcon } from 'lucide-react'
@@ -18,9 +30,11 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { accentFromSwatch } from '@/lib/avatar'
 import { CardBack } from '@/components/CardBack'
 import { useProfile } from '@/store/profile'
+import { useEntitlement } from '@/store/entitlement'
 import { characterById } from '@/config/cast'
 import { AwardChip } from '@/components/AwardChip'
 import { SHOP_BACKS, cardBackById } from '@/config/cardBacks'
+import { avatarRingById, dealerButtonById, soundPackById } from '@/config/cosmetics'
 import { venueById } from '@/config/venues'
 import {
   DECK_FACES,
@@ -33,6 +47,13 @@ import {
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+
+/** The rows of one kind that belong on the open shelf. */
+const openShelf = (kind: ShopItem['kind']) =>
+  SHOP_ITEMS.filter((item) => item.kind === kind && !item.membersOnly)
+
+/** Everything the membership gates, in the order the categories are listed above. */
+const MEMBER_SHELF = SHOP_ITEMS.filter((item) => item.membersOnly)
 
 export function ShopDialog({
   open,
@@ -89,9 +110,17 @@ export function ShopDialog({
 
         <div className="flex max-h-[55vh] min-h-0 flex-col gap-5 overflow-y-auto px-4 pt-4 pb-4">
           <Section title="Card backs" items={SHOP_BACKS.map((d) => shopBackItem(d.id))} />
-          <Section title="The deck" items={[...DECK_FACES]} />
-          <Section title="Table finishes" items={[...TABLE_FINISHES]} />
+          <Section title="The deck" items={DECK_FACES.filter((f) => !f.membersOnly)} />
+          <Section title="Table finishes" items={TABLE_FINISHES.filter((f) => !f.membersOnly)} />
+          <Section title="Your ring" items={openShelf('ring')} />
+          <Section title="Dealer buttons" items={openShelf('button')} />
+          <Section title="Sound" items={openShelf('sound')} />
           <Section title="Souvenirs" items={[...SOUVENIRS]} />
+          <Section
+            title="The members' shelf"
+            note="Included with the membership, or bought with chips you won — never with money."
+            items={MEMBER_SHELF}
+          />
         </div>
       </DialogContent>
     </Dialog>
@@ -103,10 +132,11 @@ function shopBackItem(id: string): ShopItem {
   return SHOP_ITEMS.find((i) => i.id === id)!
 }
 
-function Section({ title, items }: { title: string; items: ShopItem[] }) {
+function Section({ title, note, items }: { title: string; note?: string; items: ShopItem[] }) {
   return (
     <div>
       <p className="mb-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">{title}</p>
+      {note && <p className="-mt-1 mb-2 text-xs text-muted-foreground/80">{note}</p>}
       <div className="flex flex-col gap-2">
         {items.map((item) => (
           <ItemRow key={item.id} item={item} />
@@ -119,17 +149,34 @@ function Section({ title, items }: { title: string; items: ShopItem[] }) {
 function ItemRow({ item }: { item: ShopItem }) {
   const money = useMoney()
   const profile = useProfile()
+  const member = useEntitlement()
   const [justBought, setJustBought] = useState(false)
 
+  // **Free things are not bought, and a free thing is never in `owned`.** The
+  // shop used to treat "can I use this" and "have I paid for this" as the same
+  // question, which is exactly right while every row has a price and wrong the
+  // moment one does not — a free row rendered a Buy button reading 0 (Will,
+  // 2026-09-21).
+  const free = item.price === 0 && !item.membersOnly
+  const included = item.price === 0 && item.membersOnly === true
   const owned = profile.owned.includes(item.id)
+  const usable = free || owned || (included && member)
+
   const winNeeded = item.requiresVenueWin
   const hasWin = !winNeeded || (profile.venueRecords[winNeeded]?.won ?? 0) > 0
   const affordable = profile.roll >= item.price
+  // The membership is the first refusal, before the win and before the money:
+  // a price shown to somebody who cannot buy at any price is a number they
+  // would act on. Same order `lib/sitDown` refuses in.
+  const needsMembership = Boolean(item.membersOnly) && !member
 
   const inUse =
     (item.kind === 'face' && profile.deckFace === item.id) ||
     (item.kind === 'finish' && profile.tableFinish === item.id) ||
-    (item.kind === 'back' && profile.cardBack === item.id)
+    (item.kind === 'back' && profile.cardBack === item.id) ||
+    (item.kind === 'ring' && profile.avatarRing === item.id) ||
+    (item.kind === 'button' && profile.dealerButton === item.id) ||
+    (item.kind === 'sound' && profile.soundPack === item.id)
 
   const buy = () => {
     sound.play('call')
@@ -142,6 +189,13 @@ function ItemRow({ item }: { item: ShopItem }) {
     if (item.kind === 'face') profile.setDeckFace(inUse ? 'classic' : item.id)
     if (item.kind === 'finish') profile.setTableFinish(inUse ? null : item.id)
     if (item.kind === 'back' && !inUse) profile.setCardBack(item.id)
+    if (item.kind === 'ring') profile.setAvatarRing(inUse ? null : item.id)
+    if (item.kind === 'button' && !inUse) profile.setDealerButton(item.id)
+    if (item.kind === 'sound' && !inUse) {
+      // Engine first, so the confirming blip is already the new pack.
+      sound.setPack(soundPackById(item.id))
+      profile.setSoundPack(item.id)
+    }
   }
 
   return (
@@ -156,7 +210,7 @@ function ItemRow({ item }: { item: ShopItem }) {
         </p>
       </div>
       <div className="shrink-0">
-        {owned ? (
+        {usable ? (
           item.kind === 'souvenir' ? (
             <span className="text-xs text-muted-foreground">On your shelf</span>
           ) : (
@@ -172,6 +226,11 @@ function ItemRow({ item }: { item: ShopItem }) {
               {inUse ? 'In use' : 'Use'}
             </button>
           )
+        ) : needsMembership ? (
+          <span className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground">
+            <Lock className="size-3" />
+            {item.price > 0 ? `Members · ${money(item.price)}` : 'With the membership'}
+          </span>
         ) : !hasWin ? (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Lock className="size-3" />
@@ -198,11 +257,15 @@ function ItemArt({ item }: { item: ShopItem }) {
   if (item.kind === 'face') {
     const fourColour = item.id === 'face-fourcolor'
     const bold = item.id === 'face-contrast'
+    const light = item.id === 'face-minimal'
+    const big = item.id === 'face-bigindex'
     return (
       <span
         className={cn(
-          'flex w-8 flex-wrap items-center justify-center text-2xs leading-tight',
+          'flex w-8 flex-wrap items-center justify-center leading-tight',
+          big ? 'text-xs' : 'text-2xs',
           bold && 'font-black',
+          light && 'font-light',
         )}
       >
         <span className="text-suit-red">♥</span>
@@ -216,6 +279,50 @@ function ItemArt({ item }: { item: ShopItem }) {
   }
   if (item.kind === 'souvenir') {
     return <AwardChip award={souvenirAward(item)} earned size={28} className="mx-0.5 shrink-0" />
+  }
+  if (item.kind === 'ring') {
+    const ring = avatarRingById(item.id)
+    return (
+      <span
+        className="mx-1 block size-6 shrink-0 rounded-full"
+        style={{ background: ring?.ring, padding: 2.5 }}
+        aria-hidden
+      >
+        <span className="block size-full rounded-full bg-muted" />
+      </span>
+    )
+  }
+  if (item.kind === 'button') {
+    const button = dealerButtonById(item.id)
+    return (
+      <span
+        className="mx-1 flex size-6 shrink-0 items-center justify-center rounded-full text-3xs font-bold"
+        style={{
+          background: button.face,
+          color: button.ink,
+          boxShadow: button.edge ? `inset 0 0 0 1px ${button.edge}` : undefined,
+        }}
+        aria-hidden
+      >
+        D
+      </span>
+    )
+  }
+  if (item.kind === 'sound') {
+    // Three bars whose heights follow the pack's own pitch, so the packs are
+    // distinguishable at a glance rather than six identical speaker icons.
+    const pack = soundPackById(item.id)
+    return (
+      <span className="mx-1 flex size-6 shrink-0 items-end justify-center gap-[2px]" aria-hidden>
+        {[0.55, 1, 0.75].map((h, i) => (
+          <span
+            key={i}
+            className="w-[3px] rounded-full bg-foreground/45"
+            style={{ height: `${Math.min(100, h * pack.pitch * 80)}%` }}
+          />
+        ))}
+      </span>
+    )
   }
   return (
     <span

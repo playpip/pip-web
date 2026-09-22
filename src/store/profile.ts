@@ -10,6 +10,7 @@ import type { AvatarSpec } from '@/lib/avatar'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
+import { DEALER_BUTTONS, DEFAULT_SOUND_PACK } from '@/config/cosmetics'
 import type { BlackjackSession } from '@/lib/blackjack/session'
 import type { CustomTableSpec } from '@/config/customTable'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
@@ -159,6 +160,18 @@ export interface ProfileState {
   deckFace: string
   /** Equipped table finish (an owned finish id), or null for the plain table. */
   tableFinish: string | null
+  /**
+   * Equipped avatar ring (see config/cosmetics), or null for a bare avatar.
+   *
+   * Null is the default and the commonest choice: a ring on every avatar from
+   * day one would be a change to how the app looks rather than something a
+   * player picked.
+   */
+  avatarRing: string | null
+  /** Equipped dealer button. Always set — the house's is free and is the default. */
+  dealerButton: string
+  /** Equipped sound pack. Always set — 'sound-house' is what Pip has always been. */
+  soundPack: string
   /** Cast characters beaten in a challenge, earliest first: the scalp collection. */
   challengeWins: string[]
   /**
@@ -263,6 +276,9 @@ export interface ProfileState {
   buyItem: (id: string, price: number) => void
   setDeckFace: (id: string) => void
   setTableFinish: (id: string | null) => void
+  setAvatarRing: (id: string | null) => void
+  setDealerButton: (id: string) => void
+  setSoundPack: (id: string) => void
   /** Sitting down at today's Daily — marks it played immediately. */
   recordDailyStart: (date: string, dayNo: number) => void
   /** Final placing for the daily started on `date` (ignored if dates mismatch). */
@@ -291,7 +307,10 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 20
+/** The dealer button everybody starts with — free, and the one already on the table. */
+const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
+
+export const PERSIST_VERSION = 21
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -326,6 +345,9 @@ export const useProfile = create<ProfileState>()(
       owned: [],
       deckFace: 'classic',
       tableFinish: null,
+      avatarRing: null,
+      dealerButton: DEFAULT_DEALER_BUTTON,
+      soundPack: DEFAULT_SOUND_PACK.id,
       challengeWins: [],
       challengesPlayed: 0,
       drills: {},
@@ -433,6 +455,13 @@ export const useProfile = create<ProfileState>()(
         }),
       setDeckFace: (id) => set({ deckFace: id }),
       setTableFinish: (id) => set({ tableFinish: id }),
+      setAvatarRing: (id) => set({ avatarRing: id }),
+      setDealerButton: (id) => set({ dealerButton: id }),
+      // The pack is applied to the engine by whoever sets it (the Style picker)
+      // and at boot (AppBoot). Not here: the store is persisted state and
+      // lib/sound is a live AudioContext, and a store that reached into one
+      // would make every test that touches a profile need a Web Audio stub.
+      setSoundPack: (id) => set({ soundPack: id }),
       recordDailyStart: (date, dayNo) => set({ daily: { date, dayNo, place: null, hands: 0 } }),
       recordDailyResult: (date, place, hands) =>
         set((s) => (s.daily?.date === date ? { daily: { ...s.daily, place, hands } } : s)),
@@ -512,6 +541,9 @@ export const useProfile = create<ProfileState>()(
           owned: [],
           deckFace: 'classic',
           tableFinish: null,
+          avatarRing: null,
+          dealerButton: DEFAULT_DEALER_BUTTON,
+          soundPack: DEFAULT_SOUND_PACK.id,
           challengeWins: [],
           challengesPlayed: 0,
           drills: {},
@@ -638,6 +670,24 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // starts at zero here and fills from the next hand on, which is the same
   // answer v15 gave the drills for the same reason.
   if (fromVersion < 20) s.reviewStats = emptyReviewStats()
+  // v20 → v21: three new cosmetic categories — avatar rings, dealer buttons and
+  // sound packs (config/cosmetics.ts).
+  //
+  // **Everybody lands on the free default, and nobody is handed anything.**
+  // The v10 → v11 branch above grandfathered three card backs because they had
+  // genuinely been free and were moving behind a price; nothing of the kind is
+  // happening here. These are new, so an existing profile starts where a new
+  // one does: no ring, the house's button, the sound Pip has always made.
+  //
+  // Written unconditionally rather than `??`-guarded because a v20 profile
+  // cannot have these fields, and a guard would quietly paper over the one bug
+  // worth catching — a later version reaching back through this branch and
+  // resetting somebody's choice on every load.
+  if (fromVersion < 21) {
+    s.avatarRing = null
+    s.dealerButton = DEFAULT_DEALER_BUTTON
+    s.soundPack = DEFAULT_SOUND_PACK.id
+  }
   return s
 }
 

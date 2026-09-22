@@ -211,10 +211,14 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     shipped: true,
   },
   {
+    // Was "Member card backs", described as "one per member room, in that
+    // room's colour" — which named rooms that stopped existing when they
+    // collapsed into Deep Stack, the same way the `rooms` entry above did. The
+    // backs outlived the rooms, and there are five categories now.
     id: 'cosmetics',
-    title: 'Member card backs',
+    title: 'The members’ shelf',
     blurb:
-      'One per member room, in that room’s colour. Their own shelf and their own collection — Chip Shop stock stays earned with chips you won, and no shop price is ever payable in cash.',
+      'Card backs that wear a real foil, a gilt ring round your avatar, a brass dealer button, a deep sound for the table and two more table finishes. Some come with the membership; the rest the membership lets you buy with chips you won — and anything you spend chips on stays yours for good, membership or not. Nothing in the Chip Shop is ever payable in money.',
     shipped: true,
   },
   {

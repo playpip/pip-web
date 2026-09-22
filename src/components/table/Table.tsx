@@ -11,7 +11,7 @@ import { DealtCard } from '@/components/PlayingCard'
 import { CardBack } from '@/components/CardBack'
 import { CountUp } from '@/components/CountUp'
 import { ActionBar } from './ActionBar'
-import { HeroCards, HeroPanel, Seat } from './parts'
+import { HeroCards, HeroPanel, Seat, TableStyleContext } from './parts'
 import { HandHistoryDialog } from './HandHistoryDialog'
 import { HandsHelpDialog } from './HandsHelpDialog'
 import { LeaveDialog } from './LeaveDialog'
@@ -28,6 +28,7 @@ import { useFreerollOnOffer } from '@/lib/useSpendableRoll'
 import { ordinal } from '@/lib/recap'
 import { KITCHEN_TABLE, cashOutValue, reviewableVenue } from '@/config/venues'
 import { tableFinishById } from '@/config/shop'
+import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
 import { opponentPositions } from '@/lib/tableSeats'
 
@@ -67,6 +68,13 @@ export function Table() {
   // spends `roll` at a table already open here and reclaims nothing.
   const freerollOffered = useFreerollOnOffer()
   const finish = tableFinishById(useProfile((s) => s.tableFinish))
+  // The player's own furniture, handed to the felt in one value (see
+  // `TableStyleContext` in ./parts). Selected field by field rather than as an
+  // object so that a re-render of the profile for any other reason — the Roll
+  // moving, a hand being recorded — does not rebuild this on every action.
+  const ring = avatarRingById(useProfile((s) => s.avatarRing))
+  const dealerButton = dealerButtonById(useProfile((s) => s.dealerButton))
+  const tableStyle = useMemo(() => ({ ring, button: dealerButton }), [ring, dealerButton])
   const { resolvedTheme } = useTheme()
   const adjustRoll = useProfile((s) => s.adjustRoll)
   const money = useMoney()
@@ -308,218 +316,137 @@ export function Table() {
   )
 
   return (
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden" style={finishStyle}>
-      {/* top bar — the shared AppBar; back confirms via the leave dialog */}
-      <AppBar
-        className="z-20"
-        leading="back"
-        backLabel="Venues"
-        showWordmark={false}
-        onBack={() => setLeaveOpen(true)}
-        title={
+    <TableStyleContext.Provider value={tableStyle}>
+      <div className="relative flex h-dvh w-full flex-col overflow-hidden" style={finishStyle}>
+        {/* top bar — the shared AppBar; back confirms via the leave dialog */}
+        <AppBar
+          className="z-20"
+          leading="back"
+          backLabel="Venues"
+          showWordmark={false}
+          onBack={() => setLeaveOpen(true)}
+          title={
+            <>
+              <span className="text-sm font-medium text-muted-foreground">{venue.name}</span>
+              <span className="text-2xs tabular-nums text-muted-foreground/60">
+                Blinds {smallBlind.toLocaleString()}/{bigBlind.toLocaleString()}
+                {blindLevel > 0 && ` · L${blindLevel + 1}`}
+              </span>
+            </>
+          }
+          actions={isMobile ? undefined : tableControls}
+        />
+
+        {isMobile ? (
+          /* ------------------------------ MOBILE ------------------------------ */
           <>
-            <span className="text-sm font-medium text-muted-foreground">{venue.name}</span>
-            <span className="text-2xs tabular-nums text-muted-foreground/60">
-              Blinds {smallBlind.toLocaleString()}/{bigBlind.toLocaleString()}
-              {blindLevel > 0 && ` · L${blindLevel + 1}`}
-            </span>
-          </>
-        }
-        actions={isMobile ? undefined : tableControls}
-      />
-
-      {isMobile ? (
-        /* ------------------------------ MOBILE ------------------------------ */
-        <>
-          {/* opponents + board drift toward the centre — slack splits evenly
+            {/* opponents + board drift toward the centre — slack splits evenly
               above, between, and below them */}
-          <div className="relative flex min-h-0 flex-1 flex-col justify-evenly px-2 pb-2">
-            <div className="flex items-start justify-evenly">
-              {opponents.map((p) => {
-                const meta = metaById.get(p.id)
-                if (!meta) return null
-                return (
-                  <Seat
-                    key={p.id}
-                    layout="row"
-                    player={p}
-                    name={meta.name}
-                    avatarSpec={meta.avatar}
-                    isDealer={p.id === buttonPlayerId}
-                    isActive={activeId === p.id}
-                    isThinking={aiThinkingId === p.id}
-                    reveal={revealAll && p.status !== 'folded' && p.status !== 'out'}
-                    cardsSide="right"
-                    onSelect={() => selectSeat(p.id)}
-                  />
-                )
-              })}
-            </div>
-
-            {/* board in the middle; talk on the left, pot on the right.
-                Help + last-hand sit just above the board, aligned left. */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-1 px-2 text-muted-foreground">
-                {tableControls}
+            <div className="relative flex min-h-0 flex-1 flex-col justify-evenly px-2 pb-2">
+              <div className="flex items-start justify-evenly">
+                {opponents.map((p) => {
+                  const meta = metaById.get(p.id)
+                  if (!meta) return null
+                  return (
+                    <Seat
+                      key={p.id}
+                      layout="row"
+                      player={p}
+                      name={meta.name}
+                      avatarSpec={meta.avatar}
+                      isDealer={p.id === buttonPlayerId}
+                      isActive={activeId === p.id}
+                      isThinking={aiThinkingId === p.id}
+                      reveal={revealAll && p.status !== 'folded' && p.status !== 'out'}
+                      cardsSide="right"
+                      onSelect={() => selectSeat(p.id)}
+                    />
+                  )
+                })}
               </div>
-              {communityCards}
-              <div className="flex items-end justify-between gap-3 px-2">
-                <div className="min-w-0 flex-1">{talkLine}</div>
-                <div className="flex shrink-0 items-baseline gap-2">
-                  <span className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
-                    Pot
-                  </span>
-                  <CountUp
-                    value={pot}
-                    format={money}
-                    className="text-2xl font-semibold tabular-nums"
-                  />
+
+              {/* board in the middle; talk on the left, pot on the right.
+                Help + last-hand sit just above the board, aligned left. */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1 px-2 text-muted-foreground">
+                  {tableControls}
+                </div>
+                {communityCards}
+                <div className="flex items-end justify-between gap-3 px-2">
+                  <div className="min-w-0 flex-1">{talkLine}</div>
+                  <div className="flex shrink-0 items-baseline gap-2">
+                    <span className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
+                      Pot
+                    </span>
+                    <CountUp
+                      value={pot}
+                      format={money}
+                      className="text-2xl font-semibold tabular-nums"
+                    />
+                  </div>
                 </div>
               </div>
+
+              {potWinners.map((id) =>
+                chipsTo(
+                  id,
+                  id === 'hero' ? { left: '50%', top: '150%' } : { left: '50%', top: '10%' },
+                ),
+              )}
             </div>
 
-            {potWinners.map((id) =>
-              chipsTo(
-                id,
-                id === 'hero' ? { left: '50%', top: '150%' } : { left: '50%', top: '10%' },
-              ),
-            )}
-          </div>
+            {/* actions */}
+            <div className="px-3">{actionArea}</div>
 
-          {/* actions */}
-          <div className="px-3">{actionArea}</div>
-
-          {/* hero: big fanned hole cards + a swipeable profile / odds panel */}
-          {hero &&
-            heroMeta &&
-            (hand.variant === 'draw' ? (
-              /* **Five cards do not fit beside the panel on a phone.** The row
+            {/* hero: big fanned hole cards + a swipeable profile / odds panel */}
+            {hero &&
+              heroMeta &&
+              (hand.variant === 'draw' ? (
+                /* **Five cards do not fit beside the panel on a phone.** The row
                  below splits the width in two, which works at two hole cards
                  and just about at four; at five they run off the screen and
                  under the panel. So a draw table stacks instead: the cards get
                  the whole width on their own line — which they need anyway,
                  because during the draw round they are buttons you have to be
                  able to hit — and the panel sits under them. */
-              <div className="flex flex-col gap-2 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
-                <div className="flex justify-center">
-                  <HeroCards
-                    hero={hero}
-                    hand={hand}
-                    size="drill"
-                    discarding={drawing}
-                    marked={marked}
-                    onToggle={toggleMark}
-                  />
+                <div className="flex flex-col gap-2 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
+                  <div className="flex justify-center">
+                    <HeroCards
+                      hero={hero}
+                      hand={hand}
+                      size="drill"
+                      discarding={drawing}
+                      marked={marked}
+                      onToggle={toggleMark}
+                    />
+                  </div>
+                  <div className="flex items-stretch">
+                    <HeroPanel
+                      hero={hero}
+                      avatar={heroMeta.avatar}
+                      hand={hand}
+                      equity={heroEquity}
+                      isButton={hero.id === buttonPlayerId}
+                      isActive={activeId === hero.id}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-stretch">
-                  <HeroPanel
-                    hero={hero}
-                    avatar={heroMeta.avatar}
-                    hand={hand}
-                    equity={heroEquity}
-                    isButton={hero.id === buttonPlayerId}
-                    isActive={activeId === hero.id}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-stretch gap-3 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
-                {/* cards and panel each get exactly half the row; cards align
+              ) : (
+                <div className="flex items-stretch gap-3 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+2.75rem)]">
+                  {/* cards and panel each get exactly half the row; cards align
                     with the left edge of the action buttons (pl offsets the
                     first card's tilt so its corner doesn't poke past) */}
-                <div className="flex flex-1 basis-0 items-end justify-start pl-2">
-                  <HeroCards
-                    hero={hero}
-                    hand={hand}
-                    size="hero"
-                    fanned
-                    discarding={drawing}
-                    marked={marked}
-                    onToggle={toggleMark}
-                  />
-                </div>
-                <HeroPanel
-                  hero={hero}
-                  avatar={heroMeta.avatar}
-                  hand={hand}
-                  equity={heroEquity}
-                  isButton={hero.id === buttonPlayerId}
-                  isActive={activeId === hero.id}
-                />
-              </div>
-            ))}
-        </>
-      ) : (
-        /* ------------------------------ DESKTOP ----------------------------- */
-        <>
-          {/* table surface + seats */}
-          <div className="relative flex-1">
-            {opponents.map((p, i) => {
-              const meta = metaById.get(p.id)
-              if (!meta) return null
-              return (
-                <div
-                  key={p.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={positions[i]}
-                >
-                  <Seat
-                    player={p}
-                    name={meta.name}
-                    avatarSpec={meta.avatar}
-                    isDealer={p.id === buttonPlayerId}
-                    isActive={activeId === p.id}
-                    isThinking={aiThinkingId === p.id}
-                    reveal={revealAll && p.status !== 'folded' && p.status !== 'out'}
-                    cardsSide={parseFloat(positions[i].left) > 50 ? 'left' : 'right'}
-                    onSelect={() => selectSeat(p.id)}
-                  />
-                </div>
-              )
-            })}
-
-            <div className="absolute left-1/2 top-[62%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4">
-              {communityCards}
-              <div className="flex w-full items-end justify-between gap-6">
-                <div className="min-w-0 flex-1">{talkLine}</div>
-                <div className="flex shrink-0 items-baseline gap-2">
-                  <span className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
-                    Pot
-                  </span>
-                  <CountUp
-                    value={pot}
-                    format={money}
-                    className="text-3xl font-semibold tabular-nums"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {potWinners.map((id) => {
-              const idx = opponents.findIndex((p) => p.id === id)
-              const to: Point =
-                id === 'hero'
-                  ? { left: '50%', top: '118%' }
-                  : idx >= 0
-                    ? positions[idx]
-                    : { left: '50%', top: '50%' }
-              return chipsTo(id, to)
-            })}
-          </div>
-
-          {/* hero zone */}
-          {hero && heroMeta && (
-            <div className="z-20 flex flex-col items-center gap-4 px-6 pb-8">
-              <div className="flex items-stretch gap-6">
-                <HeroCards
-                  hero={hero}
-                  hand={hand}
-                  size="board"
-                  discarding={drawing}
-                  marked={marked}
-                  onToggle={toggleMark}
-                />
-                <div className="flex w-44">
+                  <div className="flex flex-1 basis-0 items-end justify-start pl-2">
+                    <HeroCards
+                      hero={hero}
+                      hand={hand}
+                      size="hero"
+                      fanned
+                      discarding={drawing}
+                      marked={marked}
+                      onToggle={toggleMark}
+                    />
+                  </div>
                   <HeroPanel
                     hero={hero}
                     avatar={heroMeta.avatar}
@@ -529,173 +456,258 @@ export function Table() {
                     isActive={activeId === hero.id}
                   />
                 </div>
+              ))}
+          </>
+        ) : (
+          /* ------------------------------ DESKTOP ----------------------------- */
+          <>
+            {/* table surface + seats */}
+            <div className="relative flex-1">
+              {opponents.map((p, i) => {
+                const meta = metaById.get(p.id)
+                if (!meta) return null
+                return (
+                  <div
+                    key={p.id}
+                    className="absolute -translate-x-1/2 -translate-y-1/2"
+                    style={positions[i]}
+                  >
+                    <Seat
+                      player={p}
+                      name={meta.name}
+                      avatarSpec={meta.avatar}
+                      isDealer={p.id === buttonPlayerId}
+                      isActive={activeId === p.id}
+                      isThinking={aiThinkingId === p.id}
+                      reveal={revealAll && p.status !== 'folded' && p.status !== 'out'}
+                      cardsSide={parseFloat(positions[i].left) > 50 ? 'left' : 'right'}
+                      onSelect={() => selectSeat(p.id)}
+                    />
+                  </div>
+                )
+              })}
+
+              <div className="absolute left-1/2 top-[62%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-4">
+                {communityCards}
+                <div className="flex w-full items-end justify-between gap-6">
+                  <div className="min-w-0 flex-1">{talkLine}</div>
+                  <div className="flex shrink-0 items-baseline gap-2">
+                    <span className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
+                      Pot
+                    </span>
+                    <CountUp
+                      value={pot}
+                      format={money}
+                      className="text-3xl font-semibold tabular-nums"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="w-full max-w-xl">{actionArea}</div>
+              {potWinners.map((id) => {
+                const idx = opponents.findIndex((p) => p.id === id)
+                const to: Point =
+                  id === 'hero'
+                    ? { left: '50%', top: '118%' }
+                    : idx >= 0
+                      ? positions[idx]
+                      : { left: '50%', top: '50%' }
+                return chipsTo(id, to)
+              })}
             </div>
-          )}
-        </>
-      )}
 
-      <HandsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
-      <HandHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
-      <LeaveDialog
-        open={leaveOpen}
-        onOpenChange={setLeaveOpen}
-        buyIn={venue.cash ? cashInvested : venue.buyIn}
-        stack={hero?.stack ?? 0}
-        cashOut={cashOutValue(venue, hero?.stack ?? 0)}
-        freeroll={venue.freeroll === true}
-        cash={venue.cash === true}
-        onConfirm={cashOutAndLeave}
-        onReview={canReview ? cashOutAndReview : undefined}
-      />
-      <PlayerDialog
-        hole={spectatorHole}
-        equity={spectatorWin}
-        open={viewId !== null}
-        onOpenChange={(o) => !o && setViewId(null)}
-        seat={viewId ? (metaById.get(viewId) ?? null) : null}
-        stack={hand.players.find((p) => p.id === viewId)?.stack ?? 0}
-        stats={viewId ? seatStats[viewId] : undefined}
-      />
+            {/* hero zone */}
+            {hero && heroMeta && (
+              <div className="z-20 flex flex-col items-center gap-4 px-6 pb-8">
+                <div className="flex items-stretch gap-6">
+                  <HeroCards
+                    hero={hero}
+                    hand={hand}
+                    size="board"
+                    discarding={drawing}
+                    marked={marked}
+                    onToggle={toggleMark}
+                  />
+                  <div className="flex w-44">
+                    <HeroPanel
+                      hero={hero}
+                      avatar={heroMeta.avatar}
+                      hand={hand}
+                      equity={heroEquity}
+                      isButton={hero.id === buttonPlayerId}
+                      isActive={activeId === hero.id}
+                    />
+                  </div>
+                </div>
 
-      {/* overlays */}
-      <AnimatePresence>
-        {status === 'handover' && message && (
-          <Banner key="ho">
-            {/* Three separate things, so three blocks: the result (the bounty
+                <div className="w-full max-w-xl">{actionArea}</div>
+              </div>
+            )}
+          </>
+        )}
+
+        <HandsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+        <HandHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
+        <LeaveDialog
+          open={leaveOpen}
+          onOpenChange={setLeaveOpen}
+          buyIn={venue.cash ? cashInvested : venue.buyIn}
+          stack={hero?.stack ?? 0}
+          cashOut={cashOutValue(venue, hero?.stack ?? 0)}
+          freeroll={venue.freeroll === true}
+          cash={venue.cash === true}
+          onConfirm={cashOutAndLeave}
+          onReview={canReview ? cashOutAndReview : undefined}
+        />
+        <PlayerDialog
+          hole={spectatorHole}
+          equity={spectatorWin}
+          open={viewId !== null}
+          onOpenChange={(o) => !o && setViewId(null)}
+          seat={viewId ? (metaById.get(viewId) ?? null) : null}
+          stack={hand.players.find((p) => p.id === viewId)?.stack ?? 0}
+          stats={viewId ? seatStats[viewId] : undefined}
+        />
+
+        {/* overlays */}
+        <AnimatePresence>
+          {status === 'handover' && message && (
+            <Banner key="ho">
+              {/* Three separate things, so three blocks: the result (the bounty
                 belongs to it), the read, and any chips won. Tight inside a
                 block, loose between them. One flat gap ran all three together
                 into a single paragraph. */}
-            <span className="flex flex-col items-center gap-0.5">
-              <span>{message}</span>
-              {lastBounty > 0 && (
-                <span className="text-xs font-medium opacity-95">Bounty +{money(lastBounty)}</span>
-              )}
-            </span>
-            {/* The post-hand read (lib/coach). Most hands have none, so this is
+              <span className="flex flex-col items-center gap-0.5">
+                <span>{message}</span>
+                {lastBounty > 0 && (
+                  <span className="text-xs font-medium opacity-95">
+                    Bounty +{money(lastBounty)}
+                  </span>
+                )}
+              </span>
+              {/* The post-hand read (lib/coach). Most hands have none, so this is
                 usually absent. Width-capped because it is the only line here
                 that runs to a sentence, and the banner sits over the felt. */}
-            {lastRead && (
-              <span className="max-w-[min(26rem,78vw)] text-balance text-center text-xs font-medium leading-snug opacity-95">
-                {lastRead.text}
-              </span>
-            )}
-            {newAwards.length > 0 && (
-              <span className="flex flex-col items-center gap-1.5">
-                {newAwards.map((a) => (
-                  <span
-                    key={a.id}
-                    className="flex items-center gap-1.5 text-xs font-medium opacity-95"
-                  >
-                    <AwardChip award={a} earned size={18} />
-                    New chip — {a.name}
-                  </span>
-                ))}
-              </span>
-            )}
-          </Banner>
-        )}
-        {status === 'busted' &&
-          (venue.cash ? (
-            // Cash tables: busting isn't the end. Rebuy from your Roll and sit
-            // straight back down, drop to the freeroll if you can't afford it,
-            // or just stand up. No "you finished Nth" — there's no tournament.
-            <EndOverlay
-              key="bust-cash"
-              title="Out of chips"
-              subtitle="The table’s still running — buy back in, or call it a session."
-              onHome={goHome}
-              onReview={canReview ? goReview : undefined}
-              primaryLabel={
-                freerollOffered
-                  ? 'Play the freeroll'
-                  : roll >= venue.buyIn
-                    ? `Rebuy — ${money(venue.buyIn)}`
-                    : undefined
-              }
-              onPrimary={
-                freerollOffered
-                  ? () => {
-                      sound.play('call')
-                      leave()
-                      router.push(`/play/${KITCHEN_TABLE.id}`)
-                    }
-                  : roll >= venue.buyIn
+              {lastRead && (
+                <span className="max-w-[min(26rem,78vw)] text-balance text-center text-xs font-medium leading-snug opacity-95">
+                  {lastRead.text}
+                </span>
+              )}
+              {newAwards.length > 0 && (
+                <span className="flex flex-col items-center gap-1.5">
+                  {newAwards.map((a) => (
+                    <span
+                      key={a.id}
+                      className="flex items-center gap-1.5 text-xs font-medium opacity-95"
+                    >
+                      <AwardChip award={a} earned size={18} />
+                      New chip — {a.name}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </Banner>
+          )}
+          {status === 'busted' &&
+            (venue.cash ? (
+              // Cash tables: busting isn't the end. Rebuy from your Roll and sit
+              // straight back down, drop to the freeroll if you can't afford it,
+              // or just stand up. No "you finished Nth" — there's no tournament.
+              <EndOverlay
+                key="bust-cash"
+                title="Out of chips"
+                subtitle="The table’s still running — buy back in, or call it a session."
+                onHome={goHome}
+                onReview={canReview ? goReview : undefined}
+                primaryLabel={
+                  freerollOffered
+                    ? 'Play the freeroll'
+                    : roll >= venue.buyIn
+                      ? `Rebuy — ${money(venue.buyIn)}`
+                      : undefined
+                }
+                onPrimary={
+                  freerollOffered
                     ? () => {
                         sound.play('call')
-                        rebuy()
-                      }
-                    : undefined
-              }
-            />
-          ) : (
-            <EndOverlay
-              key="bust"
-              title="Knocked out"
-              subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
-              detail={recap && <RunRecap recap={recap} />}
-              onHome={goHome}
-              onReview={canReview ? goReview : undefined}
-              secondaryLabel={canWatch ? 'Watch it out' : undefined}
-              onSecondary={
-                canWatch
-                  ? () => {
-                      sound.play('tap')
-                      watchItOut()
-                    }
-                  : undefined
-              }
-              primaryLabel={freerollOffered ? 'Play the freeroll' : undefined}
-              onPrimary={
-                freerollOffered
-                  ? () => {
-                      sound.play('call')
-                      if (venue.freeroll && heroMeta) {
-                        // Already on the freeroll route — navigation would no-op
-                        // and blank the table. Re-seat in place instead.
-                        useGame.getState().sitDown(KITCHEN_TABLE, {
-                          name: heroMeta.name,
-                          avatar: heroMeta.avatar,
-                          member,
-                        })
-                      } else {
                         leave()
                         router.push(`/play/${KITCHEN_TABLE.id}`)
                       }
-                    }
-                  : undefined
+                    : roll >= venue.buyIn
+                      ? () => {
+                          sound.play('call')
+                          rebuy()
+                        }
+                      : undefined
+                }
+              />
+            ) : (
+              <EndOverlay
+                key="bust"
+                title="Knocked out"
+                subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
+                detail={recap && <RunRecap recap={recap} />}
+                onHome={goHome}
+                onReview={canReview ? goReview : undefined}
+                secondaryLabel={canWatch ? 'Watch it out' : undefined}
+                onSecondary={
+                  canWatch
+                    ? () => {
+                        sound.play('tap')
+                        watchItOut()
+                      }
+                    : undefined
+                }
+                primaryLabel={freerollOffered ? 'Play the freeroll' : undefined}
+                onPrimary={
+                  freerollOffered
+                    ? () => {
+                        sound.play('call')
+                        if (venue.freeroll && heroMeta) {
+                          // Already on the freeroll route — navigation would no-op
+                          // and blank the table. Re-seat in place instead.
+                          useGame.getState().sitDown(KITCHEN_TABLE, {
+                            name: heroMeta.name,
+                            avatar: heroMeta.avatar,
+                            member,
+                          })
+                        } else {
+                          leave()
+                          router.push(`/play/${KITCHEN_TABLE.id}`)
+                        }
+                      }
+                    : undefined
+                }
+              />
+            ))}
+          {status === 'won' && (
+            <EndOverlay
+              key="won"
+              title="Champion"
+              subtitle={`You took it down — +${money(venue.prize + lastBounty)} to your Roll`}
+              detail={
+                <>
+                  {newAwards.length > 0 && (
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                      {newAwards.map((a) => (
+                        <span key={a.id} className="flex items-center gap-2 text-sm text-white/80">
+                          <AwardChip award={a} earned size={22} />
+                          New chip — {a.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {recap && <RunRecap recap={recap} />}
+                </>
               }
+              onHome={goHome}
+              onReview={canReview ? goReview : undefined}
+              celebrate
             />
-          ))}
-        {status === 'won' && (
-          <EndOverlay
-            key="won"
-            title="Champion"
-            subtitle={`You took it down — +${money(venue.prize + lastBounty)} to your Roll`}
-            detail={
-              <>
-                {newAwards.length > 0 && (
-                  <div className="mt-4 flex flex-col items-center gap-2">
-                    {newAwards.map((a) => (
-                      <span key={a.id} className="flex items-center gap-2 text-sm text-white/80">
-                        <AwardChip award={a} earned size={22} />
-                        New chip — {a.name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {recap && <RunRecap recap={recap} />}
-              </>
-            }
-            onHome={goHome}
-            onReview={canReview ? goReview : undefined}
-            celebrate
-          />
-        )}
-      </AnimatePresence>
-    </div>
+          )}
+        </AnimatePresence>
+      </div>
+    </TableStyleContext.Provider>
   )
 }
 
