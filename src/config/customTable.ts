@@ -1,21 +1,32 @@
-import { CAST, type Character } from '@/config/cast'
+import { CAST, type Character, characterById, homeRungFor } from '@/config/cast'
 import { VENUES, type Venue } from '@/config/venues'
 
 // Build your own table — the member feature, and the one rule that makes it
 // safe to ship.
 //
-// **You pick the shape. You never pick the difficulty.**
+// **You pick the shape. You can make it harder and you can never make it
+// softer.**
 //
 // That is the whole design. Seats, stakes, stack depth, how fast the blinds
 // climb, whether heads are worth money and who sits down are all yours. The
-// opponents' skill is derived from the buy-in by the same ladder everyone
-// plays, and there is deliberately no control for it anywhere in this file.
+// table's own opposition is derived from the buy-in by the same ladder
+// everybody plays, and there is deliberately no control for it anywhere in this
+// file.
 //
 // Without that rule this is a chip printer: pick the Garage's opponents, pick
-// the Main Event's buy-in, collect. With it, a custom table is exactly as hard
-// as a ladder rung at the same price, and the only thing a player has bought is
-// the *arrangement* — which is style, not edge, and is the line the whole
-// product rests on (docs/brand.md principle 1).
+// the Main Event's buy-in, collect. What the rule was ever protecting is the
+// *downward* direction, and only that one — the prize is the buy-in times the
+// seats, so a table full of players better than its price pays exactly the same
+// for a worse game. That is why a guest may bring their own rung with them when
+// it is the harder one (`Venue.guests`, applied in config/cast.ts): inviting
+// the sharpest regular in the cast to a 100-chip table is a thing you do to
+// yourself, not an edge, and it is the one thing a built table is *for* that
+// the ladder cannot do.
+//
+// Everything else stands. A table you built and invited nobody to is exactly as
+// hard as the ladder rung at the same price, nothing here can go the other way,
+// and the only thing money has bought is the arrangement — which is style, not
+// edge, and is the line the whole product rests on (docs/brand.md principle 1).
 //
 // The prize is not a choice either. It is the shipped formula, read off the
 // bounty tables rather than invented: every seat's buy-in, less what the
@@ -50,10 +61,11 @@ export interface CustomTableSpec {
   /**
    * Who sits down, by character id. Empty means "draw them as usual".
    *
-   * Flavour only. A character contributes a tightness/aggression/bluff nudge
-   * and a face; `profileFor` never lets one touch `skill` (docs/venues.md), so
-   * stacking the table with the loosest regulars in the cast changes how the
-   * game *feels* and not how hard it is.
+   * A named guest turns up — they are seated before the draw rather than
+   * entered into it — and brings their own standard with them when it is above
+   * what the buy-in bought. That is the one way a built table departs from its
+   * rung, it only goes upward, and it is the whole reason the feature is worth
+   * having: the Penthouse's regulars, at a price you can afford to lose.
    */
   castIds: readonly string[]
 }
@@ -137,6 +149,34 @@ export function invitableCast(): Character[] {
 }
 
 /**
+ * The standard this table actually plays at: the buy-in's rung, unless somebody
+ * invited out-ranks it.
+ *
+ * **Rungs are compared by price rather than by profile** — the ladder climbs in
+ * both at once, so the cheaper rung is always the softer one, and asking about
+ * the money keeps this file unable to express an opinion about an AI profile at
+ * all (`tests/customTable.test.ts` holds it to that, by reading the source).
+ *
+ * The screen says the answer out loud, because a table that is harder than its
+ * price is the one fact about a built table a player must not discover at the
+ * felt.
+ */
+export function standardFor(spec: CustomTableSpec): Venue {
+  let hardest = rungFor(spec.buyIn)
+  for (const id of spec.castIds) {
+    const guest = characterById(id)
+    const home = guest && homeRungFor(guest)
+    if (home && home.buyIn > hardest.buyIn) hardest = home
+  }
+  return hardest
+}
+
+/** Does inviting this guest make the table harder than its price bought? */
+export function raisesTable(ch: Character, buyIn: number): boolean {
+  return homeRungFor(ch).buyIn > rungFor(buyIn).buyIn
+}
+
+/**
  * A spec, as a `Venue` the rest of the app already knows how to play.
  *
  * Everything downstream — the engine, the store, the table, the economy — takes
@@ -161,9 +201,14 @@ export function customVenue(spec: CustomTableSpec): Venue {
     // Not `rung.accent`: a custom table should not wear another venue's colour
     // and be mistaken for it on the tile.
     accent: '#8A8F98',
-    // The one field the player does not get a say in. Taken whole from the rung
-    // their buy-in reaches, so a custom table is exactly as hard as the ladder
-    // at the same price and no profile exists here that has not been banded.
+    // Who the player asked for. Seated before the draw, and read again by
+    // `profileFor` — a guest above this rung plays their own, never below it.
+    guests: [...spec.castIds],
+    // The table's own opposition, and the player gets no say in it. Taken whole
+    // from the rung their buy-in reaches, so a table nobody was invited to is
+    // exactly as hard as the ladder at the same price and no profile exists
+    // here that has not been banded. A guest's seat is decided seat-by-seat in
+    // `profileFor` and can only be this or harder.
     ai: rung.ai,
     membersOnly: true,
   }

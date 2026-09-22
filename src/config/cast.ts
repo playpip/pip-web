@@ -3,10 +3,15 @@
 // ladder, and a small personality nudge over the venue's AI profile. The venue
 // sets the difficulty band (skill stays venue-owned — see docs/venues.md); the
 // character sets the flavour. See docs/cast.md for the voice and how to add one.
+//
+// The one exception to "the venue owns difficulty" is a guest invited by name
+// to a table the player built, who brings their home rung with them when it is
+// the harder of the two. It is a one-way door — upward only — and `profileFor`
+// below is where it happens.
 
 import type { AvatarSpec } from '@/lib/avatar'
 import type { AiProfile } from '@/lib/poker/ai/policy'
-import type { Venue } from './venues'
+import { VENUES, type Venue } from './venues'
 
 /** Where on the ladder a character plays, by buy-in. */
 export type CastBand = 'low' | 'mid' | 'high'
@@ -686,10 +691,49 @@ export function rosterFor(venue: Venue): Character[] {
   return CAST.filter((ch) => !ch.only && ch.bands.includes(band))
 }
 
+/** Hardest first, so a character's band is read off the top of their list. */
+const BAND_ORDER: readonly CastBand[] = ['high', 'mid', 'low']
+
+/**
+ * The rung a character brings with them: **the cheapest room they are a regular
+ * in**, out of the hardest band they play.
+ *
+ * Not the dearest room in that band, which would make every high-band regular
+ * the Main Event and flatten the cast into one profile. The entry price of the
+ * hardest room somebody is a fixture at is the least the claim on their card
+ * can mean, and it is a shipped rung — `tests/ai.test.ts` has already banded
+ * it, so nothing here invents a profile or blends two.
+ *
+ * Only guests at a built table are read through this (`profileFor`). Everywhere
+ * else the venue owns difficulty outright, exactly as before.
+ */
+export function homeRungFor(ch: Character): Venue {
+  const band = BAND_ORDER.find((b) => ch.bands.includes(b)) ?? 'low'
+  return VENUES.find((venue) => bandFor(venue) === band) ?? VENUES[0]
+}
+
+/**
+ * Which of two profiles is the harder table to sit at.
+ *
+ * Returns one of them whole rather than the larger field of each, because a
+ * profile assembled out of two is one nothing has ever measured — the same rule
+ * `rungFor` follows when it refuses to interpolate between rungs.
+ */
+function harderOf(a: AiProfile, b: AiProfile): AiProfile {
+  return (b.skill ?? 1) > (a.skill ?? 1) ? b : a
+}
+
 /**
  * Draw tonight's table: a shuffled slice of the venue's roster, topped up from
  * the wider (unpinned) cast if the roster ever runs short. Pass a seeded rng
  * for a reproducible draw (the Daily Deal does).
+ *
+ * **Guests get their chairs first and are never drawn for.** Somebody the
+ * player named is not a candidate — the whole point of naming them is that they
+ * turn up — so they are seated whole and only the chairs left over are dealt
+ * from the roster. Their seat *order* is still shuffled, because five guests
+ * always arriving in the order they were tapped would make the table read as a
+ * list rather than a room.
  */
 export function draftCast(
   venue: Venue,
@@ -704,23 +748,50 @@ export function draftCast(
     }
     return copy.slice(0, n)
   }
-  const picked = draw(rosterFor(venue), count)
+  const invited = (venue.guests ?? [])
+    .map((id) => characterById(id))
+    .filter((ch): ch is Character => Boolean(ch))
+    .slice(0, count)
+  const taken = new Set(invited.map((ch) => ch.id))
+  const picked = [
+    ...invited,
+    ...draw(
+      rosterFor(venue).filter((ch) => !taken.has(ch.id)),
+      count - invited.length,
+    ),
+  ]
   if (picked.length < count) {
     const have = new Set(picked.map((ch) => ch.id))
     const rest = CAST.filter((ch) => !ch.only && !have.has(ch.id))
     picked.push(...draw(rest, count - picked.length))
   }
-  return picked
+  return draw(picked, count)
 }
 
-/** The venue's AiProfile with the character's nudges applied. Skill untouched. */
+/**
+ * The seat's AiProfile: the table's, with the character's nudges applied.
+ *
+ * **The venue still owns difficulty, with one named exception.** A character
+ * invited by name to a built table (`venue.guests`) plays their home rung's
+ * profile when that is the harder of the two — so you can sit the sharpest
+ * regular in the cast down at a 100-chip table and they play like themselves.
+ * It only ever moves upward: `harderOf` cannot return the softer profile, so
+ * the old failure this guarded against — the Garage's opponents at the Main
+ * Event's price — remains impossible. What a guest buys you is a harder game
+ * for the same prize, which is the opposite of an edge.
+ *
+ * Everyone who was drafted rather than invited plays the venue's own profile,
+ * so a table you built and invited nobody to is exactly the ladder rung its
+ * price bought, to the object.
+ */
 export function profileFor(venue: Venue, ch: Character): AiProfile {
   const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
+  const base = venue.guests?.includes(ch.id) ? harderOf(venue.ai, homeRungFor(ch).ai) : venue.ai
   return {
-    ...venue.ai,
-    tightness: clamp01(venue.ai.tightness + (ch.delta?.tightness ?? 0)),
-    aggression: clamp01(venue.ai.aggression + (ch.delta?.aggression ?? 0)),
-    bluff: clamp01(venue.ai.bluff + (ch.delta?.bluff ?? 0)),
+    ...base,
+    tightness: clamp01(base.tightness + (ch.delta?.tightness ?? 0)),
+    aggression: clamp01(base.aggression + (ch.delta?.aggression ?? 0)),
+    bluff: clamp01(base.bluff + (ch.delta?.bluff ?? 0)),
   }
 }
 

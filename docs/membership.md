@@ -47,6 +47,30 @@ of the seven play, how many cards win it, what the pot is charging — is the me
    shape: no sampling, no "three a week", no trial that ends mid-session. What we sell is
    another whole kind, never a slice of a free one.
 
+### A built table can be made harder, and only harder (2026-09-22)
+
+The builder's invite list used to be flavour: you picked faces, `customVenue` dropped them
+on the floor, and nobody you chose was at the table. It now seats them — and a guest whose
+home room is dearer than the table plays **their** rung, not its (`Venue.guests` →
+`profileFor`). That is the feature: the Penthouse's regulars, at a price you can afford to
+lose.
+
+It is not a difficulty dial, because a dial turns both ways and this does not:
+
+- **The prize is `buyIn × seats` whatever you build**, so a table full of players better
+  than its price pays exactly the same for a worse game. The failure the old rule guarded
+  against — the Garage's opponents at the Main Event's price — runs the other way, and
+  remains impossible: `profileFor` takes the *harder* of the two profiles and cannot return
+  the softer one.
+- **Nothing you can buy still changes a hand** (rule 2). Who sits down is not the cards, the
+  odds, or what you are shown — and choosing to play better opponents is the one purchase
+  that cannot be an advantage.
+- **Invite nobody and it is exactly its rung**, to the object. Drafted seats never bring
+  anything; only a name does.
+
+`tests/customTable.test.ts` checks every rung against every invitable character in both
+directions, and that a guest's profile is a shipped rung's rather than two averaged.
+
 ### Rule 1 was rewritten on 2026-09-20, and here is the honest account of it
 
 It used to read **"anything that shipped free is free forever"**, and it named every side
@@ -210,7 +234,7 @@ Worth listing, because each was considered:
 | `tests/membership.test.ts` | The page advertising a feature that does not exist; the price disagreeing with itself |
 | `tests/membershipSurfaces.test.ts` | Anything about buying reaching the game loop; a dead `/membership` link |
 | `tests/sitDown.test.ts` | A free table moving behind the membership; a member room paying better than a free one |
-| `tests/customTable.test.ts` | A built table being easier than the ladder at the same price |
+| `tests/customTable.test.ts` | A built table being easier than the ladder at the same price; an invited guest not turning up |
 | `tests/spectate.test.ts` | The spectator view answering while a hand is live |
 | `tests/challenge.test.ts` | Member content enlarging a free player's denominator |
 | `tests/roadmapDrills.test.ts` | The public roadmap going stale about which drills are paid |

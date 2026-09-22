@@ -36,9 +36,25 @@ Each `Character` in `src/config/cast.ts`:
   Applied by `profileFor` per seat; validate big changes with `pnpm sim`.
 - **`lines`** — table talk (below).
 
-Seating: `draftCast(venue, count, rng?)` shuffles the venue's roster (top-up from
-the wider cast is a safety net, tested). Pass a seeded rng for a reproducible
-table — the Daily Deal does.
+### The one exception: a guest brings their own rung
+
+A character invited **by name** to a table the player built (`Venue.guests`, set
+only by `customVenue`) plays the profile of `homeRungFor(them)` — the cheapest
+room their hardest band covers — whenever that is harder than the table's own.
+Never when it is softer: `profileFor` takes the harder of the two whole, so no
+blended profile exists and no invitation can discount a table.
+
+That is the whole of it, and it is what the builder is for: Celeste at a
+100-chip table is the Penthouse's game for a 600-chip prize. Anybody who was
+*drafted* rather than invited still plays the venue's own profile, so a built
+table nobody was invited to is its ladder rung to the object.
+`tests/customTable.test.ts` pins both directions.
+
+Seating: `draftCast(venue, count, rng?)` seats `venue.guests` first — they are
+not entered into the draw, because the point of naming somebody is that they
+turn up — then shuffles the venue's roster for the chairs that are left (top-up
+from the wider cast is a safety net, tested). Pass a seeded rng for a
+reproducible table — the Daily Deal does.
 
 ## Career records
 

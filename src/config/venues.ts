@@ -87,6 +87,18 @@ export interface Venue extends MembersOnly {
    * betting. A table cannot be half-converted.
    */
   variant?: Variant
+  /**
+   * Named characters who sit at this table, and who **bring their own game with
+   * them** — a guest plays the profile of the cheapest rung they are a regular
+   * at, whenever that is harder than this venue's (`profileFor` in
+   * config/cast.ts). Everyone else at the table plays the venue's own.
+   *
+   * Only the built table sets this, and the direction is the whole of why it is
+   * safe: a guest can make a table **harder than its price and never easier**,
+   * so inviting Celeste to a 100-chip table is a worse game for the same prize
+   * rather than a cheap one. See config/customTable.ts.
+   */
+  guests?: readonly string[]
 }
 
 // Low rungs escalate gently (handsPerLevel 12 → 9) — new players need room to

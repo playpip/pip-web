@@ -151,7 +151,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'custom-tables',
     title: 'Build your own table',
     blurb:
-      'Pick the seats, the stakes, how deep you sit, how fast the blinds climb, whether heads are worth money, and which of the regulars sit down with you. The opposition still comes from the buy-in, so a table you built is exactly as hard as a ladder rung at the same price.',
+      'Pick the seats, the stakes, how deep you sit, how fast the blinds climb, whether heads are worth money, and which of the regulars sit down with you. Invite anybody you like: a high roller at a cheap table brings their own game with them, so you can play the hardest company in the cast for a price you can afford to lose. The prize is the same either way, and nobody you invite can ever make a table softer than its price.',
     shipped: true,
   },
   {
@@ -173,6 +173,17 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     title: 'Omaha Hi-Lo',
     blurb:
       'Every pot cut in half: one half to the best hand, the other to the best low — five different ranks, all eight or lower, ace counting as one. You still use exactly two from your hand for each half, and they are rarely the same two.',
+    shipped: true,
+  },
+  {
+    // Shipped behind the check on the day The Parlour did and went unlisted
+    // until 2026-09-22 — the `shipped` flag catches a page advertising what
+    // does not exist, and nothing catches the reverse. A buyer reading this
+    // list should find every game they are paying for in it.
+    id: 'draw',
+    title: 'Five-Card Draw',
+    blurb:
+      'Five cards each, face down, and no board at all — nothing on the table to read and nothing to share. Bet, throw away as many as you like and take replacements, bet again, show. The only thing anybody learns all hand is how many cards you asked for. Two stakes, at The Parlour.',
     shipped: true,
   },
   {

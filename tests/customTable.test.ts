@@ -12,9 +12,12 @@ import {
   customVenue,
   invitableCast,
   maxBounty,
+  raisesTable,
   refuseCustomTable,
   rungFor,
+  standardFor,
 } from '@/config/customTable'
+import { draftCast, homeRungFor, profileFor } from '@/config/cast'
 import { ALL_VENUES, VENUES, venueById } from '@/config/venues'
 import { PERSIST_VERSION } from '@/store/profile'
 
@@ -128,8 +131,94 @@ test('a hand-edited spec is refused rather than dealt', (t) => {
   t.truthy(refuseCustomTable(spec({ castIds: ['nobody'] })), 'an invented guest was allowed')
 })
 
-// Guests are flavour. A pinned character belongs to their own venue and cannot
-// be invited out of it — Pearl keeps the shop, Sable keeps the Vault.
+// **A guest turns up.** The invite list used to be validated, persisted and then
+// dropped on the floor: `customVenue` never carried it, so `draftCast` drew the
+// band's regulars and the five faces you picked were not at the table. The page
+// and `/membership` both promised they would be.
+test('the people you invite are the people who sit down', (t) => {
+  const guests = ['celeste', 'kenji', 'gus']
+  const built = customVenue(spec({ seats: 6, castIds: guests }))
+  const seated = draftCast(built, built.seats - 1).map((ch) => ch.id)
+  t.is(seated.length, built.seats - 1)
+  for (const id of guests) t.true(seated.includes(id), `${id} was invited and did not turn up`)
+  t.is(new Set(seated).size, seated.length, 'somebody was seated twice')
+
+  // A full table is all guests and nobody else.
+  const packed = customVenue(spec({ seats: 4, castIds: ['doris', 'frank', 'marge'] }))
+  t.deepEqual(
+    draftCast(packed, packed.seats - 1)
+      .map((ch) => ch.id)
+      .sort(),
+    ['doris', 'frank', 'marge'],
+  )
+})
+
+// The direction is the whole safety argument. A guest may make the table harder
+// than its price — that is what the feature is for — and nothing may ever make
+// it softer, because the prize is fixed at buy-in × seats.
+test('a guest can only ever make the table harder', (t) => {
+  for (const rung of VENUES) {
+    for (const ch of invitableCast()) {
+      const built = customVenue(spec({ buyIn: rung.buyIn, castIds: [ch.id] }))
+      const seat = profileFor(built, ch)
+      t.true(
+        (seat.skill ?? 1) >= (rung.ai.skill ?? 1),
+        `${ch.name} made a ${rung.buyIn} table softer than ${rung.name}`,
+      )
+      // And the profile they play is a shipped one, not two averaged together.
+      const home = homeRungFor(ch)
+      t.true(
+        seat.skill === rung.ai.skill || seat.skill === home.ai.skill,
+        `${ch.name} plays a profile no rung has ever been banded at`,
+      )
+      t.true(
+        seat.iterations === rung.ai.iterations || seat.iterations === home.ai.iterations,
+        `${ch.name}'s search depth was blended between two rungs`,
+      )
+    }
+  }
+})
+
+// The other half: nobody who was merely dealt into the table brings anything.
+// A table you invited nobody to is the rung, to the number.
+test('a table nobody was invited to is exactly its rung', (t) => {
+  for (const rung of VENUES) {
+    const built = customVenue(spec({ buyIn: rung.buyIn }))
+    for (const ch of draftCast(built, built.seats - 1)) {
+      t.is(
+        profileFor(built, ch).skill,
+        rung.ai.skill,
+        `${ch.name} was drafted to a ${rung.buyIn} table and did not play ${rung.name}`,
+      )
+    }
+  }
+})
+
+// What the screen says is what gets dealt. The receipt names a standard, and it
+// has to be the hardest person actually sitting there.
+test('the standard on the receipt is the hardest player at the table', (t) => {
+  t.is(standardFor(spec({ buyIn: 100 })).id, 'garage', 'an empty guest list is the rung')
+
+  const shark = invitableCast().find((ch) => ch.bands.includes('high'))
+  t.truthy(shark, 'nobody in the invitable cast plays the high tables')
+  if (!shark) return
+  const lifted = standardFor(spec({ buyIn: 100, castIds: [shark.id] }))
+  t.is(lifted.id, homeRungFor(shark).id)
+  t.true(lifted.buyIn > 100, 'a high roller at a 100 table did not raise the standard')
+  t.true(raisesTable(shark, 100))
+
+  // Downward is not a thing that can be expressed: invite the softest regular
+  // in the cast to the Main Event and the Main Event is what you get.
+  const local = invitableCast().find((ch) => ch.bands.length === 1 && ch.bands[0] === 'low')
+  t.truthy(local, 'nobody in the invitable cast is a low-stakes regular')
+  if (!local) return
+  const top = VENUES[VENUES.length - 1]
+  t.is(standardFor(spec({ buyIn: top.buyIn, castIds: [local.id] })).id, top.id)
+  t.false(raisesTable(local, top.buyIn))
+})
+
+// A pinned character belongs to their own venue and cannot be invited out of
+// it — Pearl keeps the shop, Sable keeps the Vault.
 test('you cannot invite somebody who belongs to another room', (t) => {
   const invitable = invitableCast().map((ch) => ch.id)
   t.true(invitable.length > 5)

@@ -21,8 +21,9 @@ and dates aren't listed on purpose. If something here matters to you,
 - Drills: short spots with a right answer, graded by the engine, never metered
 - A card at the end of a tournament that reads the run you just played, and stores nothing
 - **Pot-Limit Omaha** — four cards, use exactly two, pot-limit betting. Same engine
-- **Build your own table** — seats, stakes, depth, speed, bounty and who sits down. The
-  opposition still comes from the buy-in, so you cannot build yourself an easy game
+- **Build your own table** — seats, stakes, depth, speed, bounty and who sits down. Invite
+  the high rollers to a cheap table and they bring their own game with them; the prize is
+  the same, and nobody you invite can build you an easier one
 - **Member rooms** — four more tables and three regulars you only meet in them
 - **A report on your own play** — leaks and strengths drawn from every hand you have
   played, each one showing the sample it came from

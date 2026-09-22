@@ -212,8 +212,17 @@ interface Venue {
   accent: string        // hex; the tier chip colour
   membersOnly?: boolean // comes with the membership; absent means free forever
   variant?: Variant     // 'omaha' deals four and plays pot-limit; absent means Hold'em
+  guests?: string[]     // named characters who sit here and bring their own rung (built tables only)
 }
 ```
+
+**`guests` is the one thing that can move a seat off this venue's `ai`,** and it can only
+move it *up*. A character named here is seated before the draw and plays their home rung's
+profile whenever that is harder than this table's (`profileFor`, `homeRungFor` — both in
+`config/cast.ts`). Only `customVenue` sets it: a built table's price still buys its own
+opposition, and inviting the Penthouse's regulars to a 100-chip table makes a harder game
+for the same prize rather than a cheaper one. See [membership.md](./membership.md) and
+`tests/customTable.test.ts`, which fails the build if a guest ever softens a table.
 
 **`membersOnly` absent is not a default anyone may change later.** Rule 1 is that we never
 charge for something that shipped free, so a venue registered without the flag has given
