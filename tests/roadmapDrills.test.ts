@@ -24,15 +24,23 @@ import { DRILL_KINDS } from '@/config/drills'
 //
 // Deliberately whole-file rather than scoped to the membership section: a
 // section boundary is a regex over prose and would be the next thing to drift.
+//
+// **One exception, and it is not a hole.** The file now carries a marked
+// free-claims block listing what costs nothing, and that list names the free
+// drills on purpose: leaving them out is how README.md came to sell a kind
+// that was already free. So the block is cut out here and `freeClaims.test.ts`
+// owns what is inside it, where the rule is the mirror of this one: every free
+// kind must be named and no paid kind may be. Both halves are still covered,
+// by the file that can tell which half it is reading. The markers are not
+// prose and their disappearance fails that test.
 
 // Flattened for the reason priceClaims.test.ts records: markdown hard-wraps at
 // eighty columns and does it inside quotation marks, so "Pot odds" is really
 // `"Pot\nodds"` in the file and an unflattened `includes` reports it missing.
 // The first run of this test failed on exactly that.
-const ROADMAP = readFileSync(new URL('../ROADMAP.md', import.meta.url), 'utf-8').replace(
-  /\s+/g,
-  ' ',
-)
+const ROADMAP = readFileSync(new URL('../ROADMAP.md', import.meta.url), 'utf-8')
+  .replace(/<!-- free-claims:start[\s\S]*?<!-- free-claims:end -->/, ' ')
+  .replace(/\s+/g, ' ')
 
 test('the roadmap names every drill that comes with the membership', (t) => {
   t.true(ROADMAP.length > 1000, 'the roadmap read empty, so this file is proving nothing')
