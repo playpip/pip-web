@@ -12,6 +12,7 @@ import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
 import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
+import { appendSession, type SessionRow } from '@/lib/sessions'
 import { track } from '@/lib/analytics'
 
 export interface LifetimeStats {
@@ -178,6 +179,16 @@ export interface ProfileState {
    * (technology#90). The rules are pure and live in lib/sync/escrow.
    */
   escrow: Escrow | null
+  /**
+   * One row per finished tournament, oldest first (see lib/sessions).
+   *
+   * The only thing in this profile besides `rollHistory` that knows when
+   * anything happened, and it is written to and never read: it exists so that
+   * a cross-session comparison has a second sample to make, and a player's log
+   * starts filling the day the recorder ships rather than the day the screen
+   * does. A ring table writes no row, for the same reason it produces no recap.
+   */
+  sessions: SessionRow[]
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -240,10 +251,12 @@ export interface ProfileState {
    * many. Zero, and no write, when there is nothing to take.
    */
   reclaimEscrow: (deviceId: string) => number
+  /** A tournament finished. Appends one row to the session log and caps it. */
+  recordSession: (row: SessionRow) => void
   reset: () => void
 }
 
-export const PERSIST_VERSION = 17
+export const PERSIST_VERSION = 18
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -282,6 +295,7 @@ export const useProfile = create<ProfileState>()(
       challengesPlayed: 0,
       drills: {},
       escrow: null,
+      sessions: [],
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -436,6 +450,7 @@ export const useProfile = create<ProfileState>()(
         })
         return escrow.chips
       },
+      recordSession: (row) => set((s) => ({ sessions: appendSession(s.sessions, row) })),
       reset: () =>
         set({
           created: false,
@@ -462,6 +477,7 @@ export const useProfile = create<ProfileState>()(
           challengesPlayed: 0,
           drills: {},
           escrow: null,
+          sessions: [],
         }),
     }),
     {
@@ -567,6 +583,14 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // another device). Null reads as "unclaimed" rather than "not yours", so
   // their tournament survives and the resume path claims it on the way in.
   if (fromVersion < 17) s.escrow = null
+  // v17 -> v18: the session log (technology#56). Empty for everyone, and it
+  // cannot be anything else: the profile has never recorded when a run
+  // happened, so there is nothing to reconstruct rows from. `rollHistory` has
+  // the timestamps and nothing else a row needs, and turning its points into
+  // sessions would put runs on the graph that nobody can check. So a player
+  // with four hundred tournaments behind them starts this log at zero, the
+  // same cost the per-shape split paid at v16, and for the same reason.
+  if (fromVersion < 18) s.sessions = []
   return s
 }
 

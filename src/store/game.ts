@@ -901,12 +901,34 @@ export const useGame = create<GameState>((set, get) => {
   function makeRecap(venue: Venue, place: number, bestFinishBefore: number | null): Recap {
     const profile = useProfile.getState() // re-read: the prize has just landed
     const runStats = seatStatsLive[HUMAN_ID] ?? emptySeatStats()
+    const hands = get().handIndex
+    const rollDelta = (place === 1 ? venue.prize : 0) + runTally.bounty - venue.buyIn
+
+    // The session log (lib/sessions). Written from the same values the recap is
+    // built from, at the same moment, so the two can never describe different
+    // runs. Nothing reads it yet: it exists so that a player's history starts
+    // on the day the recorder ships rather than the day a screen does.
+    //
+    // `Date.now()` lives here rather than in lib/sessions, which is forbidden a
+    // clock. A row's `t` orders and groups it; it is never compared with now.
+    profile.recordSession({
+      t: Date.now(),
+      venueId: venue.id,
+      place,
+      seats: venue.seats,
+      hands,
+      rollDelta,
+      // A copy: `seatStatsLive` is mutated in place as hands play out, and a
+      // persisted row must not be an alias into it.
+      stats: { ...runStats },
+    })
+
     return buildRecap({
       venueName: venue.name,
       place,
       seats: venue.seats,
-      hands: get().handIndex,
-      rollDelta: (place === 1 ? venue.prize : 0) + runTally.bounty - venue.buyIn,
+      hands,
+      rollDelta,
       runStats,
       lifetimeBefore: subtractStats(profile.tendencies, runStats),
       lifetimeAfter: profile.tendencies,

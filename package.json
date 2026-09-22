@@ -31,7 +31,8 @@
     "play-it-out-cost": "tsx scripts/play-it-out-cost.ts",
     "odds-band-coverage": "tsx scripts/odds-band-coverage.ts",
     "lead-band": "tsx scripts/lead-band.ts",
-    "cash-sim": "tsx scripts/cash-sim.ts"
+    "cash-sim": "tsx scripts/cash-sim.ts",
+    "session-volume": "tsx scripts/session-volume.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

@@ -47,6 +47,7 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     challengeWins: [],
     challengesPlayed: 0,
     drills: {},
+    sessions: [],
     ...over,
   } as ProfileData
 }

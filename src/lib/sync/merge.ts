@@ -23,6 +23,7 @@ import type {
   VenueRecord,
 } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
+import { mergeSessions } from '@/lib/sessions'
 import { STARTING_ROLL } from '@/config/venues'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
@@ -106,6 +107,13 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // but a row from another client is not this store's output.
     rollHistory: winner.rollHistory.slice(-ROLL_HISTORY_CAP),
 
+    // Union, not a side. A session row is a finished run: a fact about a
+    // past evening that the other device has no opinion about, so taking the
+    // winner's log would silently delete everything played on the loser. This
+    // is the one field where `pickUnhandled`'s default would have lost data
+    // rather than been merely defensible (technology#56).
+    sessions: mergeSessions(local.sessions, remote.sessions),
+
     // Per-key best-of.
     venueRecords: mergeVenueRecords(local.venueRecords, remote.venueRecords),
     castRecords: mergeCastRecords(local.castRecords, remote.castRecords),
@@ -185,7 +193,12 @@ export function isPristine(p: ProfileData): boolean {
     // Drills are reachable without ever sitting down, so a rating is progress
     // even on a profile that has played no hands. Without this clause, signing
     // in on that device adopts the account's row and the rating is gone.
-    Object.keys(p.drills ?? {}).length === 0
+    Object.keys(p.drills ?? {}).length === 0 &&
+    // A logged session means a finished tournament, which `stats` above would
+    // already have caught. Named anyway so that a future row written from
+    // somewhere other than a tournament end cannot make a played profile read
+    // as untouched.
+    (p.sessions ?? []).length === 0
   )
 }
 
@@ -378,6 +391,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'challengesPlayed',
     'drills',
     'escrow',
+    'sessions',
   ])
   const out: Record<string, unknown> = {}
   for (const key of new Set([...Object.keys(winner), ...Object.keys(loser)])) {
