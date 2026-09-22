@@ -58,7 +58,8 @@ play money only, no pop-ups, no fake felt.
 - **Ambient help** — live win-% equity, hand strength, plain-English reads on
   opponents, and a reviewable last-hand history. Informative, never nagging.
 - **Drills** — short spots with a right answer, graded by the engine rather than by
-  a lookup table, and never metered. *Which hand wins?* is free forever.
+  a lookup table, and never metered. *What have you got?* and *Which hand wins?* are
+  free forever.
 - **Pot-Limit Omaha** — four hole cards, and you must use exactly two of them with
   exactly three from the board. Same engine, genuinely different game.
 - **Build your own table** — seats, stakes, stack depth, blind speed, bounty, and
@@ -83,15 +84,23 @@ table.
 
 ### What's free, and what isn't
 
-**Pip is free to play and most of it is open to everybody** — the whole ladder,
-every side table, the cash games, the Daily, the Chip Shop, the freeroll, the guides,
-the odds calculator, and the read on every hand you play. Nothing that shipped free
-ever gets metered later.
+<!-- free-claims:start. Checked against src/config by tests/freeClaims.test.ts -->
+**Pip is free to play and most of it is open to everybody** — the whole ten-venue ladder,
+the Rail's cash games, the challenge tables, the Daily, the Chip Shop, the freeroll, the
+guides, the odds calculator, the read on every hand you play, and the drills called
+*What have you got?* and *Which hand wins?*.
+<!-- free-claims:end -->
+
+Nothing that shipped free gets metered later. **That has happened once**, on 20 September
+2026 and before there was any way to pay us: the seven side tables moved behind the
+membership. Nobody had paid for them, because nobody could.
+[`docs/membership.md`](docs/membership.md) records why it does not happen again.
 
 There is also an optional **membership** (£5.99/mo or £49/yr) that adds more to
-play: extra rooms, Pot-Limit Omaha, build-your-own-table, a report on your own
-play across every hand, and spectating after you bust. It's a real fence and we'd
-rather call it one than pretend otherwise. **It is not pay-to-win** — pay-to-win
+play: the side tables, Deep Stack, Pot-Limit Omaha, Short Deck, Omaha Hi-Lo,
+Five-Card Draw, build-your-own-table, a report on your own play across every hand,
+and spectating after you bust. It's a real fence and we'd rather call it one than
+pretend otherwise. **It is not pay-to-win** — pay-to-win
 means buying an advantage over another player, and Pip is single-player with no
 leaderboard. Nothing you can buy changes a hand: not the cards, the odds, what
 you're shown, or a rebuy. See [ROADMAP → How Pip pays for itself](ROADMAP.md).

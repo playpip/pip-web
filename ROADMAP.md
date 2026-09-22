@@ -24,7 +24,8 @@ and dates aren't listed on purpose. If something here matters to you,
 - **Build your own table** — seats, stakes, depth, speed, bounty and who sits down. Invite
   the high rollers to a cheap table and they bring their own game with them; the prize is
   the same, and nobody you invite can build you an easier one
-- **Member rooms** — four more tables and three regulars you only meet in them
+- **Deep Stack**, triple chips and a slow clock at five stakes, with three regulars
+  you only meet there
 - **A report on your own play** — leaks and strengths drawn from every hand you have
   played, each one showing the sample it came from
 - **Watching a tournament out after you bust**, with every hand face up
@@ -54,28 +55,40 @@ Worth saying plainly, because a free product that never explains this is usually
 surprise you.
 
 **Pip is free to play and a large part of the game is open to everybody.** Not a trial, not
-a demo, and — the part that actually matters — **nothing that shipped free ever gets metered
-later.** Free, permanently: the whole ten-venue ladder and every side table, the Rail's cash
-games, the challenge tables, the Daily Deal, the Chip Shop economy, the Kitchen Table
-freeroll, the read on every hand as you finish it, the card at the end of a run, two drill
-kinds played as often as you like, every written guide, the odds calculator, and moving your
-profile between devices. You can play Pip for years and never see a price.
+a demo.
+
+<!-- free-claims:start. Checked against src/config by tests/freeClaims.test.ts -->
+Free, permanently: the whole ten-venue ladder, the Rail's cash games, the challenge tables,
+the Daily Deal, the Chip Shop economy, the Kitchen Table freeroll, the read on every hand as
+you finish it, the card at the end of a run, the drills called "What have you got?" and
+"Which hand wins?" played as often as you like, every written guide, the odds calculator, and
+moving your profile between devices. You can play Pip for years and never see a price.
+<!-- free-claims:end -->
+
+**Nothing that shipped free gets metered later, and that has happened once.** On 20 September
+2026 the seven side tables moved behind the membership. It was allowed exactly once and only
+because of when it happened: there was no checkout, so nobody had paid for them and nobody
+had chosen Pip because of them. `docs/membership.md` carries the full account, including why
+it does not happen again. If you think that reads as a licence to do it a second time, say
+so in an issue. It is the objection we would raise.
 
 **There is also a membership, and it is a real fence.** It does not unlock the game above —
 it adds rooms and tools beside it. We would rather say "fence" than pretend otherwise.
 
-There will eventually be a **membership**, for the things that cost real money to run or
+There will eventually be a way to pay for it, for the things that cost real money to run or
 that don't exist yet. **Built and sitting behind the check today**: the drills called
 "Which five play?", "Count your outs", "Pot odds" and "Who gets there?" plus the play-it-out
-mode; four member rooms with three regulars of their own; build-your-own-table; Pot-Limit
-Omaha; a report that reads your play across every hand you have ever played; watching a
-tournament out after you bust; and four member card backs. **Not built**: multiplayer, which
-is the big one and is honestly some way off.
+mode; the seven side tables; the five Deep Stack rooms, with three regulars of their own;
+build-your-own-table; Pot-Limit Omaha, Short Deck, Omaha Hi-Lo and Five-Card Draw; blackjack;
+a report that reads your play across every hand you have ever played; playing a whole session
+back hand by hand; watching a tournament out after you bust; and the members' shelf of card
+backs, avatar rings, dealer buttons, table sounds and finishes. **Not built**: multiplayer,
+which is the big one and is honestly some way off.
 
 The drills that shipped free stay free and unmetered, which is the paragraph above applied
-to the thing most likely to test it. Two of the six are free, and the free pair is the pair
-a beginner starts on: naming the hand you are holding, and reading two finished hands
-against each other. The full list, including which parts are real, is at
+to the thing most likely to test it. The free pair is the pair a beginner starts on, named in
+the list above: one is naming the hand you are holding, the other is reading two finished
+hands against each other. The full list, including which parts are real, is at
 [/membership](https://playpip.io/membership) — that page is generated from the same data
 this paragraph is written from, and a test stops it advertising anything unbuilt.
 

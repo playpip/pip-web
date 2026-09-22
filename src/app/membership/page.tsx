@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { LegalPage, Section, List, Item, A } from '@/components/marketing/LegalPage'
+import { DRILL_KINDS } from '@/config/drills'
 import { contentAlternates, contentSocial } from '@/config/site'
 import {
   HOW_TO_CANCEL,
@@ -51,15 +52,27 @@ export const metadata: Metadata = {
 const shipped = MEMBERSHIP_FEATURES.filter((f) => f.shipped)
 const coming = MEMBERSHIP_FEATURES.filter((f) => !f.shipped)
 
+// The free drill kinds, named from the same list the app gates on.
+//
+// Typed out, this line said "the drill called “Which hand wins?”" while the
+// feature item below it said two kinds stay free: one page, two answers, and
+// the one a buyer reads first understated what they already have. A sentence
+// naming which things are free is a claim about `membersOnly`, so it reads
+// `membersOnly`. `tests/freeClaims.test.ts` holds the same line on the README
+// and the roadmap, which cannot import anything.
+const freeDrills = DRILL_KINDS.filter((kind) => !kind.membersOnly)
+  .map((kind) => `“${kind.title}”`)
+  .join(' and ')
+
 export default function MembershipPage() {
   return (
     <LegalPage title="Membership" updated="September 2026">
       <Section title="The short version">
         <p>
-          Pip is free. The ladder, the venues, the Daily Deal, the Chip Shop, every written guide
-          and the drill called “Which hand wins?” cost nothing and always will. The membership is{' '}
-          {MEMBERSHIP_PRICE.monthly} a month, or {MEMBERSHIP_PRICE.annual} a year, and it adds to
-          that. It never takes anything away from it.
+          Pip is free. The ten-venue ladder, the Rail, the Daily Deal, the Chip Shop, the freeroll,
+          every written guide and the drills called {freeDrills} cost nothing and always will. The
+          membership is {MEMBERSHIP_PRICE.monthly} a month, or {MEMBERSHIP_PRICE.annual} a year, and
+          it adds to that. It never takes anything away from it.
         </p>
         <p>
           You will need a free Pip account, because a membership has to belong to someone. You do

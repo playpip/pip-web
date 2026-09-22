@@ -202,9 +202,15 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
   },
   {
     id: 'coaching',
+    // Was "shown against where a sound player sits", which claims a reference
+    // for correct play that we do not have and have ruled out acquiring:
+    // technology#82 closed calibrating anything against our own bots. The four
+    // bands in lib/deepCoach.ts are the ones lib/reads.ts uses to put an
+    // opponent into words. They are ours, chosen, and defensible as ordinary,
+    // but not as a standard. Say which it is, on the page that asks for money.
     title: 'Coaching that reads you, not just the hand',
     blurb:
-      'A report drawn from every hand you have played: what it is costing you in big blinds, which street the money leaves by, and the hands it happened in. Every line is a ratio of two things that were counted, shown against where a sound player sits. The per-hand read stays free.',
+      'A report drawn from every hand you have played: what it is costing you in big blinds, which street the money leaves by, and the hands it happened in. Every line is a ratio of two things that were counted, shown against an ordinary range for it, a range we drew ourselves and not a standard anybody else keeps. The per-hand read stays free.',
     shipped: true,
   },
   {
