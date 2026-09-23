@@ -131,6 +131,40 @@ export function canPlayDrill(kind: DrillKind, member: boolean): boolean {
 }
 
 /**
+ * What a reader who is not a member can actually play, as a sentence.
+ *
+ * **It exists because /learn told arrivals the opposite for a month.** That page
+ * carried "Guides, a tour and drills. All free, no signup." and a card reading
+ * "Free, unlimited, no signup" while three of the four kinds had `membersOnly`
+ * on them and the room filtered them off the shelf. Nothing was wrong in the
+ * app: the wrong thing was a sentence on the page people arrive on, written when
+ * every kind was free and never revisited when one stopped being.
+ *
+ * So the sentence is computed from the same flag the room reads. A kind changing
+ * hands is a copy change on every page that renders this, and it happens in the
+ * commit that moves the flag rather than in whichever one somebody remembers.
+ *
+ * `ROADMAP.md` is still the disclosure of which kinds are paid, pinned by
+ * `tests/roadmapDrills.test.ts`; this is the shorter version, for a page that is
+ * selling the idea of practising rather than listing what a membership holds.
+ */
+export function freeDrillNote(): string {
+  const free = DRILL_KINDS.filter((kind) => !kind.membersOnly)
+  if (free.length === 0) return 'Every kind comes with the membership.'
+
+  // Quoted, the way ROADMAP.md names them: "Which hand wins? is free" reads as a
+  // question being asked of the reader rather than as the name of a thing.
+  const titles = free.map((kind) => `“${kind.title}”`)
+  const names =
+    titles.length === 1 ? titles[0] : `${titles.slice(0, -1).join(', ')} and ${titles.at(-1)}`
+  const opening = `${names} ${titles.length === 1 ? 'is' : 'are'} free and unlimited.`
+
+  return free.length === DRILL_KINDS.length
+    ? opening
+    : `${opening} The rest come with the membership.`
+}
+
+/**
  * A kind's entry, or a failure. Throwing rather than returning undefined
  * because the callers are a route's static params and a screen's title: a kind
  * with no entry would otherwise render an untitled screen, and nothing about

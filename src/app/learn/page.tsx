@@ -4,6 +4,7 @@ import { ArrowRight, Calculator, Target } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { LegalPage } from '@/components/marketing/LegalPage'
 import { characterById } from '@/config/cast'
+import { freeDrillNote } from '@/config/drills'
 import { ANSWER_PAGES, type LearnGuide, PILLAR_GUIDES } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
 
@@ -143,7 +144,11 @@ function DoCard({
 export default function LearnPage() {
   const webb = characterById('webb')
   return (
-    <LegalPage title="Learn poker" subtitle="Guides, a tour and drills. All free, no signup." wide>
+    <LegalPage
+      title="Learn poker"
+      subtitle="Guides and a tour of the basics. All free, no signup."
+      wide
+    >
       {/* Webb keeps this section the way Pearl keeps the shop. He is on the
           page, not in the guides: the guides are teaching prose, and the dry
           register belongs to the chrome around them. His line is the page's
@@ -219,13 +224,19 @@ export default function LearnPage() {
           more chrome than content. The calculator had no internal link from
           anywhere on the site until 2026-09-03 while out-earning every guide on
           this page in Google impressions, so the reason it is here is
-          discoverability rather than tidiness. */}
+          discoverability rather than tidiness.
+
+          The drills line is computed (`freeDrillNote`) because it was wrong for a
+          month: it read "Free, unlimited, no signup" while three of the four
+          kinds carried `membersOnly` and the room filtered them off the shelf.
+          The subtitle above said the same thing in fewer words. Anything on this
+          page describing what a drill costs reads the flag. */}
       <section>
         <Heading>Then try it</Heading>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <DoCard href="/game/drills" icon={Target} title="Drills">
             One question at a time, dealt fresh and marked by the engine, with the arithmetic
-            underneath it. Free, unlimited, no signup.
+            underneath it. {freeDrillNote()}
           </DoCard>
           <DoCard href="/poker-odds-calculator" icon={Calculator} title="Poker odds calculator">
             Your two cards, the board if there is one, and how many people you are against. It deals

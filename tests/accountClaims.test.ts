@@ -86,8 +86,7 @@ const NO_ACCOUNT_PHRASING: Record<string, string> = {
   // Search surfaces. The phrase is the query, the title and, on the SEO page,
   // the URL. Rewriting these to be tidier costs a ranking and buys nothing.
   'src/app/play-poker-free-no-signup/page.tsx': 'the phrase is its title, its URL and its query',
-  'src/app/learn/page.tsx':
-    'the hub subtitle is its description; the drills line is about the drill',
+  'src/app/learn/page.tsx': 'the hub subtitle is its description',
   'src/app/tutorial/page.tsx': 'description only',
   'src/app/poker-odds-calculator/page.tsx': 'description only',
   'src/app/layout.tsx': 'the site-wide description and share card',
