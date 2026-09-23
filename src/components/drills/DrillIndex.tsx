@@ -26,13 +26,14 @@ import { useProfile } from '@/store/profile'
  * lib/drills/rating.ts.
  *
  * **A kind that comes with the membership is not on the shelf until there is
- * somewhere to read about it.** Every kind registered today is free, so this
- * filter changes nothing for anybody as it stands. When the first paid kind
- * lands, the honest surface is the tile still being here with a plain line
- * saying what it is: you cannot buy what you cannot see, and hiding it is
- * dishonest by omission. That needs /membership to exist to point at, and it
- * does not yet (technology#52 item F), so for now the seam hides rather than
- * pointing at a 404.
+ * somewhere to read about it.** Three of the four kinds carry `membersOnly`
+ * today, so this filter is why a signed-out reader sees one tile. The honest
+ * surface is eventually the tile still being here with a plain line saying what
+ * it is: you cannot buy what you cannot see, and hiding it is dishonest by
+ * omission. That needs /membership to exist to point at, and it does not yet
+ * (technology#52 item F), so for now the seam hides rather than pointing at a
+ * 404. `ROADMAP.md` is the disclosure in the meantime, and `freeDrillNote()` is
+ * what a page outside the app says about it.
  */
 export function DrillIndex() {
   const member = useEntitlement()
