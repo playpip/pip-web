@@ -8,6 +8,8 @@ import { Reveal } from '@/components/Reveal'
 import { RollGraph } from '@/components/RollGraph'
 import { CountUp } from '@/components/CountUp'
 import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
+import { RatingGraph } from './DrillRating'
 import { PlayStyleChart } from './PlayStyleChart'
 import { Card, CardLabel, Mini, Stat } from './bento'
 import { RangePicker } from './RangePicker'
@@ -24,6 +26,7 @@ import { rankFor } from '@/config/ranks'
 import { derivePlayStyle } from '@/lib/playStyle'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
+import { drillHref } from '@/components/drills/exit'
 
 const ALL_VENUES = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE]
 
@@ -293,24 +296,38 @@ export function StatsPage() {
       )}
 
       {/* drills: the practice room's side of the story, under the table's */}
-      {playedDrills.length > 0 && (
-        <Reveal className="mt-4">
-          <Card>
-            <div className="mb-3 flex items-baseline justify-between gap-4">
-              <CardLabel>Drills</CardLabel>
-              {/* The one thing worth saying about these numbers, and it is the
-                  opposite of what a streak says. No count of what is left, no
-                  date, nothing to be behind on. */}
-              <p className="text-xs text-muted-foreground/70">Yours. None of it expires</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+      <Reveal className="mt-4">
+        <Card>
+          <div className="mb-3 flex items-baseline justify-between gap-4">
+            <CardLabel>Drills</CardLabel>
+            {/* The one thing worth saying about these numbers, and it is the
+                opposite of what a streak says. No count of what is left, no
+                date, nothing to be behind on. */}
+            <p className="text-xs text-muted-foreground/70">Yours. None of it expires</p>
+          </div>
+          {playedDrills.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {playedDrills.map((kind) => (
-                <DrillStanding key={kind.id} kindId={kind.id} title={kind.title} />
+                <DrillStanding key={kind.id} kindId={kind.id} title={kind.title} accent={accent} />
               ))}
             </div>
-          </Card>
-        </Reveal>
-      )}
+          ) : (
+            // A line and a way in, and nothing more. Not a row of zeroes and not
+            // a pitch: the drills are there whenever somebody wants them.
+            <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-foreground/[0.03] px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Every spot you answer draws a line here.
+              </p>
+              <Link
+                href="/game/drills"
+                className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+              >
+                Open the drills
+              </Link>
+            </div>
+          )}
+        </Card>
+      </Reveal>
     </PageShell>
   )
 }
@@ -330,32 +347,67 @@ export function StatsPage() {
  * fact about what you did rather than about what you can currently open. Should
  * a kind ever stop being available to somebody, their history of it stays.
  */
-function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }) {
+function DrillStanding({
+  kindId,
+  title,
+  accent,
+}: {
+  kindId: DrillKindId
+  title: string
+  accent: string
+}) {
   const record = useProfile((s) => s.drills[kindId])
   if (!record || record.answered === 0) return null
 
   const accuracy = drillAccuracy(record)
   const line = standingLine(kindId, record.rating)
   const shapes = shapeBreakdown(kindId, record.shapes)
-  // Facts, quietest first. `bestRun` only once it is a run: "best 1" is not a
-  // personal best, it is one right answer.
-  const facts = [
-    accuracy !== null ? `${accuracy}% of ${record.answered.toLocaleString()}` : null,
-    record.bestRun > 1 ? `best run ${record.bestRun}` : null,
-  ].filter(Boolean)
+  const history = record.history ?? []
+  const ratings = history.map(([, r]) => r)
 
   return (
-    <div className="rounded-2xl bg-foreground/[0.04] p-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h3>
-        <p className="shrink-0 text-2xl font-semibold tabular-nums leading-none">
-          {record.rating.toLocaleString()}
-        </p>
+    <div className="flex flex-col rounded-2xl bg-foreground/[0.04] p-4">
+      <div className="flex items-start justify-between gap-3">
+        {/* The title is the way back into the kind: the card is about a thing
+            you can go and do again, so the name of it goes there. */}
+        <Link
+          href={drillHref(kindId, 'stats')}
+          className="group -m-1 inline-flex min-w-0 items-center gap-1 rounded-lg p-1 text-sm font-semibold transition hover:text-foreground/80"
+        >
+          <span className="truncate">{title}</span>
+          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+        </Link>
+        <div className="shrink-0 text-right">
+          <CountUp
+            value={record.rating}
+            className="block text-2xl font-semibold tabular-nums leading-none"
+          />
+          <p className="mt-1 text-3xs uppercase tracking-[0.12em] text-muted-foreground">Rating</p>
+        </div>
       </div>
-      {facts.length > 0 && (
-        <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">{facts.join(' · ')}</p>
+
+      {/* The line over spots answered. Two points is the least a line needs;
+          a record always has them after one answer, and a migrated one arrives
+          with them. */}
+      {history.length >= 2 && (
+        <div className="mt-3">
+          <RatingGraph history={history} accent={accent} className="h-24 w-full" />
+          <div className="mt-1 flex justify-between text-2xs tabular-nums text-muted-foreground/70">
+            <span>low {Math.min(...ratings).toLocaleString()}</span>
+            <span>high {Math.max(...ratings).toLocaleString()}</span>
+          </div>
+        </div>
       )}
-      {line && <p className="mt-2 text-sm leading-snug text-muted-foreground">{line}</p>}
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Fact label="Answered" value={record.answered.toLocaleString()} />
+        <Fact label="Right" value={accuracy !== null ? `${accuracy}%` : '–'} />
+        {/* A personal best, not a streak: nothing here can be lost by being
+            away. "Best 1" is one right answer rather than a run, so it waits. */}
+        <Fact label="Best run" value={record.bestRun > 1 ? record.bestRun.toLocaleString() : '–'} />
+      </div>
+
+      {line && <p className="mt-3 text-sm leading-snug text-muted-foreground">{line}</p>}
       {shapes.length > 0 && (
         <dl className="mt-3 space-y-1 border-t border-foreground/10 pt-3">
           {shapes.map((shape) => (
@@ -377,6 +429,16 @@ function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }
           ))}
         </dl>
       )}
+    </div>
+  )
+}
+
+/** One small figure under a drill's graph. */
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-foreground/[0.04] px-2 py-2 text-center">
+      <p className="text-base font-semibold tabular-nums leading-none">{value}</p>
+      <p className="mt-1 text-3xs uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
     </div>
   )
 }

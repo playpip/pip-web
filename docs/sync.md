@@ -101,7 +101,7 @@ Field by field:
 | `venueRecords`, `castRecords` | per key, the better of the two |
 | `challengeWins` | union: you beat them, and a device that hasn't heard isn't evidence you didn't |
 | `challengesPlayed` | `max()`, monotonic, like `peakRoll` |
-| `drills` | per kind: counters and `bestRun` take the better of the two; **`rating` follows whichever side answered more spots** |
+| `drills` | per kind: counters and `bestRun` take the better of the two; **`rating` (and its `history`, the graph's line) follows whichever side answered more spots** |
 | `created` | either side saying yes wins |
 | cosmetics (`name`, `avatar`, `cardBack`, `deckFace`, `tableFinish`, `tableTalk`) | chosen side |
 | `daily` | later day; same day, a played run beats an abandoned one |

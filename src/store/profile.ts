@@ -14,6 +14,7 @@ import { DEALER_BUTTONS, DEFAULT_SOUND_PACK } from '@/config/cosmetics'
 import type { BlackjackSession } from '@/lib/blackjack/session'
 import type { CustomTableSpec } from '@/config/customTable'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
+import { type RatingPoint, appendRatingPoint, seedRatingHistory } from '@/lib/drills/history'
 import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
 import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
 import type { ReviewHand } from '@/lib/review/session'
@@ -102,6 +103,15 @@ export interface DrillRecord {
    * Anything reading it joins against a kind's ladder and ignores the rest.
    */
   shapes: Record<string, ShapeRecord>
+  /**
+   * The rating's past, as `[answered, rating]` pairs: the line on the graph.
+   *
+   * Over spots answered, never over dates, because nothing in the drills layer
+   * reads the clock (lib/drills/history.ts). Capped, and thinned rather than
+   * truncated when the cap bites, so the first point and the recent stretch are
+   * always there. The last point is always `[answered, rating]`.
+   */
+  history: RatingPoint[]
 }
 
 /** What one shape of spot knows about you. Two counters, nothing derived. */
@@ -310,7 +320,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 21
+export const PERSIST_VERSION = 22
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -320,6 +330,7 @@ export const emptyDrillRecord = (): DrillRecord => ({
   rating: STARTING_RATING,
   bestRun: 0,
   shapes: {},
+  history: seedRatingHistory(0, STARTING_RATING),
 })
 
 export const useProfile = create<ProfileState>()(
@@ -419,15 +430,16 @@ export const useProfile = create<ProfileState>()(
         set((s) => {
           const rec = s.drills[kindId] ?? emptyDrillRecord()
           const was = rec.shapes?.[shape] ?? { answered: 0, correct: 0 }
+          // `rec.answered` is the count before this spot, which is what the
+          // K-factor is asking about.
+          const rating = nextRating(rec.rating, difficulty, correct, rec.answered)
           return {
             drills: {
               ...s.drills,
               [kindId]: {
                 answered: rec.answered + 1,
                 correct: rec.correct + (correct ? 1 : 0),
-                // `rec.answered` is the count before this spot, which is what
-                // the K-factor is asking about.
-                rating: nextRating(rec.rating, difficulty, correct, rec.answered),
+                rating,
                 bestRun: Math.max(rec.bestRun, run),
                 // The same answer counted a second time, by shape. Counted here
                 // rather than derived anywhere, for the reason the rating is:
@@ -440,6 +452,14 @@ export const useProfile = create<ProfileState>()(
                     correct: was.correct + (correct ? 1 : 0),
                   },
                 },
+                // And once more as a point on the graph, at the count after
+                // this spot. Same rule: the place that moves the rating is the
+                // place that records where it moved to.
+                history: appendRatingPoint(
+                  rec.history ?? seedRatingHistory(rec.answered, rec.rating),
+                  rec.answered + 1,
+                  rating,
+                ),
               },
             },
           }
@@ -687,6 +707,22 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
     s.avatarRing = null
     s.dealerButton = DEFAULT_DEALER_BUTTON
     s.soundPack = DEFAULT_SOUND_PACK.id
+  }
+  // v21 → v22: the drill rating's history, the line on the graph.
+  //
+  // **Seeded, not left empty**, and this is the opposite call from v15 and v16
+  // for a reason those two did not have: here there are two points that are
+  // simply true. Every record started at the starting rating with nothing
+  // answered, and it is at `rating` after `answered` now. The middle was never
+  // kept and is not invented; the graph draws the one straight line between two
+  // facts. A player with two hundred answers opens `/stats` to a line rather
+  // than to "nothing yet", and the next answer carries on from the end of it.
+  //
+  // Unconditional for the reason v21 gives: a v21 record cannot have a history.
+  if (fromVersion < 22) {
+    for (const rec of Object.values(s.drills ?? {})) {
+      rec.history = seedRatingHistory(rec.answered ?? 0, rec.rating ?? STARTING_RATING)
+    }
   }
   return s
 }

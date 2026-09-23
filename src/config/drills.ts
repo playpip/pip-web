@@ -129,7 +129,41 @@ export const DRILL_KINDS: DrillKind[] = [
     boardCards: 3,
     membersOnly: true,
   },
+  // **The first practice pack, and a kind rather than a mode** (2026-09-23). A
+  // short lesson, then spots, graded like every kind here. It is registered
+  // rather than hung off `pot-odds` the way play-it-out is (technology#86)
+  // because it asks a different question with a different answer key: not "does
+  // your draw get there often enough" against a hand or a sampled range, but
+  // "how much of what bets like this do you beat", counted exactly against a
+  // range you are shown. Folding it into the pot odds rating would make that
+  // number mean two things, which is the reason play-it-out keeps its own
+  // record too. As a kind it gets a rating, a ladder, a tile and a route that
+  // the coaching report can link to — see RIVER_PACK_ID.
+  //
+  // It prices a hand, so it is the membership's (docs/membership.md: the free
+  // half teaches reading a hand, the paid half pricing one), and the flag is
+  // here in the commit that registers it, as rule #8 requires.
+  {
+    id: 'calling-the-river',
+    title: 'Calling the river',
+    blurb: 'They have bet the river. Work out what bets like this, weigh the price, call or fold.',
+    question: 'They have bet the river. Call or fold?',
+    gradedBy:
+      'Settled by counting every hand that bets like this against yours, and only asked when the answer is the same however often they bluff.',
+    boardCards: 5,
+    membersOnly: true,
+  },
 ]
+
+/**
+ * The river pack's id, and its route is `/game/drills/${RIVER_PACK_ID}`.
+ *
+ * **Stable on purpose**: the coaching report's `paying-off` and
+ * `folds-to-pressure` leak cards are meant to link here, and the id is also the
+ * key the pack's record is kept under on the profile, so renaming it would
+ * orphan everybody's rating. Change the title freely; never this.
+ */
+export const RIVER_PACK_ID = 'calling-the-river' satisfies DrillKindId
 
 /**
  * May this player open this kind?

@@ -33,7 +33,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowRight, Lock } from 'lucide-react'
+import { ArrowRight, ChevronRight, Lock } from 'lucide-react'
 import { PageShell } from '@/components/PageShell'
 import { Reveal } from '@/components/Reveal'
 import { RollGraph } from '@/components/RollGraph'
@@ -44,6 +44,8 @@ import { BandMeter } from '@/components/profile/BandMeter'
 import { SplitBar } from '@/components/profile/SplitBar'
 import { RangePicker } from '@/components/profile/RangePicker'
 import { StreetCosts } from '@/components/profile/StreetCosts'
+import { RatingSparkline } from '@/components/profile/DrillRating'
+import { DRILL_KINDS, RIVER_PACK_ID } from '@/config/drills'
 import { EvidenceDialog } from '@/components/review/EvidenceDialog'
 import { useProfile, type RollPoint } from '@/store/profile'
 import { useEntitlement } from '@/store/entitlement'
@@ -53,6 +55,7 @@ import { ROLL_RANGES, type RollRange, pointsInRange, rollTrend } from '@/lib/rol
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
+import { drillHref } from '@/components/drills/exit'
 
 export function CoachReport() {
   const router = useRouter()
@@ -249,6 +252,8 @@ function Report({
         </>
       )}
 
+      <DrillsSummary accent={accent} />
+
       {read.strengths.length > 0 && (
         <>
           <SectionHeading title="What is working" />
@@ -295,10 +300,25 @@ function SectionHeading({ title, aside }: { title: string; aside?: string }) {
  * One finding: the number, the band it was judged on, what to do, and — when
  * there are hands kept for it — the hands themselves.
  */
+/**
+ * The practice pack that trains a leak, by leak id.
+ *
+ * The report finds the leak; this is where it stops leaving you there. Only
+ * leaks a pack actually trains are listed — a link to a drill that practises
+ * something adjacent would be a sales line, not advice. All three of these are
+ * the same decision at the end of a hand: a bet in front of you, call or fold.
+ */
+const PRACTICE: Record<string, string> = {
+  'paying-off': RIVER_PACK_ID,
+  'folds-to-pressure': RIVER_PACK_ID,
+  'cannot-fold': RIVER_PACK_ID,
+}
+
 function LeakCard({ leak }: { leak: Leak }) {
   const evidence = useProfile((s) => s.reviewStats.evidence)
   const [open, setOpen] = useState(false)
   const hands = leak.evidence ? (evidence[leak.evidence as EvidenceKey] ?? []) : []
+  const practice = DRILL_KINDS.find((k) => k.id === PRACTICE[leak.id])
 
   return (
     <article
@@ -319,6 +339,19 @@ function LeakCard({ leak }: { leak: Leak }) {
       {leak.metric && <BandMeter className="mt-4" metric={leak.metric} />}
       <p className="mt-3 text-sm">{leak.advice}</p>
 
+      {practice && (
+        <Link
+          href={drillHref(practice.id, 'report')}
+          className="group mt-4 flex items-center justify-between gap-3 rounded-xl bg-foreground/[0.05] px-3.5 py-3 text-sm transition hover:bg-foreground/[0.08] active:scale-[0.98]"
+        >
+          <span>
+            <span className="block text-xs text-muted-foreground">Practise this</span>
+            <span className="font-medium">{practice.title}</span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+        </Link>
+      )}
+
       {hands.length > 0 && (
         <>
           <button
@@ -333,6 +366,66 @@ function LeakCard({ leak }: { leak: Leak }) {
         </>
       )}
     </article>
+  )
+}
+
+/**
+ * The drills, one row a kind: the rating, its line, and the way back in.
+ *
+ * **A summary, not a second /stats.** The per-shape rows, the accuracy and the
+ * standing sentence live on /stats; here each kind is one line you can read
+ * across, because the report is about the tables and the drills are the other
+ * half of the same player rather than the subject. Nothing at all when no kind
+ * has an answer yet: an empty card on a paid page is the report telling you to
+ * go and do homework, and it is not that kind of page.
+ *
+ * Only reached inside `Report`, so members only, like everything around it,
+ * and nothing here asks who is paying.
+ */
+function DrillsSummary({ accent }: { accent: string }) {
+  const drills = useProfile((s) => s.drills)
+  const played = DRILL_KINDS.filter((kind) => (drills[kind.id]?.answered ?? 0) > 0)
+  if (played.length === 0) return null
+
+  return (
+    <>
+      <SectionHeading title="Your drills" aside="Rating over spots answered" />
+      <Reveal className="lg:col-span-6">
+        <Card className="p-2 sm:p-3">
+          <ul className="grid gap-1 md:grid-cols-2">
+            {played.map((kind) => {
+              const rec = drills[kind.id]
+              return (
+                <li key={kind.id}>
+                  <Link
+                    href={drillHref(kind.id, 'report')}
+                    className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-foreground/[0.04] active:scale-[0.99]"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{kind.title}</p>
+                      <p className="text-xs tabular-nums text-muted-foreground">
+                        {rec.answered.toLocaleString()} {rec.answered === 1 ? 'spot' : 'spots'}
+                      </p>
+                    </div>
+                    {(rec.history?.length ?? 0) >= 2 && (
+                      <RatingSparkline
+                        history={rec.history}
+                        accent={accent}
+                        className="h-8 w-20 shrink-0 sm:w-28"
+                      />
+                    )}
+                    <p className="w-14 shrink-0 text-right text-lg font-semibold tabular-nums">
+                      {rec.rating.toLocaleString()}
+                    </p>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </Card>
+      </Reveal>
+    </>
   )
 }
 

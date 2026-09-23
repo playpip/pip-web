@@ -49,7 +49,10 @@ export default function TermsPage() {
           timer-blocked or ad-blocked out of any of them. There is also an optional paid{' '}
           <A href="/membership">membership</A>, which adds the side tables, the games that
           aren&rsquo;t Hold&rsquo;em and the tools beside them. It costs {MEMBERSHIP_PRICE.monthly}{' '}
-          a month or {MEMBERSHIP_PRICE.annual} a year, in pounds. Those prices include any tax that
+          a month or {MEMBERSHIP_PRICE.annual} a year in pounds, and a fixed price of its own in US
+          dollars, euros and Chinese yuan — the prices for each are on the{' '}
+          <A href="/membership">membership page</A>. You are charged in the currency you chose, at
+          the price shown, and never converted at checkout. Every price includes any tax that
           applies where you are, so the amount shown is the amount charged.
         </p>
         <p>

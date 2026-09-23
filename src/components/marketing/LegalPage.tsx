@@ -36,21 +36,7 @@ export function LegalPage({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-foreground/5 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 md:px-10">
-          {/* The back control is the installed app's only way home from here: a
-              standalone PWA has no browser chrome to fall back on. */}
-          <div className="flex items-center gap-1">
-            <BackButton />
-            <Link href="/" aria-label="Pip home" className="transition hover:opacity-80">
-              <Wordmark />
-            </Link>
-          </div>
-          <ThemeToggle />
-        </div>
-      </header>
-
+    <MarketingFrame>
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-14 md:px-10 md:py-20">
         {/* Left-aligned with the chrome, capped at a readable measure. */}
         <div className={wide ? 'max-w-4xl' : 'max-w-2xl'}>
@@ -69,6 +55,34 @@ export function LegalPage({
           <div className="mt-10">{children}</div>
         </div>
       </main>
+    </MarketingFrame>
+  )
+}
+
+/**
+ * The chrome without the column: header, back control and footer around a
+ * page that lays out its own `<main>`. For the one page that is not prose
+ * (`/membership`) — it still needs the back control, for the same reason every
+ * prose page does.
+ */
+export function MarketingFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-40 border-b border-foreground/5 bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 md:px-10">
+          {/* The back control is the installed app's only way home from here: a
+              standalone PWA has no browser chrome to fall back on. */}
+          <div className="flex items-center gap-1">
+            <BackButton />
+            <Link href="/" aria-label="Pip home" className="transition hover:opacity-80">
+              <Wordmark />
+            </Link>
+          </div>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      {children}
 
       <Footer />
     </div>

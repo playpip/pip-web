@@ -132,11 +132,14 @@ test('every graded street sits inside the margin it was accepted for', (t) => {
 })
 
 test('the mode registers nothing, so nothing became free by accident', (t) => {
-  // The ruling: a mode of pot odds, not a fifth kind. If this ever fails, some
-  // future change has registered a kind, and a kind that ships without
-  // `membersOnly` in the same commit is free forever under rule #8.
-  t.is(DRILL_KINDS.length, 6)
+  // The ruling: a mode of pot odds, not a kind of its own. If this ever fails,
+  // some change has registered a kind, and a kind that ships without
+  // `membersOnly` in the same commit is free forever under rule #8. The river
+  // pack is the one kind registered since, deliberately and with its flag (see
+  // tests/drillsCallingTheRiver.test.ts); nothing here is play-it-out's.
+  t.is(DRILL_KINDS.length, 7)
   t.deepEqual(DRILL_KINDS.map((kind) => kind.id).sort(), [
+    'calling-the-river',
     'count-your-outs',
     'hand-strength',
     'pot-odds',
@@ -144,6 +147,7 @@ test('the mode registers nothing, so nothing became free by accident', (t) => {
     'which-five-play',
     'which-hand-wins',
   ])
+  t.true(DRILL_KINDS.find((kind) => kind.id === 'calling-the-river')?.membersOnly === true)
   // Every street it grades is a pot-odds street, which is what makes it inherit
   // that kind's `membersOnly` rather than needing its own.
   t.true(graded.length > 0)

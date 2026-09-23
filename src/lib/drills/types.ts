@@ -76,6 +76,7 @@ export type DrillKindId =
   | 'count-your-outs'
   | 'pot-odds'
   | 'hand-strength'
+  | 'calling-the-river'
 
 /** One of the answers on offer. */
 export interface DrillChoice {
@@ -136,6 +137,43 @@ export interface DrillStakes {
   toCall: number
 }
 
+/**
+ * One street of the betting that led to a decision, as the table would show it.
+ *
+ * For a kind whose question is a line rather than a snapshot: "they checked the
+ * flop, bet 40 into 80 on the turn, bet 90 into 160 on the river". `potBefore`
+ * is the pot as it stood when they acted, so each step says what the bet was
+ * measured against without the screen having to replay any arithmetic.
+ */
+export interface DrillLineStep {
+  street: 'flop' | 'turn' | 'river'
+  action: 'check' | 'bet'
+  /** Chips bet, on a bet. */
+  amount?: number
+  potBefore: number
+}
+
+/**
+ * The range a river bet is facing, counted against the hero's hand, at the
+ * bluffing rate the explanation quotes. Weighted counts, so the bluffs can be
+ * fractional (see lib/drills/riverRange.ts): the felt draws proportions from
+ * these, never a list of hands.
+ */
+export interface RiverRangeSummary {
+  /** Hands they bet for value. */
+  value: number
+  /** Of those, the ones the hero beats (a tie counts half). */
+  valueBeaten: number
+  /** Hands that missed, weighted by how often they bet them. */
+  bluffs: number
+  /** Of those, the ones the hero beats. */
+  bluffsBeaten: number
+  /** The weakest hand in the value half, in words: "a pair of queens". */
+  weakestValue: string
+  /** The hero's share of the pot against all of it. The number the grade came from. */
+  equity: number
+}
+
 /** A generated spot: everything the runner draws and the grader needs. */
 export interface Drill {
   kind: DrillKindId
@@ -159,6 +197,13 @@ export interface Drill {
    * else, and the runner draws nothing rather than drawing a zero.
    */
   stakes?: DrillStakes
+  /**
+   * The betting that led here, for a kind that asks about a line. Absent
+   * everywhere else, like `stakes`.
+   */
+  line?: DrillLineStep[]
+  /** What the bet in front of you is made of, for the river kind. */
+  range?: RiverRangeSummary
   /** The id of the correct choice. */
   answer: string
   /**

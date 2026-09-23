@@ -4,6 +4,7 @@ import {
   type OutsShape,
   type PriceShape,
   type ReadShape,
+  type RiverShape,
   type SettledBy,
   type SpotKind,
   type StrengthShape,
@@ -11,6 +12,7 @@ import {
   outsDifficulty,
   priceDifficulty,
   readDifficulty,
+  riverDifficulty,
   STARTING_RATING,
   spotDifficulty,
   strengthDifficulty,
@@ -184,6 +186,25 @@ const WHICH_FIVE_PLAY: SpotShape[] = [
   fiveShape('board-plays', 'boards that play on their own'),
 ]
 
+const riverShape = (settledBy: RiverShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: riverDifficulty(settledBy),
+})
+
+/**
+ * The shapes "calling the river" deals, easiest first.
+ *
+ * The ladder here is how much room the price left, for the reason set out on
+ * {@link RiverShape}: a rung that meant "bluff-catcher" meant "fold", and a
+ * ladder whose rungs give away the answer is not measuring anybody.
+ */
+const CALLING_THE_RIVER: SpotShape[] = [
+  riverShape('clear-read', 'clear river decisions'),
+  riverShape('close-read', 'close river decisions'),
+  riverShape('thin-read', 'the thinnest river decisions'),
+]
+
 /**
  * Every kind's ladder, or an explicit `null` for a kind that has none.
  *
@@ -200,6 +221,7 @@ const LADDERS: Record<DrillKindId, SpotShape[] | null> = {
   'count-your-outs': COUNT_YOUR_OUTS,
   'pot-odds': POT_ODDS,
   'hand-strength': HAND_STRENGTH,
+  'calling-the-river': CALLING_THE_RIVER,
 }
 
 /** The shapes this kind deals, easiest first, or null if it has no ladder. */
@@ -246,10 +268,10 @@ export const DIFFICULTY_LEVELS = 5
  * be about a whole shape harder than another to be shown as harder.
  *
  * **Where they start is chosen so the two easiest kinds are told apart**, and
- * that is the reader this is for: somebody standing in front of six tiles
+ * that is the reader this is for: somebody standing in front of seven tiles
  * deciding which to open first is best served by the bottom of the ladder being
- * legible, and least served by both of its rungs showing one pip. The six kinds
- * currently fall 1, 2, 3, 4, 4, 5.
+ * legible, and least served by both of its rungs showing one pip. The seven
+ * kinds currently fall 1, 2, 3, 4, 4, 5, 5.
  */
 const DIFFICULTY_AT: readonly number[] = [850, 1_000, 1_150, 1_250]
 

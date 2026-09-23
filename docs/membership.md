@@ -20,8 +20,8 @@ you finish it, the end-of-run card, the two drills a beginner starts on — *Wha
 got?* and *Which hand wins?* — every written guide, the odds calculator, and sync.
 
 Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
-Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, four more
-drill kinds plus the play-it-out mode, the across-sessions play report, the session review,
+Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, five more
+drill kinds (including the first practice pack, *Calling the river*) plus the play-it-out mode, the across-sessions play report, the session review,
 spectating after you bust, and four member card backs. Not built: multiplayer.
 
 **The free half of the drills is where a beginner learns to read a hand, and the paid half
@@ -103,7 +103,7 @@ Three files, and the separation between them is the design.
 |---|---|
 | `src/lib/membership/entitlement.ts` | **What counts as a member.** Pure, storage-free. Reads a `memberships` row and decides. `active` and `trialing` entitle; `past_due` deliberately does not. |
 | `src/store/entitlement.ts` | **The client seam, and the only one.** One store, one hook, one boolean: `useEntitlement()`. Caches the row per user so a member offline is still a member, honoured only until the period they paid for runs out. |
-| `src/config/membership.ts` | **What a membership is and what comes with it.** The price, the Stripe price ids, the feature list, and the `MembersOnly` / `included()` gate. Never grants anything. |
+| `src/config/membership.ts` | **What a membership is and what comes with it.** The price in every currency (`MEMBERSHIP_PRICES`), the Stripe price ids, the feature list, and the `MembersOnly` / `included()` gate. Never grants anything. |
 
 **The price is written down once.** A price living in the page, the settings row, the prompt
 and the Terms section is four numbers that agree until one of them is edited.
@@ -114,6 +114,31 @@ localStorage — not a weak lock, no lock. `supabase/migrations/…_memberships.
 `select` on your own row and **nothing else**; the Stripe webhook writes it with the service
 role. `tests/entitlement.test.ts` fails the build if a mutation against that table ever
 appears in the client, or if the migration grows an insert/update/delete policy.
+
+## Currencies (2026-09-23)
+
+**One membership, four fixed prices**: £5.99/£49, $7.99/$66, €6.99/€57, ¥58/¥470
+(`MEMBERSHIP_PRICES`). Will: "convert to nearest rounded currency for each region".
+
+- **Fixed, not converted.** Each currency is its own amount on the one Stripe price
+  (`currency_options`), so the number on the page is the number on the statement.
+  Adaptive Pricing stays off for the reason cmo#71 gave: a rate with a fee built in.
+- **The rounding rule is the pound's shape**: monthly to the nearest .99, yearly to the
+  nearest whole unit; yuan in whole yuan both ways. Each price records the rate it was set
+  from, and `tests/currency.test.ts` fails if a price drifts more than a unit from the pound
+  converted at that rate, or if yearly stops being a saving in any currency.
+- **Which one a visitor sees first** is `detectCurrency` (`src/lib/membership/currency.ts`):
+  the browser's language region, then its time zone, then dollars. Only after hydration —
+  the static page and the markdown mirror are in pounds. The picker beside the prices always
+  overrules the guess.
+- **Checkout must be handed the currency the player was looking at**, not left to Stripe to
+  re-guess. When the `checkout` Edge Function is written, it takes the currency as an input.
+- **Every price is tax-inclusive**, US dollars included. That is unusual in the US, where
+  tax is normally added at checkout; it keeps "the number shown is the number charged" true.
+  Confirm with Stripe Tax before launch.
+- **China** mostly pays by Alipay and WeChat Pay rather than card. A yuan price without those
+  payment methods switched on is mostly decorative — check the Stripe account can offer them
+  before relying on the CNY price.
 
 ## The gate
 

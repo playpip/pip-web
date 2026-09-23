@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MotionConfig, motion } from 'framer-motion'
 import { AppBar } from '@/components/AppBar'
 import { DealtCard } from '@/components/PlayingCard'
-import { type DrillKind, canPlayDrill } from '@/config/drills'
+import { type DrillKind, RIVER_PACK_ID, canPlayDrill } from '@/config/drills'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { kindFloor } from '@/lib/drills/standing'
 import type { Drill, DrillChoice } from '@/lib/drills/types'
@@ -27,6 +27,8 @@ import {
 } from './felt'
 import { PickCounter, usePickFive } from './PickFive'
 import { PLAY_IT_OUT_KIND, PLAY_IT_OUT_MODE, PLAY_IT_OUT_RECORD, PlayItOut } from './PlayItOut'
+import { RiverPack } from './RiverPack'
+import { useDrillExit } from './exit'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
@@ -74,7 +76,7 @@ import { cn } from '@/lib/utils'
  * this, and not a `setState` in an effect.
  */
 export function DrillRunner({ kind }: { kind: DrillKind }) {
-  const router = useRouter()
+  const exit = useDrillExit()
   const hydrated = useHydrated()
   const member = useEntitlement()
   const settled = useMembership((state) => state.checked)
@@ -124,11 +126,17 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
         <AppBar
           className="z-20"
           leading="back"
-          backLabel="Drills"
+          backLabel={exit.label}
           showWordmark={false}
-          onBack={() => router.push('/game/drills')}
+          onBack={exit.leave}
           title={
-            <>
+            // On a phone the rating chip and the bar's buttons leave no room
+            // for a centred title, and the two drew over each other at 390px.
+            // The kind's name gives way there; the question on the felt says
+            // what the screen is.
+            <span
+              className={cn('flex flex-col items-center', hydrated && allowed && 'max-sm:hidden')}
+            >
               <span className="text-sm font-medium text-muted-foreground">{kind.title}</span>
               {/* Only once there is something to say. A first-timer gets the
                   kind's name and nothing under it — the question is already on
@@ -136,7 +144,7 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
               {hydrated && facts && (
                 <span className="text-2xs tabular-nums text-muted-foreground/60">{facts}</span>
               )}
-            </>
+            </span>
           }
           actions={
             hydrated && allowed ? <RatingChip rating={progress.rating} delta={delta} /> : undefined
@@ -149,6 +157,11 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
           <Dealing slots={kind.boardCards} />
         ) : playItOut ? (
           <PlayItOut run={run} setRun={setRun} onRated={setDelta} />
+        ) : kind.id === RIVER_PACK_ID ? (
+          // The first practice pack: a lesson, then ten spots, on this felt.
+          // Its own screen because a pack has a beginning and an end, which a
+          // stream of spots does not; its grading and its record are the kind's.
+          <RiverPack kind={kind} allowed={allowed} run={run} setRun={setRun} onRated={setDelta} />
         ) : (
           <Run kind={kind} allowed={allowed} run={run} setRun={setRun} onRated={setDelta} />
         )}

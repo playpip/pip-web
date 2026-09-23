@@ -280,7 +280,8 @@ function mergeCastRecords(
  * is not monotonic — the whole point is that it goes down when you get an easy
  * spot wrong — so max() would quietly ratchet it up every time two devices met,
  * and the mean of two ratings is a number neither device ever earned. More
- * answers is the better reading of the same player, so it wins.
+ * answers is the better reading of the same player, so it wins, and its
+ * history comes with it.
  */
 function mergeDrills(
   a: Record<string, DrillRecord>,
@@ -294,12 +295,18 @@ function mergeDrills(
       out[id] = (x ?? y) as DrillRecord
       continue
     }
+    const busier = x.answered >= y.answered ? x : y
     out[id] = {
       answered: Math.max(x.answered, y.answered),
       correct: Math.max(x.correct, y.correct),
-      rating: x.answered >= y.answered ? x.rating : y.rating,
+      rating: busier.rating,
       bestRun: Math.max(x.bestRun, y.bestRun),
       shapes: mergeShapes(x.shapes, y.shapes),
+      // The graph goes with the rating it ends on. Splicing two devices' lines
+      // together would draw a path neither of them took, and a history that
+      // ended somewhere other than the rating beside it would be a graph that
+      // disagreed with its own headline.
+      history: busier.history,
     }
   }
   return out

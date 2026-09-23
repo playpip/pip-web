@@ -221,6 +221,11 @@ test('merge › drill progress takes the best of each side, and the busier ratin
         rating: 1_310,
         bestRun: 14,
         shapes: { category: { answered: 100, correct: 90 }, kicker: { answered: 50, correct: 20 } },
+        history: [
+          [0, 1_000],
+          [120, 1_200],
+          [200, 1_310],
+        ],
       },
     },
   })
@@ -232,6 +237,10 @@ test('merge › drill progress takes the best of each side, and the busier ratin
         rating: 780,
         bestRun: 22,
         shapes: { category: { answered: 6, correct: 2 }, split: { answered: 6, correct: 1 } },
+        history: [
+          [0, 1_000],
+          [12, 780],
+        ],
       },
     },
   })
@@ -246,6 +255,10 @@ test('merge › drill progress takes the best of each side, and the busier ratin
     // time two devices met; averaging invents a number neither device earned.
     // Twelve answers is a worse reading of the same player than two hundred.
     t.is(merged.rating, 1_310, `rating on ${side}`)
+    // The graph goes with the rating: one device's line, ending on the number
+    // printed beside it, never the two spliced into a path neither took.
+    t.deepEqual(merged.history.at(-1), [200, 1_310], `the history ends on the rating on ${side}`)
+    t.is(merged.history.length, 3, `the busier device's whole line on ${side}`)
     // The per-shape counters merge shape by shape, so neither device's history
     // of a shape the other has never seen is dropped. `split` exists only on
     // the laptop and `kicker` only on the phone; both survive.
@@ -270,6 +283,7 @@ test('merge › a merged shape row never claims more right than answered', (t) =
         rating: 1_200,
         bestRun: 4,
         shapes: { kicker: { answered: 10, correct: 9 } },
+        history: [[10, 1_200]],
       },
     },
   })
@@ -281,6 +295,7 @@ test('merge › a merged shape row never claims more right than answered', (t) =
         rating: 900,
         bestRun: 1,
         shapes: { kicker: { answered: 40, correct: 4 } },
+        history: [[40, 900]],
       },
     },
   })
@@ -296,7 +311,14 @@ test('merge › a merged shape row never claims more right than answered', (t) =
 test('merge › a kind only one device has ever played survives', (t) => {
   const played = profile({
     drills: {
-      'which-hand-wins': { answered: 30, correct: 20, rating: 1_050, bestRun: 6, shapes: {} },
+      'which-hand-wins': {
+        answered: 30,
+        correct: 20,
+        rating: 1_050,
+        bestRun: 6,
+        shapes: {},
+        history: [[30, 1_050]],
+      },
     },
   })
   for (const side of ['local', 'remote'] as const) {
@@ -431,6 +453,10 @@ test('pristine › anything the player actually did disqualifies a profile', (t)
             rating: 1_024,
             bestRun: 1,
             shapes: { category: { answered: 1, correct: 1 } },
+            history: [
+              [0, 1_000],
+              [1, 1_024],
+            ],
           },
         },
       },

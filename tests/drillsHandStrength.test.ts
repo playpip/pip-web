@@ -383,9 +383,15 @@ test("hand strength is registered as the membership's, not as free", (t) => {
   t.true(canPlayDrill(kind, true))
 })
 
-test('the membership has four kinds in it, and the free ones are still free', (t) => {
+test('the membership has five kinds in it, and the free ones are still free', (t) => {
   const paid = DRILL_KINDS.filter((kind) => kind.membersOnly).map((kind) => kind.id)
-  t.deepEqual(paid.sort(), ['count-your-outs', 'hand-strength', 'pot-odds', 'which-five-play'])
+  t.deepEqual(paid.sort(), [
+    'calling-the-river',
+    'count-your-outs',
+    'hand-strength',
+    'pot-odds',
+    'which-five-play',
+  ])
   t.true(canPlayDrill(drillKind('which-hand-wins'), false))
   t.true(canPlayDrill(drillKind('whats-your-hand'), false))
 })

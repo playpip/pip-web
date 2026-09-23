@@ -49,18 +49,19 @@ export function included(thing: MembersOnly, member: boolean): boolean {
 }
 
 /**
- * What a membership costs.
+ * What a membership costs, in pounds — the base every other currency in
+ * `MEMBERSHIP_PRICES` is set from.
  *
  * **Both prices are tax-inclusive** (`tax_behavior: 'inclusive'` on the Stripe
- * price). £5.99 is the gross in every market we sell to, so the number here is
- * the number that leaves the customer's bank and the page never needs a
- * "plus VAT". That is a deliberate trade — our net varies by local rate
- * instead — and at this price it is the right one.
+ * price), in every currency, so the number shown is the number that leaves the
+ * customer's bank and the page never needs a "plus VAT". That is a deliberate
+ * trade — our net varies by local rate instead — and at this price it is the
+ * right one.
  *
- * **Adaptive Pricing is off** (CMO's call, cmo#71). With it on, Stripe shows a
- * French player euros and builds a 2-4% conversion fee into the rate, so
- * "£5.99" stops being the number on their statement and the whole line this
- * price rests on stops being true.
+ * **Adaptive Pricing is off** (CMO's call, cmo#71). With it on, Stripe converts
+ * at checkout and builds a 2-4% fee into the rate, so the number on the page
+ * stops being the number on the statement. Other currencies are fixed prices
+ * of their own instead — see `MEMBERSHIP_PRICES`.
  */
 export const MEMBERSHIP_PRICE = {
   /** Pence, so arithmetic never touches a float. */
@@ -71,6 +72,95 @@ export const MEMBERSHIP_PRICE = {
   monthly: '£5.99',
   annual: '£49',
 } as const
+
+/** The currencies the membership is sold in. GBP is the base every other one is set from. */
+export type CurrencyCode = 'GBP' | 'USD' | 'EUR' | 'CNY'
+
+/** What the membership costs in one currency. */
+export interface LocalPrice {
+  currency: CurrencyCode
+  /** The symbol the page writes before a number. */
+  symbol: string
+  /** Minor units (pence, cents, fen), so arithmetic never touches a float. */
+  monthlyMinor: number
+  annualMinor: number
+  /** What the page says. Pinned against the minor units by tests/membership.test.ts. */
+  monthly: string
+  annual: string
+  /**
+   * Units of this currency per pound when the price was set. **Not used to
+   * charge anybody** — the prices above are fixed, and Stripe charges them as
+   * written. It is here so the test can check a price was converted and rounded
+   * rather than typed, and so the next person to reprice knows where they were.
+   */
+  ratePerGbp: number
+}
+
+/**
+ * The membership in every currency we sell it in (Will, 2026-09-23: "convert to
+ * nearest rounded currency for each region").
+ *
+ * **Fixed local prices, not conversion.** Each is its own number on the Stripe
+ * price (`currency_options`), so an American pays exactly $7.99 and the page is
+ * still telling the truth when it says the number shown is the number charged.
+ * That is why Adaptive Pricing stays off (cmo#71): what it objected to was a
+ * rate with a fee built into it, and there is no rate here at checkout at all.
+ *
+ * **The rounding rule is the pound's own shape**: the monthly price to the
+ * nearest .99, the yearly to the nearest whole unit. Yuan are priced in whole
+ * yuan both ways, which is how prices in China are written. Rates were set on
+ * 2026-09-23; repricing is a deliberate act, never a live feed.
+ *
+ * Every price is tax-inclusive, like the pound's.
+ */
+export const MEMBERSHIP_PRICES: Record<CurrencyCode, LocalPrice> = {
+  GBP: {
+    currency: 'GBP',
+    symbol: '£',
+    monthlyMinor: MEMBERSHIP_PRICE.monthlyPence,
+    annualMinor: MEMBERSHIP_PRICE.annualPence,
+    monthly: MEMBERSHIP_PRICE.monthly,
+    annual: MEMBERSHIP_PRICE.annual,
+    ratePerGbp: 1,
+  },
+  USD: {
+    currency: 'USD',
+    symbol: '$',
+    monthlyMinor: 799,
+    annualMinor: 6600,
+    monthly: '$7.99',
+    annual: '$66',
+    ratePerGbp: 1.34,
+  },
+  EUR: {
+    currency: 'EUR',
+    symbol: '€',
+    monthlyMinor: 699,
+    annualMinor: 5700,
+    monthly: '€6.99',
+    annual: '€57',
+    ratePerGbp: 1.16,
+  },
+  CNY: {
+    currency: 'CNY',
+    symbol: '¥',
+    monthlyMinor: 5800,
+    annualMinor: 47000,
+    monthly: '¥58',
+    annual: '¥470',
+    ratePerGbp: 9.6,
+  },
+}
+
+/** In the order the picker shows them. */
+export const CURRENCIES: readonly CurrencyCode[] = ['GBP', 'USD', 'EUR', 'CNY']
+
+/** Minor units as the page writes them: "£4.08", "$66", "¥39". */
+export function formatPrice(minor: number, currency: CurrencyCode): string {
+  const { symbol } = MEMBERSHIP_PRICES[currency]
+  const whole = minor % 100 === 0
+  return `${symbol}${(minor / 100).toFixed(whole ? 0 : 2)}`
+}
 
 /**
  * Stripe's price ids, from the environment.
@@ -132,7 +222,17 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'drills',
     title: 'Every drill',
     blurb:
-      'Which five play, count your outs, pot odds, who gets there, and the play-it-out mode — graded by the engine, never metered, and pitched at the level you are actually reading at. "What have you got?" and "Which hand wins?" stay free for everyone, forever.',
+      'Which five play, count your outs, pot odds, who gets there, calling the river, and the play-it-out mode — graded by the engine, never metered, and pitched at the level you are actually reading at. "What have you got?" and "Which hand wins?" stay free for everyone, forever.',
+    shipped: true,
+  },
+  {
+    // The first practice pack (2026-09-23). A drill kind in the registry, but
+    // listed on its own because it is the first one that teaches before it
+    // asks, and the one the report's leak cards send you to.
+    id: 'river',
+    title: 'Calling the river',
+    blurb:
+      'A bet in front of you on the last card, and nothing left to come. A short lesson, then ten spots on the felt: fold or call, and see exactly what they were betting with — the value hands you beat, the misses, the hands that beat you. Only ever asked where the answer holds whether they bluff a little or a lot.',
     shipped: true,
   },
   {
@@ -190,7 +290,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'side-tables',
     title: 'Every side table',
     blurb:
-      'Fast, Heads-Up, Bounty and Deep — the game you know with one screw turned, at thirteen stakes between them. None of them gate your climb up the free ladder.',
+      'Fast, Heads-Up, Bounty and Deep — the game you know with one screw turned, at twelve stakes between them. None of them gate your climb up the free ladder.',
     shipped: true,
   },
   {
@@ -208,8 +308,15 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     shipped: true,
   },
   {
+    id: 'progress',
+    title: 'Your rating, drawn',
+    blurb:
+      'Every drill keeps a rating that moves both ways, and your stats draw it spot by spot, next to how often you are right and your best run. No streaks and no clock: it is exactly where you left it whenever you come back.',
+    shipped: true,
+  },
+  {
     id: 'review',
-    title: 'Every session, back on the felt',
+    title: 'Session review',
     blurb:
       'Stand up and play the whole session again, hand by hand — the board dealing in, your cards, and what the pot was charging at each call you made. The hands worth a second look are picked out for you. Ladder, Rail and the Daily.',
     shipped: true,

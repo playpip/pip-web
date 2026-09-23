@@ -1,3 +1,4 @@
+import { generateRiverCall } from './callingTheRiver'
 import { generateCountYourOuts } from './countYourOuts'
 import { generateHandStrength } from './handStrength'
 import { generatePotOdds } from './potOdds'
@@ -41,6 +42,7 @@ const GENERATORS: Record<DrillKindId, (seed: number) => Generated> = {
   'count-your-outs': generateCountYourOuts,
   'pot-odds': generatePotOdds,
   'hand-strength': generateHandStrength,
+  'calling-the-river': generateRiverCall,
 }
 
 /**
@@ -130,6 +132,7 @@ export const AIM_BAND = 80
  * | `count-your-outs`  | 2.5  | 12 | 30 ms |
  * | `pot-odds`         | 6.3  | 8  | 50 ms |
  * | `hand-strength`    | 31   | 2  | 63 ms |
+ * | `calling-the-river`| 7.5  | 8  | 60 ms |
  *
  * Every row is inside about 60ms of work between one spot and the next, which
  * is the budget: a phone is some multiple slower than this desktop, and a
@@ -153,6 +156,7 @@ export const AIM_SAMPLE: Record<DrillKindId, number> = {
   'count-your-outs': 12,
   'pot-odds': 8,
   'hand-strength': 2,
+  'calling-the-river': 8,
 }
 
 /**

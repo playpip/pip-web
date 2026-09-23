@@ -154,6 +154,28 @@ export type ReadShape = 'uses-both' | 'uses-one' | 'plays-the-board'
 export type FiveShape = 'made-five' | 'kickers-matter' | 'board-plays'
 
 /**
+ * How a "calling the river" spot is shaped, easiest first: how much room
+ * there was between what your hand wins against the range and what the call
+ * costs. Read off the same count that set the answer, so, as above, the
+ * difficulty cannot disagree with the grade.
+ *
+ * - `clear-read`: sixteen points or more apart.
+ * - `close-read`: ten to sixteen.
+ * - `thin-read`: under ten, and never under the margin.
+ *
+ * **Gaps, not hand types, and that was a correction.** The first cut rated a
+ * bluff-catcher (a hand that beats only the misses) as the hardest shape. It is
+ * the hardest *idea*, but every bluff-catcher the generator can defend is a
+ * fold, so a ladder built on it taught "top rung means fold" and a beginner
+ * aimed at the bottom rung could score nine in ten by calling everything. A gap
+ * says how hard a spot is without saying which way it goes as strongly:
+ * measured over 8,000 seeds (207 spots, 2026-09-23) the three rungs deal calls
+ * 39%, 72% and 58% of the time and hold 53%, 26% and 22% of the spots. Not
+ * even, which is why the pack deals five calls and five folds on top of it.
+ */
+export type RiverShape = 'clear-read' | 'close-read' | 'thin-read'
+
+/**
  * Any spot's shape, whichever kind dealt it.
  *
  * One union rather than a field per kind, because everything downstream of a
@@ -161,7 +183,14 @@ export type FiveShape = 'made-five' | 'kickers-matter' | 'board-plays'
  * only that a spot has a shape and a number, never which kind's vocabulary the
  * shape is drawn from.
  */
-export type SpotKind = SettledBy | OutsShape | PriceShape | StrengthShape | ReadShape | FiveShape
+export type SpotKind =
+  | SettledBy
+  | OutsShape
+  | PriceShape
+  | StrengthShape
+  | ReadShape
+  | FiveShape
+  | RiverShape
 
 /**
  * What each shape is rated.
@@ -361,6 +390,28 @@ export const EASIEST_FIVE = FIVE_BASE['made-five']
 export const HARDEST_FIVE = FIVE_BASE['board-plays']
 
 /**
+ * What each shape of a river spot is rated.
+ *
+ * Same judgement and same caveat as every table above: the ordering is the
+ * defensible part and nobody has answered one of these yet.
+ *
+ * **Pitched at and above the pot odds kind, on purpose.** Its hardest spot is
+ * this kind's first step: the price is the same arithmetic, and then the equity
+ * has to be read off a range of hands rather than counted off two you can see.
+ */
+const RIVER_BASE: Record<RiverShape, number> = {
+  'clear-read': 1180,
+  'close-read': 1360,
+  'thin-read': 1520,
+}
+
+/** The least a river spot can be rated. */
+export const EASIEST_RIVER = RIVER_BASE['clear-read']
+
+/** The most a river spot can be rated. */
+export const HARDEST_RIVER = RIVER_BASE['thin-read']
+
+/**
  * What this spot is worth. Splits take no decoy adjustment: with two winners
  * there is no losing hand to be misled by.
  */
@@ -391,6 +442,11 @@ export function readDifficulty(shape: ReadShape, mirage: boolean): number {
 /** What a "which five play" spot is worth. Its shape, and nothing else. */
 export function fiveDifficulty(shape: FiveShape): number {
   return FIVE_BASE[shape]
+}
+
+/** What a river spot is worth. Its shape, and nothing else. */
+export function riverDifficulty(shape: RiverShape): number {
+  return RIVER_BASE[shape]
 }
 
 /**

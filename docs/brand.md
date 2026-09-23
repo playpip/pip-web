@@ -31,6 +31,14 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
 1. **No scam energy.** Play money only. No real currency, no `$` symbols (balances read
    `N chips`). No dark patterns, no forced pop-ups, no pay-to-win.
 
+   **The one place real money appears is the membership's own price** (Will, 2026-09-23),
+   and it is shown in the buyer's currency — `£5.99`, `$7.99`, `€6.99`, `¥58` — on
+   `/membership`, `/terms` and the settings row that sells it. That is a price for a
+   subscription, not a balance, and the rule it is an exception to is about chips: a
+   currency symbol still never sits next to a chip count, a buy-in, a prize or anything
+   in the Chip Shop, and chips are still never for sale. Every price comes from
+   `MEMBERSHIP_PRICES` in `src/config/membership.ts`; nothing writes one by hand.
+
    **What "pay-to-win" means here, since the membership made it a live question**
    (Will, 2026-09-16): buying an advantage *over another player*. Pip is single-player,
    there is no leaderboard, and there is nobody to overtake — so there is no contest a
