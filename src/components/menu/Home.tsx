@@ -225,7 +225,7 @@ export function Home() {
           />
           <RoomCard
             title="Learn with Webb"
-            blurb="A three-minute tour, plus written guides."
+            blurb="Lessons at the table, a tour, and the guides."
             verb="Open"
             icon={BookOpen}
             face={webb && <PlayerAvatar spec={webb.avatar} size={44} />}

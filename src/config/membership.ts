@@ -219,10 +219,22 @@ export interface MembershipFeature {
  */
 export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
   {
+    // Lessons with Webb (2026-09-23). Shipped means *one* lesson is: Level 2's
+    // Position, and the open-or-fold practice after it. The blurb says exactly
+    // that, and the rest of the course is on /learn marked "Not built yet" —
+    // the sentence to watch is the one that would make four unbuilt levels
+    // sound bought.
+    id: 'lessons',
+    title: 'Lessons with Webb',
+    blurb:
+      'Webb sits you down at the felt, deals a real hand, and stops to ask you what you would do before he tells you why. Eight lessons across four levels — starting hands and position, outs and pot odds, stack sizes, then ranges, bluffing and the regulars — each ending in ten hands of practice. Level 1, the first hands, is free for everyone.',
+    shipped: true,
+  },
+  {
     id: 'drills',
     title: 'Every drill',
     blurb:
-      'Which five play, count your outs, pot odds, who gets there, calling the river, and the play-it-out mode — graded by the engine, never metered, and pitched at the level you are actually reading at. "What have you got?" and "Which hand wins?" stay free for everyone, forever.',
+      'Open or fold, which five play, count your outs, pot odds, who gets there, calling the river, bet or check, shove or fold, and the play-it-out mode — graded by the engine, never metered, and pitched at the level you are actually reading at. "What have you got?" and "Which hand wins?" stay free for everyone, forever.',
     shipped: true,
   },
   {

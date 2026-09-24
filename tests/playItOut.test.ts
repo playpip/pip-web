@@ -135,19 +135,26 @@ test('the mode registers nothing, so nothing became free by accident', (t) => {
   // The ruling: a mode of pot odds, not a kind of its own. If this ever fails,
   // some change has registered a kind, and a kind that ships without
   // `membersOnly` in the same commit is free forever under rule #8. The river
-  // pack is the one kind registered since, deliberately and with its flag (see
-  // tests/drillsCallingTheRiver.test.ts); nothing here is play-it-out's.
-  t.is(DRILL_KINDS.length, 7)
+  // pack, the open-or-fold pack, and the bet-or-check and shove-or-fold packs are
+  // the kinds registered since, deliberately and with their flags (see their own
+  // test files); nothing here is play-it-out's.
+  t.is(DRILL_KINDS.length, 10)
   t.deepEqual(DRILL_KINDS.map((kind) => kind.id).sort(), [
+    'bet-or-check',
     'calling-the-river',
     'count-your-outs',
     'hand-strength',
+    'open-or-fold',
     'pot-odds',
+    'shove-or-fold',
     'whats-your-hand',
     'which-five-play',
     'which-hand-wins',
   ])
   t.true(DRILL_KINDS.find((kind) => kind.id === 'calling-the-river')?.membersOnly === true)
+  t.true(DRILL_KINDS.find((kind) => kind.id === 'open-or-fold')?.membersOnly === true)
+  t.true(DRILL_KINDS.find((kind) => kind.id === 'bet-or-check')?.membersOnly === true)
+  t.true(DRILL_KINDS.find((kind) => kind.id === 'shove-or-fold')?.membersOnly === true)
   // Every street it grades is a pot-odds street, which is what makes it inherit
   // that kind's `membersOnly` rather than needing its own.
   t.true(graded.length > 0)

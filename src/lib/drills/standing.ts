@@ -1,21 +1,27 @@
 import type { DrillKindId } from './types'
 import {
   type FiveShape,
+  type OpenShape,
   type OutsShape,
   type PriceShape,
   type ReadShape,
   type RiverShape,
   type SettledBy,
+  type ShoveShape,
   type SpotKind,
   type StrengthShape,
+  type ValueShape,
   fiveDifficulty,
+  openDifficulty,
   outsDifficulty,
   priceDifficulty,
   readDifficulty,
   riverDifficulty,
   STARTING_RATING,
+  shoveDifficulty,
   spotDifficulty,
   strengthDifficulty,
+  valueDifficulty,
 } from './rating'
 
 // What the rating means, said in words.
@@ -205,6 +211,57 @@ const CALLING_THE_RIVER: SpotShape[] = [
   riverShape('thin-read', 'the thinnest river decisions'),
 ]
 
+const openShape = (settledBy: OpenShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: openDifficulty(settledBy),
+})
+
+/**
+ * The shapes "open or fold" deals, easiest first.
+ *
+ * The ladder here is what decides the answer: the hand alone, then the seat,
+ * then a hand whose cards look like the opposite of what the chart says.
+ */
+const OPEN_OR_FOLD: SpotShape[] = [
+  openShape('every-seat', 'hands that play the same from every seat'),
+  openShape('seat-decides', 'hands the seat decides'),
+  openShape('looks-wrong', 'hands that look like the other answer'),
+]
+
+const valueShape = (settledBy: ValueShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: valueDifficulty(settledBy),
+})
+
+/**
+ * The shapes "bet or check" deals, easiest first: how far your share against
+ * the calling hands sits from a half, for the reason set out on
+ * {@link ValueShape}.
+ */
+const BET_OR_CHECK: SpotShape[] = [
+  valueShape('clear-value', 'clear value bets and checks'),
+  valueShape('close-value', 'close value bets and checks'),
+  valueShape('thin-value', 'the thinnest value bets and checks'),
+]
+
+const shoveShape = (settledBy: ShoveShape, label: string): SpotShape => ({
+  settledBy,
+  label,
+  rating: shoveDifficulty(settledBy),
+})
+
+/**
+ * The shapes "shove or fold" deals, easiest first: how many big blinds apart
+ * the two answers are, for the reason set out on {@link ShoveShape}.
+ */
+const SHOVE_OR_FOLD: SpotShape[] = [
+  shoveShape('clear-shove', 'clear shoves and folds'),
+  shoveShape('close-shove', 'close shoves and folds'),
+  shoveShape('thin-shove', 'the closest shoves and folds'),
+]
+
 /**
  * Every kind's ladder, or an explicit `null` for a kind that has none.
  *
@@ -222,6 +279,9 @@ const LADDERS: Record<DrillKindId, SpotShape[] | null> = {
   'pot-odds': POT_ODDS,
   'hand-strength': HAND_STRENGTH,
   'calling-the-river': CALLING_THE_RIVER,
+  'open-or-fold': OPEN_OR_FOLD,
+  'bet-or-check': BET_OR_CHECK,
+  'shove-or-fold': SHOVE_OR_FOLD,
 }
 
 /** The shapes this kind deals, easiest first, or null if it has no ladder. */
@@ -270,8 +330,8 @@ export const DIFFICULTY_LEVELS = 5
  * **Where they start is chosen so the two easiest kinds are told apart**, and
  * that is the reader this is for: somebody standing in front of seven tiles
  * deciding which to open first is best served by the bottom of the ladder being
- * legible, and least served by both of its rungs showing one pip. The seven
- * kinds currently fall 1, 2, 3, 4, 4, 5, 5.
+ * legible, and least served by both of its rungs showing one pip. The ten
+ * kinds currently fall 1, 2, 2, 3, 4, 4, 5, 5, 5, 5.
  */
 const DIFFICULTY_AT: readonly number[] = [850, 1_000, 1_150, 1_250]
 

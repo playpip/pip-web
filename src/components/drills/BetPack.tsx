@@ -7,7 +7,7 @@ import { CardBack } from '@/components/CardBack'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { cardBackById } from '@/config/cardBacks'
 import { CAST, type Character } from '@/config/cast'
-import { type DrillKind, RIVER_PACK_ID } from '@/config/drills'
+import { BET_PACK_ID, type DrillKind } from '@/config/drills'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { PACK_SIZE, dealPlanned, planPack } from '@/lib/drills/pack'
 import { kindFloor } from '@/lib/drills/standing'
@@ -17,6 +17,7 @@ import { sound } from '@/lib/sound'
 import { formatChips } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
+import { BetLesson, CallStrip } from './BetLesson'
 import {
   ActionBar,
   Answer,
@@ -25,82 +26,51 @@ import {
   Holding,
   LockedAnswers,
   NextButton,
-  Pot,
   TalkLine,
 } from './felt'
-import { RangeStrip, RiverLesson } from './RiverLesson'
 import { PackProgress, PackSummary } from './pack'
 
 /**
- * Calling the river, the first practice pack: a short lesson, then ten spots.
+ * Bet or check, the river pack's mirror: a short lesson, then ten spots.
  *
- * **It plays on the table** (Will, 2026-09-23: "it plays on the real poker
- * table used for games"). The same felt every drill uses — the board at board
- * size, your cards at the foot, the answers where fold and call live — with one
- * of the regulars across from you and what they did written under them. The
- * spot is a hand, not a worksheet.
+ * **On the table, like the river pack**: the same felt, the board at board
+ * size, your hand at the foot, one of the regulars across from you with what
+ * happened on each street, and the two answers where check and bet live. Once
+ * you answer, their face-down cards give way to what would have called: the
+ * hands you beat and the hands that beat you, grouped the way you would name
+ * them.
  *
- * **Ten, and then a count**, because a pack is a thing you finish. Nothing is
- * metered: another ten is one tap, and the rating and the record are the kind's
- * own (see config/drills.ts on why this is a kind). The ten is a length, not an
- * allowance.
- *
- * **The opponent's face is company, not a clue.** The range is the same
- * whoever sits there — the generator only asks a spot whose answer holds from
- * the Garage's bluffing to the Main Event's (lib/drills/callingTheRiver.ts) —
- * so the regulars drawn here are the ones whose bios make no claim about
- * bluffing. Putting Frank ("bluffs constantly") across a spot graded as if he
- * were average would be the screen contradicting the answer key.
+ * **The face across is company, not a clue.** Every spot is only asked when its
+ * answer holds from the tightest calling the bots were measured at to the
+ * loosest (lib/drills/valueRange.ts), so the regulars drawn here are the ones
+ * whose personality claims nothing about how tight they play.
  */
 
-/**
- * Who can sit across the table: regulars of the low and middle tables, not
- * pinned to a room, and with no bluffing claimed in their personality.
- */
-const OPPONENTS: readonly Character[] = CAST.filter(
-  (ch) =>
-    !ch.only &&
-    ch.delta?.bluff === undefined &&
-    ch.bands.some((band) => band === 'low' || band === 'mid'),
-)
+const OPPONENTS: readonly Character[] = (() => {
+  const plain = CAST.filter(
+    (ch) =>
+      !ch.only &&
+      ch.delta?.tightness === undefined &&
+      ch.delta?.bluff === undefined &&
+      ch.bands.some((band) => band === 'low' || band === 'mid'),
+  )
+  return plain.length > 0 ? plain : CAST.filter((ch) => !ch.only)
+})()
 
-/** What the end of a pack says, from every one right down to not many. */
-const RIVER_LINES = [
-  'Every one. The river is less of a stranger than it was.',
+const BET_LINES = [
+  'Every one. You got paid, and you did not pay anybody off.',
   'Most of them. The ones you missed are worth a second look.',
-  'Some of them. This is the hard street; that is why it has a pack.',
+  'Some of them. Betting for value is counting the other seat’s hands.',
   'Not many this time. The lesson is one tap away, and so is another ten.',
 ] as const
 
-/**
- * Five calls and five folds, shuffled (see lib/drills/pack.ts for why a pack
- * fixes its split). `Math.random` is fine: the order is not a thing that has to
- * be reproducible, and each spot still carries its own seed.
- */
-const riverPlan = () => planPack<'call' | 'fold'>('call', 'fold', Math.random)
+const betPlan = () => planPack<'bet' | 'check'>('bet', 'check', Math.random)
 
-/** The seat for a spot, off its seed, so the same spot always has the same face. */
 const opponentFor = (drill: Drill): Character => OPPONENTS[drill.seed % OPPONENTS.length]
-
-const STREET: Record<DrillLineStep['street'], string> = {
-  flop: 'the flop',
-  turn: 'the turn',
-  river: 'the river',
-}
-
-/** What they did, as one sentence: "checked the flop, bet 40 into 80 on the turn, …". */
-function lineSentence(line: readonly DrillLineStep[]): string {
-  const parts = line.map((step) =>
-    step.action === 'check'
-      ? `checked ${STREET[step.street]}`
-      : `bet ${formatChips(step.amount ?? 0)} into ${formatChips(step.potBefore)} on ${STREET[step.street]}`,
-  )
-  return `${parts.slice(0, -1).join(', ')}, and ${parts.at(-1)}`
-}
 
 type Phase = 'lesson' | 'spots' | 'done'
 
-export function RiverPack({
+export function BetPack({
   kind,
   allowed,
   run,
@@ -113,24 +83,21 @@ export function RiverPack({
   setRun: (run: number) => void
   onRated: (delta: number | null) => void
 }) {
-  const record = useProfile((s) => s.drills[RIVER_PACK_ID])
+  const record = useProfile((s) => s.drills[BET_PACK_ID])
   const progress = record ?? emptyDrillRecord()
-  // The lesson opens the pack for anybody who has never answered a spot, and
-  // is one tap away for everybody else. Read once, at mount: answering the
-  // first spot must not send the screen back to the lesson.
+  // The lesson opens the pack the first time, and is one tap away after.
   const [phase, setPhase] = useState<Phase>(() =>
     allowed && progress.answered === 0 ? 'lesson' : 'spots',
   )
   const [pack, setPack] = useState(0)
   const [results, setResults] = useState<boolean[]>([])
-  const [plan, setPlan] = useState(riverPlan)
+  const [plan, setPlan] = useState(betPlan)
   const [ratingAtStart, setRatingAtStart] = useState(progress.rating)
 
-  const startSpots = useCallback(() => setPhase('spots'), [])
   const again = useCallback(() => {
     setResults([])
-    setPlan(riverPlan())
-    setRatingAtStart(useProfile.getState().drills[RIVER_PACK_ID]?.rating ?? progress.rating)
+    setPlan(betPlan())
+    setRatingAtStart(useProfile.getState().drills[BET_PACK_ID]?.rating ?? progress.rating)
     setPack((n) => n + 1)
     setPhase('spots')
     onRated(null)
@@ -139,13 +106,11 @@ export function RiverPack({
   return (
     <MotionConfig reducedMotion="user">
       {phase === 'lesson' ? (
-        // Read from the end of a pack, the lesson leads into a fresh ten
-        // rather than back into the one that is finished.
-        <RiverLesson onDone={results.length >= PACK_SIZE ? again : startSpots} />
+        <BetLesson onDone={results.length >= PACK_SIZE ? again : () => setPhase('spots')} />
       ) : phase === 'done' ? (
         <PackSummary
           title={kind.title}
-          lines={RIVER_LINES}
+          lines={BET_LINES}
           results={results}
           ratingBefore={ratingAtStart}
           rating={progress.rating}
@@ -157,8 +122,6 @@ export function RiverPack({
         <>
           {allowed && <PackProgress results={results} onLesson={() => setPhase('lesson')} />}
           <Spot
-            // A fresh pack is a fresh run of spots, and nothing on the old
-            // spot's screen should survive into it.
             key={pack}
             kind={kind}
             allowed={allowed}
@@ -179,10 +142,6 @@ export function RiverPack({
   )
 }
 
-/**
- * One spot, and the next. Keyed per pack, so a new pack starts clean; the
- * spots inside it change in place, keyed by seed on the felt.
- */
 function Spot({
   kind,
   allowed,
@@ -196,9 +155,8 @@ function Spot({
 }: {
   kind: DrillKind
   allowed: boolean
-  /** Spots answered in this pack, counting the one on the screen once it is. */
   answered: number
-  plan: readonly ('call' | 'fold')[]
+  plan: readonly ('bet' | 'check')[]
   run: number
   setRun: (run: number) => void
   onRated: (delta: number | null) => void
@@ -206,35 +164,29 @@ function Spot({
   onFinished: () => void
 }) {
   const router = useRouter()
-  // Read after the answer is in, so the tenth answer is what makes it the last.
   const last = answered >= PACK_SIZE
-  const record = useProfile((s) => s.drills[RIVER_PACK_ID])
+  const record = useProfile((s) => s.drills[BET_PACK_ID])
   const recordDrill = useProfile((s) => s.recordDrill)
   const progress = record ?? emptyDrillRecord()
   const avatar = useProfile((s) => s.avatar)
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
 
-  // Aimed like every kind: the bottom of the ladder for a newcomer, walking to
-  // the rating over the first ten answers (see `aimFor`). Read when a spot is
-  // dealt, never live, or answering would re-aim the spot on the screen.
   const aim = useCallback(
-    () => aimFor(kindFloor(RIVER_PACK_ID), progress.rating, progress.answered),
+    () => aimFor(kindFloor(BET_PACK_ID), progress.rating, progress.answered),
     [progress.rating, progress.answered],
   )
-  // Dealt in the state initialiser, on the client only (the runner mounts this
-  // after hydration), so a static export never bakes a spot into its HTML.
-  // About 8ms a spot on a desktop, two or three tries for the planned answer,
-  // so there is nothing to deal ahead. A tease on a gated screen has no plan.
+  // Dealt in the state initialiser, on the client only, so a static export
+  // never bakes a spot into its HTML. A tease on a gated screen has no plan.
   const [drill, setDrill] = useState<Drill>(() =>
     allowed
-      ? dealPlanned(RIVER_PACK_ID, plan[answered] ?? 'call', aim(), randomSeed)
-      : nextDrill(RIVER_PACK_ID, randomSeed(), aim()),
+      ? dealPlanned(BET_PACK_ID, plan[answered] ?? 'bet', aim(), randomSeed)
+      : nextDrill(BET_PACK_ID, randomSeed(), aim()),
   )
   const [picked, setPicked] = useState<string | null>(null)
   const grade = picked === null ? null : gradeDrill(drill, picked)
   const opponent = useMemo(() => opponentFor(drill), [drill])
-  const line = drill.line ?? []
-  const stakes = drill.stakes
+  const bet = drill.calling?.bet ?? 0
+  const pot = drill.calling?.pot ?? 0
 
   const pick = useCallback(
     (choiceId: string) => {
@@ -244,11 +196,10 @@ function Spot({
       const was = progress.rating
       setPicked(choiceId)
       setRun(next)
-      recordDrill(RIVER_PACK_ID, result.correct, result.difficulty, next, drill.settledBy)
-      onRated(useProfile.getState().drills[RIVER_PACK_ID].rating - was)
+      recordDrill(BET_PACK_ID, result.correct, result.difficulty, next, drill.settledBy)
+      onRated(useProfile.getState().drills[BET_PACK_ID].rating - was)
       onAnswered(result.correct)
-      // The chips first, then the verdict under your thumb.
-      sound.play(choiceId === 'call' ? 'call' : 'fold')
+      sound.play(choiceId === 'bet' ? 'bet' : 'check')
       haptics.fire(result.correct ? 'win' : 'bust')
     },
     [drill, picked, allowed, run, setRun, progress.rating, recordDrill, onRated, onAnswered],
@@ -261,7 +212,7 @@ function Spot({
     }
     setPicked(null)
     onRated(null)
-    setDrill(dealPlanned(RIVER_PACK_ID, plan[answered] ?? 'call', aim(), randomSeed))
+    setDrill(dealPlanned(BET_PACK_ID, plan[answered] ?? 'bet', aim(), randomSeed))
     sound.play('deal')
     haptics.fire('deal')
   }, [last, onFinished, onRated, aim, plan, answered])
@@ -277,7 +228,13 @@ function Spot({
         }
         return
       }
-      const byKey: Record<string, string> = { f: 'fold', '1': 'fold', c: 'call', '2': 'call' }
+      const byKey: Record<string, string> = {
+        c: 'check',
+        x: 'check',
+        '1': 'check',
+        b: 'bet',
+        '2': 'bet',
+      }
       const choice = byKey[key]
       if (choice) {
         event.preventDefault()
@@ -301,29 +258,38 @@ function Spot({
       >
         <Felt
           across={
-            // Once you have answered, their two face-down cards give way to
-            // what they could have been: the range, where the bettor sits.
-            // Nothing is turned over, because there was never one hand.
-            grade && drill.range && stakes ? (
-              <Verdict
-                character={opponent}
-                drill={drill}
-                required={stakes.toCall / (stakes.pot + stakes.toCall)}
-              />
+            grade && drill.calling ? (
+              <Verdict character={opponent} drill={drill} />
             ) : (
-              <Opponent character={opponent} line={line} cardBack={cardBack} dim={!allowed} />
+              <Opponent
+                character={opponent}
+                line={drill.line ?? []}
+                cardBack={cardBack}
+                dim={!allowed}
+              />
             )
           }
           board={
             <>
               <Board cards={drill.board} slots={5} dim={!allowed} />
-              {stakes && <Pot stakes={stakes} />}
+              <div className="flex items-baseline justify-center gap-2 px-2">
+                <span className="sr-only">{`Pot ${formatChips(pot)} chips.`}</span>
+                <span
+                  aria-hidden
+                  className="text-2xs uppercase tracking-[0.2em] text-muted-foreground"
+                >
+                  Pot
+                </span>
+                <span aria-hidden className="text-xl font-semibold tabular-nums">
+                  {formatChips(pot)}
+                </span>
+              </div>
               {grade ? (
                 <TalkLine tone={grade.correct ? 'right' : 'wrong'}>{grade.explanation}</TalkLine>
               ) : (
                 <TalkLine>
                   {allowed
-                    ? `${opponent.name} bets ${formatChips(stakes?.toCall ?? 0)}. Call or fold?`
+                    ? `${opponent.name} checks to you. Bet ${formatChips(bet)}, or check it back?`
                     : kind.question}
                 </TalkLine>
               )}
@@ -355,19 +321,18 @@ function Spot({
           />
         ) : (
           <div className="grid grid-cols-2 gap-2">
-            <Answer label="Fold" shortcut="1" state="open" onPick={() => pick('fold')} />
+            <Answer label="Check" shortcut="1" state="open" onPick={() => pick('check')} />
             <Answer
-              label={`Call ${formatChips(stakes?.toCall ?? 0)}`}
-              spoken={`Call ${formatChips(stakes?.toCall ?? 0)} chips`}
+              label={`Bet ${formatChips(bet)}`}
+              spoken={`Bet ${formatChips(bet)} chips`}
               shortcut="2"
               state="open"
-              onPick={() => pick('call')}
+              onPick={() => pick('bet')}
             />
           </div>
         )}
       </ActionBar>
 
-      {/* The small print gives its line to the verdict once there is one. */}
       {allowed && !grade && (
         <p className="px-4 pb-2 text-center text-2xs text-muted-foreground/70">{kind.gradedBy}</p>
       )}
@@ -375,11 +340,28 @@ function Spot({
   )
 }
 
+const STREET: Record<DrillLineStep['street'], string> = {
+  flop: 'the flop',
+  turn: 'the turn',
+  river: 'the river',
+}
+
+/** "You bet 40 on the flop and they called, the turn went check-check, and they checked the river." */
+function lineSentence(name: string, line: readonly DrillLineStep[]): string {
+  const parts = line.map((step) =>
+    step.street === 'river'
+      ? `${name} checked the river to you`
+      : step.action === 'bet'
+        ? `you bet ${formatChips(step.amount ?? 0)} on ${STREET[step.street]} and ${name} called`
+        : `${STREET[step.street]} was checked through`,
+  )
+  return `${parts.slice(0, -1).join(', ')}, and ${parts.at(-1)}.`
+}
+
 /**
- * Across the table: who bet, their two cards face down, and what they did on
- * each street. The line is the question as much as the cards are, so it is set
- * as three steps you can read at a glance, with the river's bet — the one you
- * are facing — lit.
+ * Across the table: who you are up against, their cards face down, and the
+ * hand so far, one street a step. Your bets they called are drawn as yours;
+ * their check on the river, the one you are answering, is lit.
  */
 function Opponent({
   character,
@@ -393,15 +375,13 @@ function Opponent({
   dim: boolean
 }) {
   return (
-    // One column on a phone, where height is cheap and width is not; one row
-    // on a desktop, where the verdict needs the height the column would take.
     <div
       className={cn(
         'flex flex-col items-center gap-2 transition-opacity sm:flex-row sm:gap-4',
         dim && 'opacity-45',
       )}
     >
-      <span className="sr-only">{`${character.name} ${lineSentence(line)}.`}</span>
+      <span className="sr-only">{lineSentence(character.name, line)}</span>
       <div className="flex items-center gap-2" aria-hidden>
         <PlayerAvatar spec={character.avatar} size={28} />
         <span className="text-sm font-medium">{character.name}</span>
@@ -433,17 +413,14 @@ function Opponent({
                 {step.street}
               </span>
               <span className="text-xs font-semibold tabular-nums">
-                {step.action === 'check' ? 'Check' : `Bet ${formatChips(step.amount ?? 0)}`}
+                {facing
+                  ? 'Checks to you'
+                  : step.action === 'bet'
+                    ? `You bet ${formatChips(step.amount ?? 0)}`
+                    : 'Check, check'}
               </span>
-              {step.action === 'bet' && (
-                <span
-                  className={cn(
-                    'text-3xs tabular-nums',
-                    facing ? 'text-primary-foreground/70' : 'text-muted-foreground',
-                  )}
-                >
-                  into {formatChips(step.potBefore)}
-                </span>
+              {!facing && step.action === 'bet' && (
+                <span className="text-3xs text-muted-foreground">called</span>
               )}
             </motion.li>
           )
@@ -454,22 +431,13 @@ function Opponent({
 }
 
 /**
- * The answer, drawn where the bettor sat: what bets like this, how much of it
- * you beat, and the price as a line across it. The sentence on the felt says
- * the same two numbers; this is where you see why they are those numbers.
+ * The answer, drawn where they sat: what calls this bet, how much of it you
+ * beat, and the half it is measured against. Then the calling hands by name,
+ * strongest first, each with how many of them you beat.
  */
-function Verdict({
-  character,
-  drill,
-  required,
-}: {
-  character: Character
-  drill: Drill
-  required: number
-}) {
-  const range = drill.range
-  if (!range) return null
-  const bluffs = Math.round(range.bluffs)
+function Verdict({ character, drill }: { character: Character; drill: Drill }) {
+  const calling = drill.calling
+  if (!calling) return null
   return (
     <motion.div
       className="w-full max-w-md rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 pb-3 pt-2.5"
@@ -479,26 +447,47 @@ function Verdict({
     >
       <div className="flex items-center gap-2">
         <PlayerAvatar spec={character.avatar} size={20} />
-        <span className="text-xs font-medium">What {character.name} bets like this</span>
+        <span className="text-xs font-medium">
+          What {character.name} calls {formatChips(calling.bet)} with
+        </span>
       </div>
       <div className="mt-1">
-        <RangeStrip
-          value={range.value}
-          valueBeaten={range.valueBeaten}
-          bluffs={range.bluffs}
-          bluffsBeaten={range.bluffsBeaten}
-          required={required}
-        />
+        <CallStrip calls={calling.calls} callsBeaten={calling.callsBeaten} />
       </div>
-      <p className="mt-2 text-xs leading-snug text-muted-foreground">
-        {capitalise(range.weakestValue)} or better ({formatChips(range.value)}{' '}
-        {range.value === 1 ? 'hand' : 'hands'})
-        {bluffs > 0
-          ? `, and about ${bluffs} ${bluffs === 1 ? 'hand' : 'hands'} that missed.`
-          : ', and almost nothing that missed.'}
-      </p>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
+        {calling.groups
+          .filter((group) => group.hands >= 0.5)
+          .map((group, i) => {
+            const all = Math.round(group.hands)
+            const beaten = Math.round(group.beaten)
+            const tone =
+              beaten >= all ? 'win' : beaten === 0 ? 'lose' : ('split' as 'win' | 'lose' | 'split')
+            return (
+              <motion.li
+                key={group.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 26, delay: 0.2 + i * 0.05 }}
+                className={cn(
+                  'flex items-baseline gap-1.5 rounded-full px-2.5 py-1 text-2xs',
+                  tone === 'win' && 'bg-emerald-500/12 text-foreground ring-1 ring-emerald-500/30',
+                  tone === 'lose' && 'bg-foreground/[0.07] text-muted-foreground',
+                  tone === 'split' &&
+                    'bg-foreground/[0.05] text-foreground ring-1 ring-foreground/10',
+                )}
+              >
+                <span className="font-medium">{group.label}</span>
+                <span className="tabular-nums">
+                  {tone === 'win'
+                    ? `${all}, you beat all`
+                    : tone === 'lose'
+                      ? `${all}, all beat you`
+                      : `you beat ${beaten} of ${all}`}
+                </span>
+              </motion.li>
+            )
+          })}
+      </ul>
     </motion.div>
   )
 }
-
-const capitalise = (text: string) => text[0].toUpperCase() + text.slice(1)

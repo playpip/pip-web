@@ -9,6 +9,7 @@ import { PremiumStar } from '@/components/menu/venueCard'
 import { DRILL_KINDS, type DrillKind, canPlayDrill } from '@/config/drills'
 import { nextDrill, randomSeed } from '@/lib/drills'
 import { DIFFICULTY_LEVELS, kindDifficulty } from '@/lib/drills/standing'
+import { seatById } from '@/config/positions'
 import { PlayingCard } from '@/components/PlayingCard'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
@@ -116,7 +117,9 @@ function DrillTile({ kind, gated, delay }: { kind: DrillKind; gated: boolean; de
           {hydrated ? (
             <TileBoard kind={kind} dim={gated} />
           ) : (
-            Array.from({ length: kind.boardCards }, (_, i) => <PlayingCard key={i} size="sm" />)
+            Array.from({ length: kind.boardCards || 2 }, (_, i) => (
+              <PlayingCard key={i} size="sm" />
+            ))
           )}
           {gated && (
             <span className="absolute left-2 top-2">
@@ -221,11 +224,20 @@ function Standing({ kind }: { kind: DrillKind }) {
  */
 function TileBoard({ kind, dim = false }: { kind: DrillKind; dim?: boolean }) {
   const [drill] = useState(() => nextDrill(kind.id, randomSeed()))
+  // A kind asked before the flop has no board, so its window is your two cards
+  // and the seat it folded round to you in.
+  const cards = drill.board.length > 0 ? drill.board : (drill.hands?.[0].cards ?? [])
   return (
     <span className={cn('flex items-center gap-1.5', dim && 'opacity-60')}>
-      {drill.board.map((card) => (
+      {cards.map((card) => (
         <PlayingCard key={`${card.rank}${card.suit}`} card={card} size="sm" />
       ))}
+      {drill.seat && (
+        <span className="ml-1.5 rounded-full bg-background px-2 py-0.5 text-2xs font-semibold ring-1 ring-foreground/15">
+          {seatById(drill.seat).short}
+          {drill.shove && <span className="text-muted-foreground"> · {drill.shove.stack}bb</span>}
+        </span>
+      )}
     </span>
   )
 }

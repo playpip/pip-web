@@ -67,13 +67,16 @@ it adds rooms and tools beside it. We would rather say "fence" than pretend othe
 There will eventually be a **membership**, for the things that cost real money to run or
 that don't exist yet. **Built and sitting behind the check today**: the drills called
 "Which five play?", "Count your outs", "Pot odds" and "Who gets there?" plus the play-it-out
-mode; the first practice pack, "Calling the river"; four member rooms with three regulars of their own; build-your-own-table; Pot-Limit
+mode; the practice packs "Calling the river", "Open or fold", "Bet or check" and "Shove or
+fold"; the interactive lessons with
+Webb from Level 2 up, starting with "Position"; four member rooms with three regulars of their own; build-your-own-table; Pot-Limit
 Omaha; a report that reads your play across every hand you have ever played; watching a
 tournament out after you bust; and four member card backs. **Not built**: multiplayer, which
-is the big one and is honestly some way off.
+is the big one and is honestly some way off; and the rest of Webb's course, whose unbuilt
+lessons are on the shelf at /learn marked as exactly that.
 
 The drills that shipped free stay free and unmetered, which is the paragraph above applied
-to the thing most likely to test it. Two of the seven are free, and the free pair is the pair
+to the thing most likely to test it. Two of the ten are free, and the free pair is the pair
 a beginner starts on: naming the hand you are holding, and reading two finished hands
 against each other. The full list, including which parts are real, is at
 [/membership](https://playpip.io/membership) — that page is generated from the same data

@@ -90,6 +90,30 @@ export const DRILL_KINDS: DrillKind[] = [
     boardCards: 5,
     membersOnly: true,
   },
+  // **The second practice pack, and the first asked before the flop**
+  // (2026-09-23). It folds round to you: raise or fold. Registered as a kind
+  // rather than as a mode of anything (technology#86's test) because no kind
+  // asks this question — there is no board, no price and no showdown, and its
+  // answer key is the starting-hand chart. A mode of "which hand wins" would
+  // pour a preflop chart reading into a rating that means reading a showdown.
+  //
+  // Sits here, third, because the ladder is in order of difficulty and its
+  // spots are rated beside the reading kinds (see OPEN_BASE): knowing which
+  // hands to play is the step after knowing what you hold, and it needs no
+  // arithmetic. It chooses hands rather than pricing them, which puts it on the
+  // same side of the line as the Position lesson that leads into it: that is
+  // the membership's (Level 2 of Lessons with Webb), and the flag is here in the
+  // commit that registers it, as rule #8 requires.
+  {
+    id: 'open-or-fold',
+    title: 'Open or fold',
+    blurb: 'It folds round to you. Your seat, your two cards, a hundred big blinds: raise or fold?',
+    question: 'It folds to you. Raise or fold?',
+    gradedBy:
+      'Settled by the starting-hand chart the free guides teach, seat by seat, so the answer here is the answer there.',
+    boardCards: 0,
+    membersOnly: true,
+  },
   {
     id: 'which-hand-wins',
     title: 'Which hand wins?',
@@ -129,6 +153,47 @@ export const DRILL_KINDS: DrillKind[] = [
     boardCards: 3,
     membersOnly: true,
   },
+  // **Shove or fold, the short-stack pack** (2026-09-24). It folds to you in a
+  // tournament with three to fifteen big blinds: all in, or fold. A kind rather
+  // than a mode of open-or-fold because the answer key is a different thing
+  // entirely — not the starting-hand chart the free guides teach at a hundred
+  // big blinds, but a line of expected value over Nash calling ranges for the
+  // seat and the stack (lib/drills/shoveRange.ts). Pouring it into the
+  // open-or-fold rating would make that number mean a chart and a sum at once.
+  //
+  // It prices a hand — the blinds against a call — so it is the membership's,
+  // and the flag is here in the commit that registers it, as rule #8 requires.
+  // Sits after the flop kind: preflop, but with arithmetic in it.
+  {
+    id: 'shove-or-fold',
+    title: 'Shove or fold',
+    blurb: 'A tournament, a short stack, and it folds to you. All in, or let it go?',
+    question: 'It folds to you. All in or fold?',
+    gradedBy:
+      'Settled by what the shove wins: the blinds when everybody folds, against your share when somebody calls, with the Nash calling ranges for your seat and stack.',
+    boardCards: 0,
+    membersOnly: true,
+  },
+  // **Bet or check, the river pack's mirror** (2026-09-24). It is checked to
+  // you on the river with a hand: bet for value, or check it back. Its own kind
+  // because its answer key is its own: not a price against what bets, but a
+  // half against what calls (lib/drills/valueRange.ts), and folding it into the
+  // river pack's rating would make one number mean both seats.
+  //
+  // It prices a hand, so it is the membership's, flagged in the commit that
+  // registers it (rule #8). One rung under the river call: the line it is
+  // measured against is always a half, where a call has a price to work out.
+  {
+    id: 'bet-or-check',
+    title: 'Bet or check',
+    blurb:
+      'It is checked to you on the river. Work out what calls, and bet if you beat most of it.',
+    question: 'It is checked to you. Bet or check?',
+    gradedBy:
+      'Settled by counting every hand that calls this size against yours, and only asked when the answer is the same however wide they call.',
+    boardCards: 5,
+    membersOnly: true,
+  },
   // **The first practice pack, and a kind rather than a mode** (2026-09-23). A
   // short lesson, then spots, graded like every kind here. It is registered
   // rather than hung off `pot-odds` the way play-it-out is (technology#86)
@@ -164,6 +229,33 @@ export const DRILL_KINDS: DrillKind[] = [
  * orphan everybody's rating. Change the title freely; never this.
  */
 export const RIVER_PACK_ID = 'calling-the-river' satisfies DrillKindId
+
+/**
+ * The open-or-fold pack's id, and its route is `/game/drills/${OPEN_PACK_ID}`.
+ *
+ * **Stable for the same reasons as {@link RIVER_PACK_ID}**: the coaching
+ * report's `too-loose`, `too-tight` and `selection` cards link here, the
+ * Position lesson hands into it, and the pack's record is kept under this key
+ * on the profile. Rename the title freely; never this.
+ */
+export const OPEN_PACK_ID = 'open-or-fold' satisfies DrillKindId
+
+/**
+ * The bet-or-check pack's id, and its route is `/game/drills/${BET_PACK_ID}`.
+ *
+ * **Stable for the same reasons as {@link RIVER_PACK_ID}**: the course and the
+ * coaching report are meant to link here, and the pack's record is kept under
+ * this key on the profile. Rename the title freely; never this.
+ */
+export const BET_PACK_ID = 'bet-or-check' satisfies DrillKindId
+
+/**
+ * The shove-or-fold pack's id, and its route is `/game/drills/${SHOVE_PACK_ID}`.
+ *
+ * **Stable for the same reasons as {@link RIVER_PACK_ID}**. Rename the title
+ * freely; never this.
+ */
+export const SHOVE_PACK_ID = 'shove-or-fold' satisfies DrillKindId
 
 /**
  * May this player open this kind?

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { DoItWithWebb } from '@/components/learn/DoItWithWebb'
 import { SameHandThreeSeats } from '@/components/learn/SameHandThreeSeats'
 import { TheOrder } from '@/components/learn/TheOrder'
 import { Section } from '@/components/marketing/LegalPage'
@@ -276,6 +277,11 @@ export default function PositionGuide() {
           If they are on your left, every street costs you the same guess again.
         </p>
       </Section>
+
+      {/* The lesson that plays this page out at a table. After the prose and
+          before the one call to play, so it adds a door without touching a
+          word of the teaching. */}
+      <DoItWithWebb lesson="position" />
 
       <TryIt>
         <p>

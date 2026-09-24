@@ -27,6 +27,7 @@ import {
   ChevronRight,
   ChartSpline,
   Eye,
+  GraduationCap,
   Hand,
   Lock,
   History,
@@ -106,6 +107,7 @@ const PLAY: Record<string, Visual> = {
 
 /** The tools beside the game: an iOS settings-row icon each. */
 const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
+  lessons: { icon: GraduationCap, tint: '#3FA7B8' },
   drills: { icon: Target, tint: '#5B7FC7' },
   river: { icon: Spade, tint: '#C9873D' },
   progress: { icon: ChartSpline, tint: '#E06D8C' },
@@ -125,7 +127,8 @@ const FREE_FOREVER = [
   'The Chip Shop, and everything chips buy in it',
   'The read on every hand as you finish it',
   '“What have you got?” and “Which hand wins?”',
-  'Every guide, and the odds calculator',
+  'Level 1 of Lessons with Webb, and every guide',
+  'The odds calculator',
 ]
 
 const SPRING = { type: 'spring', stiffness: 420, damping: 30 } as const
@@ -258,13 +261,14 @@ function Hero({ price }: { price: LocalPrice }) {
             Pip Membership
           </span>
           <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight md:text-6xl">
-            Get better at poker.
+            Get better at poker.{' '}
             <span className="block text-muted-foreground">And see it working.</span>
           </h1>
           <p className="mt-5 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
-            A report on what is costing you chips, every session back on the felt, and drills that
-            price the spots beginners get wrong. Plus the side tables, four more kinds of poker and
-            the members’ shelf. The core game stays free, for good.
+            Lessons at the table with Webb, a report on what is costing you chips, every session
+            back on the felt, and drills that price the spots beginners get wrong. Plus the side
+            tables, four more kinds of poker and the members’ shelf. The core game stays free, for
+            good.
           </p>
           <p className="mt-5 text-sm tabular-nums text-muted-foreground">
             <span className="font-semibold text-foreground">{price.monthly}</span> a month{' '}

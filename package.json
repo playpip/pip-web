@@ -29,6 +29,7 @@
     "supabase:generate-types": "supabase gen types typescript --linked --schema public > src/types/supabase-types.ts",
     "coach-sim": "tsx scripts/coach-sim.ts",
     "play-it-out-cost": "tsx scripts/play-it-out-cost.ts",
+    "shove-chart": "tsx scripts/shove-chart.ts",
     "odds-band-coverage": "tsx scripts/odds-band-coverage.ts"
   },
   "dependencies": {

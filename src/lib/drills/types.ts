@@ -1,3 +1,4 @@
+import type { SeatId } from '@/config/positions'
 import type { Card } from '@/lib/poker/cards'
 import type { SpotKind } from './rating'
 
@@ -77,6 +78,9 @@ export type DrillKindId =
   | 'pot-odds'
   | 'hand-strength'
   | 'calling-the-river'
+  | 'open-or-fold'
+  | 'bet-or-check'
+  | 'shove-or-fold'
 
 /** One of the answers on offer. */
 export interface DrillChoice {
@@ -146,6 +150,10 @@ export interface DrillStakes {
  * measured against without the screen having to replay any arithmetic.
  */
 export interface DrillLineStep {
+  // On the river kind every step is theirs. On the bet-or-check kind a flop or
+  // turn `bet` is yours and they called it, and the river `check` is theirs:
+  // the line is what they did with the chips, which is what their range reads.
+
   street: 'flop' | 'turn' | 'river'
   action: 'check' | 'bet'
   /** Chips bet, on a bet. */
@@ -172,6 +180,44 @@ export interface RiverRangeSummary {
   weakestValue: string
   /** The hero's share of the pot against all of it. The number the grade came from. */
   equity: number
+}
+
+/**
+ * The hands that call a river value bet, counted against the hero's hand, at
+ * the calling rate the explanation quotes (see lib/drills/valueRange.ts).
+ * Unweighted counts of two-card hands: the felt draws these as they are.
+ */
+export interface CallingRangeSummary {
+  /** The bet on offer, and the pot it goes into, in chips. */
+  pot: number
+  bet: number
+  /** Hands that call it. */
+  calls: number
+  /** Of those, the ones the hero beats (a tie counts half). */
+  callsBeaten: number
+  /** Hands that fold to it. */
+  folds: number
+  /** The calling hands grouped the way a player reads them, strongest first. */
+  groups: { label: string; hands: number; beaten: number }[]
+  /** The hero's share of the pot against the calling hands. The number the grade came from. */
+  equity: number
+}
+
+/**
+ * A short-stack shove, priced at the Nash callers the explanation quotes (see
+ * lib/drills/shoveRange.ts). Everything in big blinds or shares.
+ */
+export interface ShoveSummary {
+  /** The hero's stack, in big blinds. */
+  stack: number
+  /** What shoving is worth over folding. The number the grade came from. */
+  ev: number
+  /** The chance everybody behind folds. */
+  foldAll: number
+  /** The hero's equity when called, averaged over who calls. */
+  equityCalled: number
+  /** Each player behind, in turn order: how often it reaches them and they call, and the hero's equity then. */
+  callers: { seat: SeatId; calls: number; equity: number }[]
 }
 
 /** A generated spot: everything the runner draws and the grader needs. */
@@ -204,6 +250,15 @@ export interface Drill {
   line?: DrillLineStep[]
   /** What the bet in front of you is made of, for the river kind. */
   range?: RiverRangeSummary
+  /** Who calls a value bet, for the bet-or-check kind. */
+  calling?: CallingRangeSummary
+  /** What a shove is worth, for the shove-or-fold kind. */
+  shove?: ShoveSummary
+  /**
+   * The seat it folded round to, for the kinds that are asked before the flop.
+   * Absent everywhere else: a spot with a board has no seat that matters to it.
+   */
+  seat?: SeatId
   /** The id of the correct choice. */
   answer: string
   /**

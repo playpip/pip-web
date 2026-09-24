@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation'
 import { MotionConfig, motion } from 'framer-motion'
 import { AppBar } from '@/components/AppBar'
 import { DealtCard } from '@/components/PlayingCard'
-import { type DrillKind, RIVER_PACK_ID, canPlayDrill } from '@/config/drills'
+import {
+  BET_PACK_ID,
+  type DrillKind,
+  OPEN_PACK_ID,
+  RIVER_PACK_ID,
+  SHOVE_PACK_ID,
+  canPlayDrill,
+} from '@/config/drills'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { kindFloor } from '@/lib/drills/standing'
 import type { Drill, DrillChoice } from '@/lib/drills/types'
@@ -27,7 +34,10 @@ import {
 } from './felt'
 import { PickCounter, usePickFive } from './PickFive'
 import { PLAY_IT_OUT_KIND, PLAY_IT_OUT_MODE, PLAY_IT_OUT_RECORD, PlayItOut } from './PlayItOut'
+import { BetPack } from './BetPack'
+import { OpenPack } from './OpenPack'
 import { RiverPack } from './RiverPack'
+import { ShovePack } from './ShovePack'
 import { useDrillExit } from './exit'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
@@ -162,6 +172,16 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
           // Its own screen because a pack has a beginning and an end, which a
           // stream of spots does not; its grading and its record are the kind's.
           <RiverPack kind={kind} allowed={allowed} run={run} setRun={setRun} onRated={setDelta} />
+        ) : kind.id === OPEN_PACK_ID ? (
+          // The second pack, asked before the flop: ten hands on the real table,
+          // dealt by the engine, where the Position lesson leaves off.
+          <OpenPack kind={kind} allowed={allowed} run={run} setRun={setRun} onRated={setDelta} />
+        ) : kind.id === BET_PACK_ID ? (
+          // The river pack's mirror: checked to you, bet for value or check.
+          <BetPack kind={kind} allowed={allowed} run={run} setRun={setRun} onRated={setDelta} />
+        ) : kind.id === SHOVE_PACK_ID ? (
+          // Short-stacked, on the real table: all in or fold.
+          <ShovePack kind={kind} allowed={allowed} run={run} setRun={setRun} onRated={setDelta} />
         ) : (
           <Run kind={kind} allowed={allowed} run={run} setRun={setRun} onRated={setDelta} />
         )}
@@ -291,6 +311,13 @@ function Run({
   // kind that asks for a number needs nothing added here to be laid out like
   // one. See the note on `Answer`'s `numeric`.
   const numeric = outcomes.length > 0 && outcomes.every((c) => /^\d+$/.test(c.label))
+  // **When hands and an outcome are both answers, all of them get a button.**
+  // "Which hand wins?" drew Hand A and Hand B as tappable seats and put only
+  // "They split it" in the bar, so the one button on screen was the rarest
+  // answer and read as the only option (Will, 2026-09-23). The seats stay
+  // tappable; the bar now offers the three answers side by side, as equals.
+  const barChoices =
+    handChoices.length > 0 && outcomes.length > 0 ? [...handChoices, ...outcomes] : outcomes
   // Holdings the spot shows without asking about. The first is always the
   // hero's where there is one (see `faceUpHands`), and it sits where the hero
   // sits; anybody else is across the table.
@@ -480,7 +507,7 @@ function Run({
           <NextButton label="Next hand" onClick={another} />
         ) : isPickFive ? (
           <PickCounter left={five.left} />
-        ) : outcomes.length > 0 ? (
+        ) : barChoices.length > 0 ? (
           // **Numbers keep their row; phrases go two across.** Four answers in
           // one row leaves each about a quarter of the bar, which is plenty for
           // "8" and not enough for "Three of a kind" — that one wrapped to two
@@ -489,10 +516,14 @@ function Run({
           <div
             className={cn(
               'grid gap-2',
-              numeric && outcomes.length > 2 ? 'grid-cols-4' : 'grid-cols-2',
+              numeric && barChoices.length > 2
+                ? 'grid-cols-4'
+                : barChoices.length === 3
+                  ? 'grid-cols-3'
+                  : 'grid-cols-2',
             )}
           >
-            {outcomes.map((choice) => (
+            {barChoices.map((choice) => (
               <Answer
                 key={choice.id}
                 label={choice.label}

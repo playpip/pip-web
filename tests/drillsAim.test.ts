@@ -231,3 +231,26 @@ test('a spot still arrives quickly enough to deal on a tap', (t) => {
     t.true(each < 250, `${kind}: ${each.toFixed(0)}ms a spot`)
   }
 })
+
+// **The aim can make one answer the usual one, and then the button wins.** At
+// the top of "Which hand wins?" the nearest rung is the split pot, and before
+// the cap more than half the spots dealt at 1400 and up were splits — pressing
+// "They split it" every time was a winning strategy (Will, 2026-09-23). The cap
+// holds splits to at most a fifth wherever the aim would have chosen them, and
+// leaves the low end exactly as it was.
+test('a high rating on which-hand-wins is not mostly split pots', (t) => {
+  for (const aim of [1400, 1600, 2000]) {
+    let splits = 0
+    const n = 400
+    for (let i = 1; i <= n; i++) {
+      if (nextDrill('which-hand-wins', i * 104_729, aim).answer === 'split') splits++
+    }
+    t.true(splits / n <= 0.25, `${aim}: ${splits} of ${n} were splits`)
+    t.true(splits > 0, `${aim}: the cap removed split pots altogether`)
+  }
+  let low = 0
+  for (let i = 1; i <= 400; i++) {
+    if (nextDrill('which-hand-wins', i * 104_729, 800).answer === 'split') low++
+  }
+  t.true(low <= 8, `at 800 the cap should change nothing, and ${low} of 400 were splits`)
+})

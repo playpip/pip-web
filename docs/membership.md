@@ -20,9 +20,9 @@ you finish it, the end-of-run card, the two drills a beginner starts on — *Wha
 got?* and *Which hand wins?* — every written guide, the odds calculator, and sync.
 
 Behind the check: **every side table**, every game that is not Hold'em (Pot-Limit Omaha,
-Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, five more
-drill kinds (including the first practice pack, *Calling the river*) plus the play-it-out mode, the across-sessions play report, the session review,
-spectating after you bust, and four member card backs. Not built: multiplayer.
+Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack), build-your-own-table, eight more
+drill kinds (including the practice packs *Open or fold*, *Calling the river*, *Bet or check* and *Shove or fold*) plus the play-it-out mode, the across-sessions play report, the session review,
+spectating after you bust, **Lessons with Webb** from Level 2 up (interactive lessons on the felt — see below), and the members' shelf. Not built: multiplayer.
 
 **The free half of the drills is where a beginner learns to read a hand, and the paid half
 is where they learn to price one** (Will, 2026-09-21). That is the line the two sides fall
@@ -114,6 +114,30 @@ localStorage — not a weak lock, no lock. `supabase/migrations/…_memberships.
 `select` on your own row and **nothing else**; the Stripe webhook writes it with the service
 role. `tests/entitlement.test.ts` fails the build if a mutation against that table ever
 appears in the client, or if the migration grows an insert/update/delete policy.
+
+## Lessons with Webb (2026-09-23)
+
+An interactive course in Webb's Learn area, played on the real felt: Webb deals a hand, stops
+to ask, you act with the real buttons, he explains, and the lesson ends in a practice pack.
+Five levels (`COURSE` in `src/config/lessons.ts`).
+
+- **Level 1 (first hands) is free, and so is every written guide.** Level 1 is the tour and
+  the two free drills; charging somebody to learn what a flush is would be the meanest page
+  on the site and the one most often shared. Rule 4 allows a whole level to be free — it
+  forbids a free *slice* of a paid thing, which this is not.
+- **Levels 2–5 are the membership**, lesson by lesson, each carrying `membersOnly` in the
+  commit that registers it.
+- **Only built lessons are sold.** The shelf lists the rest as "Not built yet" with no link,
+  and the `lessons` entry in `MEMBERSHIP_FEATURES` names exactly what is shipped.
+- **Shipped (2026-09-24): the whole course.** Eight lessons — Starting hands and Position
+  (Level 2), Outs and Pot odds (Level 3), Stack sizes (Level 4), Ranges, Bluffing and The
+  regulars (Level 5) — and four practice packs: *Open or fold* (graded by the same
+  `opensHand` chart the free guides teach from), *Calling the river*, *Bet or check* (calling
+  shares measured from the bots) and *Shove or fold* (multiway Nash push/fold, verified to
+  0.05 bb). Nothing on the course is "Not built yet".
+- **The Regulars lesson is pinned to the cast.** Every claim about a character comes from
+  their `delta` in `config/cast.ts`, checked by simulation; `tests/lessons.test.ts` fails if a
+  retune makes a sentence false.
 
 ## Currencies (2026-09-23)
 

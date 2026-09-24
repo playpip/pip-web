@@ -1,7 +1,10 @@
+import { generateBetOrCheck } from './betOrCheck'
 import { generateRiverCall } from './callingTheRiver'
 import { generateCountYourOuts } from './countYourOuts'
 import { generateHandStrength } from './handStrength'
+import { generateOpenOrFold } from './openOrFold'
 import { generatePotOdds } from './potOdds'
+import { generateShoveOrFold } from './shoveOrFold'
 import type { Drill, DrillKindId, Generated, Grade } from './types'
 import { generateWhatsYourHand } from './whatsYourHand'
 import { generateWhichFivePlay } from './whichFivePlay'
@@ -43,6 +46,9 @@ const GENERATORS: Record<DrillKindId, (seed: number) => Generated> = {
   'pot-odds': generatePotOdds,
   'hand-strength': generateHandStrength,
   'calling-the-river': generateRiverCall,
+  'open-or-fold': generateOpenOrFold,
+  'bet-or-check': generateBetOrCheck,
+  'shove-or-fold': generateShoveOrFold,
 }
 
 /**
@@ -85,11 +91,15 @@ export function nextDrill(kind: DrillKindId, seed: number, aim?: number): Drill 
   let best: Drill | null = null
   let bestGap = Number.POSITIVE_INFINITY
   let considered = 0
+  // Most spots at this seed skip the capped answer entirely; see ANSWER_CAPS.
+  const cap = ANSWER_CAPS[kind]
+  const skipCapped = aim !== undefined && cap !== undefined && unitOf(seed) >= cap.share
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const { drill } = drillAt(kind, (seed + attempt) >>> 0)
     if (!drill) continue
     if (aim === undefined) return drill
+    if (skipCapped && drill.answer === cap?.answer) continue
 
     const gap = Math.abs(drill.difficulty - aim)
     if (gap < bestGap) {
@@ -105,6 +115,31 @@ export function nextDrill(kind: DrillKindId, seed: number, aim?: number): Drill 
 
   if (best) return best
   throw new Error(`No ${kind} spot in ${MAX_ATTEMPTS} seeds from ${seed}`)
+}
+
+/**
+ * Answers the aim may not make the usual one.
+ *
+ * **Aiming by difficulty can turn difficulty into the answer.** On "Which hand
+ * wins?" the hardest shape is the split pot, and a split's answer is always
+ * "They split it" — so once a rating reached the top of the ladder the walk
+ * picked a split more than half the time, and pressing the one button scored
+ * (Will, 2026-09-23: "only ever has they split it as the option"). The river
+ * pack found the same failure with always-call and fixed it by balancing each
+ * ten; a stream has no ten to balance, so this caps the share instead.
+ *
+ * A cap, not a quota: at most `share` of spots may be the capped answer, and
+ * only where the walk would have chosen one anyway. Below the top of the ladder
+ * the aim rarely picks a split and nothing changes; at the top, four spots in
+ * five are the hard kickers and board-plays that have a hand for an answer.
+ */
+const ANSWER_CAPS: Partial<Record<DrillKindId, { answer: string; share: number }>> = {
+  'which-hand-wins': { answer: 'split', share: 0.2 },
+}
+
+/** A seed as a number in [0, 1), so a cap decides the same way for the same seed. */
+function unitOf(seed: number): number {
+  return (Math.imul(seed >>> 0, 2654435761) >>> 0) / 2 ** 32
 }
 
 /**
@@ -133,6 +168,18 @@ export const AIM_BAND = 80
  * | `pot-odds`         | 6.3  | 8  | 50 ms |
  * | `hand-strength`    | 31   | 2  | 63 ms |
  * | `calling-the-river`| 7.5  | 8  | 60 ms |
+ * | `open-or-fold`     | 0.02 | 16 | 0.3 ms |
+ * | `bet-or-check`     | 2.1  | 12 | 25 ms |
+ * | `shove-or-fold`    | 0.4  | 16 | 6.4 ms |
+ *
+ * The last two measured on 2026-09-24, over 3,000 seeds each, rejected seeds
+ * included. `bet-or-check` is cheaper per spot than the river call because it
+ * throws away a hand with nothing of its own before building a range, and most
+ * seeds are that; walked from the aim that sits between two of its rungs (the
+ * worst case), it came to 27ms. `shove-or-fold` pays about 35ms once, on its
+ * first spot, to build the callers either side of Nash for all 65 seats and
+ * stacks (`callerModels`, memoised); every spot after that is arithmetic on
+ * the stored chart.
  *
  * Every row is inside about 60ms of work between one spot and the next, which
  * is the budget: a phone is some multiple slower than this desktop, and a
@@ -157,6 +204,9 @@ export const AIM_SAMPLE: Record<DrillKindId, number> = {
   'pot-odds': 8,
   'hand-strength': 2,
   'calling-the-river': 8,
+  'open-or-fold': 16,
+  'bet-or-check': 12,
+  'shove-or-fold': 16,
 }
 
 /**

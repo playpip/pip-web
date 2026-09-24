@@ -45,7 +45,7 @@ import { SplitBar } from '@/components/profile/SplitBar'
 import { RangePicker } from '@/components/profile/RangePicker'
 import { StreetCosts } from '@/components/profile/StreetCosts'
 import { RatingSparkline } from '@/components/profile/DrillRating'
-import { DRILL_KINDS, RIVER_PACK_ID } from '@/config/drills'
+import { BET_PACK_ID, DRILL_KINDS, OPEN_PACK_ID, RIVER_PACK_ID } from '@/config/drills'
 import { EvidenceDialog } from '@/components/review/EvidenceDialog'
 import { useProfile, type RollPoint } from '@/store/profile'
 import { useEntitlement } from '@/store/entitlement'
@@ -269,6 +269,9 @@ function Report({
                 ) : (
                   <p className="mt-1.5 text-sm text-muted-foreground">{s.finding}</p>
                 )}
+                {/* A strength a pack trains keeps the way in: sound selection
+                    is a thing to hold on to, and the pack is where it is kept. */}
+                <PracticeLink id={s.id} label="Keep it sharp" />
               </Card>
             </Reveal>
           ))}
@@ -305,20 +308,50 @@ function SectionHeading({ title, aside }: { title: string; aside?: string }) {
  *
  * The report finds the leak; this is where it stops leaving you there. Only
  * leaks a pack actually trains are listed — a link to a drill that practises
- * something adjacent would be a sales line, not advice. All three of these are
+ * something adjacent would be a sales line, not advice. The river three are
  * the same decision at the end of a hand: a bet in front of you, call or fold.
+ * The other three are the first decision of a hand: open it, or let it go.
  */
 const PRACTICE: Record<string, string> = {
+  // Betting for value against checking it back: the other half of the river
+  // decision. Too passive is checking hands the calling range pays off; betting
+  // almost everything is betting hands it only pays when you are behind.
+  passive: BET_PACK_ID,
+  'over-aggressive': BET_PACK_ID,
   'paying-off': RIVER_PACK_ID,
   'folds-to-pressure': RIVER_PACK_ID,
   'cannot-fold': RIVER_PACK_ID,
+  // Which hands to play at all, and from where: the decision before any of the
+  // above. Entering too many pots is opening hands the chart folds from that
+  // seat; entering too few is folding the ones it opens late. The pack is that
+  // decision, graded by the chart the guides print.
+  'too-loose': OPEN_PACK_ID,
+  'too-tight': OPEN_PACK_ID,
+  selection: OPEN_PACK_ID,
+}
+
+/** "Practise this", under a finding a pack trains, or nothing. */
+function PracticeLink({ id, label = 'Practise this' }: { id: string; label?: string }) {
+  const practice = DRILL_KINDS.find((k) => k.id === PRACTICE[id])
+  if (!practice) return null
+  return (
+    <Link
+      href={drillHref(practice.id, 'report')}
+      className="group mt-4 flex items-center justify-between gap-3 rounded-xl bg-foreground/[0.05] px-3.5 py-3 text-sm transition hover:bg-foreground/[0.08] active:scale-[0.98]"
+    >
+      <span>
+        <span className="block text-xs text-muted-foreground">{label}</span>
+        <span className="font-medium">{practice.title}</span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+    </Link>
+  )
 }
 
 function LeakCard({ leak }: { leak: Leak }) {
   const evidence = useProfile((s) => s.reviewStats.evidence)
   const [open, setOpen] = useState(false)
   const hands = leak.evidence ? (evidence[leak.evidence as EvidenceKey] ?? []) : []
-  const practice = DRILL_KINDS.find((k) => k.id === PRACTICE[leak.id])
 
   return (
     <article
@@ -339,18 +372,7 @@ function LeakCard({ leak }: { leak: Leak }) {
       {leak.metric && <BandMeter className="mt-4" metric={leak.metric} />}
       <p className="mt-3 text-sm">{leak.advice}</p>
 
-      {practice && (
-        <Link
-          href={drillHref(practice.id, 'report')}
-          className="group mt-4 flex items-center justify-between gap-3 rounded-xl bg-foreground/[0.05] px-3.5 py-3 text-sm transition hover:bg-foreground/[0.08] active:scale-[0.98]"
-        >
-          <span>
-            <span className="block text-xs text-muted-foreground">Practise this</span>
-            <span className="font-medium">{practice.title}</span>
-          </span>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
-        </Link>
-      )}
+      <PracticeLink id={leak.id} />
 
       {hands.length > 0 && (
         <>

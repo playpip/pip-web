@@ -14,12 +14,13 @@ import { useRouter } from 'next/navigation'
 const ORIGINS: Record<string, { href: string; label: string }> = {
   stats: { href: '/stats', label: 'Stats' },
   report: { href: '/game/report', label: 'Report' },
+  learn: { href: '/learn', label: 'Learn' },
 }
 
 const INDEX = { href: '/game/drills', label: 'Drills' }
 
 /** The screens that link into a drill and want to be returned to. */
-export type DrillOrigin = 'stats' | 'report'
+export type DrillOrigin = 'stats' | 'report' | 'learn'
 
 /** A link into a drill kind that brings you back to where you left from. */
 export function drillHref(kindId: string, from?: DrillOrigin): string {

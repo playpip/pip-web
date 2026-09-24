@@ -176,6 +176,56 @@ export type FiveShape = 'made-five' | 'kickers-matter' | 'board-plays'
 export type RiverShape = 'clear-read' | 'close-read' | 'thin-read'
 
 /**
+ * How an "open or fold" spot is shaped, easiest first. Read off the chart that
+ * set the answer, so, as above, the difficulty cannot disagree with the grade.
+ *
+ * - `every-seat`: the chart gives this hand the same answer from every seat
+ *   that opens — aces are a raise anywhere, and a hand off the chart is a fold
+ *   anywhere. Knowing the hand is enough.
+ * - `seat-decides`: the answer turns on the seat. The spot the Position lesson
+ *   is about, and the one a player who ignores position gets wrong half the time.
+ * - `looks-wrong`: the cards look like the other answer — an ace or two
+ *   picture cards that fold, or small cards that raise. Computed from the cards
+ *   rather than asserted, the way `DECOY` and `MIRAGE` are.
+ */
+export type OpenShape = 'every-seat' | 'seat-decides' | 'looks-wrong'
+
+/**
+ * How a "bet or check" spot is shaped, easiest first: how far your share
+ * against the hands that call sits from a half. Read off the same count that set
+ * the answer, so, as above, the difficulty cannot disagree with the grade.
+ *
+ * - `clear-value`: twenty points or more from a half.
+ * - `close-value`: fifteen to twenty.
+ * - `thin-value`: under fifteen, and never under the margin.
+ *
+ * **Wider than the river's cuts, and measured before they were chosen.** A spot
+ * is only asked when it is clear at every calling range in the band, so the
+ * range the sentence quotes (the middle of it) is rarely near the line: over
+ * 3,000 seeds the gap has a median of 18 points, and 15 and 20 cut the spots
+ * roughly 34 / 30 / 36.
+ *
+ * Gaps rather than hand types, for the reason {@link RiverShape} gives: a rung
+ * that meant "two pair" would mean "bet", and a ladder whose rungs give away the
+ * answer is not measuring anybody.
+ */
+export type ValueShape = 'clear-value' | 'close-value' | 'thin-value'
+
+/**
+ * How a "shove or fold" spot is shaped, easiest first: how many big blinds
+ * apart shoving and folding are, at the Nash callers. Read off the same line of
+ * arithmetic that set the answer.
+ *
+ * - `clear-shove`: a big blind or more apart.
+ * - `close-shove`: half a big blind to one.
+ * - `thin-shove`: under half, and never under the margin.
+ *
+ * Named for the question rather than the answer: a `clear-shove` spot is as
+ * likely to be a clear fold. The pack deals five of each on top of it.
+ */
+export type ShoveShape = 'clear-shove' | 'close-shove' | 'thin-shove'
+
+/**
  * Any spot's shape, whichever kind dealt it.
  *
  * One union rather than a field per kind, because everything downstream of a
@@ -191,6 +241,9 @@ export type SpotKind =
   | ReadShape
   | FiveShape
   | RiverShape
+  | OpenShape
+  | ValueShape
+  | ShoveShape
 
 /**
  * What each shape is rated.
@@ -412,6 +465,75 @@ export const EASIEST_RIVER = RIVER_BASE['clear-read']
 export const HARDEST_RIVER = RIVER_BASE['thin-read']
 
 /**
+ * What each shape of an "open or fold" spot is rated.
+ *
+ * Same judgement and same caveat as every table above: the ordering is the
+ * defensible part and nobody has answered one of these yet.
+ *
+ * **Pitched low, beside the reading kinds.** It is the second step a beginner
+ * takes — which hands to play at all — and it asks for no arithmetic: a player
+ * who has learned the chart and the seats answers every spot. What makes the
+ * top rung hard is the cards arguing with the chart, not a sum.
+ */
+const OPEN_BASE: Record<OpenShape, number> = {
+  'every-seat': 700,
+  'seat-decides': 860,
+  'looks-wrong': 1020,
+}
+
+/** The least an open-or-fold spot can be rated. */
+export const EASIEST_OPEN = OPEN_BASE['every-seat']
+
+/** The most an open-or-fold spot can be rated. */
+export const HARDEST_OPEN = OPEN_BASE['looks-wrong']
+
+/**
+ * What each shape of a "bet or check" spot is rated.
+ *
+ * Same judgement and same caveat as every table above: the ordering is the
+ * defensible part and nobody has answered one of these yet.
+ *
+ * **A step under the river call, on purpose.** It is the same range read from
+ * the other side, but the line you are measuring against never moves: a value
+ * bet wants more than half of the hands that call, whatever the size, where a
+ * river call wants a price worked out from the pot first. One less piece of
+ * arithmetic is one step down.
+ */
+const VALUE_BASE: Record<ValueShape, number> = {
+  'clear-value': 1140,
+  'close-value': 1320,
+  'thin-value': 1480,
+}
+
+/** The least a bet-or-check spot can be rated. */
+export const EASIEST_VALUE = VALUE_BASE['clear-value']
+
+/** The most a bet-or-check spot can be rated. */
+export const HARDEST_VALUE = VALUE_BASE['thin-value']
+
+/**
+ * What each shape of a "shove or fold" spot is rated.
+ *
+ * Same judgement and same caveat as every table above.
+ *
+ * **Pitched between the preflop chart and the pricing kinds.** It is asked
+ * before the flop like open-or-fold, but its answer is not a chart you can
+ * learn by heart from the free guides: it moves with the stack and the seat, and
+ * the close ones need the blinds weighed against a call.
+ */
+const SHOVE_BASE: Record<ShoveShape, number> = {
+  'clear-shove': 1080,
+  'close-shove': 1260,
+  'thin-shove': 1420,
+}
+
+/** The least a shove-or-fold spot can be rated. */
+export const EASIEST_SHOVE = SHOVE_BASE['clear-shove']
+
+/** The most a shove-or-fold spot can be rated. */
+export const HARDEST_SHOVE = SHOVE_BASE['thin-shove']
+
+/**
  * What this spot is worth. Splits take no decoy adjustment: with two winners
  * there is no losing hand to be misled by.
  */
@@ -447,6 +569,21 @@ export function fiveDifficulty(shape: FiveShape): number {
 /** What a river spot is worth. Its shape, and nothing else. */
 export function riverDifficulty(shape: RiverShape): number {
   return RIVER_BASE[shape]
+}
+
+/** What an open-or-fold spot is worth. Its shape, and nothing else. */
+export function openDifficulty(shape: OpenShape): number {
+  return OPEN_BASE[shape]
+}
+
+/** What a bet-or-check spot is worth. Its shape, and nothing else. */
+export function valueDifficulty(shape: ValueShape): number {
+  return VALUE_BASE[shape]
+}
+
+/** What a shove-or-fold spot is worth. Its shape, and nothing else. */
+export function shoveDifficulty(shape: ShoveShape): number {
+  return SHOVE_BASE[shape]
 }
 
 /**
