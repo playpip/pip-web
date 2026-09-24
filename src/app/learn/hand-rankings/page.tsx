@@ -4,6 +4,7 @@ import { AceRuns } from '@/components/learn/AceRuns'
 import { GuideChart, GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
+import { FREE_TO_PLAY } from '@/config/money'
 import { HAND_FREQUENCIES, formatShare, sevenCardShare } from '@/config/handFrequencies'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
@@ -218,10 +219,9 @@ export default function HandRankingsGuide() {
           you to the point where you see them coming. That second part only happens at a table.
         </p>
         <p>
-          You can play Texas Hold’em on Pip right now, in the browser, against opponents that
-          actually play. Nothing to install, no money involved anywhere and none to spend. The hand
-          strength is shown as you go, so the rankings stop being something you look up and start
-          being something you know.
+          You can play Texas Hold’em right now, in the browser, against opponents that actually
+          play. {FREE_TO_PLAY} The hand strength is shown as you go, so the rankings stop being
+          something you look up and start being something you know.
         </p>
       </TryIt>
     </GuidePage>

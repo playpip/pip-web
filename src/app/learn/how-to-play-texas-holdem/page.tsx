@@ -3,6 +3,7 @@ import { BestFive } from '@/components/learn/BestFive'
 import { CanYouCheck } from '@/components/learn/CanYouCheck'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { Section } from '@/components/marketing/LegalPage'
+import { FREE_TO_PLAY } from '@/config/money'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
 
@@ -272,10 +273,9 @@ export default function HowToPlayGuide() {
           takes about twenty minutes and cannot be read into place.
         </p>
         <p>
-          You can play Texas Hold’em on Pip right now, in the browser, against opponents that
-          actually play. Nothing to install, no money involved anywhere and none to spend. It tells
-          you what hand you have made as you go, so the rules on this page turn into something you
-          do rather than something you looked up.
+          You can play Texas Hold’em right now, in the browser, against opponents that actually
+          play. {FREE_TO_PLAY} It tells you what hand you have made as you go, so the rules on this
+          page turn into something you do rather than something you looked up.
         </p>
       </TryIt>
     </GuidePage>

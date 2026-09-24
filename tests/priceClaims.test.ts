@@ -31,6 +31,16 @@ const BORROWED = [
   /no paid tier/i,
   /(can'?t|cannot|could not|couldn'?t) take your money/i,
   /(can'?t|cannot) charge you/i,
+  // Added after a sweep of the merged membership branch found four more
+  // phrasings of the same claim that none of the four above match. Six guides
+  // carried "no money involved anywhere and none to spend" and
+  // `/play-poker-free-no-signup` carried the other two, which is the second
+  // time this ruling has been applied to the phrasing that produced the first
+  // hit rather than to the fact. List the phrasings, then grep every surface.
+  /no money involved/i,
+  /none to spend/i,
+  /no purchase/i,
+  /takes? payment/i,
 ]
 
 // Deliberately no exemption for /blog/, unlike dataClaims.test.ts. There a
@@ -48,8 +58,15 @@ function surfaces(dir: string, out: string[] = []): string[] {
   return out
 }
 
+// `src/config` is walked because the replacement sentences live there: moving a
+// claim into a constant moved it out of the guard's reach, which is how a guard
+// stops covering the thing it is named after.
 test('no page claims there is nothing to buy', (t) => {
-  const files = [...surfaces('../src/app'), ...surfaces('../src/components')]
+  const files = [
+    ...surfaces('../src/app'),
+    ...surfaces('../src/components'),
+    ...surfaces('../src/config'),
+  ]
   t.true(files.length > 40, 'the walk found nothing, so it is proving nothing')
 
   for (const file of files) {

@@ -3,6 +3,7 @@ import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/lear
 import { ThePrice } from '@/components/learn/ThePrice'
 import { WhatItCosts } from '@/components/learn/WhatItCosts'
 import { Section } from '@/components/marketing/LegalPage'
+import { FREE_TO_PLAY } from '@/config/money'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import {
   DRAWS,
@@ -327,10 +328,9 @@ export default function PotOddsGuide() {
           and only the first part can be read.
         </p>
         <p>
-          You can play Texas Hold’em on Pip right now, in the browser, against opponents that price
-          their own decisions the same way. Nothing to install, no money involved anywhere and none
-          to spend. The table shows your win chance while the hand is live, so you can make your
-          estimate first and then check it.
+          You can play Texas Hold’em right now, in the browser, against opponents that price their
+          own decisions the same way. {FREE_TO_PLAY} The table shows your win chance while the hand
+          is live, so you can make your estimate first and then check it.
         </p>
       </TryIt>
     </GuidePage>

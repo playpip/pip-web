@@ -3,6 +3,7 @@ import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/lear
 import { TwoPrices } from '@/components/learn/TwoPrices'
 import { WhatItChargesADraw } from '@/components/learn/WhatItChargesADraw'
 import { Section } from '@/components/marketing/LegalPage'
+import { FREE_TO_PLAY } from '@/config/money'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import {
   DRAWS,
@@ -276,11 +277,11 @@ export default function BetSizingGuide() {
       <TryIt>
         <p>Sizing is a habit, and habits come from repetition rather than from tables.</p>
         <p>
-          You can play Texas Hold’em on Pip right now, in the browser. Nothing to install, no money
-          involved anywhere and none to spend. The action bar has ½, ¾ and Pot buttons and a slider
-          for everything else, which is most of what this page is about. The opponents decide by
-          comparing what they think they are worth against the price you have just set them, so a
-          bet that gives a draw a good price gets called by that draw, and you can watch it happen.
+          You can play Texas Hold’em right now, in the browser. {FREE_TO_PLAY} The action bar has ½,
+          ¾ and Pot buttons and a slider for everything else, which is most of what this page is
+          about. The opponents decide by comparing what they think they are worth against the price
+          you have just set them, so a bet that gives a draw a good price gets called by that draw,
+          and you can watch it happen.
         </p>
       </TryIt>
     </GuidePage>
