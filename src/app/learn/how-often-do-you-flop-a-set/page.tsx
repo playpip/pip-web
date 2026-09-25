@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { Section } from '@/components/marketing/LegalPage'
+import { FREE_TO_PLAY } from '@/config/money'
 import {
   FLOPS,
   FLOPS_BOARD_TRIPS,
@@ -169,7 +170,7 @@ export default function FlopASetAnswer() {
           Pocket pairs are exactly one deal in seventeen, so waiting for{' '}
           {FLOPS.toLocaleString('en-GB')} of them is not a plan. Deal yourself some instead.
         </p>
-        <p>Free, and nothing to install.</p>
+        <p>{FREE_TO_PLAY}</p>
       </TryIt>
     </GuidePage>
   )

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { Section } from '@/components/marketing/LegalPage'
+import { FREE_TO_PLAY } from '@/config/money'
 import { SEVEN_CARD_HANDS } from '@/config/handFrequencies'
 import { guideBySlug } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
@@ -222,7 +223,7 @@ export default function ThreePairAnswer() {
           Three pair looks like a lot of poker and grades as one line. The quickest way to believe
           that is to be shown your best five cards by something that has no reason to flatter you.
         </p>
-        <p>Free, and nothing to install.</p>
+        <p>{FREE_TO_PLAY}</p>
       </TryIt>
     </GuidePage>
   )

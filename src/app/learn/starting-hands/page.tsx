@@ -3,6 +3,7 @@ import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/lear
 import { ReuseChart } from '@/components/learn/ReuseChart'
 import { StartingHandChart } from '@/components/learn/StartingHandChart'
 import { Section } from '@/components/marketing/LegalPage'
+import { FREE_TO_PLAY } from '@/config/money'
 import { guideBySlug, guideCardImage } from '@/config/learn'
 import { contentAlternates, contentSocial } from '@/config/site'
 import {
@@ -256,10 +257,9 @@ export default function StartingHandsGuide() {
           becomes automatic by making it a few hundred times. That part cannot be read.
         </p>
         <p>
-          You can play Texas Hold’em on Pip right now, in the browser, against opponents that
-          actually play. Nothing to install, no money involved anywhere and none to spend. Your
-          position moves every hand, so the interesting half of this page turns up on its own,
-          several times a minute.
+          You can play Texas Hold’em right now, in the browser, against opponents that actually
+          play. {FREE_TO_PLAY} Your position moves every hand, so the interesting half of this page
+          turns up on its own, several times a minute.
         </p>
       </TryIt>
 

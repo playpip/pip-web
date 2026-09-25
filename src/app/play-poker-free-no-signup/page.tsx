@@ -90,7 +90,7 @@ const CHECKLIST: { thing: string; answer: string }[] = [
   },
   {
     thing: 'What it costs',
-    answer: 'Nothing to play. Not a trial, and nothing in it gets metered later.',
+    answer: 'Nothing to play, and not a trial. The ladder, the ring games and the Daily stay free.',
   },
 ]
 
@@ -104,7 +104,7 @@ const FAQ: { q: string; a: string[] }[] = [
   {
     q: 'Is it actually free?',
     a: [
-      'Yes. No ads, no signup, and no charge to play. The chips are play money and they are not for sale, and there is no advantage you can buy at any price, which is the part that makes the rest of it hold: there is no purchase for us to be steering you towards.',
+      'Yes. No ads, no signup, and no charge to play. The chips are play money and they are not for sale, and there is no advantage you can buy at any price, which is the part that makes the rest of it hold.',
     ],
   },
   {
@@ -242,8 +242,8 @@ export default function PlayPokerFreeNoSignupPage() {
         <p>
           Most pages answering this query are affiliate pages, and the free game on them is a
           doorway to a casino that pays them for you.{' '}
-          <strong className={strong}>There is no doorway here.</strong> Nothing on this site takes
-          payment, so nothing on this site is trying to move you towards taking out a card.
+          <strong className={strong}>There is no doorway here.</strong> Nobody pays us to send you
+          anywhere, so nothing on this site is trying to move you towards taking out a card.
         </p>
       </Section>
 
