@@ -90,7 +90,7 @@ const CHECKLIST: { thing: string; answer: string }[] = [
   },
   {
     thing: 'What it costs',
-    answer: 'Nothing to play. Not a trial, and nothing in it gets metered later.',
+    answer: 'Nothing to play, and not a trial. The ladder, the ring games and the Daily stay free.',
   },
 ]
 
