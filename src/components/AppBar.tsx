@@ -28,6 +28,10 @@ type Leading = 'profile' | 'back' | 'none'
  * - `title` — an optional centred label (the table shows venue + blinds).
  * - `actions` — page-specific buttons, rendered just before the shared
  *   pip · Style · Settings cluster.
+ * - `chrome={false}` — no account, Style or Settings buttons: for a screen a
+ *   stranger lands on from a link, where only the page's own actions belong.
+ * - `leading='none'` — nothing on the left, and the title sits there in the
+ *   flow instead of floating centred, so it can never run under the actions.
  */
 export function AppBar({
   leading = 'back',
@@ -36,6 +40,7 @@ export function AppBar({
   title,
   actions,
   showWordmark = true,
+  chrome = true,
   className,
 }: {
   leading?: Leading
@@ -45,6 +50,8 @@ export function AppBar({
   actions?: React.ReactNode
   /** The pip wordmark. Off on the table, where the venue name is the title. */
   showWordmark?: boolean
+  /** The account · Style · Settings buttons. Off on a shared hand. */
+  chrome?: boolean
   className?: string
 }) {
   const router = useRouter()
@@ -89,12 +96,14 @@ export function AppBar({
             <ChevronLeft className="size-4" />
             {backLabel}
           </button>
+        ) : title ? (
+          <div className="flex min-w-0 flex-col items-start leading-tight">{title}</div>
         ) : (
           <div />
         )}
 
         {/* centred title (absolute so it stays centred regardless of side widths) */}
-        {title && (
+        {title && leading !== 'none' && (
           <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center leading-tight">
             {title}
           </div>
@@ -110,33 +119,41 @@ export function AppBar({
           )}
           {/* Signed out only, and it vanishes permanently once there is an
               account. One tap from anywhere beats three taps from two screens. */}
-          <AccountBarButton />
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setStyleOpen(true)
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Style"
-          >
-            <Palette className="size-4" />
-          </button>
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setSettingsOpen(true)
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Settings"
-          >
-            <Settings className="size-4" />
-          </button>
+          {chrome && (
+            <>
+              <AccountBarButton />
+              <button
+                onClick={() => {
+                  sound.play('tap')
+                  setStyleOpen(true)
+                }}
+                className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+                aria-label="Style"
+              >
+                <Palette className="size-4" />
+              </button>
+              <button
+                onClick={() => {
+                  sound.play('tap')
+                  setSettingsOpen(true)
+                }}
+                className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+                aria-label="Settings"
+              >
+                <Settings className="size-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {leading === 'profile' && <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />}
-      <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {chrome && (
+        <>
+          <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
+          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+        </>
+      )}
     </header>
   )
 }

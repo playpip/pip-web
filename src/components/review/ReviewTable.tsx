@@ -385,10 +385,14 @@ export function ReviewTable({
       <div className="relative flex h-dvh w-full flex-col overflow-hidden">
         <AppBar
           className="z-20"
-          leading="back"
-          backLabel={shared ? 'Pip' : 'Menu'}
+          // A review is for reading a hand, not dressing the table or changing
+          // settings, so neither button is up here. A shared hand is somebody
+          // else's link and has no menu to go back to either — just the hand and
+          // the invite. All of it crowded the title off a phone (Will, 2026-09-27).
+          leading={shared ? 'none' : 'back'}
+          chrome={false}
           showWordmark={false}
-          onBack={() => router.push(shared ? '/' : '/game')}
+          onBack={() => router.push('/game')}
           title={
             <>
               <span className="text-sm font-medium text-muted-foreground">{session.venueName}</span>
