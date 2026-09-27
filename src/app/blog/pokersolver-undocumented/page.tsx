@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { A, Item, LegalPage, List, Section } from '@/components/marketing/LegalPage'
+import { A, Item, LegalPage, List, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import {
   formatCards,
@@ -46,16 +46,17 @@ export default function PokersolverUndocumentedPost() {
           Pip does not have its own hand evaluator. Ranking the best five cards out of seven, with
           kickers, is a solved problem with sharp edges, so we hand it to{' '}
           <A href="https://github.com/goldfire/pokersolver">pokersolver</A> and wrap the result.
-          That wrapper is about sixty lines, and writing it meant finding out what the library does
-          when the README stops describing it.
+          That wrapper is <Src path="src/lib/poker/handEval.ts" />, one file, and writing it meant
+          finding out what the library does when the README stops describing it.
         </p>
         <p>
           There are five of those. We hit all five. Four of them have been asked about on the
           library&rsquo;s own issue tracker and left unanswered for between three and six years, so
           as far as we can tell there is nowhere to look them up. This is that place. Everything
-          below was produced by running <code>pokersolver@{SOLVER_VERSION}</code>, and a test in our
-          repository re-runs every case on every build, so if the library changes this page fails
-          before it lies.
+          below was produced by running <code>pokersolver@{SOLVER_VERSION}</code>. The inputs are{' '}
+          <Src path="src/config/pokersolverQuirks.ts" />, this page renders them, and{' '}
+          <Src path="tests/pokersolverQuirks.test.ts" /> re-runs every case on every build, so if
+          the library changes this page fails before it lies.
         </p>
         <p>
           None of this is a complaint. The library is good, it is free, it is doing the hard part,

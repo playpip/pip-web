@@ -1,3 +1,4 @@
+import { readFileSync, readdirSync } from 'node:fs'
 import test from 'ava'
 import {
   dailyAiRng,
@@ -40,6 +41,38 @@ test('share text reads calmly', (t) => {
   t.is(dailyShareText(142, 2, 6, 34), 'pip daily #142 · 2nd of 6 · 34 hands · playpip.io/daily')
   t.is(dailyShareText(3, 1, 5, 21), 'pip daily #3 · won it · 21 hands · playpip.io/daily')
   t.is(dailyShareText(9, null, 5, 1), 'pip daily #9 · played · 1 hand · playpip.io/daily')
+})
+
+// The landing page showed this line as a picture of itself, typed out by hand.
+// When `dailyShareText` started appending `playpip.io/daily` the picture was
+// not updated, so for a month the page selling the share loop displayed the
+// version of the line that pointed nowhere, and every check was green: it is
+// prose to a compiler.
+//
+// The rule is that one function writes this line. A second copy anywhere, even
+// a decorative one, is a copy that can go stale, so the test is a grep rather
+// than an assertion about any one file.
+test('nothing outside lib/daily.ts writes the share line by hand', (t) => {
+  const files = (dir: string, out: string[] = []): string[] => {
+    for (const entry of readdirSync(new URL(dir, import.meta.url), { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`
+      if (entry.isDirectory()) files(path, out)
+      else if (/\.tsx?$/.test(entry.name)) out.push(path)
+    }
+    return out
+  }
+
+  const walked = files('../src')
+  t.true(walked.length > 40, 'the walk found nothing, so it is proving nothing')
+
+  for (const file of walked) {
+    if (file === '../src/lib/daily.ts') continue
+    const source = readFileSync(new URL(file, import.meta.url), 'utf-8')
+    t.false(
+      /pip daily #\d/.test(source),
+      `${file} writes the share line itself; call dailyShareText instead`,
+    )
+  }
 })
 
 // --- the AI stream ----------------------------------------------------------

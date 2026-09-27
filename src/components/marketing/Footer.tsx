@@ -30,7 +30,7 @@ const FOOTER_GROUPS: {
       // The Daily's front door. The tournament itself is /play/daily, which is
       // app rather than content and is not in the sitemap, so the single most
       // linkable thing we own had no URL anybody could arrive on: the share
-      // line the app copies names "pip daily #142" and points nowhere.
+      // line the app copies named a deal number and pointed nowhere.
       { label: 'The Daily Deal', href: '/daily' },
       { label: 'Blog', href: '/blog' },
       { label: 'Credits', href: '/credits' },

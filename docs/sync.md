@@ -97,7 +97,6 @@ Field by field:
 | `peakRoll` | `max()` — monotonic, always safe |
 | `awards` | union, keeping the earliest time earned |
 | `owned` | union |
-| `rollHistory` | union by timestamp, sorted, capped at 300 |
 | `venueRecords`, `castRecords` | per key, the better of the two |
 | `challengeWins` | union: you beat them, and a device that hasn't heard isn't evidence you didn't |
 | `challengesPlayed` | `max()`, monotonic, like `peakRoll` |
@@ -105,7 +104,7 @@ Field by field:
 | `created` | either side saying yes wins |
 | cosmetics (`name`, `avatar`, `cardBack`, `deckFace`, `tableFinish`, `tableTalk`) | chosen side |
 | `daily` | later day; same day, a played run beats an abandoned one |
-| **`roll`, `stats`, `tendencies`** | **the side the player picks** |
+| **`roll`, `rollHistory`, `stats`, `tendencies`** | **the side the player picks** |
 
 **Why the drill rating is neither maxed nor averaged.** It is the one kept number that is
 *meant* to go down, so `max()` would ratchet it up every time two devices met, and the mean of
@@ -122,6 +121,16 @@ Doing this properly needs a per-device ancestor snapshot for a real three-way me
 much bigger build for a single-player game where one device is almost always the active one. If
 players complain, that is the upgrade path.
 
+**Why the graph follows the Roll too.** `rollHistory` used to be a union by timestamp, which
+reads well right up until the two sides disagree — and disagreeing is the only reason a side ever
+loses. The losing side's points are stamped *later* than anything in the winner's history, because
+being the more recently played device is what put it in the merge at all, so the union sorted them
+last: the graph ended in a cliff down to a Roll the player no longer had, sitting under a Roll that
+said otherwise. A player who opened a fresh browser, played two hands down to 150 and then signed
+into an account worth far more got exactly that, and a 150 entry in their stats with it. The cap
+stays at 300 and is re-applied on the way out, because a row written by another client is not this
+store's output.
+
 ## When the player actually gets asked
 
 Only when all three are true:
@@ -132,6 +141,14 @@ Only when all three are true:
 
 Change your card back on the bus and nothing prompts. Play a session on each of two devices and
 it does. If only one side moved, the merge is silent because there is nothing to lose.
+
+**A device that has never synced with the account counts as (2)**, as long as it has actually
+played. This is the guest flow — play, like it, make an account — and it used to slip through
+both of the signals in "not synced yet" below: the hands were played signed out, so the dirty
+flag never ran, and nothing had ever been pushed from that browser, so there was no fingerprint
+to compare against either. The device read as level and the account was adopted over the guest's
+session without asking, which is rule 4 broken in the one flow where most players meet sync.
+A profile straight out of onboarding is still a silent `restore`, because it has nothing to lose.
 
 ## What counts as "not synced yet"
 
@@ -176,9 +193,10 @@ not progress, it is the shape of a player. When such a device pulls a row with r
 This is checked **before** `movedWithoutUs`, because the two cases it covers both have a bookmark
 that looks current:
 
-- **Signing in on a fresh device.** `createProfile` seeds `rollHistory` with an origin point
-  stamped `Date.now()`, later than every point in the account's history, so a union sorts it
-  **last** and the Roll graph ends in a cliff back down to 200 that never happened.
+- **Signing in on a fresh device.** Onboarding's placeholder — the origin point `createProfile`
+  seeds, the empty award and purchase sets — is not history and should not be folded into an
+  account that has some. (The Roll graph used to be the sharp end of this, and is now safe on its
+  own account: it follows the Roll rather than unioning. The rest of the argument stands.)
 - **Storage half-cleared.** Drop `pip.profile` and keep `pip.sync` and the bookmark still matches
   the row, so the pull is skipped entirely — and the first change after onboarding pushes the empty
   profile over the account. That one costs real progress, not just a wrong-looking graph.

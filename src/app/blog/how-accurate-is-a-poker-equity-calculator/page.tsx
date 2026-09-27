@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { A, Item, LegalPage, List, Section } from '@/components/marketing/LegalPage'
+import { A, Item, LegalPage, List, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import {
   COVERAGE,
@@ -220,9 +220,9 @@ export default function EquityCalculatorAccuracyPost() {
 
       <Section title="Run it yourself">
         <p>
-          The sweep is <code>scripts/odds-band-coverage.ts</code> in{' '}
-          <A href="https://github.com/playpip/pip-web">the repository</A>, and the figures above are
-          what <code>{SWEEP_COMMAND}</code> printed on {formatPostDate(MEASURED_ON)}. The seeds are
+          The sweep is <Src path="scripts/odds-band-coverage.ts" />, over the sampler in{' '}
+          <Src path="src/lib/poker/equity.ts" />, and the figures above are what{' '}
+          <code>{SWEEP_COMMAND}</code> printed on {formatPostDate(MEASURED_ON)}. The seeds are
           fixed, so it prints the same rows on your machine or it has found something.
         </p>
         <p>
@@ -230,8 +230,8 @@ export default function EquityCalculatorAccuracyPost() {
           so the published numbers here are a dated measurement rather than a continuously checked
           one. What does run on every commit is the part that would have to break first: the count
           above, all {GROUND_TRUTH.showdowns} showdowns of it, which is instant, and the arithmetic
-          every band in the table is derived from. If the ground truth moves, this post fails the
-          build before it misleads anyone.
+          every band in the table is derived from, in <Src path="tests/equitySampling.test.ts" />.
+          If the ground truth moves, this post fails the build before it misleads anyone.
         </p>
         <p>
           None of this makes our calculator more accurate than anyone else&rsquo;s. The arithmetic

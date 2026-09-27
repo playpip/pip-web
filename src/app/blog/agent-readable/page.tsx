@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { LegalPage, Section, Correction, A } from '@/components/marketing/LegalPage'
+import { LegalPage, Section, Correction, A, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'agent-readable')!
@@ -96,15 +96,9 @@ export default function AgentReadablePost() {
         </p>
         <p>
           So the free version is the ninety-odd lines described above. If you are also on a free
-          plan and want the same thing, the code is{' '}
-          <A href="https://github.com/playpip/pip-web/blob/main/functions/_shared.ts">
-            functions/_shared.ts
-          </A>{' '}
-          and{' '}
-          <A href="https://github.com/playpip/pip-web/blob/main/scripts/gen-llms.mjs">
-            scripts/gen-llms.mjs
-          </A>
-          . It is MIT licensed. Take it.
+          plan and want the same thing, the code is <Src path="functions/_shared.ts" /> and{' '}
+          <Src path="scripts/gen-llms.mjs" />, and the three places a new route has to appear are
+          held together by <Src path="tests/contentRoutes.test.ts" />. It is MIT licensed. Take it.
         </p>
       </Section>
 

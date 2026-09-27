@@ -155,29 +155,50 @@ test('merge › purchases union so nobody loses a bought item', (t) => {
   t.deepEqual([...merged].sort(), ['face-fourcolor', 'felt-emerald', 'ocean'])
 })
 
-test('merge › roll history unions by timestamp, sorted, and caps at 300', (t) => {
+test('merge › roll history follows the chosen side, capped at 300', (t) => {
   const local = profile({
+    roll: 30,
     rollHistory: [
-      { t: 3, roll: 30 },
       { t: 1, roll: 10 },
+      { t: 3, roll: 30 },
     ],
   })
   const remote = profile({
+    roll: 20,
     rollHistory: [
       { t: 2, roll: 20 },
-      { t: 3, roll: 30 },
+      { t: 4, roll: 20 },
     ],
   })
 
-  const merged = mergeProfiles(local, remote, 'local').rollHistory
-  t.deepEqual(merged, [
-    { t: 1, roll: 10 },
-    { t: 2, roll: 20 },
-    { t: 3, roll: 30 },
-  ])
+  t.deepEqual(mergeProfiles(local, remote, 'local').rollHistory, local.rollHistory)
+  t.deepEqual(mergeProfiles(local, remote, 'remote').rollHistory, remote.rollHistory)
 
   const big = profile({ rollHistory: Array.from({ length: 400 }, (_, i) => ({ t: i, roll: i })) })
   t.is(mergeProfiles(big, profile(), 'local').rollHistory.length, 300)
+})
+
+test('merge › the graph never ends below the Roll it belongs to', (t) => {
+  // The reported bug, at the level it was actually caused. A guest session on a
+  // fresh browser — 200 down to 150 over a couple of hands — signs into an
+  // account worth 12,000. Its points are stamped *now*, so the union that used
+  // to run here sorted them last and the graph finished with a crash to 150
+  // sitting under a Roll that reads 12,000.
+  const guest = profile({
+    roll: 150,
+    peakRoll: STARTING_ROLL,
+    stats: { ...profile().stats, handsPlayed: 2 },
+    rollHistory: [
+      { t: 9_998, roll: STARTING_ROLL },
+      { t: 9_999, roll: 150 },
+    ],
+  })
+
+  const merged = mergeProfiles(guest, account(), 'remote')
+
+  t.is(merged.roll, 12_000)
+  t.deepEqual(merged.rollHistory, account().rollHistory, 'the guest session is not in the graph')
+  t.is(merged.rollHistory.at(-1)?.roll, merged.roll, 'and the graph ends where the Roll is')
 })
 
 test('merge › venue records take the best of each side', (t) => {
@@ -472,18 +493,20 @@ test('pristine › an account with progress is never mistaken for a fresh device
   t.false(isPristine(account()))
 })
 
-test('pristine › merging a fresh device in would tack the starting Roll onto the graph', (t) => {
-  // The reason isPristine exists. Onboarding's origin point is stamped later
-  // than every real point, so the union sorts it last and the graph ends in a
-  // crash back down to the starting Roll that never happened.
+test('pristine › onboarding’s placeholder point never reaches the account’s graph', (t) => {
+  // This is where isPristine came from: the origin point is stamped later than
+  // every real point, so the union that used to merge histories sorted it last
+  // and the graph ended in a crash back to the starting Roll that never
+  // happened. The graph now follows the Roll, so the merge path is safe too —
+  // but isPristine still earns its keep below, and the placeholder still has to
+  // stay out either way.
   const merged = mergeProfiles(pristine(), account(), 'remote')
 
-  t.deepEqual(
-    merged.rollHistory.at(-1),
-    { t: 9_999, roll: STARTING_ROLL },
-    'the placeholder sorts last and reads as a bust',
+  t.false(
+    merged.rollHistory.some((p) => p.t === 9_999),
+    'the placeholder is not tacked onto the end',
   )
-  t.is(merged.roll, 12_000, 'while the Roll itself is correctly the account’s')
+  t.is(merged.roll, 12_000, 'and the Roll is correctly the account’s')
 })
 
 test('pristine › adopting the account’s row outright keeps its history intact', (t) => {

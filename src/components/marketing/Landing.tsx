@@ -3,7 +3,10 @@
 // The marketing landing page ("/"). The app itself lives at "/game". Built from
 // the real product primitives — VenueArt, CardBack, the cast — plus a recorded
 // hand for the hero, so nothing here is a mock-up: what you see on the page is
-// what you get at the table. Flat,
+// what you get at the table. That sentence was false for four months, in the
+// four feature cards that draw product output, so anything here that pictures
+// something the game emits either calls the game's own function or is a
+// constant that a test recomputes (`src/config/landingMocks.ts`). Flat,
 // black-first, one accent (pip). Works in both light and dark (see docs/design.md).
 
 import Link from 'next/link'
@@ -30,13 +33,16 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { Wordmark } from './Wordmark'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
-import { VENUES, SIDE_TABLES, FORMAT_LABELS, type Venue } from '@/config/venues'
+import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
 import { ACCOUNT_OFFER } from '@/config/account'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
 import { guideBySlug } from '@/config/learn'
+import { EQUITY_SAMPLE, HAND_LINK_SAMPLE, HAND_LINK_VISIBLE_CHARS } from '@/config/landingMocks'
 import { MEMBERSHIP_PRICE, MEMBERSHIP_PROMISES, sellableFeatures } from '@/config/membership'
 import { useProfile } from '@/store/profile'
+import { dailyShareText } from '@/lib/daily'
+import { encodeHand } from '@/lib/handLink'
 import { useHydrated } from '@/lib/useHydrated'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -621,27 +627,36 @@ function FeatureCard({
   )
 }
 
-/** A calm, contained mock of the in-game ambient equity read. */
+/**
+ * The in-game ambient equity read, for a spot named in `landingMocks.ts`.
+ *
+ * Label, number and the word under it are the three things the table shows, in
+ * that order. The label is flat on purpose: `evaluateHand` calls top pair top
+ * kicker "Pair", and the card used to say "Top pair, good kicker" over a
+ * percentage that disagreed with the sentence beneath it.
+ */
 function EquityReadout() {
   return (
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
       <div className="flex items-baseline justify-between">
         <span className="text-2xs uppercase tracking-[0.18em] text-muted-foreground">
-          Your equity
+          {EQUITY_SAMPLE.label}
         </span>
-        <span className="text-2xl font-semibold tabular-nums leading-none text-pip">72%</span>
+        <span className="text-2xl font-semibold tabular-nums leading-none text-pip">
+          {EQUITY_SAMPLE.winPct}% <span className="text-2xs font-medium">win</span>
+        </span>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-foreground/10">
         <motion.div
           initial={{ width: 0 }}
-          whileInView={{ width: '72%' }}
+          whileInView={{ width: `${EQUITY_SAMPLE.winPct}%` }}
           viewport={{ once: true }}
           transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
           className="h-full rounded-full bg-pip"
         />
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Top pair, good kicker · ahead of 4 in 5 hands
+        Ace-king, three players still in. It sits there and waits to be looked at.
       </p>
     </div>
   )
@@ -670,39 +685,60 @@ function CustomizeStrip() {
   )
 }
 
-/** The Daily's copyable result line, as it comes out of the app. */
+/**
+ * The Daily's copyable result line, as it comes out of the app.
+ *
+ * Rendered by the function the app shares with, not typed out beside it. The
+ * hand-written version sat here for the month after `dailyShareText` started
+ * appending `playpip.io/daily`, so the page advertising the loop was showing
+ * the one part of the line that makes it a loop as absent.
+ *
+ * It wraps rather than truncates: the address is the last thing on the line,
+ * which is exactly what `truncate` eats first on a phone.
+ */
 function DailyShareMock() {
   return (
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
-      <div className="flex items-center justify-between gap-3">
-        {/* min-w-0: without it the nowrap line sets the card's min-content and
-            the whole feature grid overflows the phone screen */}
-        <span className="min-w-0 truncate font-mono text-sm text-muted-foreground">
-          pip daily #142 · 2nd of 5 · 34 hands
+      <div className="flex items-start justify-between gap-3">
+        <span className="min-w-0 break-words font-mono text-sm text-muted-foreground">
+          {dailyShareText(142, 2, THE_DAILY.seats, 34)}
         </span>
         <span className="shrink-0 rounded-lg bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium">
           Copied
         </span>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        No streaks, no countdowns — tomorrow is simply another deal.
+        No streaks, no countdowns. Tomorrow is simply another deal.{' '}
+        <Link href="/daily" className="font-medium text-foreground transition hover:text-pip">
+          How the Daily works
+        </Link>
       </p>
     </div>
   )
 }
 
-/** A hand permalink — the hand itself, folded into a URL. */
+/**
+ * A hand permalink: the hand itself, folded into a URL.
+ *
+ * Encoded here by the function the game shares with, not typed out beside it.
+ * The hand-written version carried six characters of token: the shape of a link
+ * that points at a row in somebody's database, on the one card whose claim is
+ * that there is no database. The real thing is
+ * hundreds of characters, and the count under it is the length of the token
+ * above it rather than a number anyone typed.
+ */
 function HandLinkMock() {
+  const token = encodeHand(HAND_LINK_SAMPLE)
   return (
     <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
       <div className="flex items-center gap-2.5">
         <Link2 className="size-4 shrink-0 text-pip" />
         <span className="min-w-0 truncate font-mono text-sm text-muted-foreground">
-          playpip.io/hand#kQyJ3v…
+          playpip.io/hand#{token.slice(0, HAND_LINK_VISIBLE_CHARS)}…
         </span>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Kings full, rivered by quads. They have to see it to believe it.
+        Quads on the river, {token.length} characters of it, and not one of them on a server.
       </p>
     </div>
   )

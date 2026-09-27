@@ -26,6 +26,34 @@ export const POSTFLOP_GATE = {
   bluffCeiling: 0.8,
 } as const
 
+/**
+ * The band between `bluffCeiling` and `lead` is every holding too good to be a
+ * bluff and not good enough to be value, which heads-up is 0.40 to 0.62: draws
+ * and marginal made hands, the hands semi-bluffing exists for. `decideAction`
+ * had no branch for it, so it could not be bet at any table, at any aggression,
+ * ever. `pnpm lead-band` measures how wide it is (technology#79).
+ *
+ * How often the AI bets it, before position damps it. Deliberately below the
+ * value-bet frequency (`0.35 + aggression * 0.55`) at every aggression the
+ * ladder ships, because a hand that is not worth value is not bet like one, and
+ * deliberately above the bluff frequency, because it holds something.
+ *
+ * **These two numbers are the tuning knob and nothing else is.** Measured over
+ * 300 hands a venue with every seat on its shipped profile, they take the flop
+ * lead rate from 15.6% to 21.6% at Friends' Garage and 31.1% to 39.5% at The
+ * Main Event, and the turn from 12.1% to 17.6% and 22.5% to 30.9%. Whether that
+ * is the right amount is a question about how the table *feels*, which no
+ * simulation here can answer: re-run `pnpm lead-band` after moving either.
+ */
+export const SEMI_BLUFF = {
+  /** Frequency floor, before aggression and position. */
+  base: 0.18,
+  /** What aggression adds to it. */
+  perAggression: 0.45,
+  /** Size as a fraction of the pot, under a value bet's 0.55 to 0.80. */
+  size: 0.45,
+} as const
+
 /** A fair share of the pot heads-up, which is exactly a half. */
 export const HEADS_UP_FAIR_SHARE = 1 / (1 + 1)
 

@@ -119,7 +119,20 @@ export function planSync(input: PlanInput): SyncPlan {
     return { action: 'restore', profile: remote, bookmark: pulled }
   }
 
-  const pending = changedHere || isUnpushed(local, bookmark)
+  // A device that has never synced with this account is holding a whole
+  // session the server has never seen, and neither signal above can say so:
+  // `changedHere` is the store's dirty flag, which only starts being set once
+  // the player is signed in, and the fingerprint reads "unknown" until a push
+  // writes one. So the most common way anyone meets sync — play as a guest,
+  // like it, make an account — looked level, and the row was adopted over the
+  // guest's session without asking. That is rule 4 (docs/sync.md) broken in
+  // the one flow where it is most likely to be noticed.
+  //
+  // `isPristine` is what stops this firing on an ordinary first sign-in: a
+  // profile straight out of onboarding has nothing to lose and is still the
+  // `restore` above. Only a device that actually played gets a say.
+  const neverSynced = bookmark.seen === null && bookmark.pushed === null
+  const pending = changedHere || isUnpushed(local, bookmark) || (neverSynced && !isPristine(local))
   const movedWithoutUs = row.updatedAt !== bookmark.seen && row.deviceId !== deviceId
 
   if (!movedWithoutUs) {

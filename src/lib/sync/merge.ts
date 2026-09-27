@@ -7,8 +7,9 @@
 // night. See docs/sync.md.
 //
 // The chosen rule, in one sentence: everything that can only grow merges in the
-// player's favour, and the two fields that can't (`roll` and `stats`) follow one
-// side that the player picks when the devices actually disagree.
+// player's favour, and everything that describes the Roll — the number itself,
+// its graph and the stats beside it — follows one side that the player picks
+// when the devices actually disagree.
 //
 // Why not a real three-way merge: it needs a common ancestor snapshot per
 // device, which is a much bigger build for a single-player game where one device
@@ -18,7 +19,6 @@ import type {
   CastRecord,
   DrillRecord,
   ProfileState,
-  RollPoint,
   ShapeRecord,
   VenueRecord,
 } from '@/store/profile'
@@ -44,9 +44,10 @@ const ROLL_HISTORY_CAP = 300
  * Merge two profiles.
  *
  * Additive fields always merge in the player's favour regardless of `side` —
- * they are monotonic, so gaining them can never cost anyone anything. Only
- * `roll` and `stats` follow the chosen side, plus the cosmetics and ephemera,
- * which are last-write-wins by nature and too cheap to prompt about.
+ * they are monotonic, so gaining them can never cost anyone anything. Only the
+ * Roll and the things that have to agree with it (`rollHistory`, `stats`)
+ * follow the chosen side, plus the cosmetics and ephemera, which are
+ * last-write-wins by nature and too cheap to prompt about.
  */
 export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Side): ProfileData {
   const winner = side === 'local' ? local : remote
@@ -92,8 +93,24 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     challengeWins: Array.from(new Set([...local.challengeWins, ...remote.challengeWins])),
     challengesPlayed: Math.max(local.challengesPlayed, remote.challengesPlayed),
 
-    // Union by timestamp, re-sorted, capped from the front like the store does.
-    rollHistory: mergeRollHistory(local.rollHistory, remote.rollHistory),
+    // The Roll's own graph, so it follows the Roll.
+    //
+    // This used to be a union by timestamp, which reads well right up until the
+    // two sides disagree — and disagreeing is the only reason a side has to
+    // lose. The losing side's points are stamped later than anything in the
+    // winner's history, because being the more recently played device is what
+    // puts it here, so a union sorts them *last*: the graph ends in a cliff
+    // down to a Roll the player does not have, under a Roll that says
+    // otherwise. `isPristine` below was the first patch for exactly this shape
+    // of damage and it only covers a device that has played nothing at all, so
+    // two hands on a fresh browser walked straight past it and tacked their
+    // 150 onto an account worth far more.
+    //
+    // Following the winner is the same answer `stats` gives, for the same
+    // reason: half a graph is not worth a profile that contradicts itself. The
+    // cap is re-applied rather than assumed — the store caps what it writes,
+    // but a row from another client is not this store's output.
+    rollHistory: winner.rollHistory.slice(-ROLL_HISTORY_CAP),
 
     // Per-key best-of.
     venueRecords: mergeVenueRecords(local.venueRecords, remote.venueRecords),
@@ -214,19 +231,6 @@ function mergeAwards(a: Record<string, number>, b: Record<string, number>) {
     out[id] = mine === undefined ? earnedAt : Math.min(mine, earnedAt)
   }
   return out
-}
-
-function mergeRollHistory(a: RollPoint[], b: RollPoint[]): RollPoint[] {
-  const byTime = new Map<number, RollPoint>()
-  for (const p of [...a, ...b]) {
-    // Same instant on two devices is a genuine tie; keep the higher Roll so the
-    // graph never dips because of a sync rather than a hand.
-    const seen = byTime.get(p.t)
-    if (!seen || p.roll > seen.roll) byTime.set(p.t, p)
-  }
-  return Array.from(byTime.values())
-    .sort((x, y) => x.t - y.t)
-    .slice(-ROLL_HISTORY_CAP)
 }
 
 function mergeVenueRecords(

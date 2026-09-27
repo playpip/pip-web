@@ -177,6 +177,32 @@ test('signing in on a fresh device restores the account outright', (t) => {
   t.deepEqual(p.action === 'restore' ? p.profile : null, remote)
 })
 
+test('a guest session is not swallowed by the account it signs into', (t) => {
+  // Play a couple of hands on a fresh browser, then sign in. The hands were
+  // played signed out, so the store's dirty flag never ran, and nothing has
+  // ever been pushed from here, so there is no fingerprint either: both of the
+  // signals that normally mean "this device is holding something" are silent,
+  // and the account used to be adopted straight over the top with no prompt.
+  const guest = profile({
+    roll: 150,
+    peakRoll: STARTING_ROLL,
+    stats: { ...profile().stats, handsPlayed: 2, tournamentsEntered: 0 },
+    rollHistory: [
+      { t: 9_998, roll: STARTING_ROLL },
+      { t: 9_999, roll: 150 },
+    ],
+  })
+
+  const p = plan({
+    local: guest,
+    row: row(profile({ roll: 12_000 }), { updatedAt: 't2', deviceId: THEIRS }),
+    bookmark: { seen: null, pushed: null },
+    changedHere: false,
+  })
+
+  t.is(p.action, 'conflict')
+})
+
 test('a cleared profile is restored, not pushed over the account', (t) => {
   // Drop `pip.profile`, keep `pip.sync`: the bookmark still matches the row and
   // the fingerprint no longer matches anything. Reading that as work to upload

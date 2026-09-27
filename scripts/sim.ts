@@ -11,6 +11,10 @@
 //   pnpm sim --seed 7               # deterministic; same seed = same result
 //   pnpm sim garage --skill 0.4     # try a different AI skill before editing config
 //
+// **This harness cannot measure a cash table** and blanks their outcome columns:
+// a ring table has no elimination and no prize, so a freezeout win rate answers
+// a question it never asks. Use `pnpm cash-sim` for those (technology#81).
+//
 // Reading the output: "fair" is 1/seats — the win rate of a hero no better
 // than the field. A venue is beatable when the target player type clears fair
 // comfortably, and hard when they sit near or below it.
@@ -387,9 +391,9 @@ if (!process.env.SIM_SLICE) {
         '    `-buyIn` no matter how well the hero plays. It looked like a measured loss and',
         '    it was arithmetic.',
         '',
-        'The right measure for these is chips per 100 hands at a fixed stack depth, which is',
-        'not built. Until it is, no ring table has ever had its beatability simulated, and',
-        'nothing should claim otherwise. avg hands is still real. technology#81.',
+        'The right measure for these is chips per 100 hands at a fixed stack depth, and it is',
+        '`pnpm cash-sim` (scripts/cash-sim.ts). Run that for a ring table, not this. avg hands',
+        'is still real. technology#81.',
       ].join('\n'),
     )
   }

@@ -13,9 +13,9 @@ import { DAILY_EPOCH_UTC } from '@/lib/daily'
 // The Daily Deal's front door.
 //
 // It is the most linkable thing we own and it had no URL anybody could arrive
-// on: the share line the app copies says "pip daily #142" with nowhere to send
-// anyone, and the tournament itself is /play/daily, which is app rather than
-// content and is not in the sitemap.
+// on: the share line the app copies names a deal number and, until this page,
+// had nowhere to send anyone, and the tournament itself is /play/daily, which
+// is app rather than content and is not in the sitemap.
 //
 // Shaped like /play-poker-free-no-signup rather than a Learn guide: the product
 // is the answer to the question, so the button goes above the argument. Every

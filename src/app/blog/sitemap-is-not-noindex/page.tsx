@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { A, Item, LegalPage, List, Section } from '@/components/marketing/LegalPage'
+import { A, Item, LegalPage, List, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import {
   NEITHER_LISTED_NOR_NOINDEX,
@@ -34,9 +34,10 @@ export default function SitemapIsNotNoindexPost() {
     >
       <Section title="The sitemap is not a fence">
         <p>
-          Our sitemap has never listed the game. The file that builds it says so in a comment: the
-          game itself is app, not content, and nobody needs to find a poker table through a search
-          result. That felt like a decision. It was a preference.
+          Our sitemap has never listed the game. The file that builds it,{' '}
+          <Src path="src/app/sitemap.ts" />, says so in a comment: the game itself is app, not
+          content, and nobody needs to find a poker table through a search result. That felt like a
+          decision. It was a preference.
         </p>
         <p>
           Google indexed <code>/game</code> anyway. It got there through the Play button on the home
@@ -88,7 +89,9 @@ export default function SitemapIsNotNoindexPost() {
       <Section title="Three states, and the third one does the work">
         <p>
           What replaced it is an inventory rather than a ban. Every route under <code>src/app</code>{' '}
-          is in exactly one of three states, and the build fails on a route in none of them.
+          is in exactly one of three states, and the build fails on a route in none of them. The
+          states are <Src path="src/config/routeStates.ts" /> and the walk that enforces them is{' '}
+          <Src path="tests/canonical.test.ts" />.
         </p>
         <Block head="src/config/routeStates.ts">
           <code>1. in the sitemap &rarr; published, and it needs a canonical</code>
@@ -170,10 +173,10 @@ export default function SitemapIsNotNoindexPost() {
           results.&rdquo;
         </p>
         <p>
-          So our <code>robots.txt</code> is one <code>Allow: /</code> and a link to the sitemap. Let
-          the crawler in, then let each page answer for itself. That also happens to be the
-          arrangement we would want anyway, since the pages we do want read are the whole reason the
-          site has a front end.
+          So <Src path="public/robots.txt" /> is one <code>Allow: /</code> and a link to the
+          sitemap. Let the crawler in, then let each page answer for itself. That also happens to be
+          the arrangement we would want anyway, since the pages we do want read are the whole reason
+          the site has a front end.
         </p>
       </Section>
 
