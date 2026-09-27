@@ -263,7 +263,7 @@ export default function StartingHandsGuide() {
         </p>
         <p>
           You can play Texas Hold’em on Pip right now, in the browser, against opponents that
-          actually play. Nothing to install, no money involved anywhere and none to spend. Your
+          actually play. Nothing to install, free to play, and the chips are never for sale. Your
           position moves every hand, so the interesting half of this page turns up on its own,
           several times a minute.
         </p>

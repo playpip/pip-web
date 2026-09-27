@@ -276,10 +276,10 @@ export default function BetSizingGuide() {
       <TryIt>
         <p>Sizing is a habit, and habits come from repetition rather than from tables.</p>
         <p>
-          You can play Texas Hold’em on Pip right now, in the browser. Nothing to install, no money
-          involved anywhere and none to spend. The action bar has ½, ¾ and Pot buttons and a slider
-          for everything else, which is most of what this page is about. The opponents decide by
-          comparing what they think they are worth against the price you have just set them, so a
+          You can play Texas Hold’em on Pip right now, in the browser. Nothing to install, free to
+          play, and the chips are never for sale. The action bar has ½, ¾ and Pot buttons and a
+          slider for everything else, which is most of what this page is about. The opponents decide
+          by comparing what they think they are worth against the price you have just set them, so a
           bet that gives a draw a good price gets called by that draw, and you can watch it happen.
         </p>
       </TryIt>
