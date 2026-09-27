@@ -75,6 +75,32 @@ test('checkout refuses without the start-now consent', (t) => {
   t.regex(checkout, /terms_version: termsVersion/)
 })
 
+// Two tabs, or Back and Join again, each got a session; paying both made two
+// subscriptions and the first kept billing out of sight. Found in the pre-launch
+// review (2026-09-27) and closed in two layers.
+test('a player cannot end up with two paid memberships', (t) => {
+  t.regex(checkout, /sessions\.list\(\{\s*status: 'open'/, 'open sessions are not looked for')
+  t.regex(
+    checkout,
+    /sessions\.expire\(open\.id\)/,
+    'a player’s other open sessions are not expired',
+  )
+  t.regex(checkout, /expires_at: /, 'sessions live for Stripe’s default 24 hours')
+  t.regex(webhook, /DUPLICATE subscription/, 'a second live subscription is written over the first')
+  t.regex(webhook, /await stripe\.subscriptions\.cancel\(sub\.id\)/)
+})
+
+// Every Stripe import in the functions is the same major, matching `apiVersion`.
+test('the functions load one Stripe SDK', (t) => {
+  for (const source of [webhook, code('supabase/functions/_shared/billing.ts')]) {
+    t.notRegex(
+      source,
+      /from 'npm:stripe'/,
+      'an unpinned npm:stripe floats to a new major on deploy',
+    )
+  }
+})
+
 // A checkout that sells whatever price id it is sent can be repriced from a console.
 test('checkout only sells the two configured prices', (t) => {
   t.regex(checkout, /if \(!PRICES\.has\(priceId\)\)/)

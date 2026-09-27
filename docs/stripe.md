@@ -147,6 +147,30 @@ Put the test-mode price ids in `.env.local`, run `pnpm dev`, and walk through:
 - [ ] Stripe dashboard → Pip's webhook → every delivery 200, including Probus's events
 - [ ] Probus's webhook → Pip's events answered 200 `ignored`, not 500
 
+## Running it (live since 2026-09-27)
+
+Live ids: product `prod_VKjQumvGuY03Gj`, monthly `price_1UK3xqFQ6B6rgI6AmlExvmMu`, yearly
+`price_1UK3xrFQ6B6rgI6AJMmYrnFF`, portal `bpc_1UK3yWFQ6B6rgI6ASmwyQr4u`, webhook
+`we_1UKIR5FQ6B6rgI6AjYafRgQf`.
+
+Rules for whoever is in the dashboard — the code cannot enforce these:
+
+- **A refund does not end a membership.** Refunding an invoice leaves the subscription
+  active. To refund someone out: refund the payment *and* cancel the subscription
+  immediately; the webhook turns the cancel into "not a member".
+- **`DUPLICATE subscription` in the webhook logs means a refund is owed.** Two checkouts
+  paid within seconds of each other; the webhook kept the first and cancelled the second,
+  but the second's first payment went through. Refund it by hand. The restricted key cannot.
+- **Deleting an account by email request** (the privacy page offers it): cancel the
+  player's Pip subscription in Stripe first, then delete the user — or the player goes on
+  being billed. Settings' own delete button does both.
+- **Pip's portal configuration is the account default**, because it was the first. Probus
+  (or anyone else) must create its own and pass its id, or its customers see Pip's portal.
+- **Account-wide Billing settings belong to every Ava project**: customer emails, Smart
+  Retries, renewal reminders. Turn on *successful payment receipts* and *reminders before
+  annual renewals*; both are expected of a UK consumer subscription.
+- **Disputes are not watched by Pip** — see below.
+
 ## What is not built
 
 - **Disputes** are not watched. Probus logs its own `charge.dispute.created`; Pip's would

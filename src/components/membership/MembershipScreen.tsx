@@ -832,8 +832,10 @@ function Join({
   currency: CurrencyCode
 }) {
   const hydrated = useHydrated()
+  const ready = useSync((s) => s.ready)
   const signedIn = useSync((s) => s.status === 'signed-in')
   const member = useEntitlement()
+  const checked = useMembership((s) => s.checked)
   const memberStatus = useMembership((s) => s.status)
   const periodEnd = useMembership((s) => s.periodEnd)
   const leaving = useMembership((s) => s.cancelAtPeriodEnd)
@@ -876,7 +878,13 @@ function Join({
   }
 
   let body: React.ReactNode
-  if (member) {
+  // Nothing until the answer is real. Before the stored session is restored,
+  // `status` reads signed-out as a placeholder, so a player back from paying
+  // would be offered "Create a free account", and a member would be offered
+  // Join for the frame before their row arrives. A quiet box instead.
+  if (!ready || (signedIn && !checked && !member)) {
+    body = <div aria-busy className="h-14 w-full animate-pulse rounded-2xl bg-foreground/[0.05]" />
+  } else if (member) {
     body = (
       <>
         <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
@@ -917,7 +925,7 @@ function Join({
         </div>
         <p className="mt-3 text-center text-sm text-muted-foreground">
           {slow
-            ? 'Stripe has your payment and is still telling us. It usually lands within a minute — reload this page, and if it hasn’t after that, write to us and we will sort it out.'
+            ? 'Stripe has your payment and is still telling us. It usually lands within a minute — reload this page, and if it hasn’t after that, write to hello@playpip.io and we will sort it out.'
             : 'Stripe is telling us it went through. This takes a few seconds.'}
         </p>
       </>

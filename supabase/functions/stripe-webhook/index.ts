@@ -18,8 +18,11 @@
 // fetches the subscription as it is *now* and writes that. Replaying, reordering
 // or duplicating events therefore cannot leave a stale status behind.
 
-import Stripe from 'npm:stripe'
+import Stripe from 'npm:stripe@22'
 import { LIVE, admin, isPip, stripe } from '../_shared/billing.ts'
+
+/** The statuses that make somebody a member — src/lib/membership/entitlement.ts. */
+const ENTITLING = ['active', 'trialing']
 
 const SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
 // Deno has no node:crypto HMAC on the hot path; Web Crypto does the check.
@@ -63,6 +66,25 @@ async function sync(subscriptionId: string): Promise<void> {
     LIVE.includes(existing.status) &&
     !LIVE.includes(sub.status)
   ) {
+    return
+  }
+
+  // **A second live subscription for somebody who already has one is a double
+  // charge.** Checkout expires a player's other open sessions before making a
+  // new one, but two paid within seconds of each other can still both land.
+  // Keep the one already in the row, cancel the newcomer so it never renews,
+  // and say so as an error: its first payment went through and needs refunding
+  // by hand (the restricted key cannot issue refunds, on purpose).
+  if (
+    existing?.stripe_subscription_id &&
+    existing.stripe_subscription_id !== sub.id &&
+    ENTITLING.includes(existing.status) &&
+    ENTITLING.includes(sub.status)
+  ) {
+    await stripe.subscriptions.cancel(sub.id)
+    console.error(
+      `DUPLICATE subscription ${sub.id} for user ${userId} (keeping ${existing.stripe_subscription_id}); cancelled it — REFUND ITS FIRST INVOICE in the dashboard`,
+    )
     return
   }
 

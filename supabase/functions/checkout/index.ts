@@ -15,6 +15,7 @@ import {
   PRICES,
   SITE_URL,
   caller,
+  isPip,
   json,
   membershipOf,
   stripe,
@@ -63,9 +64,32 @@ Deno.serve(async (req) => {
   // portal to fix a card, not a second membership.
   if (row && LIVE.includes(row.status)) return json({ error: 'already-a-member' }, 409)
 
+  // **Two open checkouts are a double charge waiting to happen.** The check
+  // above only sees a membership once its webhook has landed, so two tabs — or
+  // Back and Join again — would each get a session, and paying both makes two
+  // subscriptions. So every other open Pip session of this player's is expired
+  // before a new one is made, and a new one only lives 30 minutes (Stripe's
+  // minimum). The webhook cancels a duplicate if one still gets through.
+  const others = await stripe.checkout.sessions.list({
+    status: 'open',
+    limit: 20,
+    ...(row?.stripe_customer_id
+      ? { customer: row.stripe_customer_id }
+      : { customer_details: { email: user.email ?? '' } }),
+  })
+  for (const open of others.data) {
+    if (isPip(open.metadata) && open.metadata?.user_id === user.id) {
+      await stripe.checkout.sessions.expire(open.id).catch(() => {
+        // Already completed or expired between the list and now. Either way it
+        // is no longer open, which is all this wanted.
+      })
+    }
+  }
+
   const automaticTax = Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'true'
 
   const session = await stripe.checkout.sessions.create({
+    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
     currency,
