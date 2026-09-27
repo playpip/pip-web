@@ -79,7 +79,7 @@ const CHECKLIST: { thing: string; answer: string }[] = [
   { thing: 'Download or install', answer: 'None. It is a web page. Installable if you want it.' },
   {
     thing: 'Real money',
-    answer: 'None anywhere. No wallet, no card details, nothing to win of value.',
+    answer: 'None in the game. No wallet, no cash-out, nothing to win of value.',
   },
   { thing: 'Ads', answer: 'None.' },
   { thing: 'Chips for sale', answer: 'None. Run out and a free table opens instead.' },
@@ -90,7 +90,8 @@ const CHECKLIST: { thing: string; answer: string }[] = [
   },
   {
     thing: 'What it costs',
-    answer: 'Nothing to play. Not a trial, and nothing in it gets metered later.',
+    answer:
+      'Nothing to play. Not a trial, and nothing on the ladder gets metered later. An optional membership adds more tables and tools beside it.',
   },
 ]
 
@@ -104,14 +105,15 @@ const FAQ: { q: string; a: string[] }[] = [
   {
     q: 'Is it actually free?',
     a: [
-      'Yes. No ads, no signup, and no charge to play. The chips are play money and they are not for sale, and there is no advantage you can buy at any price, which is the part that makes the rest of it hold: there is no purchase for us to be steering you towards.',
+      'Yes. No ads, no signup, and no charge to play. The chips are play money and they are not for sale, and there is no advantage you can buy at any price.',
+      'There is an optional membership, and it adds rather than unlocks: more tables, the games that are not Hold’em, lessons past the first level, and tools for reviewing your play. The ten-venue ladder, the cash games, the Daily Deal and the freeroll are free for good, and nothing in them ever asks you to join.',
     ],
   },
   {
     q: 'Do I need to sign up?',
     a: [
       'No. You type a name, pick a face, and sit down. No email, no password, no verification link.',
-      'There is one optional account, and it does exactly one thing: carries your progress to a second device. It is off unless you turn it on, and everything in the game works without it.',
+      'There is an optional account. It carries your progress to a second device, and it is what a membership belongs to if you ever take one. It is off unless you turn it on, and everything free in the game works without it.',
     ],
   },
   {
@@ -242,8 +244,9 @@ export default function PlayPokerFreeNoSignupPage() {
         <p>
           Most pages answering this query are affiliate pages, and the free game on them is a
           doorway to a casino that pays them for you.{' '}
-          <strong className={strong}>There is no doorway here.</strong> Nothing on this site takes
-          payment, so nothing on this site is trying to move you towards taking out a card.
+          <strong className={strong}>There is no doorway here.</strong> The one thing Pip sells is
+          an optional membership, it is for more of this game rather than a casino, and nothing at
+          the table ever mentions it.
         </p>
       </Section>
 

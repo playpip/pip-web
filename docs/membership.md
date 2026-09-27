@@ -1,11 +1,10 @@
 # The membership
 
-> **Status: wired, not yet switched on** (2026-09-24). Checkout, the webhook, the portal and
-> the cancelling account delete are built as Supabase Edge Functions — see
-> [stripe.md](./stripe.md). The switch is two price ids in the build: until they are set,
-> `checkoutReady()` is false, `/membership` says checkout is not open, and nobody has paid.
-> It sells through Ava Technologies' Stripe account, shared with Probus — stripe.md says what
-> that changes.
+> **Status: live.** Checkout, the webhook, the portal and the cancelling account delete run
+> as Supabase Edge Functions — see [stripe.md](./stripe.md). The switch is the two price ids
+> in the build: with them set, `checkoutReady()` is true and `/membership` sells. It sells
+> through Ava Technologies' Stripe account, shared with Probus — stripe.md says what that
+> changes.
 
 The commercial layer, in one document: what is gated, what deliberately is not, where the
 answer comes from, and which rules are enforced by tests rather than by agreement.

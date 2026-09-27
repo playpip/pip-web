@@ -219,11 +219,10 @@ export interface MembershipFeature {
  */
 export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
   {
-    // Lessons with Webb (2026-09-23). Shipped means *one* lesson is: Level 2's
-    // Position, and the open-or-fold practice after it. The blurb says exactly
-    // that, and the rest of the course is on /learn marked "Not built yet" —
-    // the sentence to watch is the one that would make four unbuilt levels
-    // sound bought.
+    // Lessons with Webb (2026-09-23). The whole course is built as of
+    // 2026-09-24: eight lessons across Levels 2–5, each ending in its practice
+    // pack, and Level 1 (the tour) free. The blurb counts what exists, so a
+    // lesson added later changes the number here in the same commit.
     id: 'lessons',
     title: 'Lessons with Webb',
     blurb:

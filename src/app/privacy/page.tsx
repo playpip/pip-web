@@ -31,20 +31,20 @@ export default function PrivacyPage() {
 
       <Section title="If you add an account">
         <p>
-          Pip has an optional account, and it exists for exactly one thing: carrying your progress
-          to another device. It is off unless you turn it on, in Settings, under Account. Until then
-          Pip makes no request to us at all, holds no identity for you, and there is no row anywhere
-          with your name on it.
+          Pip has an optional account. It carries your progress to another device, and it is what a{' '}
+          <A href="/membership">membership</A> belongs to if you take one. It is off unless you turn
+          it on, in Settings, under Account. Until then Pip makes no request to us at all, holds no
+          identity for you, and there is no row anywhere with your name on it.
         </p>
         <p>
           Turn it on and we store two things:{' '}
           <strong className="font-medium text-foreground">your email address</strong>, so you can
           sign back in, and{' '}
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
-          was already on your device. Nothing else. No hand histories beyond what your profile
-          already holds, no IP-based profiling, no marketing email, ever. The data sits with{' '}
-          <A href="https://supabase.com">Supabase</A> on our behalf, and password-reset email goes
-          out through <A href="https://resend.com">Resend</A>.
+          was already on your device. Nothing else, unless you take a membership (below). No hand
+          histories beyond what your profile already holds, no IP-based profiling, no marketing
+          email, ever. The data sits with <A href="https://supabase.com">Supabase</A> on our behalf,
+          and password-reset email goes out through <A href="https://resend.com">Resend</A>.
         </p>
         <p>
           You can delete it from the same place you made it. “Delete my account and synced data” in

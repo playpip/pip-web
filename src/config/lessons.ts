@@ -537,8 +537,7 @@ const STACK_SIZES: Lesson = {
   title: 'Stack sizes',
   blurb:
     'Counting a stack in big blinds, why a short one has fewer moves, and what rising blinds do to the same chips.',
-  // Not built yet: the shove-or-fold pack. Until it is, the last beat goes
-  // back to the shelf rather than into a practice that does not exist.
+  // The shove-or-fold pack: the lesson counts the stack, the pack grades the shove.
   practice: SHOVE_PACK_ID,
   seed: 20_260_927,
   membersOnly: true,

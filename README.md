@@ -39,7 +39,7 @@ play money only, no pop-ups, no fake felt.
   100-chip *Friends' Garage* to the 1,000,000-chip *Main Event*. The buy-in is your
   starting stack; win the table, take the prize, climb. Blinds escalate, so
   tournaments always end. Side tables (turbo, deep, heads-up, bounty) twist the
-  format without gating the climb.
+  format; they come with the membership and never gate the climb.
 - **The cast** — opponents are a fixed troupe of regulars with faces, bios, and
   personalities, not random bots. Doris plays every hand; Frank bluffs constantly;
   the Vault has a boss. Your reads on them build **across sessions**, and they
@@ -58,9 +58,13 @@ play money only, no pop-ups, no fake felt.
 - **Ambient help** — live win-% equity, hand strength, plain-English reads on
   opponents, and a reviewable last-hand history. Informative, never nagging.
 - **Drills** — short spots with a right answer, graded by the engine rather than by
-  a lookup table, and never metered. *Which hand wins?* is free forever.
-- **Pot-Limit Omaha** — four hole cards, and you must use exactly two of them with
-  exactly three from the board. Same engine, genuinely different game.
+  a lookup table, and never metered. *What have you got?* and *Which hand wins?* are
+  free forever; the rest, and the practice packs, come with the membership.
+- **Lessons with Webb** — an interactive course on the real felt: Webb deals, pauses,
+  asks, and you answer with the real buttons. Level 1 is free; Levels 2–5 are the
+  membership's. Every written guide stays free.
+- **More than Hold'em** (membership) — Pot-Limit Omaha, Short Deck, Omaha Hi-Lo,
+  Five-Card Draw and blackjack. Same engine, genuinely different games.
 - **Build your own table** — seats, stakes, stack depth, blind speed, bounty, and
   which regulars sit down. The opposition still comes from the buy-in, so you
   can't build yourself an easy game.
@@ -83,21 +87,22 @@ table.
 
 ### What's free, and what isn't
 
-**Pip is free to play and most of it is open to everybody** — the whole ladder,
-every side table, the cash games, the Daily, the Chip Shop, the freeroll, the guides,
-the odds calculator, and the read on every hand you play. Nothing that shipped free
-ever gets metered later.
+**Pip is free to play and the core game is free forever** — the whole ladder, the
+Rail's cash games, the Daily, the Chip Shop, the freeroll, two drills, Level 1 of the
+lessons, every written guide, the odds calculator, and the read on every hand you play.
+None of it is ever metered.
 
 There is also an optional **membership** (£5.99/mo or £49/yr) that adds more to
-play: extra rooms, Pot-Limit Omaha, build-your-own-table, a report on your own
-play across every hand, and spectating after you bust. It's a real fence and we'd
+play: every side table and member room, the games that aren't Hold'em, build-your-own-table,
+the rest of the drills and practice packs, Lessons with Webb from Level 2, a report on
+your own play across every hand, the session review, and spectating after you bust. It's a real fence and we'd
 rather call it one than pretend otherwise. **It is not pay-to-win** — pay-to-win
 means buying an advantage over another player, and Pip is single-player with no
 leaderboard. Nothing you can buy changes a hand: not the cards, the odds, what
 you're shown, or a rebuy. See [ROADMAP → How Pip pays for itself](ROADMAP.md).
 
-**There is no checkout yet**, so as of today nobody is a member and nobody has paid
-anything.
+Checkout, billing and cancelling run through Stripe — see [docs/stripe.md](docs/stripe.md).
+Cancel any time from Settings → Membership.
 
 ## Quick start
 

@@ -7,7 +7,7 @@ and dates aren't listed on purpose. If something here matters to you,
 ## Shipped
 
 - Single-player Texas Hold'em against a cast of AI regulars
-- The ten-venue ladder + side tables (turbo, deep, heads-up, bounty)
+- The ten-venue ladder, plus side tables (turbo, deep, heads-up, bounty) with the membership
 - The Daily Deal — one date-seeded tournament a day, identical for everyone
 - Hand permalinks — share any hand as a URL that replays step by step
 - The Chip Shop — earned cosmetics (style, never edge) + collectible award chips
@@ -21,6 +21,9 @@ and dates aren't listed on purpose. If something here matters to you,
 - Drills: short spots with a right answer, graded by the engine, never metered
 - A card at the end of a tournament that reads the run you just played, and stores nothing
 - **Pot-Limit Omaha** — four cards, use exactly two, pot-limit betting. Same engine
+- **Short Deck, Omaha Hi-Lo, Five-Card Draw and blackjack** — the other games at the side tables
+- **Lessons with Webb** — five levels of interactive lessons on the real felt, each with a
+  practice pack; Level 1 free
 - **Build your own table** — seats, stakes, depth, speed, bounty and who sits down. Invite
   the high rollers to a cheap table and they bring their own game with them; the prize is
   the same, and nobody you invite can build you an easier one
@@ -54,26 +57,25 @@ Worth saying plainly, because a free product that never explains this is usually
 surprise you.
 
 **Pip is free to play and a large part of the game is open to everybody.** Not a trial, not
-a demo, and — the part that actually matters — **nothing that shipped free ever gets metered
-later.** Free, permanently: the whole ten-venue ladder and every side table, the Rail's cash
+a demo, and — the part that actually matters — **the core game is free forever and never
+metered.** Free, permanently: the whole ten-venue ladder, the Rail's cash
 games, the challenge tables, the Daily Deal, the Chip Shop economy, the Kitchen Table
 freeroll, the read on every hand as you finish it, the card at the end of a run, two drill
-kinds played as often as you like, every written guide, the odds calculator, and moving your
+kinds played as often as you like, Level 1 of Lessons with Webb, every written guide, the odds calculator, and moving your
 profile between devices. You can play Pip for years and never see a price.
 
 **There is also a membership, and it is a real fence.** It does not unlock the game above —
 it adds rooms and tools beside it. We would rather say "fence" than pretend otherwise.
 
-There will eventually be a **membership**, for the things that cost real money to run or
-that don't exist yet. **Built and sitting behind the check today**: the drills called
+**Built and sitting behind the check today**: every side table and the games that are
+not Hold'em (Pot-Limit Omaha, Short Deck, Omaha Hi-Lo, Five-Card Draw, blackjack); the drills called
 "Which five play?", "Count your outs", "Pot odds" and "Who gets there?" plus the play-it-out
 mode; the practice packs "Calling the river", "Open or fold", "Bet or check" and "Shove or
 fold"; the interactive lessons with
-Webb from Level 2 up, starting with "Position"; four member rooms with three regulars of their own; build-your-own-table; Pot-Limit
-Omaha; a report that reads your play across every hand you have ever played; watching a
-tournament out after you bust; and four member card backs. **Not built**: multiplayer, which
-is the big one and is honestly some way off; and the rest of Webb's course, whose unbuilt
-lessons are on the shelf at /learn marked as exactly that.
+Webb from Level 2 up; four member rooms with three regulars of their own; build-your-own-table;
+a report that reads your play across every hand you have ever played; watching a
+tournament out after you bust; the session review; and four member card backs. **Not
+built**: multiplayer, which is the big one and is honestly some way off.
 
 The drills that shipped free stay free and unmetered, which is the paragraph above applied
 to the thing most likely to test it. Two of the ten are free, and the free pair is the pair
@@ -95,17 +97,23 @@ changes a hand** — not the cards, the odds, what you are shown, or a rebuy.
 to win against and "no leaderboard" stops being an answer. It is written down as a condition
 rather than left to be noticed.
 
-**Most of it is now built, and there is still no way to pay for any of it.** The membership
-check is live and everything listed above sits behind it. There is a `/membership` page,
-which tells you the price — but **there is no checkout, no Stripe account, and not one
-person has given us any money.** Nobody is a member. That is the whole of the state, and it
-is a stranger state than it sounds: we built the thing before we built the till, on purpose,
-because a half-built product with a working payment button is how people get taken.
+**All of it is built, and the till is open.** The membership check is live and everything
+listed above sits behind it. `/membership` tells you the price, and checkout, billing and
+cancelling run through Stripe. We built the thing before we built the till, on purpose,
+because a half-built product with a working payment button is how people get taken — so
+nothing went on sale until everything above was real.
 
-If that ever stops being true, this section is where you'd catch us. It has stopped being
-true three times: the first version said the membership wasn't built; the correction said one
-drill was behind it when it was already two; and it described the membership as mostly
-unbuilt on the day most of it shipped. This is the third fix.
+**One line moved, and you should hear it from us.** This section used to say every side
+table was free permanently. On 2026-09-20 the side tables moved behind the membership —
+before the till existed, so before anybody could have paid for or relied on the promise.
+The promise was narrowed to the core game rather than quietly edited; the full account is
+in [docs/membership.md](docs/membership.md), including why it does not happen again.
+
+If any of this ever stops being true, this section is where you'd catch us. It has stopped
+being true four times: the first version said the membership wasn't built; the correction
+said one drill was behind it when it was already two; it described the membership as mostly
+unbuilt on the day most of it shipped; and it still called the side tables free after they
+moved and said there was no way to pay after there was one. This is the fourth fix.
 
 One near-miss worth recording, because a correction log that only lists the times we were
 wrong is not much of a log. When member rooms were ruled ranked, this section briefly
