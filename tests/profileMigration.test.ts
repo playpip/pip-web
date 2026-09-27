@@ -10,6 +10,7 @@ import test from 'ava'
 import { migrateProfile, PERSIST_VERSION } from '@/store/profile'
 import { currentChallenge } from '@/lib/challenge'
 import { DEFAULT_CARD_BACK } from '@/config/cardBacks'
+import { STARTING_RATING } from '@/lib/drills/rating'
 
 /** A v11 profile: everything before challengers, nothing after. */
 const v11 = () => ({
@@ -153,6 +154,104 @@ test('v15 → v16 is a no-op for a player who has never opened a drill', (t) => 
   t.deepEqual(migrateProfile(v15, 15).drills, {})
 })
 
+test('v19 → v20 starts the priced-decision table empty, even for a busy player', (t) => {
+  // A thousand hands behind them and nothing to seed from: the hands are gone,
+  // and the tendency counters say how often they called, never where the money
+  // went. Inventing a split would put a number on the report that describes
+  // nothing. Same answer v15 gave the drills, for the same reason.
+  const v19 = { ...v11(), challengeWins: [], challengesPlayed: 0, drills: {}, blackjack: null }
+  const p = migrateProfile(v19, 19)
+  t.is(p.reviewStats.hands, 0)
+  t.is(p.reviewStats.byStreet.river.priced, 0)
+  t.deepEqual(p.reviewStats.evidence, {})
+})
+
+test('v20 → v21 adds the new cosmetics on their free defaults and hands out nothing', (t) => {
+  // Rings, dealer buttons and sound packs. Unlike v10 → v11, which
+  // grandfathered three card backs that were genuinely being taken away, none
+  // of this existed before — so an old profile starts exactly where a new one
+  // does, and `owned` is not touched on the way through.
+  const v20 = {
+    ...v11(),
+    challengeWins: [],
+    challengesPlayed: 0,
+    drills: {},
+    blackjack: null,
+    reviewStats: { hands: 0 },
+    owned: ['ocean', 'back-noir'],
+  }
+  const p = migrateProfile(v20, 20)
+
+  t.is(p.avatarRing, null, 'a profile was handed a ring it never chose')
+  t.is(p.dealerButton, 'button-house')
+  t.is(p.soundPack, 'sound-house')
+  // The free defaults are genuinely free: nothing had to be bought to arrive
+  // in this state, so nothing was added to the purchase list.
+  t.deepEqual([...p.owned].sort(), ['back-noir', 'ocean'])
+})
+
+test('v21 → v22 seeds every drill record a history that ends on its rating', (t) => {
+  // Seeded, not empty: an existing player opens the graph to a line. Two
+  // points, both true: everybody started at the starting rating with nothing
+  // answered, and each record is where it is now. The middle was never kept
+  // and nothing here pretends it was.
+  const v21 = {
+    ...v11(),
+    challengeWins: [],
+    challengesPlayed: 0,
+    drills: {
+      'which-hand-wins': {
+        answered: 212,
+        correct: 150,
+        rating: 1_240,
+        bestRun: 11,
+        shapes: { kicker: { answered: 30, correct: 12 } },
+      },
+      'count-your-outs': { answered: 8, correct: 5, rating: 1_010, bestRun: 2, shapes: {} },
+    },
+    blackjack: null,
+    reviewStats: { hands: 0 },
+    avatarRing: null,
+    dealerButton: 'button-house',
+    soundPack: 'sound-house',
+  }
+  const p = migrateProfile(v21, 21)
+
+  t.deepEqual(p.drills['which-hand-wins'].history, [
+    [0, STARTING_RATING],
+    [212, 1_240],
+  ])
+  t.deepEqual(
+    p.drills['count-your-outs'].history,
+    [
+      [0, STARTING_RATING],
+      [8, 1_010],
+    ],
+    'every record, not just the first',
+  )
+  // Nothing else on the record moved.
+  t.is(p.drills['which-hand-wins'].rating, 1_240)
+  t.is(p.drills['which-hand-wins'].answered, 212)
+  t.is(p.drills['which-hand-wins'].shapes.kicker.answered, 30)
+})
+
+test('v21 → v22 leaves a player who has never opened a drill with nothing', (t) => {
+  const v21 = { ...v11(), challengeWins: [], challengesPlayed: 0, drills: {} }
+  t.deepEqual(migrateProfile(v21, 21).drills, {})
+})
+
+test('a record migrated from before shapes still arrives with a history', (t) => {
+  // The chain as a whole: a v15 record has neither `shapes` nor `history`, and
+  // both branches have to fire on it in order.
+  const v15 = {
+    ...v11(),
+    drills: { 'which-hand-wins': { answered: 5, correct: 4, rating: 1_090, bestRun: 3 } },
+  }
+  const rec = migrateProfile(v15, 15).drills['which-hand-wins']
+  t.deepEqual(rec.shapes, {})
+  t.deepEqual(rec.history.at(-1), [5, 1_090])
+})
+
 test('an ancient profile survives the whole chain', (t) => {
   // A v1 save is a name, a Roll and nothing else. Every branch has to fire.
   const ancient = { created: true, name: 'Player', avatar: null, roll: 800 }
@@ -167,6 +266,10 @@ test('an ancient profile survives the whole chain', (t) => {
   t.true(p.handCoaching)
   t.false(p.haptics)
   t.deepEqual(p.drills, {})
+  t.is(p.reviewStats.hands, 0)
+  t.is(p.avatarRing, null)
+  t.is(p.dealerButton, 'button-house')
+  t.is(p.soundPack, 'sound-house')
   // v10 → v11 grandfathers the three card backs that moved into the Chip Shop.
   t.deepEqual([...p.owned].sort(), ['midnight', 'ocean', 'slate'])
 })
@@ -183,6 +286,11 @@ test('migrating an already-current profile is a no-op', (t) => {
         rating: 1_120,
         bestRun: 9,
         shapes: { category: { answered: 21, correct: 19 }, kicker: { answered: 12, correct: 5 } },
+        history: [
+          [0, 1_000],
+          [17, 1_060],
+          [40, 1_120],
+        ],
       },
     },
   }
@@ -196,4 +304,7 @@ test('migrating an already-current profile is a no-op', (t) => {
   // The same failure one level down, and it is the one the v16 branch could
   // plausibly cause: emptying `shapes` on a profile that is already current.
   t.is(p.drills['which-hand-wins'].shapes.kicker.answered, 12)
+  // And again for the v22 branch: re-seeding a current history would flatten a
+  // real line into two points on every load.
+  t.is(p.drills['which-hand-wins'].history.length, 3)
 })

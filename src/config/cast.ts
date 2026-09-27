@@ -3,10 +3,15 @@
 // ladder, and a small personality nudge over the venue's AI profile. The venue
 // sets the difficulty band (skill stays venue-owned — see docs/venues.md); the
 // character sets the flavour. See docs/cast.md for the voice and how to add one.
+//
+// The one exception to "the venue owns difficulty" is a guest invited by name
+// to a table the player built, who brings their home rung with them when it is
+// the harder of the two. It is a one-way door — upward only — and `profileFor`
+// below is where it happens.
 
 import type { AvatarSpec } from '@/lib/avatar'
 import type { AiProfile } from '@/lib/poker/ai/policy'
-import type { Venue } from './venues'
+import { VENUES, type Venue } from './venues'
 
 /** Where on the ladder a character plays, by buy-in. */
 export type CastBand = 'low' | 'mid' | 'high'
@@ -542,6 +547,24 @@ export const CAST: readonly Character[] = [
     },
   },
   {
+    id: 'vic',
+    name: 'Vic',
+    bio: 'Deals blackjack. Has never once had an opinion about your cards.',
+    avatar: av('vic', 'b6e3f4'),
+    // Pinned, so Vic never turns up as a challenger. That is not tidiness: a
+    // challenge is a heads-up poker table and Vic does not play poker, deals
+    // to a fixed rule and cannot be beaten by out-playing them. It also keeps
+    // the scalp shelf at twenty-two (tests/challenge.test.ts) — a dealer you
+    // cannot challenge must not enlarge the collection you are counting.
+    bands: ['mid'],
+    only: ['blackjack'],
+    lines: {
+      seat: ['Vic squares the shoe and waits.', 'Vic deals without looking up.'],
+      win: ['Vic pays it out. No comment.', 'Vic slides the chips across, already shuffling.'],
+      bust: ['Vic takes the chips. Nothing personal — there is no personal.'],
+    },
+  },
+  {
     id: 'sable',
     name: 'Sable',
     bio: 'The Vault’s last lock. Nobody’s picked it twice.',
@@ -556,6 +579,99 @@ export const CAST: readonly Character[] = [
         'Sable almost smiles. The Vault opens.',
         'Sable stands, nods once. Combination cracked.',
       ],
+    },
+  },
+
+  // --- the member tables: after hours, and nobody is going home --------------
+  //
+  // Pinned to the member tables, which has a consequence worth stating:
+  // `rosterFor` returns pinned characters *instead of* the band's regulars, and
+  // `draftCast` then tops up from the wider cast when a table seats more than
+  // the pins can fill. Three pins at a six-seat table means you always meet one
+  // or two of these and the rest are faces you know. That is the intended feel
+  // — another room in the same building, not a different game — and it is why
+  // there are three of them rather than five.
+  //
+  // No `challenge` lines: a pinned character can never be drawn as a challenger
+  // (`lib/challenge` excludes them the same way it excludes Pearl and Sable),
+  // so writing invitations for them would be dead copy in the one file that is
+  // pure voice.
+  {
+    id: 'bev',
+    name: 'Bev',
+    bio: 'Runs the lock-in. Has never once called time.',
+    avatar: av('bev', 'ffe0b2'),
+    bands: ['mid'],
+    only: [
+      'deepstack-750',
+      'deepstack-2000',
+      'deepstack-5000',
+      'deepstack-15000',
+      'deepstack-40000',
+      'bigpot',
+    ],
+    delta: { tightness: 0.04, aggression: 0.06 },
+    lines: {
+      seat: ['Bev bolts the door and deals.', '“Nobody’s in a rush,” says Bev, dealing.'],
+      win: [
+        'Bev rakes it in and tops up her own glass.',
+        '“House rules,” says Bev, of a rule she has just invented.',
+      ],
+      bust: ['Bev finally calls time. On herself.', 'Bev stands. The door is still bolted.'],
+    },
+  },
+  {
+    id: 'dez',
+    name: 'Dez',
+    bio: 'Finishes his shift, starts his stack.',
+    avatar: av('dez', 'b2dfdb'),
+    bands: ['mid'],
+    only: [
+      'deepstack-750',
+      'deepstack-2000',
+      'deepstack-5000',
+      'deepstack-15000',
+      'deepstack-40000',
+      'bigpot',
+    ],
+    delta: { tightness: -0.05, aggression: 0.04 },
+    lines: {
+      seat: ['Dez sits down still in his hi-vis.', '“Ten minutes,” says Dez, at half past one.'],
+      win: [
+        'Dez stacks the pot like it is overtime.',
+        '“That’s the gas bill,” says Dez, of money that does not exist.',
+      ],
+      bust: [
+        'Dez checks the time and pretends to be surprised.',
+        'Dez leaves to sleep through the afternoon.',
+      ],
+    },
+  },
+  {
+    id: 'winnie',
+    name: 'Winnie',
+    bio: 'Knits through every hand. Counts every card.',
+    avatar: av('winnie', 'd7ccc8'),
+    bands: ['mid'],
+    only: [
+      'deepstack-750',
+      'deepstack-2000',
+      'deepstack-5000',
+      'deepstack-15000',
+      'deepstack-40000',
+      'bigpot',
+    ],
+    delta: { tightness: 0.08, aggression: -0.03 },
+    lines: {
+      seat: [
+        'Winnie sets the needles down. Briefly.',
+        'Winnie has been here longer than the table.',
+      ],
+      win: [
+        'Winnie picks the needles back up.',
+        '“Two rows while you were thinking,” says Winnie.',
+      ],
+      bust: ['Winnie packs the wool away, unbothered.', 'Winnie leaves with a finished sleeve.'],
     },
   },
 ] as const
@@ -575,10 +691,49 @@ export function rosterFor(venue: Venue): Character[] {
   return CAST.filter((ch) => !ch.only && ch.bands.includes(band))
 }
 
+/** Hardest first, so a character's band is read off the top of their list. */
+const BAND_ORDER: readonly CastBand[] = ['high', 'mid', 'low']
+
+/**
+ * The rung a character brings with them: **the cheapest room they are a regular
+ * in**, out of the hardest band they play.
+ *
+ * Not the dearest room in that band, which would make every high-band regular
+ * the Main Event and flatten the cast into one profile. The entry price of the
+ * hardest room somebody is a fixture at is the least the claim on their card
+ * can mean, and it is a shipped rung — `tests/ai.test.ts` has already banded
+ * it, so nothing here invents a profile or blends two.
+ *
+ * Only guests at a built table are read through this (`profileFor`). Everywhere
+ * else the venue owns difficulty outright, exactly as before.
+ */
+export function homeRungFor(ch: Character): Venue {
+  const band = BAND_ORDER.find((b) => ch.bands.includes(b)) ?? 'low'
+  return VENUES.find((venue) => bandFor(venue) === band) ?? VENUES[0]
+}
+
+/**
+ * Which of two profiles is the harder table to sit at.
+ *
+ * Returns one of them whole rather than the larger field of each, because a
+ * profile assembled out of two is one nothing has ever measured — the same rule
+ * `rungFor` follows when it refuses to interpolate between rungs.
+ */
+function harderOf(a: AiProfile, b: AiProfile): AiProfile {
+  return (b.skill ?? 1) > (a.skill ?? 1) ? b : a
+}
+
 /**
  * Draw tonight's table: a shuffled slice of the venue's roster, topped up from
  * the wider (unpinned) cast if the roster ever runs short. Pass a seeded rng
  * for a reproducible draw (the Daily Deal does).
+ *
+ * **Guests get their chairs first and are never drawn for.** Somebody the
+ * player named is not a candidate — the whole point of naming them is that they
+ * turn up — so they are seated whole and only the chairs left over are dealt
+ * from the roster. Their seat *order* is still shuffled, because five guests
+ * always arriving in the order they were tapped would make the table read as a
+ * list rather than a room.
  */
 export function draftCast(
   venue: Venue,
@@ -593,23 +748,50 @@ export function draftCast(
     }
     return copy.slice(0, n)
   }
-  const picked = draw(rosterFor(venue), count)
+  const invited = (venue.guests ?? [])
+    .map((id) => characterById(id))
+    .filter((ch): ch is Character => Boolean(ch))
+    .slice(0, count)
+  const taken = new Set(invited.map((ch) => ch.id))
+  const picked = [
+    ...invited,
+    ...draw(
+      rosterFor(venue).filter((ch) => !taken.has(ch.id)),
+      count - invited.length,
+    ),
+  ]
   if (picked.length < count) {
     const have = new Set(picked.map((ch) => ch.id))
     const rest = CAST.filter((ch) => !ch.only && !have.has(ch.id))
     picked.push(...draw(rest, count - picked.length))
   }
-  return picked
+  return draw(picked, count)
 }
 
-/** The venue's AiProfile with the character's nudges applied. Skill untouched. */
+/**
+ * The seat's AiProfile: the table's, with the character's nudges applied.
+ *
+ * **The venue still owns difficulty, with one named exception.** A character
+ * invited by name to a built table (`venue.guests`) plays their home rung's
+ * profile when that is the harder of the two — so you can sit the sharpest
+ * regular in the cast down at a 100-chip table and they play like themselves.
+ * It only ever moves upward: `harderOf` cannot return the softer profile, so
+ * the old failure this guarded against — the Garage's opponents at the Main
+ * Event's price — remains impossible. What a guest buys you is a harder game
+ * for the same prize, which is the opposite of an edge.
+ *
+ * Everyone who was drafted rather than invited plays the venue's own profile,
+ * so a table you built and invited nobody to is exactly the ladder rung its
+ * price bought, to the object.
+ */
 export function profileFor(venue: Venue, ch: Character): AiProfile {
   const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
+  const base = venue.guests?.includes(ch.id) ? harderOf(venue.ai, homeRungFor(ch).ai) : venue.ai
   return {
-    ...venue.ai,
-    tightness: clamp01(venue.ai.tightness + (ch.delta?.tightness ?? 0)),
-    aggression: clamp01(venue.ai.aggression + (ch.delta?.aggression ?? 0)),
-    bluff: clamp01(venue.ai.bluff + (ch.delta?.bluff ?? 0)),
+    ...base,
+    tightness: clamp01(base.tightness + (ch.delta?.tightness ?? 0)),
+    aggression: clamp01(base.aggression + (ch.delta?.aggression ?? 0)),
+    bluff: clamp01(base.bluff + (ch.delta?.bluff ?? 0)),
   }
 }
 

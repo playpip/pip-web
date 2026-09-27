@@ -214,6 +214,7 @@ test('the filter throws away the spots that are not questions', (t) => {
     'chop-possible': 0,
     'drawing-dead': 0,
     ambiguous: 0,
+    'free-guess': 0,
   }
   let kept = 0
   for (let seed = 1; seed <= 4_000; seed++) {
@@ -331,18 +332,30 @@ test("pot odds is registered as the membership's, not as free", (t) => {
   t.true(canPlayDrill(kind, true), 'a member cannot open the kind they paid for')
 })
 
-test('the membership has more than one kind in it, and the free one is still free', (t) => {
+test('the membership has more than one kind in it, and the free ones are still free', (t) => {
   const paid = DRILL_KINDS.filter((kind) => kind.membersOnly).map((kind) => kind.id)
-  t.deepEqual(paid.sort(), ['count-your-outs', 'hand-strength', 'pot-odds'])
+  t.deepEqual(paid.sort(), [
+    'bet-or-check',
+    'calling-the-river',
+    'count-your-outs',
+    'hand-strength',
+    'open-or-fold',
+    'pot-odds',
+    'shove-or-fold',
+    'which-five-play',
+  ])
   t.true(canPlayDrill(drillKind('which-hand-wins'), false), 'the free kind is no longer free')
+  t.true(canPlayDrill(drillKind('whats-your-hand'), false), 'the beginners’ kind is no longer free')
 })
 
-// Only the kind that asks about money carries any. A stray price on another
-// kind would draw a line of numbers over a spot that is not about them.
-test('the pot and the price are on the pricing kind and nowhere else', (t) => {
+// Only the kinds that ask about money carry any: this one, and the river pack,
+// whose question is a price against a range. A stray price on another kind
+// would draw a line of numbers over a spot that is not about them.
+const PRICED = new Set([KIND, 'calling-the-river'])
+test('the pot and the price are on the pricing kinds and nowhere else', (t) => {
   for (const kind of DRILL_KINDS) {
     const drill = nextDrill(kind.id, 1)
-    if (kind.id === KIND) t.truthy(drill.stakes, `${kind.id}: no price on a pricing spot`)
+    if (PRICED.has(kind.id)) t.truthy(drill.stakes, `${kind.id}: no price on a pricing spot`)
     else t.is(drill.stakes, undefined, `${kind.id}: carries a price it never asks about`)
   }
 })

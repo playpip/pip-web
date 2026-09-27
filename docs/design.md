@@ -145,7 +145,8 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 - Table: `Table`, `ActionBar` (fold / check·call / bet·raise + sizer with ½·¾·Pot·Max),
   `HandHistoryDialog` (last-hand timeline).
 - Primitives: `PlayerAvatar`, `PlayingCard`, `CardBack`, `CountUp`, `AwardChip`,
-  `RollGraph` (hand-rolled smoothed SVG area chart), `ThemeToggle`,
+  `RollGraph` (hand-rolled smoothed SVG area chart; its `LineGraph` core also draws the
+  drill rating over spots answered, and the report's sparklines via `profile/DrillRating`), `ThemeToggle`,
   shadcn `ui/button`, `ui/dialog`.
 
 ## Adding UI — checklist

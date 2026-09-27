@@ -22,6 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/poker-odds-calculator',
     '/blog',
     '/credits',
+    '/membership',
     '/privacy',
     '/terms',
   ].map((path) => ({ url: `${BASE}${path}` }))

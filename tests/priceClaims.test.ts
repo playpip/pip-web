@@ -31,6 +31,12 @@ const BORROWED = [
   /no paid tier/i,
   /(can'?t|cannot|could not|couldn'?t) take your money/i,
   /(can'?t|cannot) charge you/i,
+  // Both served on /play-poker-free-no-signup after the checkout was built
+  // (2026-09-27). The account now also holds a membership, so "exactly one
+  // thing" went false the day it did; and a site with a checkout takes payment.
+  /nothing on this site takes payment/i,
+  /no purchase for us to be steering/i,
+  /(exactly|only) one thing: carr/i,
 ]
 
 // Deliberately no exemption for /blog/, unlike dataClaims.test.ts. There a

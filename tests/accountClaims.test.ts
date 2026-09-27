@@ -117,10 +117,18 @@ const NO_ACCOUNT_PHRASING: Record<string, string> = {
 }
 
 test('every page that says you need no account is written down', (t) => {
-  // Four phrasings, not one. The last is here because a sweep for "no account"
-  // missed two live pages that said the same thing in different words, which is
-  // the mistake this file exists to stop repeating.
-  const HANDWRITTEN = /no account needed|no signup|no sign-up|everything without one/i
+  // Five phrasings, not one. The last two are here because a sweep for "no
+  // account" missed live pages that said the same thing in different words,
+  // which is the mistake this file exists to stop repeating.
+  //
+  // It caught itself once more: the trust card said "play everything without
+  // one" until the membership made "everything" the wrong word, and rewording it
+  // to "play without one" dropped the page out of this inventory silently. The
+  // claim had not gone anywhere — only the spelling had. **If you reword a
+  // no-account line and this test goes green by the page vanishing from the
+  // list, that is the bug, not the fix.**
+  const HANDWRITTEN =
+    /no account needed|no signup|no sign-up|everything without one|play(?:ing)? without one/i
 
   // Comments out first. Four engineering files describe what the app does
   // without an account, correctly, in prose no reader ever sees; the rule is

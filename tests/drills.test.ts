@@ -182,6 +182,7 @@ test('the filter throws away one-sided spots, and only those', (t) => {
     'chop-possible': 0,
     'drawing-dead': 0,
     ambiguous: 0,
+    'free-guess': 0,
   }
   let kept = 0
   for (let seed = 1; seed <= 5_000; seed++) {
@@ -353,6 +354,12 @@ test('the drills layer keeps a score and never keeps a limit', (t) => {
     t.notRegex(source, /localStorage|sessionStorage|indexedDB/, `${path}: storage`)
     // The vocabulary of a meter. If one of these is genuinely needed for
     // something else, that is the moment to check it is not this.
+    //
+    // It caught one: the membership gate on the drills index wanted to call its
+    // prop `locked`. That is an entitlement, not a meter — a whole kind is the
+    // membership's or it is free, and there is deliberately no third shape (see
+    // config/drills.ts) — so the check passed and the prop was renamed to
+    // `gated` rather than the rule being widened. **Rename your variable.**
     t.notRegex(
       source,
       /\b(remaining|lockout|locked|paywall|quota|allowance|freeTrial|drillsLeft)\b/i,

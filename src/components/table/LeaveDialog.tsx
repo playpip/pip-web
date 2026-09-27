@@ -31,6 +31,7 @@ export function LeaveDialog({
   freeroll = false,
   cash = false,
   onConfirm,
+  onReview,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -40,6 +41,8 @@ export function LeaveDialog({
   freeroll?: boolean
   cash?: boolean
   onConfirm: () => void
+  /** Leave, and open the session review. Absent where there is no review. */
+  onReview?: () => void
 }) {
   const money = useMoney()
   const converted = cashOut !== stack
@@ -97,6 +100,21 @@ export function LeaveDialog({
             {freeroll ? 'Leave' : cash ? 'Stand up' : 'Cash out'}
           </button>
         </div>
+
+        {/* Standing up is the moment the session becomes a thing you can look
+            back at, so the offer belongs here rather than on a screen the
+            player has to find afterwards. A text action under the buttons, not
+            a third button: leaving is the decision being made, and this is what
+            happens next. Absent for anyone it is not for — the table is told at
+            sit-down and never asks. */}
+        {onReview && (
+          <button
+            onClick={onReview}
+            className="mt-1 self-center text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+          >
+            {cash ? 'Stand up and review the session' : 'Cash out and review the session'}
+          </button>
+        )}
       </DialogContent>
     </Dialog>
   )

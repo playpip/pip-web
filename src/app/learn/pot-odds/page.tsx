@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { DoItWithWebb } from '@/components/learn/DoItWithWebb'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { ThePrice } from '@/components/learn/ThePrice'
 import { WhatItCosts } from '@/components/learn/WhatItCosts'
@@ -320,6 +321,11 @@ export default function PotOddsGuide() {
           effect is usually the bigger one.
         </p>
       </Section>
+
+      {/* The lesson that plays this page out at a table. After the prose and
+          before the one call to play, so it adds a door without touching a
+          word of the teaching. */}
+      <DoItWithWebb lesson="pot-odds" />
 
       <TryIt>
         <p>

@@ -4,7 +4,7 @@
 
 import type { Card, Rank, Rng, Suit } from './cards'
 import { RANKS, SUITS } from './cards'
-import { determineWinners } from './handEval'
+import { DECK_RANKS, HOLE_CARDS, type Variant, determineWinners } from './handEval'
 import { holeStrength } from './range'
 
 /** How many candidate holdings a maximally-tight opponent picks the best of. */
@@ -33,16 +33,29 @@ export interface EquityOptions {
    * fall back to random. Omit entirely to reproduce classic raw equity.
    */
   opponentSelectivity?: readonly number[]
+  /**
+   * Which game's rules to simulate. Defaults to Hold'em.
+   *
+   * At Omaha every opponent is dealt four cards and every showdown is read
+   * under the two-from-hand rule, so an equity estimate that ignored this
+   * would be answering a different game's question with this game's cards.
+   *
+   * **`opponentSelectivity` is ignored at Omaha**, and that is deliberate
+   * rather than missing: the ranged draw weights two-card holdings by a
+   * Hold'em notion of strength, and there is no honest way to reuse it for
+   * four. Omaha estimates are raw equity against random hands.
+   */
+  variant?: Variant
 }
 
 function cardKey(c: Card): string {
   return `${c.rank}${c.suit}`
 }
 
-function remainingDeck(known: readonly Card[]): Card[] {
+function remainingDeck(known: readonly Card[], ranks: readonly Rank[] = RANKS): Card[] {
   const used = new Set(known.map(cardKey))
   const deck: Card[] = []
-  for (const rank of RANKS as readonly Rank[]) {
+  for (const rank of ranks) {
     for (const suit of SUITS as readonly Suit[]) {
       const c = { rank, suit }
       if (!used.has(cardKey(c))) deck.push(c)
@@ -127,10 +140,15 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     return { win: 1, tie: 0, equity: 1, iterations: 0 }
   }
 
-  const base = remainingDeck([...opts.hole, ...community])
+  const variant = opts.variant ?? 'holdem'
+  // The sim deals from the same deck the table does. Running a short-deck spot
+  // against a fifty-two-card runout answers a different question than the one
+  // on screen, and answers it confidently.
+  const base = remainingDeck([...opts.hole, ...community], DECK_RANKS[variant])
   const boardNeeded = 5 - community.length
+  const holeSize = HOLE_CARDS[variant]
   const selectivity = opts.opponentSelectivity
-  const ranged = !!selectivity && selectivity.some((s) => s > 0)
+  const ranged = variant === 'holdem' && !!selectivity && selectivity.some((s) => s > 0)
 
   let wins = 0
   let ties = 0
@@ -152,20 +170,20 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
         rng,
       ))
     } else {
-      const need = opponents * 2 + boardNeeded
+      const need = opponents * holeSize + boardNeeded
       const drawn = drawN(base, need, rng)
       oppHoles = []
       for (let o = 0; o < opponents; o++) {
-        oppHoles.push([drawn[o * 2], drawn[o * 2 + 1]])
+        oppHoles.push(drawn.slice(o * holeSize, (o + 1) * holeSize))
       }
-      board = [...community, ...drawn.slice(opponents * 2)]
+      board = [...community, ...drawn.slice(opponents * holeSize)]
     }
 
     const contenders = [
       { id: 'hero', hole: opts.hole },
       ...oppHoles.map((hole, i) => ({ id: `opp${i}`, hole })),
     ]
-    const { winners } = determineWinners(contenders, board)
+    const { winners } = determineWinners(contenders, board, variant)
 
     if (winners.includes('hero')) {
       if (winners.length === 1) {
@@ -184,4 +202,110 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     equity: equitySum / iterations,
     iterations,
   }
+}
+
+// --- every hand face up ------------------------------------------------------
+
+/**
+ * How often each of a set of *known* hands wins from here.
+ *
+ * The estimate above answers "how do I do against strangers"; this one answers
+ * "who is ahead", and it is a different question with a better answer
+ * available: when every hole card is known the only unknown left is the board,
+ * and the board can be dealt out exhaustively rather than sampled. The session
+ * review is the one surface that can ask it — the hand is over, every card is
+ * recorded, and nothing anybody learns from it can be played.
+ *
+ * Exact wherever exact is affordable: one runout on the river, forty-odd on the
+ * turn, a few hundred on the flop. Preflop the five-card runout runs to
+ * millions, so it samples and says so through `exact`.
+ */
+export interface ShowdownOdds {
+  /** Share of the pot per player id, summing to 1. Chops split their share. */
+  share: Record<string, number>
+  /** True when every remaining board was dealt rather than sampled. */
+  exact: boolean
+  /** Runouts read. */
+  runouts: number
+}
+
+/**
+ * How much work one of these may do, counted in showdowns rather than in
+ * boards.
+ *
+ * A board costs one evaluation *per player*, so "666 runouts" is cheap
+ * heads-up and four times the work five-handed. Budgeting the product is what
+ * keeps a step on the review feeling instant whoever is still in the pot: at a
+ * few thousand a step it crawled, and the first preflop step of a five-handed
+ * hand took a full second (Will, 2026-09-21).
+ */
+const MAX_EXACT_SOLVES = 4_000
+/** And the same budget for the sampled case, which is preflop and only preflop. */
+const SAMPLE_SOLVES = 1_500
+/** However few players are in, never fewer samples than this. */
+const MIN_SAMPLES = 250
+
+export function showdownOdds(
+  hands: readonly { id: string; hole: readonly Card[] }[],
+  community: readonly Card[],
+  opts: { rng?: Rng; samples?: number; variant?: Variant } = {},
+): ShowdownOdds {
+  const variant = opts.variant ?? 'holdem'
+  const share: Record<string, number> = Object.fromEntries(hands.map((h) => [h.id, 0]))
+  if (hands.length === 0) return { share, exact: true, runouts: 0 }
+  if (hands.length === 1) return { share: { [hands[0].id]: 1 }, exact: true, runouts: 0 }
+
+  const contenders = hands.map((h) => ({ id: h.id, hole: [...h.hole] }))
+  const known = [...community, ...hands.flatMap((h) => h.hole)]
+  const rest = remainingDeck(known, DECK_RANKS[variant])
+  const toCome = 5 - community.length
+
+  const award = (board: Card[]) => {
+    const { winners } = determineWinners(contenders, board, variant)
+    for (const id of winners) share[id] += 1 / winners.length
+  }
+
+  let runouts = 0
+  let exact = true
+  if (toCome <= 0) {
+    award([...community])
+    runouts = 1
+  } else if (toCome === 1) {
+    for (const card of rest) {
+      award([...community, card])
+      runouts++
+    }
+  } else if (
+    toCome === 2 &&
+    ((rest.length * (rest.length - 1)) / 2) * hands.length <= MAX_EXACT_SOLVES
+  ) {
+    for (let i = 0; i < rest.length; i++) {
+      for (let j = i + 1; j < rest.length; j++) {
+        award([...community, rest[i], rest[j]])
+        runouts++
+      }
+    }
+  } else {
+    // Too many boards to deal them all. Sample, and say so.
+    exact = false
+    const rng = opts.rng ?? Math.random
+    // Scaled by how many hands are being read, so the cost of a sampled answer
+    // does not multiply with the size of the pot. The screen prints "about" off
+    // `exact`, so the band this trades away is already declared.
+    const samples = opts.samples ?? Math.max(MIN_SAMPLES, Math.round(SAMPLE_SOLVES / hands.length))
+    const pool = [...rest]
+    for (let s = 0; s < samples; s++) {
+      // Partial Fisher-Yates over the head of the pool: `toCome` swaps, not a
+      // whole shuffle, because the tail is never looked at.
+      for (let i = 0; i < toCome; i++) {
+        const j = i + Math.floor(rng() * (pool.length - i))
+        ;[pool[i], pool[j]] = [pool[j], pool[i]]
+      }
+      award([...community, ...pool.slice(0, toCome)])
+      runouts++
+    }
+  }
+
+  for (const id of Object.keys(share)) share[id] /= runouts
+  return { share, exact, runouts }
 }

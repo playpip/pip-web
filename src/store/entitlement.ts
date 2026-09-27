@@ -86,7 +86,30 @@ export const useMembership = create<MembershipState>()((set) => ({
     if (started) return
     started = true
 
-    const apply = (status: string) => {
+    /**
+     * React to the session, but only once there is one to react to.
+     *
+     * **`ready` is not optional here, and leaving it out was a bug.** `status`
+     * starts at `'signed-out'` because that is the honest default *before the
+     * stored session has been looked for* — `ready` is what says the looking is
+     * done (docs/sync.md). `AppBoot` kicks off `init()` and calls this in the
+     * same tick, so without the gate the first `apply` always ran against that
+     * placeholder and did two harmful things on **every single boot**:
+     *
+     * 1. `clearCache()` wiped this device's remembered row before the session
+     *    was restored — which defeats the entire point of the cache. "A member
+     *    offline is still a member" cannot survive a cache that is destroyed on
+     *    every page load, and the failure only shows when the server read then
+     *    fails, at which point there is nothing to fall back to and a paying
+     *    member sees a locked app.
+     * 2. It set `checked: true`, claiming a real answer had arrived when
+     *    nothing had been asked.
+     *
+     * A signed-in player recovered a moment later when `init()` resolved and
+     * the subscription fired, which is exactly why this was invisible.
+     */
+    const apply = (status: string, ready: boolean) => {
+      if (!ready) return
       if (status === 'signed-in') {
         void useMembership.getState().refresh()
       } else {
@@ -97,9 +120,14 @@ export const useMembership = create<MembershipState>()((set) => ({
       }
     }
 
-    apply(useSync.getState().status)
+    const initial = useSync.getState()
+    apply(initial.status, initial.ready)
     useSync.subscribe((state, previous) => {
-      if (state.status !== previous.status) apply(state.status)
+      // `ready` flipping is a change worth reacting to on its own: it is the
+      // moment the answer stops being a placeholder.
+      if (state.status !== previous.status || state.ready !== previous.ready) {
+        apply(state.status, state.ready)
+      }
     })
   },
 

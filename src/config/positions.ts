@@ -12,8 +12,11 @@ import { BAND_ORDER, type Band, HAND_BANDS, TOTAL_COMBOS, comboCount } from '@/c
 /** A six-handed table. Anything shorter renames seats; six is the full set. */
 export const SEATS_AT_A_TABLE = 6
 
+/** The six seats by the table's own shorthand, lower-cased. */
+export type SeatId = 'utg' | 'mp' | 'co' | 'btn' | 'sb' | 'bb'
+
 export interface Seat {
-  id: string
+  id: SeatId
   /** The name people use, which is what the page's table is keyed on. */
   name: string
   /** The same seat with the table's own shorthand, for the ring diagram. */
@@ -64,9 +67,12 @@ export function playersBehind(seat: Seat): number {
  * than retyped, so the widget cannot name a seat the page's own table does not
  * have.
  */
-export const COMPARED_SEATS: readonly Seat[] = ['utg', 'mp', 'btn'].map(
-  (id) => SEATS.find((seat) => seat.id === id)!,
-)
+export const COMPARED_SEATS: readonly Seat[] = (['utg', 'mp', 'btn'] as const).map(seatById)
+
+/** A seat by its id. Every id is in SEATS, which the type guarantees. */
+export function seatById(id: SeatId): Seat {
+  return SEATS.find((seat) => seat.id === id)!
+}
 
 /**
  * The hands it cycles through. Four of them change verdict across those three

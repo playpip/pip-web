@@ -31,26 +31,43 @@ export default function PrivacyPage() {
 
       <Section title="If you add an account">
         <p>
-          Pip has an optional account, and it exists for exactly one thing: carrying your progress
-          to another device. It is off unless you turn it on, in Settings, under Account. Until then
-          Pip makes no request to us at all, holds no identity for you, and there is no row anywhere
-          with your name on it.
+          Pip has an optional account. It carries your progress to another device, and it is what a{' '}
+          <A href="/membership">membership</A> belongs to if you take one. It is off unless you turn
+          it on, in Settings, under Account. Until then Pip makes no request to us at all, holds no
+          identity for you, and there is no row anywhere with your name on it.
         </p>
         <p>
           Turn it on and we store two things:{' '}
           <strong className="font-medium text-foreground">your email address</strong>, so you can
           sign back in, and{' '}
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
-          was already on your device. Nothing else. No hand histories beyond what your profile
-          already holds, no IP-based profiling, no marketing email, ever. The data sits with{' '}
-          <A href="https://supabase.com">Supabase</A> on our behalf, and password-reset email goes
-          out through <A href="https://resend.com">Resend</A>.
+          was already on your device. Nothing else, unless you take a membership (below). No hand
+          histories beyond what your profile already holds, no IP-based profiling, no marketing
+          email, ever. The data sits with <A href="https://supabase.com">Supabase</A> on our behalf,
+          and password-reset email goes out through <A href="https://resend.com">Resend</A>.
         </p>
         <p>
           You can delete it from the same place you made it. “Delete my account and synced data” in
           Settings removes the account and the stored profile together, and it is genuinely gone
           rather than flagged. Your profile on the device stays exactly as it is, and Pip keeps
           working the way it did before.
+        </p>
+        <p>
+          If you ever take out a <A href="/membership">membership</A>, the payment is handled by{' '}
+          <A href="https://stripe.com">Stripe</A>, who become a third recipient alongside Supabase
+          and Resend.{' '}
+          <strong className="font-medium text-foreground">
+            We never see or store your card number
+          </strong>{' '}
+          — it goes straight to Stripe and never touches our servers. What we keep is a record that
+          your account has a live membership and when it renews, which is what the app checks to
+          unlock what you paid for. Nothing about a membership is linked to how you play.
+        </p>
+        <p>
+          Deleting your account cancels a membership on the spot, so you are never billed for an
+          account that no longer exists. The one thing that outlives it is Stripe’s record of what
+          you paid — the invoices and the email address they went to — because tax law requires a
+          business to keep them. None of it is linked to a Pip profile any more.
         </p>
         <p>
           You can also just ask. Email <A href="mailto:hello@playpip.io">hello@playpip.io</A> from

@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Brain,
   CalendarDays,
+  Check,
   Gauge,
   Link2,
   Palette,
@@ -38,6 +39,7 @@ import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
 import { guideBySlug } from '@/config/learn'
 import { EQUITY_SAMPLE, HAND_LINK_SAMPLE, HAND_LINK_VISIBLE_CHARS } from '@/config/landingMocks'
+import { MEMBERSHIP_PRICE, MEMBERSHIP_PROMISES, sellableFeatures } from '@/config/membership'
 import { useProfile } from '@/store/profile'
 import { dailyShareText } from '@/lib/daily'
 import { encodeHand } from '@/lib/handLink'
@@ -58,6 +60,7 @@ export function Landing() {
         <Venues />
         <Features />
         <Learn />
+        <Membership />
         <FinalCta />
       </main>
       <Footer />
@@ -97,6 +100,12 @@ function Header() {
           >
             Learn
           </Link>
+          <a
+            href="#membership"
+            className="hidden rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:block"
+          >
+            Membership
+          </a>
           <Link
             href="/blog"
             className="hidden rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:block"
@@ -296,11 +305,17 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       // unchanged; the offer goes first (#97).
       icon: UserPlus,
       title: 'Free account, nothing to confirm',
-      body: 'An email and a password, and your Roll follows you to every device. Or play everything without one.',
+      body: 'An email and a password, and your Roll follows you to every device. Or play without one — nothing free needs an account.',
     },
     {
       icon: Sparkles,
       title: 'No dark patterns',
+      // Briefly replaced when member rooms were ruled ranked, on the reasoning
+      // that a member reaching a rank sooner made "pay-to-win" false at the
+      // edges. Restored (Will, 2026-09-16): pay-to-win means buying an
+      // advantage over other players, and there is no leaderboard and nobody to
+      // overtake, so there is no contest for a member to win. **This becomes a
+      // live question the day multiplayer ships** — see cto/build-multiplayer.
       body: 'No forced pop-ups, no pay-to-win, no nagging. Ever.',
     },
     {
@@ -364,9 +379,13 @@ function Venues() {
       </div>
 
       <div className="mt-14">
+        {/* Says what it costs, on the page that shows it off. These shipped
+            free and moved behind the membership on 2026-09-20, so a rail that
+            advertised them without saying so would be selling the free tour on
+            tables the tour no longer includes (docs/membership.md). */}
         <RailHeader
           title="Side tables"
-          hint="Same game, different pressure — none of them gate your climb"
+          hint="Same game, different pressure — they come with the membership, and none of them gate your climb"
         />
         <VenueRail venues={SIDE_TABLES} badge={formatBadge} />
       </div>
@@ -774,7 +793,7 @@ function Learn() {
           <SectionHeading
             eyebrow="Learn"
             title="Never played a hand? Start here."
-            body="A three-minute tour of the basics, then written guides for when you want the detail. The tour is built from the real game, so what you practise on is what you play on."
+            body="Start with a three-minute tour of the basics, which is Level 1 of Lessons with Webb. After it he teaches on the real felt: he deals a hand, stops to ask what you would do, and you answer with the real buttons. Level 1 and every written guide are free; the levels after it come with the membership."
           />
           <motion.div
             variants={rise}
@@ -893,6 +912,114 @@ function GuideShowpiece({ webb }: { webb?: Character }) {
   )
 }
 
+/* ------------------------------- membership ------------------------------- */
+
+// The one place on the landing page that says what is paid, next to what is
+// not, so nobody has to find the fence by walking into it. The free column is
+// the core game from docs/membership.md; the member column is generated from
+// `sellableFeatures()`, the same list /membership renders, so this page cannot
+// advertise anything unbuilt. The price comes from config/membership.ts.
+const FREE_FOREVER = [
+  'The ten-venue ladder',
+  'The Rail’s cash games',
+  'The Daily Deal',
+  'The Kitchen Table freeroll',
+  'The Chip Shop',
+  'The read on every hand',
+  'Two drills',
+  'Level 1 of Lessons with Webb',
+  'Every written guide',
+  'The odds calculator',
+  'Your Roll on every device',
+]
+
+function Membership() {
+  const features = sellableFeatures()
+  return (
+    <section
+      id="membership"
+      className="scroll-mt-16 border-t border-foreground/5 bg-foreground/[0.015]"
+    >
+      <div className="mx-auto w-full max-w-6xl px-6 py-24 md:px-10 md:py-28">
+        <SectionHeading
+          eyebrow="Free, and the membership"
+          title="The game is free. The membership adds to it."
+          body="The ladder, the Rail, the Daily and the freeroll are free forever, and none of them ever need the membership. It adds more beside them: the side tables, the games that are not Hold’em, the rest of Webb’s lessons and drills, and the tools that read your play back to you."
+        />
+
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          <motion.div
+            variants={rise}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+            className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-7"
+          >
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              Free, for good
+            </p>
+            <p className="mt-3 text-2xl font-semibold tracking-tight">Nothing to pay</p>
+            <ul className="mt-6 space-y-2.5">
+              {FREE_FOREVER.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm">
+                  <Check className="mt-0.5 size-4 shrink-0 text-foreground/50" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-auto pt-8">
+              <PlayButton size="lg" />
+            </div>
+          </motion.div>
+
+          <motion.div
+            variants={rise}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+            custom={1}
+            className="flex min-w-0 flex-col rounded-3xl border border-pip/30 bg-background p-7"
+          >
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-pip">
+              The membership
+            </p>
+            <p className="mt-3 text-2xl font-semibold tracking-tight">
+              {MEMBERSHIP_PRICE.monthly}
+              <span className="text-base font-normal text-muted-foreground">
+                {' '}
+                a month, or {MEMBERSHIP_PRICE.annual} a year
+              </span>
+            </p>
+            <ul className="mt-6 space-y-2.5">
+              {features.map((feature) => (
+                <li key={feature.id} className="flex items-start gap-2.5 text-sm">
+                  <Check className="mt-0.5 size-4 shrink-0 text-pip" />
+                  {feature.title}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-auto flex flex-wrap items-center gap-x-5 gap-y-3 pt-8">
+              <Link
+                href="/membership"
+                onClick={() => sound.play('tap')}
+                className="group inline-flex items-center gap-2 rounded-2xl bg-foreground/[0.06] px-6 py-3.5 text-base font-semibold transition hover:bg-foreground/10 active:scale-[0.98]"
+              >
+                See the membership
+                <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
+              </Link>
+              <span className="text-sm text-muted-foreground">Cancel any time.</span>
+            </div>
+          </motion.div>
+        </div>
+
+        <p className="mt-6 max-w-2xl text-sm text-muted-foreground text-pretty">
+          {MEMBERSHIP_PROMISES[1]} Nothing at the table ever mentions it.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 /* -------------------------------- final CTA ------------------------------- */
 
 function FinalCta() {
@@ -920,8 +1047,8 @@ function FinalCta() {
           custom={1}
           className="mt-5 max-w-lg text-lg text-muted-foreground text-pretty"
         >
-          Make a player, take a seat at the Garage, and see how far your Roll climbs. It’s free —
-          and with nothing to sell you, it stays that way.
+          Make a player, take a seat at the Garage, and see how far your Roll climbs. The whole
+          ladder is free, and it stays free for good.
         </motion.p>
         <motion.div
           variants={rise}

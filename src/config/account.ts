@@ -12,9 +12,9 @@
  * account has to come here and change it for every page at once.
  *
  * The second clause is not decoration. `Landing.tsx` promises "No forced
- * pop-ups, no pay-to-win, no nagging. Ever.", and an offer that appears on
- * every guide without saying you can ignore it is how that promise starts
- * being false. Discoverability, not persuasion.
+ * pop-ups, no pay-to-win, no nagging. Ever.", and an
+ * offer that appears on every guide without saying you can ignore it is how
+ * that promise starts being false. Discoverability, not persuasion.
  */
 export const ACCOUNT_OFFER =
   'A free account keeps your Roll on every device, and you never need one to play.'

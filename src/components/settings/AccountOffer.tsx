@@ -8,9 +8,9 @@
 // permanent furniture. It never appears over anything, never interrupts a hand,
 // never counts sessions, and has no dismiss button because there is nothing to
 // dismiss — it is part of the screen while you are signed out and gone for good
-// once you are not. The landing page ships "No forced pop-ups, no pay-to-win, no
-// nagging. Ever." Nothing here may grow into something that arrives uninvited or
-// returns after being closed.
+// once you are not. The landing page ships "No forced pop-ups, no pay-to-win,
+// no nagging. Ever." Nothing here may grow into something that arrives
+// uninvited or returns after being closed.
 //
 // Two variants, one component: the sentence has the same job in both places and
 // a second copy of it would drift. The lobby sits on theme tokens; the overlay

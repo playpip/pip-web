@@ -184,10 +184,30 @@
 .venue-flicker {
   animation: venue-flicker 11s linear infinite;
 }
+/* --- the members' foil ------------------------------------------------------
+   The sheen on a member card back (see components/CardBack.tsx). Slow and long
+   on purpose: seven seconds apart, so it is something you notice rather than
+   something happening at you, and the card is still a card in between. The
+   keyline it sits under is drawn inline and does not move, which is what
+   reduced motion is left with. */
+@keyframes foil-sweep {
+  0% {
+    transform: translateX(0);
+  }
+  /* The travel takes a fifth of the cycle; the rest is the card at rest. */
+  20%,
+  100% {
+    transform: translateX(260%);
+  }
+}
+.foil-sweep {
+  animation: foil-sweep 7s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
   .venue-drift,
   .venue-breathe,
-  .venue-flicker {
+  .venue-flicker,
+  .foil-sweep {
     animation: none;
   }
 }

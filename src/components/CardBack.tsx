@@ -1,13 +1,25 @@
 'use client'
 
 import { SIZES, type CardSize } from './PlayingCard'
-import type { CardBackDesign, CardPattern } from '@/config/cardBacks'
+import { isMemberBack, type CardBackDesign, type CardPattern } from '@/config/cardBacks'
 import { cn } from '@/lib/utils'
 
 /**
  * A face-down card in the player's chosen design: a muted base colour and a
  * fine low-contrast pattern. Patterns are deliberately subtle — texture, not
  * decoration.
+ *
+ * **The members' backs wear foil** (Will, 2026-09-21: "add some nice effect so
+ * I can see they're premium"): a thin warm keyline and a sheen that crosses the
+ * card every seven seconds. Drawn from the design's *gate* rather than from a
+ * flag on the design, so a member back cannot ship without it and a free back
+ * cannot acquire it — which matters, because the day foil means "expensive" in
+ * general instead of "the membership" is the day it stops telling the player
+ * anything.
+ *
+ * It is a property of the card, not of the screen: it shows wherever the design
+ * does, including on the felt for somebody who owns it. A sheen that only
+ * appeared on the shop row would be advertising rather than a card back.
  */
 export function CardBack({
   design,
@@ -20,6 +32,7 @@ export function CardBack({
 }) {
   const s = SIZES[size]
   const dark = design.ink === 'dark'
+  const foil = isMemberBack(design)
   return (
     <div
       className={cn(
@@ -34,7 +47,45 @@ export function CardBack({
       aria-hidden
     >
       <PatternOverlay pattern={design.pattern} dark={dark} />
+      {foil && <Foil />}
     </div>
+  )
+}
+
+/**
+ * The members' foil: a keyline and a slow diagonal sheen.
+ *
+ * **Reduced motion gets the keyline and nothing that moves.** A repeating
+ * animation with no off switch is the exact thing that setting exists for, and
+ * the static half still reads as gilt — which is why the keyline is a separate
+ * layer rather than part of the sweep. Handled in globals.css beside the venue
+ * ambience, which made the same promise ("a screenshot must look identical")
+ * and is switched off the same way.
+ *
+ * Fixed white/amber alphas rather than theme tokens, and that is the same call
+ * `PatternOverlay` below already makes: both sit on a card whose colour comes
+ * from the design, not from the theme, so a token that flips with the theme
+ * would be reading the wrong background.
+ */
+function Foil() {
+  return (
+    <>
+      {/* the keyline, inset so it reads as the card's own edge */}
+      <span
+        className="pointer-events-none absolute inset-0 rounded-xl"
+        style={{ boxShadow: 'inset 0 0 0 1px rgba(246,234,180,0.55)' }}
+      />
+      {/* the sweep — twice the card's width, travelling across and out */}
+      <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
+        <span
+          className="foil-sweep absolute -inset-y-8 -left-full w-full"
+          style={{
+            background:
+              'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.10) 42%, rgba(255,248,214,0.42) 50%, rgba(255,255,255,0.10) 58%, transparent 80%)',
+          }}
+        />
+      </span>
+    </>
   )
 }
 
