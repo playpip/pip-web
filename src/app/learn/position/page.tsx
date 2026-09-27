@@ -289,9 +289,9 @@ export default function PositionGuide() {
           exists at a table where the button moves.
         </p>
         <p>
-          You can play Texas Hold’em on Pip right now, in the browser. Nothing to install, no money
-          involved anywhere and none to spend. Tables run from two seats up to {SEATS_AT_A_TABLE},
-          so your seat changes every hand and the whole of this page turns up several times a
+          You can play Texas Hold’em on Pip right now, in the browser. Nothing to install, free to
+          play, and the chips are never for sale. Tables run from two seats up to {SEATS_AT_A_TABLE}
+          , so your seat changes every hand and the whole of this page turns up several times a
           minute. The blinds also rise every {HANDS_PER_LEVEL} hands, which is one full orbit, so
           the good seat is worth a bit more each time it comes back round to you.
         </p>

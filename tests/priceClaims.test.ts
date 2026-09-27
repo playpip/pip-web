@@ -37,6 +37,10 @@ const BORROWED = [
   /nothing on this site takes payment/i,
   /no purchase for us to be steering/i,
   /(exactly|only) one thing: carr/i,
+  // Six /learn guides, still live the day the checkout went on sale (found
+  // 2026-09-27). Spans a line break in the source, hence the \s+.
+  /no money\s+involved\s+anywhere/i,
+  /none\s+to\s+spend/i,
 ]
 
 // Deliberately no exemption for /blog/, unlike dataClaims.test.ts. There a

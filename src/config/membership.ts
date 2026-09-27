@@ -320,9 +320,9 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
   },
   {
     id: 'progress',
-    title: 'Your rating, drawn',
+    title: 'A rating on every drill that prices a hand',
     blurb:
-      'Every drill keeps a rating that moves both ways, and your stats draw it spot by spot, next to how often you are right and your best run. No streaks and no clock: it is exactly where you left it whenever you come back.',
+      'The eight membership drills each keep a rating that moves both ways, and your stats draw it spot by spot, next to how often you are right and your best run, the same way they already do for the two free drills. No streaks and no clock: it is exactly where you left it whenever you come back.',
     shipped: true,
   },
   {
