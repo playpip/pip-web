@@ -20,6 +20,7 @@
 'use client'
 
 import { create } from 'zustand'
+import { checkoutReady } from '@/config/membership'
 import { deviceId, getSupabase, syncConfigured, type ProfileRow } from '@/lib/sync/client'
 import { mergeProfiles, summarise, type ProfileData, type SideSummary } from '@/lib/sync/merge'
 import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/plan'
@@ -411,7 +412,15 @@ export const useSync = create<SyncState>()((set, get) => ({
     // arguments and deletes `auth.uid()`, and the cascade takes the profile
     // with it. Deleting the profile here as well would only leave a window
     // where the data is gone and the account isn't.
-    const { error } = await sb.rpc('delete_own_account')
+    //
+    // **Once the membership can be bought, deleting goes through the
+    // `delete-account` Edge Function instead**, which cancels any Stripe
+    // subscription first and only then deletes. The RPC cannot reach Stripe, so
+    // a member deleting through it would go on being billed with no account to
+    // cancel from. Builds with no checkout keep the RPC and need no function.
+    const { error } = checkoutReady()
+      ? await sb.functions.invoke('delete-account', { body: {} })
+      : await sb.rpc('delete_own_account')
     if (error) {
       set({ busy: false, error: 'Could not delete right now. Try again in a moment.' })
       return false

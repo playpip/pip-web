@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { RotateCcw } from 'lucide-react'
+import { MembershipSection } from '@/components/settings/MembershipSection'
 import { SyncSection } from '@/components/settings/SyncSection'
 import { TransferDialog } from '@/components/settings/TransferDialog'
 import {
@@ -48,6 +49,7 @@ export function SettingsDialog({
           <HapticsSection />
           <TableTalkSection />
           <HandCoachingSection />
+          <MembershipSection />
           <TransferSection />
           <ResetSection />
           <div className="flex flex-col items-center gap-1 text-2xs tracking-wide text-muted-foreground/70">

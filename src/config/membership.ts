@@ -386,3 +386,32 @@ export const MEMBERSHIP_PROMISES = [
  */
 export const HOW_TO_CANCEL =
   'Settings → Membership → Manage. One click to the portal, one to cancel. It runs to the end of the period you have paid for, and we do not ask you why.'
+
+/**
+ * The version of `/terms` a player agrees to when they join.
+ *
+ * Sent to checkout with their consent to start straight away and recorded on
+ * the Stripe session and subscription, so a dispute or a cancellation request
+ * months later can be answered with which terms were on the page. Bump it when
+ * the membership section of `/terms` changes in substance, not for typos.
+ */
+export const TERMS_VERSION = '2026-09-26'
+
+/**
+ * Who actually sells the membership.
+ *
+ * Pip is sold through Ava Technologies' Stripe account, shared with its other
+ * projects, so this name — not Pip's — is on the Checkout page, the receipt
+ * and the card statement. A charge from a company the buyer has never heard of
+ * is the commonest cause of a chargeback on a small subscription, so `/terms`
+ * and the join box both say it before anybody pays. Same details as Probus's
+ * `COMPANY` (probus/apps/web/src/content/legal.ts); keep them in step.
+ */
+export const SELLER = {
+  name: 'Ava Technologies Global Ltd',
+  number: '13299701',
+  registeredIn: 'England and Wales',
+  address: '8 Bridgeland Street, Bideford, EX39 2PZ, United Kingdom',
+  /** The account's shortened descriptor plus the suffix set on the Pip product. */
+  statement: 'AVA TECH* PIP',
+} as const

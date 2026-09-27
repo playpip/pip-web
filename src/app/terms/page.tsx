@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
 import { contentAlternates } from '@/config/site'
-import { MEMBERSHIP_PRICE } from '@/config/membership'
+import { MEMBERSHIP_PRICE, SELLER } from '@/config/membership'
 
 export const metadata: Metadata = {
   title: 'Terms · Pip',
@@ -70,8 +70,17 @@ export default function TermsPage() {
         </p>
         <p>
           When you join, you are asking us to give you access straight away rather than after a
-          waiting period, and you will be asked to confirm that at the checkout. Nothing on this
-          page affects any rights you have under consumer law that cannot be signed away.
+          waiting period, and you will be asked to confirm that before you go to the checkout.
+          Because the membership starts at once,{' '}
+          <strong>that ends your 14-day right to cancel for a refund</strong>; cancelling still
+          stops the next renewal. Nothing on this page affects any rights you have under consumer
+          law that cannot be signed away.
+        </p>
+        <p>
+          The membership is sold by <strong>{SELLER.name}</strong>, the company that makes Pip,
+          registered in {SELLER.registeredIn} (company number {SELLER.number}), at {SELLER.address}.
+          That is the name on the checkout page and the receipt, and the charge appears on your card
+          statement as <strong>{SELLER.statement}</strong>.
         </p>
         <p>
           Payments are handled by <A href="https://stripe.com">Stripe</A>. We never see or store

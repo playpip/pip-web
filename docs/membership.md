@@ -1,9 +1,11 @@
 # The membership
 
-> **Status: built, and unsellable.** Everything below is live behind the entitlement
-> check. There is no Stripe account, no checkout and no way to pay, so nobody is a
-> member and nobody has given us any money. That is the whole of the state, and
-> `/membership` says so on the page.
+> **Status: wired, not yet switched on** (2026-09-24). Checkout, the webhook, the portal and
+> the cancelling account delete are built as Supabase Edge Functions — see
+> [stripe.md](./stripe.md). The switch is two price ids in the build: until they are set,
+> `checkoutReady()` is false, `/membership` says checkout is not open, and nobody has paid.
+> It sells through Ava Technologies' Stripe account, shared with Probus — stripe.md says what
+> that changes.
 
 The commercial layer, in one document: what is gated, what deliberately is not, where the
 answer comes from, and which rules are enforced by tests rather than by agreement.
@@ -291,11 +293,12 @@ Worth listing, because each was considered:
 
 ## Still to build
 
-Everything server-side, all of it blocked on one thing: **there is no Stripe account**
-(`technology#52` item C). What is waiting on it — three Supabase Edge Functions (`checkout`,
-`stripe-webhook`, `portal`), the settings row and join flow, the four funnel events, and
-account deletion cancelling the subscription, which **must** land before anything takes a
-payment or a player can delete their account and keep being billed.
+The payment path is built (see [stripe.md](./stripe.md) for how, and the runbook for switching
+it on). What is left: the Stripe account's products, prices and webhook, the secrets and the
+two repo Variables — and the four funnel events, which are not tracked yet.
+
+Account deletion now cancels the subscription before it deletes (`delete-account`), which was
+the thing that had to land before anything took a payment.
 
 ## Where to make changes
 
@@ -307,3 +310,4 @@ payment or a player can delete their account and keep being billed.
 | A new member room | `MEMBER_TABLES` in `config/venues.ts` — see [venues.md](./venues.md) |
 | Which tables the session review keeps | `reviewableVenue` in `config/venues.ts` — see [review.md](./review.md) |
 | The page copy | `src/app/membership/page.tsx`; the billing section is in `/terms` |
+| Checkout, the webhook, the portal | `supabase/functions/` — see [stripe.md](./stripe.md) |

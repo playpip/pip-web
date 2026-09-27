@@ -20,12 +20,19 @@
  * 2. **Arrows instead of Fold / Check / Raise.** Same place on the screen.
  * 3. **A line of commentary** under the board, where the table talk goes: what
  *    just happened, and — when it was your call — what the price said about it.
+ *
+ * **`shared`** is the same screen for one hand out of a `/hand` link: the
+ * public review. No hand list (there is one hand), back goes to the front door
+ * rather than a menu the viewer may never have seen, and the corner that
+ * offers a member the link offers a visitor a game instead. The hand is free,
+ * the player is paid — one hand on the felt is the free half of that line.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, List } from 'lucide-react'
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight, Link2, List } from 'lucide-react'
 import { AppBar } from '@/components/AppBar'
 import { CardBack } from '@/components/CardBack'
 import { CountUp } from '@/components/CountUp'
@@ -37,6 +44,8 @@ import type { Card } from '@/lib/poker/cards'
 import { showdownOdds } from '@/lib/poker/equity'
 import { HERO_ID, handStateAt, liveHands } from '@/lib/review/handState'
 import { commentaryAt } from '@/lib/review/commentary'
+import { encodeHand } from '@/lib/handLink'
+import { useCopied } from '@/lib/useCopied'
 import type { ReviewSession } from '@/lib/review/session'
 import { opponentPositions } from '@/lib/tableSeats'
 import { cardBackById } from '@/config/cardBacks'
@@ -47,8 +56,16 @@ import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
-export function ReviewTable({ session }: { session: ReviewSession }) {
+export function ReviewTable({
+  session,
+  shared = false,
+}: {
+  session: ReviewSession
+  /** One hand out of a `/hand` link, reviewed in public. See the header. */
+  shared?: boolean
+}) {
   const router = useRouter()
+  const [copied, copy] = useCopied()
   const money = useMoney()
   const isMobile = useIsMobile()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
@@ -114,6 +131,18 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
     () => (reviewHand && frame ? commentaryAt(reviewHand, frame, money, solve) : null),
     [reviewHand, frame, money, solve],
   )
+
+  // The link carries the whole table, so whoever opens it gets this screen for
+  // this hand — not the session, and not a membership prompt.
+  const shareHand = () => {
+    if (!reviewHand) return
+    sound.play('tap')
+    const token = encodeHand(reviewHand.record, {
+      decisions: reviewHand.decisions,
+      venueName: session.venueName,
+    })
+    void navigator.clipboard?.writeText(`${location.origin}/hand#${token}`).then(() => copy())
+  }
 
   const go = (next: { hand: number; step: number }) => {
     atRef.current = next
@@ -258,19 +287,25 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
   // Where Fold / Check / Raise sit while a hand is live.
   const controls = (
     <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-3 py-2.5">
-      <button
-        type="button"
-        onClick={() => {
-          sound.play('tap')
-          setPicking(true)
-        }}
-        className="flex min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium transition hover:bg-foreground/[0.06]"
-      >
-        <List className="size-4 shrink-0" />
-        <span className="truncate">
-          Hand {handIndex + 1} of {session.hands.length}
+      {shared ? (
+        <span className="min-w-0 truncate px-2 py-1.5 text-sm font-medium text-muted-foreground">
+          Shared hand
         </span>
-      </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            sound.play('tap')
+            setPicking(true)
+          }}
+          className="flex min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-sm font-medium transition hover:bg-foreground/[0.06]"
+        >
+          <List className="size-4 shrink-0" />
+          <span className="truncate">
+            Hand {handIndex + 1} of {session.hands.length}
+          </span>
+        </button>
+      )}
 
       <div className="flex items-center gap-2">
         <StepArrow onClick={() => moveStep(-1)} disabled={atSessionStart} label="Back a move">
@@ -351,9 +386,9 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
         <AppBar
           className="z-20"
           leading="back"
-          backLabel="Menu"
+          backLabel={shared ? 'Pip' : 'Menu'}
           showWordmark={false}
-          onBack={() => router.push('/game')}
+          onBack={() => router.push(shared ? '/' : '/game')}
           title={
             <>
               <span className="text-sm font-medium text-muted-foreground">{session.venueName}</span>
@@ -363,11 +398,33 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
               </span>
             </>
           }
-          // No actions. The jump-to-a-hand list used to sit up here as well as on
-          // the controls row, which is the same button twice on one screen — and
-          // the top-bar copy was the worse of the two, being an unlabelled icon
-          // next to a labelled "Hand 3 of 41" that does the identical thing
-          // (Will, 2026-09-21).
+          // The jump-to-a-hand list is not up here. It used to sit here as well
+          // as on the controls row, which is the same button twice on one screen
+          // — and the top-bar copy was the worse of the two, being an unlabelled
+          // icon next to a labelled "Hand 3 of 41" that does the identical thing
+          // (Will, 2026-09-21). What is here is the way out of this hand: the
+          // link to it, or — for somebody who arrived by one — a game of their own.
+          actions={
+            shared ? (
+              <Link
+                href="/"
+                onClick={() => sound.play('tap')}
+                className="mr-1 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+              >
+                Play free
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={shareHand}
+                aria-label="Share this hand"
+                className="flex items-center gap-1.5 rounded-full px-2.5 py-2 text-xs text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+              >
+                <Link2 className="size-4" />
+                <span className="hidden sm:inline">{copied ? 'Link copied' : 'Share hand'}</span>
+              </button>
+            )
+          }
         />
 
         {isMobile ? (
@@ -478,15 +535,17 @@ export function ReviewTable({ session }: { session: ReviewSession }) {
           </div>
         )}
 
-        <HandPicker
-          open={picking}
-          onOpenChange={setPicking}
-          session={session}
-          selected={handIndex}
-          filter={filter}
-          onFilter={setFilter}
-          onPick={goHand}
-        />
+        {!shared && (
+          <HandPicker
+            open={picking}
+            onOpenChange={setPicking}
+            session={session}
+            selected={handIndex}
+            filter={filter}
+            onFilter={setFilter}
+            onPick={goHand}
+          />
+        )}
       </div>
     </TableStyleContext.Provider>
   )

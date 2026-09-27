@@ -67,8 +67,7 @@ hero's panel opens on the odds). Neither changes what a live table draws.
 
 **Every hole card is face up, including the ones that folded and mucked.**
 `HandRecord.hole` keeps every hand dealt — separate from `reveals`, which is
-what the table actually turned over and what a `/hand` link carries. A shared
-hand shows what the players showed; a review shows everything, because the hand
+what the table actually turned over. A review shows everything, because the hand
 is over and nothing anybody learns can be played. Same argument as "Watch it
 out", and half of what a review teaches is what the hand you folded would have
 made.
@@ -101,6 +100,24 @@ over it is a second screen fighting the first.
 
 Keys: `←`/`→` step, `↑`/`↓` (or `j`/`k`) change hand, `Home`/`End` jump to the
 ends of the hand, space steps forward.
+
+## A shared hand is a public review of that hand
+
+**The hand is free, the player is paid** — so one hand on the felt is free to
+anybody the link reaches. "Share this hand" (the table's last-hand dialog, and
+the review's AppBar) writes a **v2** `/hand` link (`lib/handLink.ts`): v1 plus
+the seats and their avatars, every hole card, the button, the table as the cards
+landed, the pot / stacks / chips in front after each move, and your graded
+calls and folds, so the price note survives the trip. `/hand` renders it with
+`ReviewTable shared`: the same screen, one hand, no hand list, back goes to `/`,
+and a *Play free* invite where a member's share button sits. No membership
+check — nothing about the viewer's session or profile is read or written.
+
+A hand the review cannot grade (an old record with no chips on its moves, or a
+non-two-card game) is written as a plain **v1** link and still plays as the
+highlight reel. So are the report's evidence tokens, which ride in the synced
+profile where a few kilobytes each would add up. Decoding takes both versions,
+and a v2 link with any part of the table malformed is refused whole.
 
 ## Grading a move: two questions, two answers
 

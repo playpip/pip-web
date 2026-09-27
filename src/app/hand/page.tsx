@@ -6,6 +6,11 @@
 // itself, and the outcome lands with a count-up. Every shared hand is the app's
 // best advert, so this page is built to convert a non-player — it autoplays,
 // pays off, and invites. Works with no profile at all.
+//
+// A link from a table that recorded the whole hand (v2, see lib/handLink) opens
+// as the session review instead — the same felt, every card face up, every move
+// rated — for that one hand and nothing else. The reel is still here for links
+// that only carry what the table showed.
 
 import { useMemo } from 'react'
 import Link from 'next/link'
@@ -24,7 +29,9 @@ import {
   useReplay,
   type Outcome,
 } from '@/components/replay/useReplay'
-import { decodeHand } from '@/lib/handLink'
+import { decodeShared, reviewable, type SharedHand } from '@/lib/handLink'
+import { ReviewTable } from '@/components/review/ReviewTable'
+import type { ReviewSession } from '@/lib/review/session'
 import { nicknameFor } from '@/config/handNames'
 import { useHydrated } from '@/lib/useHydrated'
 import { formatChips, useMoney } from '@/lib/useMoney'
@@ -35,14 +42,34 @@ import type { Card } from '@/lib/poker/cards'
 export default function HandPage() {
   const hydrated = useHydrated()
   // The fragment never reaches the server — decode is client-only by nature.
-  const record = useMemo(
-    () => (hydrated ? decodeHand(window.location.hash.slice(1)) : null),
+  const shared = useMemo(
+    () => (hydrated ? decodeShared(window.location.hash.slice(1)) : null),
     [hydrated],
   )
 
   if (!hydrated) return <Splash />
-  if (!record) return <InvalidLink />
-  return <Replay record={record} />
+  if (!shared) return <InvalidLink />
+  if (reviewable(shared.record)) return <ReviewTable session={sessionOf(shared)} shared />
+  return <Replay record={shared.record} />
+}
+
+/**
+ * One hand, dressed as the session the review screen reads. Nothing here is
+ * stored: it lives for as long as the tab does, and never touches the viewer's
+ * own `pip.review`.
+ */
+function sessionOf({ record, decisions, venueName }: SharedHand): ReviewSession {
+  return {
+    venueId: 'shared',
+    venueName: venueName ?? 'Shared hand',
+    accent: '',
+    cash: false,
+    startedAt: 0,
+    endedAt: 0,
+    outcome: null,
+    hands: [{ record, decisions }],
+    dropped: 0,
+  }
 }
 
 /** The cinematic replay: board, hero cards, narration, transport, outcome. */

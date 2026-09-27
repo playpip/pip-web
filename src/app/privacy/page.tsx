@@ -64,6 +64,12 @@ export default function PrivacyPage() {
           unlock what you paid for. Nothing about a membership is linked to how you play.
         </p>
         <p>
+          Deleting your account cancels a membership on the spot, so you are never billed for an
+          account that no longer exists. The one thing that outlives it is Stripe’s record of what
+          you paid — the invoices and the email address they went to — because tax law requires a
+          business to keep them. None of it is linked to a Pip profile any more.
+        </p>
+        <p>
           You can also just ask. Email <A href="mailto:hello@playpip.io">hello@playpip.io</A> from
           the address on the account and we’ll delete it for you within 7 working days, whether or
           not you can still get into the app. Once it’s gone we keep nothing: no archive, no copy

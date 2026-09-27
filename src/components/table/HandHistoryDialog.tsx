@@ -24,14 +24,17 @@ export function HandHistoryDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const record = useGame((s) => s.lastHand)
+  const decisions = useGame((s) => s.lastDecisions)
+  const venueName = useGame((s) => s.venue?.name)
   const money = useMoney()
   const [copied, copy] = useCopied()
 
-  // The hand is IN the link — no server, no account, just a URL fragment.
+  // The hand is IN the link — no server, no account, just a URL fragment. It
+  // carries the whole table, so it opens as a review of this one hand.
   const share = () => {
     if (!record) return
     sound.play('tap')
-    const url = `${location.origin}/hand#${encodeHand(record)}`
+    const url = `${location.origin}/hand#${encodeHand(record, { decisions, venueName })}`
     void navigator.clipboard?.writeText(url).then(() => copy())
   }
 

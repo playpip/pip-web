@@ -18,7 +18,7 @@
 // **No `<table>`**: the mirror's Turndown pass has shipped a broken one before.
 // The free-versus-member comparison is two lists side by side.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { MotionConfig, motion } from 'framer-motion'
 import {
@@ -50,14 +50,25 @@ import {
   HOW_TO_CANCEL,
   type LocalPrice,
   MEMBERSHIP_FEATURES,
+  MEMBERSHIP_PRICE_IDS,
   MEMBERSHIP_PRICES,
   MEMBERSHIP_PROMISES,
+  SELLER,
   type MembershipFeature,
   checkoutReady,
   formatPrice,
   sellableFeatures,
 } from '@/config/membership'
+import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
+import {
+  type BillingError,
+  awaitMembership,
+  openPortal,
+  startCheckout,
+} from '@/lib/membership/billing'
 import { detectCurrency } from '@/lib/membership/currency'
+import { useEntitlement, useMembership } from '@/store/entitlement'
+import { useSync } from '@/store/sync'
 import { useHydrated } from '@/lib/useHydrated'
 import { SHOP_ITEMS } from '@/config/shop'
 import { DEEP_STACK_TABLES, SIDE_SHELF, SIDE_TABLES } from '@/config/venues'
@@ -738,35 +749,25 @@ function Plans({
 
         <div className="mt-5 rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5 md:p-6">
           {ready ? (
-            <Link
-              href="/game"
-              className="flex h-14 w-full items-center justify-center gap-1.5 rounded-2xl bg-primary text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
-            >
-              Join {PLANS[plan].name.toLowerCase()} in Settings
-              <ChevronRight className="size-4" />
-            </Link>
+            <Join plan={plan} planName={PLANS[plan].name} currency={currency} />
           ) : (
-            <div
-              aria-disabled
-              className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground"
-            >
-              <Lock className="size-4" />
-              Checkout isn’t open yet
-            </div>
-          )}
-          <p className="mt-3 text-center text-sm text-muted-foreground">
-            {ready ? (
-              <>Open Settings, then Membership. You will need a free Pip account first.</>
-            ) : (
-              <>
+            <>
+              <div
+                aria-disabled
+                className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground"
+              >
+                <Lock className="size-4" />
+                Checkout isn’t open yet
+              </div>
+              <p className="mt-3 text-center text-sm text-muted-foreground">
                 <strong className="font-medium text-foreground">
                   Nobody has paid us anything.
                 </strong>{' '}
                 Everything on this page is built and behind the membership check. The till is not:
                 there is no card form and no way to give us money yet.
-              </>
-            )}
-          </p>
+              </p>
+            </>
+          )}
 
           <ul className="mt-5 grid gap-x-6 gap-y-2.5 border-t border-foreground/[0.07] pt-5 text-sm text-muted-foreground sm:grid-cols-2">
             {[
@@ -784,6 +785,222 @@ function Plans({
         </div>
       </div>
     </Reveal>
+  )
+}
+
+// --- joining ------------------------------------------------------------------
+
+const joinButton =
+  'flex h-14 w-full items-center justify-center gap-1.5 rounded-2xl bg-primary text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60'
+const quietButton =
+  'flex h-12 w-full items-center justify-center gap-1.5 rounded-2xl bg-foreground/[0.07] text-sm font-semibold transition hover:bg-foreground/[0.12] disabled:opacity-60'
+
+const BILLING_ERRORS: Record<BillingError, string> = {
+  'signed-out': 'Your session ran out. Sign in again and it will pick up from here.',
+  'already-a-member':
+    'This account already has a membership. Manage it below rather than starting a second one.',
+  'no-membership': 'There is no membership on this account to manage.',
+  consent: 'Tick the box above first — it is what lets the membership start straight away.',
+  unavailable: 'Couldn’t reach the till just now. Nothing was charged — try again in a moment.',
+}
+
+function endsOn(periodEnd: number | null): string {
+  if (!periodEnd) return ''
+  return new Date(periodEnd).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+/**
+ * The till. Four states, in the order a player meets them: signed out (an
+ * account first — a membership has to belong to somebody), signed in (off to
+ * Stripe), back from Stripe (waiting for the webhook), and a member (the portal).
+ *
+ * Nothing here grants anything. `?joined=1` only changes what this box *says*
+ * while the row is fetched; `member` still comes from the table the client
+ * cannot write.
+ */
+function Join({
+  plan,
+  planName,
+  currency,
+}: {
+  plan: Plan
+  planName: string
+  currency: CurrencyCode
+}) {
+  const hydrated = useHydrated()
+  const signedIn = useSync((s) => s.status === 'signed-in')
+  const member = useEntitlement()
+  const memberStatus = useMembership((s) => s.status)
+  const periodEnd = useMembership((s) => s.periodEnd)
+  const leaving = useMembership((s) => s.cancelAtPeriodEnd)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<BillingError | null>(null)
+  const [account, setAccount] = useState<AccountMode | null>(null)
+  const [slow, setSlow] = useState(false)
+  const [startNow, setStartNow] = useState(false)
+
+  // Read after hydration only: the static page has no query string to read.
+  const joined = hydrated && new URLSearchParams(window.location.search).has('joined')
+
+  useEffect(() => {
+    if (!joined) return
+    let live = true
+    void awaitMembership().then((ok) => {
+      if (live && !ok) setSlow(true)
+    })
+    return () => {
+      live = false
+    }
+  }, [joined])
+
+  const run = async (action: () => Promise<{ ok: true } | { ok: false; error: BillingError }>) => {
+    sound.play('tap')
+    setBusy(true)
+    setError(null)
+    const result = await action()
+    // On success the page is navigating away; leave the button busy so it
+    // cannot be pressed twice on the way out.
+    if (!result.ok) {
+      setBusy(false)
+      setError(result.error)
+    }
+  }
+
+  const pay = () => {
+    const priceId = MEMBERSHIP_PRICE_IDS[plan]
+    if (priceId) void run(() => startCheckout(priceId, currency, startNow))
+  }
+
+  let body: React.ReactNode
+  if (member) {
+    body = (
+      <>
+        <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
+          <Star className="size-4 fill-pip text-pip" />
+          {joined ? 'Welcome in. You’re a member.' : 'You’re a member'}
+        </div>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          {leaving
+            ? `Cancelled — you stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
+            : `Renews on ${endsOn(periodEnd)}. Cancel, change card or get an invoice from the portal.`}
+        </p>
+        <button
+          disabled={busy}
+          onClick={() => void run(openPortal)}
+          className={cn(quietButton, 'mt-3')}
+        >
+          Manage membership
+        </button>
+      </>
+    )
+  } else if (memberStatus === 'past_due' || memberStatus === 'unpaid') {
+    body = (
+      <>
+        <p className="mb-3 text-center text-sm">
+          <strong className="font-medium">Your last payment didn’t go through.</strong> The
+          membership is paused until it does. Nothing else about your profile has changed.
+        </p>
+        <button disabled={busy} onClick={() => void run(openPortal)} className={joinButton}>
+          Update payment details
+        </button>
+      </>
+    )
+  } else if (joined && signedIn) {
+    body = (
+      <>
+        <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground">
+          {slow ? 'Still confirming with Stripe' : 'Confirming your payment…'}
+        </div>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          {slow
+            ? 'Stripe has your payment and is still telling us. It usually lands within a minute — reload this page, and if it hasn’t after that, write to us and we will sort it out.'
+            : 'Stripe is telling us it went through. This takes a few seconds.'}
+        </p>
+      </>
+    )
+  } else if (signedIn) {
+    body = (
+      <>
+        {/* Asked here, not on Stripe's page: Checkout's own terms consent
+            points at the shared account's terms, which are Ava's, not Pip's. */}
+        <label className="mb-4 flex cursor-pointer gap-3 text-left text-sm leading-relaxed text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={startNow}
+            onChange={(e) => {
+              sound.play('tap')
+              setStartNow(e.target.checked)
+              setError(null)
+            }}
+            className="mt-1 size-4 shrink-0 accent-[var(--color-primary)]"
+          />
+          <span>
+            Start my membership straight away. I understand this ends my 14-day right to cancel for
+            a refund, and that I agree to the{' '}
+            <Link
+              href="/terms"
+              className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
+            >
+              terms
+            </Link>
+            .
+          </span>
+        </label>
+        <button disabled={busy || !startNow} onClick={pay} className={joinButton}>
+          {busy ? 'Opening checkout…' : `Join ${planName.toLowerCase()}`}
+          {!busy && <ChevronRight className="size-4" />}
+        </button>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          Payment is taken by Stripe on their own page, and we never see your card. You are buying
+          from {SELLER.name}, who make Pip; it shows on your statement as{' '}
+          <span className="whitespace-nowrap font-medium text-foreground">{SELLER.statement}</span>.
+        </p>
+      </>
+    )
+  } else {
+    body = (
+      <>
+        <button
+          onClick={() => {
+            sound.play('tap')
+            setAccount('signup')
+          }}
+          className={joinButton}
+        >
+          Create a free account to join
+          <ChevronRight className="size-4" />
+        </button>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          A membership has to belong to someone. Already have an account?{' '}
+          <button
+            onClick={() => {
+              sound.play('tap')
+              setAccount('signin')
+            }}
+            className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
+          >
+            Sign in
+          </button>
+          .
+        </p>
+      </>
+    )
+  }
+
+  return (
+    <>
+      {body}
+      {error && <p className="mt-3 text-center text-sm text-suit-red">{BILLING_ERRORS[error]}</p>}
+      <AccountDialog
+        open={account !== null}
+        mode={account ?? 'signup'}
+        onOpenChange={(o) => !o && setAccount(null)}
+      />
+    </>
   )
 }
 
@@ -872,8 +1089,8 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
         <Question q="Can I join yet?" open>
           {ready ? (
             <p>
-              Yes. Open Settings, then Membership. You will need to be signed in to a free Pip
-              account first.
+              Yes. Pick monthly or yearly above and you go to Stripe’s checkout page to pay. You
+              will need a free Pip account first, and the button makes one if you have not.
             </p>
           ) : (
             <p>

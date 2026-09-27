@@ -25,6 +25,7 @@ import {
   type HandRead,
   type HeroDecision,
 } from '@/lib/coach'
+import { gradeDecision, type GradedDecision } from '@/lib/review/grade'
 import {
   appendReviewHand,
   clearReview,
@@ -115,8 +116,8 @@ export interface HandActionEvent {
    * as it stood at any step instead of approximately.
    *
    * Optional because a hand recorded before the review shipped has neither,
-   * and a hand decoded from a `/hand` permalink never will — the wire format
-   * does not carry them.
+   * and a plain (v1) `/hand` permalink does not carry them. A review link (v2,
+   * lib/handLink) does, which is what lets it open on the felt.
    */
   pot?: number
   stacks?: Record<string, number>
@@ -145,19 +146,19 @@ export interface HandRecord {
    * Who was at the table, in seat order, with the avatar each of them wore.
    *
    * So the review can draw the hand as the table drew it. Optional: a hand
-   * recorded before the review shipped has none, and one decoded from a
-   * `/hand` link never will.
+   * recorded before the review shipped has none, and nor does one decoded
+   * from a plain (v1) `/hand` link.
    */
   seats?: { id: string; name: string; avatar: AvatarSpec }[]
   /**
    * **Every** hand that was dealt, including the ones that folded and were
    * never shown.
    *
-   * Separate from `reveals`, which is what the table actually turned over, and
-   * deliberately not part of the `/hand` wire format: a shared hand shows what
-   * the players showed. This is for the review, where the hand is over, the
-   * result is recorded, and nothing anybody learns can be played — the same
-   * argument that lets a busted player watch a tournament out.
+   * Separate from `reveals`, which is what the table actually turned over. This
+   * is for the review, where the hand is over, the result is recorded, and
+   * nothing anybody learns can be played — the same argument that lets a busted
+   * player watch a tournament out. A shared hand is a public review of that one
+   * hand, so a v2 `/hand` link carries these too; a plain v1 link does not.
    */
   hole?: { playerId: string; cards: Card[] }[]
   /** Who had the button. Optional for the same reason `seats` is. */
@@ -222,6 +223,12 @@ interface GameState {
   handIndex: number
   /** Timeline of the previous completed hand (for the history dialog). */
   lastHand: HandRecord | null
+  /**
+   * The hero's priced calls and folds in `lastHand`, graded — the same pass the
+   * session review keeps, held here so a shared link can carry the price on
+   * each of them without scoring the hand a second time.
+   */
+  lastDecisions: GradedDecision[]
   /**
    * One honest line on the hand just finished, or null when it had no lesson
    * in it (most hands) or the player has the setting off. Shown on the handover
@@ -763,6 +770,7 @@ export const useGame = create<GameState>((set, get) => {
     const scored = scoreDecisions(record, { max: MAX_REVIEWED_DECISIONS })
     set({
       lastHand: record,
+      lastDecisions: scored.map((s) => gradeDecision(s, record.bigBlind)),
       lastRead: useProfile.getState().handCoaching ? readFrom(scored, record) : null,
       seatStats: { ...seatStatsLive },
     })
@@ -1188,6 +1196,7 @@ export const useGame = create<GameState>((set, get) => {
     blindLevel: 0,
     handIndex: 0,
     lastHand: null,
+    lastDecisions: [],
     lastRead: null,
     newAwards: [],
     lastBounty: 0,
@@ -1281,6 +1290,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        lastDecisions: [],
         lastRead: null,
         newAwards: [],
         lastBounty: 0,
@@ -1334,6 +1344,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: snapshot.handIndex,
         lastHand: null,
+        lastDecisions: [],
         lastRead: null,
         newAwards: [],
         lastBounty: 0,
@@ -1485,6 +1496,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        lastDecisions: [],
         lastRead: null,
         newAwards: [],
         lastBounty: 0,
