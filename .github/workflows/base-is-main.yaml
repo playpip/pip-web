@@ -1,0 +1,41 @@
+name: Base
+
+# Every pull request gets one check run from this file, and that is the whole
+# point of it.
+#
+# `ci.yaml` is `on: pull_request: branches: [main]`, where `branches` filters on
+# the *base*. A PR opened against any other branch therefore starts no gate at
+# all, picks up a single green Cloudflare Pages preview, and reads `CLEAN` and
+# mergeable. From the merge button a missing gate and a passing one look
+# identical, which has now cost us twice.
+#
+# This workflow has no branch filter, so it runs on every pull request and fails
+# the ones `ci.yaml` cannot see. A stacked PR now says so on its own checks
+# instead of waiting for somebody to notice.
+#
+# Nothing here needs a token, a checkout or the repository contents, so it is
+# safe on PRs from forks and costs a few seconds.
+
+on: pull_request
+
+permissions: {}
+
+jobs:
+  base-is-main:
+    name: base is main
+    runs-on: ubuntu-latest
+    steps:
+      - name: The base branch decides whether the gate runs at all
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if [ "$BASE" = "main" ]; then
+            echo "Base is main, so CI runs and this PR is gated."
+            exit 0
+          fi
+          echo "::error::This PR is based on '$BASE', not 'main'."
+          echo "ci.yaml only runs for pull requests whose base is main, so"
+          echo "test:all has not run on this branch and will not run on it."
+          echo "Retargeting the base fires an 'edited' event and starts nothing:"
+          echo "rebuild the branch on main to get a gate."
+          exit 1
