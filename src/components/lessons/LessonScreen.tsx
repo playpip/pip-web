@@ -27,6 +27,7 @@ import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { type SeatFace, SceneTable } from './SceneTable'
+import { membershipFor } from '@/config/membership'
 
 /**
  * A lesson with Webb, played on the table.
@@ -245,7 +246,10 @@ function Beats({ lesson, allowed }: { lesson: Lesson; allowed: boolean }) {
 
       <ActionBar>
         {!allowed ? (
-          <LockedAnswers blurb={lesson.blurb} onJoin={() => router.push('/membership')} />
+          <LockedAnswers
+            blurb={lesson.blurb}
+            onJoin={() => router.push(membershipFor('lessons'))}
+          />
         ) : waiting && question ? (
           <div
             className={cn(

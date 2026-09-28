@@ -45,6 +45,7 @@ import { useHydrated } from '@/lib/useHydrated'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { cn } from '@/lib/utils'
+import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * A drill, played: one spot, one decision, the answer, the next spot.
@@ -502,7 +503,10 @@ function Run({
 
       <ActionBar>
         {!allowed ? (
-          <LockedAnswers blurb={kind.blurb} onJoin={() => router.push('/membership')} />
+          <LockedAnswers
+            blurb={kind.blurb}
+            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+          />
         ) : settled ? (
           <NextButton label="Next hand" onClick={another} />
         ) : isPickFive ? (

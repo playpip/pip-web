@@ -414,3 +414,44 @@ export const SELLER = {
   /** The account's shortened descriptor plus the suffix set on the Pip product. */
   statement: 'AVA TECH* PIP',
 } as const
+
+/**
+ * Where a locked tap goes: `/membership`, opened on the thing that was tapped.
+ *
+ * Somebody who taps a padlocked Omaha table has asked one question, and the
+ * page used to answer it fourth, below a hero, four counts and a list of
+ * tools. With `?for=<feature id>` the page puts that feature's own entry first
+ * (`TappedFor` in components/membership). It is still the same page, still
+ * only reached by a deliberate tap, so nothing here appears to anybody who
+ * did not ask (docs/membership.md: invited, never uninvited).
+ *
+ * An id that is not a shipped feature falls back to the plain page rather than
+ * an error, and `tests/membershipFor.test.ts` fails the build on any call site
+ * naming one.
+ */
+export function membershipFor(featureId: string): string {
+  return `/membership?for=${encodeURIComponent(featureId)}`
+}
+
+/** The shipped feature a `?for=` names, or null for anything else. */
+export function tappedFeature(search: string): MembershipFeature | null {
+  const id = new URLSearchParams(search).get('for')
+  return sellableFeatures().find((feature) => feature.id === id) ?? null
+}
+
+/**
+ * The feature a drill kind is sold as. Calling the river has an entry of its
+ * own because it teaches before it asks; every other paid kind is "Every drill".
+ */
+export function featureForDrill(kindId: string): string {
+  return kindId === 'calling-the-river' ? 'river' : 'drills'
+}
+
+/**
+ * The feature a side-table family is sold as. The four games that are not
+ * Hold'em each have an entry named by the family's id; the twists (Fast,
+ * Heads-Up, Bounty, Deep) share "Every side table", whose blurb names all four.
+ */
+export function featureForFamily(family: { id: string; section: 'games' | 'twists' }): string {
+  return family.section === 'games' ? family.id : 'side-tables'
+}

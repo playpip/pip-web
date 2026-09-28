@@ -18,6 +18,7 @@ import { useEntitlement } from '@/store/entitlement'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
+import { featureForFamily, membershipFor } from '@/config/membership'
 
 /**
  * The side tables: one card per thing that is different, with the prices behind
@@ -81,7 +82,7 @@ export function SideTables() {
         // out — nothing here appears uninvited, over what you were doing, or
         // twice. See docs/membership.md.
         if (locked) {
-          router.push('/membership')
+          router.push(membershipFor(featureForFamily(family)))
           return
         }
         setOpenFamily(family)
@@ -198,7 +199,7 @@ function BuildTile({ member, delay = 0 }: { member: boolean; delay?: number }) {
           // used to be a `div` carrying one underlined link, which was the
           // right shape when this tile was the only locked thing on a free
           // shelf and is now the odd one out.
-          router.push(member ? '/game/custom' : '/membership')
+          router.push(member ? '/game/custom' : membershipFor('custom-tables'))
         }}
         aria-label={
           member ? 'Build your own table' : 'Build your own table — what the membership is'

@@ -29,6 +29,7 @@ import { Splash } from '@/components/Splash'
 import { ReviewTable } from './ReviewTable'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { loadReview } from '@/lib/review/session'
+import { membershipFor } from '@/config/membership'
 
 export function ReviewScreen() {
   const ready = useRequireProfile()
@@ -68,7 +69,7 @@ export function ReviewScreen() {
                 The read on each hand as you finish it stays free and always will — this is the same
                 arithmetic, kept for the whole session and laid out hand by hand.{' '}
                 <Link
-                  href="/membership"
+                  href={membershipFor('review')}
                   className="underline underline-offset-2 hover:text-foreground"
                 >
                   What the membership is

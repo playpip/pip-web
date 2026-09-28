@@ -33,6 +33,7 @@ import {
   rungFor,
   standardFor,
 } from '@/config/customTable'
+import { membershipFor } from '@/config/membership'
 
 /**
  * Build your own table.
@@ -113,7 +114,10 @@ export function TableBuilder() {
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             You can set one up and see what it would pay. Dealing it needs a membership.{' '}
-            <Link href="/membership" className="underline underline-offset-2 hover:text-foreground">
+            <Link
+              href={membershipFor('custom-tables')}
+              className="underline underline-offset-2 hover:text-foreground"
+            >
               What that is
             </Link>
             .

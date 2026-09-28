@@ -42,6 +42,7 @@ import { CardBack } from '@/components/CardBack'
 import { Reveal } from '@/components/Reveal'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
+import { TappedFor } from '@/components/membership/TappedFor'
 import { MEMBER_BACKS, MEMBER_SHOP_BACKS } from '@/config/cardBacks'
 import { DRILL_KINDS } from '@/config/drills'
 import {
@@ -181,6 +182,7 @@ export function MembershipScreen() {
   return (
     <MotionConfig reducedMotion="user">
       <main className="flex-1 overflow-x-clip">
+        <TappedFor price={price} />
         <Hero price={price} />
 
         <div className="mx-auto w-full max-w-6xl px-4 md:px-10">

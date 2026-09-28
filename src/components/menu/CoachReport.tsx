@@ -56,6 +56,7 @@ import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 import { drillHref } from '@/components/drills/exit'
+import { membershipFor } from '@/config/membership'
 
 export function CoachReport() {
   const router = useRouter()
@@ -126,7 +127,10 @@ function Locked({ hands }: { hands: number }) {
         <span className="font-semibold text-foreground tabular-nums">{hands}</span>, and every one
         of them is already in here waiting. The read on each hand as you finish it stays free and
         always will.{' '}
-        <Link href="/membership" className="underline underline-offset-2 hover:text-foreground">
+        <Link
+          href={membershipFor('coaching')}
+          className="underline underline-offset-2 hover:text-foreground"
+        >
           What the membership is
         </Link>
         .
