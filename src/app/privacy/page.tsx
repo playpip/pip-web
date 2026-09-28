@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy" updated="August 2026">
+    <LegalPage title="Privacy" updated="September 2026">
       <Section title="The short version">
         <p>
           Pip is built to need as little of your data as possible — which turns out to be almost
@@ -110,10 +110,12 @@ export default function PrivacyPage() {
           devices disagreed about a Roll, someone tried to sign in, and whether a sign-in reached
           our servers at all. Those last two are there because a sign-in that fails on a bad network
           looks exactly like nobody wanting an account, and we would rather know the difference. We
-          count the tries so we know whether the failures are rare. No cookies, no fingerprinting,
-          no personal data, and never anything you typed or any message we got back. We can’t tie
-          any of it to a person, including you. It exists so we can improve the game, and for
-          nothing else. It’s never sold or shared.
+          count the tries so we know whether the failures are rare. For the membership we count four
+          steps: someone opened the membership page, someone went to pay, someone came back from
+          paying, and a membership started. That tells us where people stop, not who they are. No
+          cookies, no fingerprinting, no personal data, and never anything you typed or any message
+          we got back. We can’t tie any of it to a person, including you. It exists so we can
+          improve the game, and for nothing else. It’s never sold or shared.
         </p>
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t

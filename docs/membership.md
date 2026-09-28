@@ -290,11 +290,27 @@ Worth listing, because each was considered:
 | `tests/roadmapDrills.test.ts` | The public roadmap going stale about which drills are paid |
 | `tests/review.test.ts` | A free table being kept for review; the grading reaching for a card the player could not see |
 
+## Counting the funnel
+
+Four anonymous Umami events, each sent at most once per tab (`trackOnce`), so a funnel report
+over them counts tabs rather than clicks:
+
+| Event | Sent when | Where |
+|---|---|---|
+| `membership-viewed` | `/membership` renders | `MembershipScreen` |
+| `checkout-opened` | the `checkout` function hands back a Stripe URL, just before the redirect | `lib/membership/billing.ts` |
+| `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL | `Join` in `MembershipScreen` |
+| `membership-active` | `awaitMembership()` sees the row the webhook wrote | `Join` in `MembershipScreen` |
+
+They are counts, not grants: nothing reads them back. Stripe's dashboard stays the count of
+money. Where the funnel undercounts: a blocked Umami tag reports nothing, a player who pays in
+one tab and comes back in another is a new tab, and a webhook slower than ~15 seconds means
+`membership-active` never fires for that player even though the membership is real. Adding or
+renaming one is a `/privacy` change too (`tests/analyticsClaims.test.ts`).
+
 ## Still to build
 
-The payment path is built (see [stripe.md](./stripe.md) for how, and the runbook for switching
-it on). What is left: the Stripe account's products, prices and webhook, the secrets and the
-two repo Variables — and the four funnel events, which are not tracked yet.
+The payment path is built and on sale (see [stripe.md](./stripe.md)).
 
 Account deletion now cancels the subscription before it deletes (`delete-account`), which was
 the thing that had to land before anything took a payment.
