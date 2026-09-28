@@ -28,6 +28,10 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'sync-conflict': 'two devices disagreed about a Roll',
   'sync-auth-attempt': 'someone tried to sign in',
   'sync-auth-unreachable': 'whether a sign-in reached our servers at all',
+  'membership-viewed': 'someone opened the membership page',
+  'checkout-opened': 'someone went to pay',
+  'checkout-completed': 'someone came back from paying',
+  'membership-active': 'a membership started',
 }
 
 /** `track('x')` and `trackOnce('x')`, single or double quoted, literals only. */

@@ -12,6 +12,7 @@
 'use client'
 
 import { type CurrencyCode, TERMS_VERSION } from '@/config/membership'
+import { trackOnce } from '@/lib/analytics'
 import { getSupabase } from '@/lib/sync/client'
 import { useMembership } from '@/store/entitlement'
 
@@ -54,6 +55,9 @@ async function go(name: 'checkout' | 'portal', body: object = {}): Promise<Resul
   }
   if (!data?.url) return { ok: false, error: 'unavailable' }
 
+  // Second step of the funnel (docs/membership.md): Stripe handed us a session.
+  // Umami posts with `keepalive`, so the event survives the navigation below.
+  if (name === 'checkout') trackOnce('checkout-opened')
   window.location.assign(data.url)
   return { ok: true }
 }

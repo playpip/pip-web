@@ -60,6 +60,7 @@ import {
   sellableFeatures,
 } from '@/config/membership'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
+import { trackOnce } from '@/lib/analytics'
 import {
   type BillingError,
   awaitMembership,
@@ -177,6 +178,10 @@ export function MembershipScreen() {
   const coming = MEMBERSHIP_FEATURES.filter((f) => !f.shipped)
   const [currency, setCurrency] = useCurrency()
   const price = MEMBERSHIP_PRICES[currency]
+
+  // First step of the funnel. The page view is counted anyway; this one is
+  // once per tab, so it lines up with the three steps after it.
+  useEffect(() => trackOnce('membership-viewed'), [])
 
   return (
     <MotionConfig reducedMotion="user">
@@ -850,8 +855,13 @@ function Join({
 
   useEffect(() => {
     if (!joined) return
+    // Stripe only sends a player to `?joined=1` after the payment went
+    // through, so this counts completed checkouts, and the next one counts
+    // the row arriving. Neither grants anything; they are counts.
+    trackOnce('checkout-completed')
     let live = true
     void awaitMembership().then((ok) => {
+      if (ok) trackOnce('membership-active')
       if (live && !ok) setSlow(true)
     })
     return () => {
