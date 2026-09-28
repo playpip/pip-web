@@ -19,6 +19,7 @@ import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+import { membershipFor } from '@/config/membership'
 
 const ACCENT = '#C9873D'
 /** Borrowed from the Downtown Casino, which is exactly the right room for it. */
@@ -65,7 +66,7 @@ export function BlackjackCard({ member, index }: { member: boolean; index: numbe
       // Same rule as the family cards: a locked tap goes to the page that
       // explains it rather than to a dialog that ends in a padlock.
       if (!member) {
-        router.push('/membership')
+        router.push(membershipFor('blackjack'))
         return
       }
       setOpen(true)
@@ -269,7 +270,7 @@ function BlackjackDialog({
                   <span>
                     Comes with the membership.{' '}
                     <Link
-                      href="/membership"
+                      href={membershipFor('blackjack')}
                       className="underline underline-offset-2 hover:text-foreground"
                     >
                       What that is

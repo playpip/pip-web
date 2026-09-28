@@ -29,6 +29,7 @@ import {
   TalkLine,
 } from './felt'
 import { PackProgress, PackSummary } from './pack'
+import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Bet or check, the river pack's mirror: a short lesson, then ten spots.
@@ -313,7 +314,10 @@ function Spot({
 
       <ActionBar>
         {!allowed ? (
-          <LockedAnswers blurb={kind.blurb} onJoin={() => router.push('/membership')} />
+          <LockedAnswers
+            blurb={kind.blurb}
+            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+          />
         ) : grade ? (
           <NextButton
             label={last ? 'See how you did' : `Next spot · ${answered + 1} of ${PACK_SIZE}`}

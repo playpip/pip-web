@@ -30,6 +30,7 @@ import {
 } from './felt'
 import { RangeStrip, RiverLesson } from './RiverLesson'
 import { PackProgress, PackSummary } from './pack'
+import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Calling the river, the first practice pack: a short lesson, then ten spots.
@@ -347,7 +348,10 @@ function Spot({
 
       <ActionBar>
         {!allowed ? (
-          <LockedAnswers blurb={kind.blurb} onJoin={() => router.push('/membership')} />
+          <LockedAnswers
+            blurb={kind.blurb}
+            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+          />
         ) : grade ? (
           <NextButton
             label={last ? 'See how you did' : `Next spot · ${answered + 1} of ${PACK_SIZE}`}

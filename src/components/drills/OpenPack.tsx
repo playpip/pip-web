@@ -19,6 +19,7 @@ import { sound } from '@/lib/sound'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { ActionBar, Answer, LockedAnswers, NextButton, TalkLine } from './felt'
 import { PackProgress, PackSummary } from './pack'
+import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Open or fold, the second practice pack: ten hands, then a count.
@@ -289,7 +290,10 @@ function Spot({
 
       <ActionBar>
         {!allowed ? (
-          <LockedAnswers blurb={kind.blurb} onJoin={() => router.push('/membership')} />
+          <LockedAnswers
+            blurb={kind.blurb}
+            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+          />
         ) : grade ? (
           <NextButton
             label={last ? 'See how you did' : `Next hand · ${answered + 1} of ${PACK_SIZE}`}

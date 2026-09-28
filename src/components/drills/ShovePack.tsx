@@ -22,6 +22,7 @@ import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { ActionBar, Answer, LockedAnswers, NextButton, TalkLine } from './felt'
 import { PackProgress, PackSummary } from './pack'
 import { ShoveLesson } from './ShoveLesson'
+import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Shove or fold, the short-stack pack: a short lesson, then ten hands.
@@ -290,7 +291,10 @@ function Spot({
 
       <ActionBar>
         {!allowed ? (
-          <LockedAnswers blurb={kind.blurb} onJoin={() => router.push('/membership')} />
+          <LockedAnswers
+            blurb={kind.blurb}
+            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+          />
         ) : grade ? (
           // The arithmetic sits on the bar rather than on the felt: the felt
           // is already full at a laptop's height, and the numbers belong next
