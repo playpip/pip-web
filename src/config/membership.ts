@@ -208,6 +208,12 @@ export interface MembershipFeature {
   blurb: string
   /** Live in the app right now. Nothing else may be advertised. */
   shipped: boolean
+  /**
+   * Where it lives in the app, for the link a new member gets back from
+   * checkout when this is what they tapped. Absent where there is no single
+   * place to send them (it happens at a table, or in a dialog).
+   */
+  place?: { href: string; name: string }
 }
 
 /**
@@ -228,6 +234,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Webb sits you down at the felt, deals a real hand, and stops to ask you what you would do before he tells you why. Eight lessons across four levels — starting hands and position, outs and pot odds, stack sizes, then ranges, bluffing and the regulars — each ending in ten hands of practice. Level 1, the first hands, is free for everyone.',
     shipped: true,
+    place: { href: '/learn', name: 'the lessons' },
   },
   {
     id: 'drills',
@@ -235,6 +242,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Open or fold, which five play, count your outs, pot odds, who gets there, calling the river, bet or check, shove or fold, and the play-it-out mode — graded by the engine, never metered, and pitched at the level you are actually reading at. "What have you got?" and "Which hand wins?" stay free for everyone, forever.',
     shipped: true,
+    place: { href: '/game/drills', name: 'the drills' },
   },
   {
     // The first practice pack (2026-09-23). A drill kind in the registry, but
@@ -245,6 +253,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'A bet in front of you on the last card, and nothing left to come. A short lesson, then ten spots on the felt: fold or call, and see exactly what they were betting with — the value hands you beat, the misses, the hands that beat you. Only ever asked where the answer holds whether they bluff a little or a lot.',
     shipped: true,
+    place: { href: '/game/drills/calling-the-river', name: 'Calling the river' },
   },
   {
     id: 'rooms',
@@ -257,6 +266,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Three times the usual chips and a slow clock, from 750 up to 40,000. Post-flop poker where the stacks are deep enough to actually play it. Ordinary tables in every other way: they count towards your rank like any other.',
     shipped: true,
+    place: { href: '/game/side', name: 'the side tables' },
   },
   {
     id: 'custom-tables',
@@ -264,6 +274,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Pick the seats, the stakes, how deep you sit, how fast the blinds climb, whether heads are worth money, and which of the regulars sit down with you. Invite anybody you like: a high roller at a cheap table brings their own game with them, so you can play the hardest company in the cast for a price you can afford to lose. The prize is the same either way, and nobody you invite can ever make a table softer than its price.',
     shipped: true,
+    place: { href: '/game/custom', name: 'the table builder' },
   },
   {
     id: 'omaha',
@@ -271,6 +282,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Four cards each, and you must use exactly two of them with exactly three from the board. Pot-limit betting, deep stacks, and the same cast you already know. A genuinely different game, at The Big Pot.',
     shipped: true,
+    place: { href: '/game/side', name: 'the side tables' },
   },
   {
     id: 'shortdeck',
@@ -278,6 +290,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Thirty-six cards — the deuces through fives are thrown away — and two rules come with them: a flush beats a full house, and the ace plays low under the six, so A-6-7-8-9 is a straight. Far more of it connects. Three stakes.',
     shipped: true,
+    place: { href: '/game/side', name: 'the side tables' },
   },
   {
     id: 'hilo',
@@ -285,6 +298,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Every pot cut in half: one half to the best hand, the other to the best low — five different ranks, all eight or lower, ace counting as one. You still use exactly two from your hand for each half, and they are rarely the same two.',
     shipped: true,
+    place: { href: '/game/side', name: 'the side tables' },
   },
   {
     // Shipped behind the check on the day The Parlour did and went unlisted
@@ -296,6 +310,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Five cards each, face down, and no board at all — nothing on the table to read and nothing to share. Bet, throw away as many as you like and take replacements, bet again, show. The only thing anybody learns all hand is how many cards you asked for. Two stakes, at The Parlour.',
     shipped: true,
+    place: { href: '/game/side', name: 'the side tables' },
   },
   {
     id: 'side-tables',
@@ -303,6 +318,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Fast, Heads-Up, Bounty and Deep — the game you know with one screw turned, at twelve stakes between them. None of them gate your climb up the free ladder.',
     shipped: true,
+    place: { href: '/game/side', name: 'the side tables' },
   },
   {
     id: 'blackjack',
@@ -310,6 +326,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'It is not poker and we are not going to pretend otherwise: there are no opponents, no position and nothing to out-play, because the dealer draws to seventeen whatever you do. Three houses, and each one tells you its edge before you sit down. A curiosity, priced honestly.',
     shipped: true,
+    place: { href: '/game/side', name: 'the side tables' },
   },
   {
     id: 'coaching',
@@ -317,6 +334,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'A report drawn from every hand you have played: what it is costing you in big blinds, which street the money leaves by, and the hands it happened in. Every line is a ratio of two things that were counted, shown against where a sound player sits. The per-hand read stays free.',
     shipped: true,
+    place: { href: '/game/report', name: 'your report' },
   },
   {
     id: 'progress',
@@ -324,6 +342,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'The eight membership drills each keep a rating that moves both ways, and your stats draw it spot by spot, next to how often you are right and your best run, the same way they already do for the two free drills. No streaks and no clock: it is exactly where you left it whenever you come back.',
     shipped: true,
+    place: { href: '/stats', name: 'your stats' },
   },
   {
     id: 'review',
@@ -331,6 +350,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     blurb:
       'Stand up and play the whole session again, hand by hand — the board dealing in, your cards, and what the pot was charging at each call you made. The hands worth a second look are picked out for you. Ladder, Rail and the Daily.',
     shipped: true,
+    place: { href: '/game/review', name: 'your last session' },
   },
   {
     id: 'god-view',

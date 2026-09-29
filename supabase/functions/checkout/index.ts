@@ -1,6 +1,6 @@
 // Start a Stripe Checkout session for the signed-in caller.
 //
-// POST { priceId, currency, startNow, termsVersion } with the player's access token → { url }.
+// POST { priceId, currency, startNow, termsVersion, for? } with the player's access token → { url }.
 //
 // **This function never grants anything.** It hands the player to Stripe's
 // hosted page and returns. The membership row is written by `stripe-webhook`
@@ -36,7 +36,13 @@ Deno.serve(async (req) => {
   const user = await caller(req)
   if (!user) return json({ error: 'signed-out' }, 401)
 
-  let body: { priceId?: unknown; currency?: unknown; startNow?: unknown; termsVersion?: unknown }
+  let body: {
+    priceId?: unknown
+    currency?: unknown
+    startNow?: unknown
+    termsVersion?: unknown
+    for?: unknown
+  }
   try {
     body = await req.json()
   } catch {
@@ -56,6 +62,12 @@ Deno.serve(async (req) => {
   // the account's terms URL, and this account is Ava's, shared with Probus.
   if (body.startNow !== true) return json({ error: 'consent' }, 400)
   const termsVersion = typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : ''
+
+  // What the player tapped to reach /membership, handed back on the success
+  // URL so the page can link them to it. Only a feature id's shape gets through:
+  // the page checks it against the shipped features and ignores anything else,
+  // so this only keeps arbitrary text off a URL Stripe redirects to.
+  const tapped = typeof body.for === 'string' && /^[a-z-]{1,40}$/.test(body.for) ? body.for : ''
 
   const row = await membershipOf(user.id)
 
@@ -126,7 +138,7 @@ Deno.serve(async (req) => {
     // registrations) when Probus launched — at which point every session that
     // asks for it fails, for every Ava project alike.
     ...(automaticTax ? { automatic_tax: { enabled: true } } : {}),
-    success_url: `${SITE_URL}/membership?joined=1#plans`,
+    success_url: `${SITE_URL}/membership?joined=1${tapped ? `&for=${tapped}` : ''}#plans`,
     cancel_url: `${SITE_URL}/membership#plans`,
   })
 

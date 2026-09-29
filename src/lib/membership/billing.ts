@@ -68,13 +68,18 @@ async function go(name: 'checkout' | 'portal', body: object = {}): Promise<Resul
  * `startNow` is the ticked box on /membership. It is sent rather than assumed so
  * the function can refuse without it: /terms says the player is asked to confirm
  * the membership starts straight away, and this is where they were asked.
+ *
+ * `feature` is the `?for=` the page was opened with, if it named a shipped
+ * feature. Stripe hands it back on the success URL, so a new member lands next
+ * to a link to the thing they tapped rather than on the plans.
  */
 export function startCheckout(
   priceId: string,
   currency: CurrencyCode,
   startNow: boolean,
+  feature?: string,
 ): Promise<Result> {
-  return go('checkout', { priceId, currency, startNow, termsVersion: TERMS_VERSION })
+  return go('checkout', { priceId, currency, startNow, termsVersion: TERMS_VERSION, for: feature })
 }
 
 /** Off to the Stripe customer portal: cancel, change card, invoices. */
