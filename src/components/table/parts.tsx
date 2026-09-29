@@ -25,7 +25,7 @@ import { nicknameFor } from '@/config/handNames'
 import { dealerButtonById, type AvatarRing, type DealerButton } from '@/config/cosmetics'
 import type { AvatarSpec } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
-import { cn } from '@/lib/utils'
+import { cn, formatWinPct } from '@/lib/utils'
 
 /**
  * The player's own furniture — the ring on their avatar and the dealer button
@@ -328,7 +328,7 @@ function useHandLabel(hero: Player, hand: HandState) {
   }, [hero.hole, hand.community, hand.variant])
 }
 
-/** Mobile hero panel — swipe or tap the dots to flip between profile and odds. */
+/** Mobile hero panel — swipe or tap the dots to flip between profile and odds. Each page also shows the other's number, small. */
 export function HeroPanel({
   hero,
   avatar,
@@ -403,6 +403,13 @@ export function HeroPanel({
                   {money(hero.committedThisStreet)}
                 </span>
               )}
+              {/* The other page's number, kept quiet, so a glance doesn't need
+                  a swipe. */}
+              {equity !== null && (
+                <span className="whitespace-nowrap text-3xs tabular-nums text-muted-foreground">
+                  {formatWinPct(equity)} {oddsLabel}
+                </span>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -420,10 +427,13 @@ export function HeroPanel({
                   qualifier lives in the label underneath instead, where there
                   is room for it. */}
               <span className="whitespace-nowrap text-2xl font-semibold tabular-nums">
-                {equity !== null ? `${Math.round(equity * 100)}%` : '—'}
+                {formatWinPct(equity)}
               </span>
               <span className="whitespace-nowrap px-1 text-3xs uppercase tracking-wider text-muted-foreground">
                 {oddsLabel}
+              </span>
+              <span className="whitespace-nowrap text-3xs tabular-nums text-muted-foreground">
+                {money(hero.stack)}
               </span>
             </motion.div>
           )}
