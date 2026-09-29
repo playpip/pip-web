@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { MEMBERSHIP_PRICE } from './membership'
 import { contentAlternates, contentSocial } from './site'
 
 // The blog's table of contents. Each post is a static page under
@@ -17,6 +18,12 @@ export interface BlogPost {
 
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
+  {
+    slug: 'pip-has-a-membership',
+    title: 'Pip has a membership now',
+    description: `${MEMBERSHIP_PRICE.monthly} a month or ${MEMBERSHIP_PRICE.annual} a year, for the side tables and the games that are not Hold’em. The ladder, the Rail, the Daily and the freeroll stay free.`,
+    date: '2026-09-29',
+  },
   {
     slug: 'landing-page-mockups',
     title: 'The mock-ups on your landing page are untested claims',
