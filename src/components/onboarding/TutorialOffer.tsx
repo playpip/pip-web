@@ -5,10 +5,13 @@
 // gates onboarding, so it can only ever appear once; no flag, no nag.
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { sound } from '@/lib/sound'
+import { firstSeatHref } from './firstSeat'
 
-export function TutorialOffer({ onDeclined }: { onDeclined: () => void }) {
+export function TutorialOffer() {
+  const router = useRouter()
   // Two equal-weight choices — the tour is an offer, not a tollbooth.
   const choice =
     'w-full rounded-2xl bg-foreground/[0.05] py-4 text-lg font-semibold transition hover:bg-foreground/10 active:scale-[0.98]'
@@ -35,7 +38,8 @@ export function TutorialOffer({ onDeclined }: { onDeclined: () => void }) {
           <button
             onClick={() => {
               sound.play('call')
-              onDeclined()
+              // Straight to a table, as the button says (see firstSeat).
+              router.push(firstSeatHref())
             }}
             className={choice}
           >

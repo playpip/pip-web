@@ -13,6 +13,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { LESSONS } from './lessons'
 import { drillHref } from '@/components/drills/exit'
+import { firstSeatHref } from '@/components/onboarding/firstSeat'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -69,13 +70,15 @@ export function Tutorial() {
     return () => window.removeEventListener('keydown', onKey)
   }, [page, goTo])
 
-  // Skip goes back where you came from: the onboarding offer → home;
-  // anywhere else → back (or home, if this tab has nowhere to go back to).
+  // Skip goes back where you came from: the onboarding offer → the first
+  // table, as "Deal me in" would have; anywhere else → back (or home, if this
+  // tab has nowhere to go back to).
   const leave = () => {
     sound.play('tap')
     const fromOnboarding = new URLSearchParams(window.location.search).get('from') === 'onboarding'
     if (fromLearn) router.push('/learn')
-    else if (fromOnboarding || window.history.length <= 1) router.push('/game')
+    else if (fromOnboarding) router.push(firstSeatHref())
+    else if (window.history.length <= 1) router.push('/game')
     else router.back()
   }
 
@@ -157,13 +160,18 @@ export function Tutorial() {
                     </Link>
                   </div>
                 ) : (
-                  <Link
-                    href="/game"
-                    onClick={() => sound.play('call')}
+                  // Seats you at the next-up table rather than the lobby
+                  // (see onboarding/firstSeat). A visitor with no player yet
+                  // still goes to /game, which makes one first.
+                  <button
+                    onClick={() => {
+                      sound.play('call')
+                      router.push(firstSeatHref())
+                    }}
                     className="rounded-2xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
                   >
                     Take a seat
-                  </Link>
+                  </button>
                 )}
               </motion.div>
             )}
