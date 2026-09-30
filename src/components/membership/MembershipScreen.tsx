@@ -59,6 +59,7 @@ import {
   checkoutReady,
   formatPrice,
   sellableFeatures,
+  tappedFeature,
 } from '@/config/membership'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { trackOnce } from '@/lib/analytics'
@@ -854,6 +855,9 @@ function Join({
 
   // Read after hydration only: the static page has no query string to read.
   const joined = hydrated && new URLSearchParams(window.location.search).has('joined')
+  // What was tapped to get here, if anything: sent to checkout, and handed back
+  // with `?joined=1` so the welcome can point at it.
+  const tapped = hydrated ? tappedFeature(window.location.search) : null
 
   useEffect(() => {
     if (!joined) return
@@ -886,7 +890,7 @@ function Join({
 
   const pay = () => {
     const priceId = MEMBERSHIP_PRICE_IDS[plan]
-    if (priceId) void run(() => startCheckout(priceId, currency, startNow))
+    if (priceId) void run(() => startCheckout(priceId, currency, startNow, tapped?.id))
   }
 
   let body: React.ReactNode
@@ -908,6 +912,16 @@ function Join({
             ? `Cancelled — you stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
             : `Renews on ${endsOn(periodEnd)}. Cancel, change card or get an invoice from the portal.`}
         </p>
+        {joined && tapped?.place && (
+          <Link
+            href={tapped.place.href}
+            onClick={() => sound.play('tap')}
+            className={cn(joinButton, 'mt-3')}
+          >
+            Go to {tapped.place.name}
+            <ChevronRight className="size-4" />
+          </Link>
+        )}
         <button
           disabled={busy}
           onClick={() => void run(openPortal)}

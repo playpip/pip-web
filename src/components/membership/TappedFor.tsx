@@ -20,8 +20,11 @@ import { useHydrated } from '@/lib/useHydrated'
 
 export function TappedFor({ price }: { price: LocalPrice }) {
   const hydrated = useHydrated()
-  const feature = hydrated ? tappedFeature(window.location.search) : null
-  if (!feature) return null
+  const search = hydrated ? window.location.search : ''
+  const feature = tappedFeature(search)
+  // Back from checkout the same `?for=` rides along, and the answer to it is
+  // the link in the welcome box, not the price again.
+  if (!feature || new URLSearchParams(search).has('joined')) return null
 
   return (
     <section

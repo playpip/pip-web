@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'ava'
 import { DRILL_KINDS } from '@/config/drills'
 import {
@@ -95,4 +95,35 @@ test('the page reads back what the tap sent, and nothing else', (t) => {
   t.is(tappedFeature('?for=nonsense'), null)
   // Not shipped, so never advertised, even by somebody typing the URL.
   t.is(tappedFeature('?for=multiplayer'), null)
+})
+
+// Back from checkout, a new member gets a link to the place they tapped. A
+// place that is not a page is a 404 in the first minute of a membership.
+test('every place a feature links to is a page', (t) => {
+  const drills = new Set<string>(DRILL_KINDS.map((kind) => kind.id))
+  let seen = 0
+  for (const feature of sellableFeatures()) {
+    if (!feature.place) continue
+    seen++
+    const drill = feature.place.href.match(/^\/game\/drills\/([^/]+)$/)
+    if (drill) {
+      t.true(drills.has(drill[1]), `${feature.id} links to a drill that does not exist`)
+      continue
+    }
+    const page = new URL(`../src/app${feature.place.href}/page.tsx`, import.meta.url)
+    t.true(existsSync(page), `${feature.id} links to ${feature.place.href}, which has no page`)
+  }
+  t.true(seen >= 10, `only ${seen} features have a place`)
+})
+
+test('checkout hands the tap back, and only a feature id’s shape', (t) => {
+  const checkout = readFileSync(
+    new URL('../supabase/functions/checkout/index.ts', import.meta.url),
+    'utf-8',
+  )
+  t.regex(checkout, /\/\^\[a-z-\]\{1,40\}\$\/\.test\(body\.for\)/)
+  t.regex(
+    checkout,
+    /success_url: `\$\{SITE_URL\}\/membership\?joined=1\$\{tapped \? `&for=\$\{tapped\}` : ''\}#plans`/,
+  )
 })
