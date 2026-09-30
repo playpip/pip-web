@@ -8,7 +8,14 @@ import {
   sellableFeatures,
   tappedFeature,
 } from '@/config/membership'
-import { SIDE_SHELF } from '@/config/venues'
+import {
+  ALL_VENUES,
+  DEEP_STACK_TABLES,
+  SIDE_SHELF,
+  VENUES,
+  featureForVenue,
+  venueById,
+} from '@/config/venues'
 
 // A locked tap opens `/membership` on the thing that was tapped.
 //
@@ -84,6 +91,32 @@ test('every paid drill kind maps to a shipped feature', (t) => {
 test('every side-table family maps to a shipped feature', (t) => {
   for (const family of SIDE_SHELF) {
     t.true(SHIPPED.has(featureForFamily(family)), `${family.id} maps to nothing on the page`)
+  }
+})
+
+// A member table reached by its URL rather than its tile. It used to bounce to
+// the side tables and say nothing, so the question the link asked went
+// unanswered by the one page that answers it.
+test('every gated table maps to a shipped feature, and a free one to nothing', (t) => {
+  const gated = ALL_VENUES.filter((venue) => venue.membersOnly)
+  t.true(gated.length >= 15, `only ${gated.length} gated tables`)
+  for (const venue of gated) {
+    const feature = featureForVenue(venue)
+    t.true(feature !== null && SHIPPED.has(feature), `${venue.id} maps to ${feature}`)
+  }
+  for (const venue of VENUES) t.is(featureForVenue(venue), null, venue.id)
+})
+
+test('a table maps to the entry that names it, not just its shelf', (t) => {
+  for (const room of DEEP_STACK_TABLES) t.is(featureForVenue(room), 'rooms', room.id)
+  const study = venueById('study')
+  t.truthy(study)
+  if (study) t.is(featureForVenue(study), 'side-tables')
+  const custom = venueById('custom')
+  t.truthy(custom)
+  if (custom) t.is(featureForVenue(custom), 'custom-tables')
+  for (const family of SIDE_SHELF.filter((f) => f.section === 'games')) {
+    for (const room of family.rooms) t.is(featureForVenue(room), family.id, room.id)
   }
 })
 

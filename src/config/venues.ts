@@ -3,7 +3,7 @@
 // sits with equal stacks and plays until one player is left standing — the
 // winner takes the prize. Bust and you're out.
 
-import type { MembersOnly } from '@/config/membership'
+import { type MembersOnly, featureForFamily } from '@/config/membership'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import type { Variant } from '@/lib/poker/handEval'
 
@@ -1106,6 +1106,23 @@ export const SIDE_SHELF: readonly TableFamily[] = [
     rooms: [DEEP_STACK_TABLES[0], sideTable('study'), ...DEEP_STACK_TABLES.slice(1)],
   },
 ]
+
+/**
+ * The membership feature a gated table is sold as, for `membershipFor()`.
+ *
+ * The shelf's tiles answer this through their family, but a table can also be
+ * reached by its URL (a shared link, a post, an old bookmark), and that visitor
+ * asked about one room. Deep Stack has an entry of its own even though its
+ * rooms sit in the Deep family beside The Study, so it is checked first. Null
+ * for a free table.
+ */
+export function featureForVenue(venue: Venue): string | null {
+  if (!venue.membersOnly) return null
+  if (venue.id === CUSTOM_TABLE_ROUTE.id) return 'custom-tables'
+  if (DEEP_STACK_TABLES.some((room) => room.id === venue.id)) return 'rooms'
+  const family = SIDE_SHELF.find((f) => f.rooms.some((room) => room.id === venue.id))
+  return family ? featureForFamily(family) : null
+}
 
 /** The families in one half of the shelf, in order. */
 export function familiesIn(section: ShelfSection): readonly TableFamily[] {
