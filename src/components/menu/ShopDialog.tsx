@@ -18,6 +18,7 @@
 //   shelf in this room has ever been payable in cash and that has not changed.
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Lock, XIcon } from 'lucide-react'
 import {
   Dialog,
@@ -36,6 +37,7 @@ import { AwardChip } from '@/components/AwardChip'
 import { SHOP_BACKS, cardBackById } from '@/config/cardBacks'
 import { avatarRingById, dealerButtonById, soundPackById } from '@/config/cosmetics'
 import { venueById } from '@/config/venues'
+import { membershipFor } from '@/config/membership'
 import {
   DECK_FACES,
   SHOP_ITEMS,
@@ -227,10 +229,15 @@ function ItemRow({ item }: { item: ShopItem }) {
             </button>
           )
         ) : needsMembership ? (
-          <span className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground">
+          // The one lock in the shop that chips cannot open, so the tap goes to
+          // the page that says what the members' shelf is.
+          <Link
+            href={membershipFor('cosmetics')}
+            className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
             <Lock className="size-3" />
             {item.price > 0 ? `Members · ${money(item.price)}` : 'With the membership'}
-          </span>
+          </Link>
         ) : !hasWin ? (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Lock className="size-3" />
