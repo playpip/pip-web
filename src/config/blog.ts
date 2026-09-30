@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'deal-me-in',
+    title: 'Deal me in dealt you a menu',
+    description:
+      'In September, 68 of the 217 people who made a player on Pip did not play a hand within the hour. The tour was not why. The button that said Deal me in opened the lobby, and now it opens a table.',
+    date: '2026-09-30',
+  },
+  {
     slug: 'pip-has-a-membership',
     title: 'Pip has a membership now',
     description: `${MEMBERSHIP_PRICE.monthly} a month or ${MEMBERSHIP_PRICE.annual} a year, for the side tables and the games that are not Hold’em. The ladder, the Rail, the Daily and the freeroll stay free.`,
