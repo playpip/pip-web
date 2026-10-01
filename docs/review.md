@@ -160,7 +160,8 @@ own.
 call that was right on the price and lost is not a mistake; a call that was
 wrong on the price and got there is not a read. Where the two part company the
 line adds the price: *"You needed 29% and had about 13%, so the price justified
-it — they just had it."* That sentence is the whole reason the review may be
+it — they just had it."* A fold gets its own version: *"so the fold was right.
+Calling would have won this one."* That sentence is the whole reason the review may be
 results-oriented at all.
 
 **Priced at one street.** No implied odds, no future betting — the same

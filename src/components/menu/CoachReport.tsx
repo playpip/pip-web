@@ -50,7 +50,7 @@ import { EvidenceDialog } from '@/components/review/EvidenceDialog'
 import { useProfile, type RollPoint } from '@/store/profile'
 import { useEntitlement } from '@/store/entitlement'
 import { type DeepRead, type Leak, deepRead } from '@/lib/deepCoach'
-import type { EvidenceKey } from '@/lib/review/stats'
+import { type EvidenceKey, evidenceFor } from '@/lib/review/stats'
 import { ROLL_RANGES, type RollRange, pointsInRange, rollTrend } from '@/lib/rollRange'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
@@ -355,7 +355,7 @@ function PracticeLink({ id, label = 'Practise this' }: { id: string; label?: str
 function LeakCard({ leak }: { leak: Leak }) {
   const evidence = useProfile((s) => s.reviewStats.evidence)
   const [open, setOpen] = useState(false)
-  const hands = leak.evidence ? (evidence[leak.evidence as EvidenceKey] ?? []) : []
+  const hands = leak.evidence ? evidenceFor({ evidence }, leak.evidence as EvidenceKey) : []
 
   return (
     <article

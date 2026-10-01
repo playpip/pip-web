@@ -197,17 +197,28 @@ export function gradeMove(
   // since it is the authoritative number for that seat.
   const priceable = gradeable(record)
   const currentBet = Math.max(...before.hand.players.map((p) => p.committedThisStreet))
+  //
+  // A short stack calls for what it has, as the engine charges it
+  // (`callAmount`), and the hero's snapshot is already that number.
+  const facing = Math.max(0, currentBet - actor.committedThisStreet)
   const toCall =
     event.decision?.toCall ??
-    (priceable ? Math.max(0, currentBet - actor.committedThisStreet) : null)
+    (priceable ? (actor.stack > 0 ? Math.min(facing, actor.stack) : facing) : null)
 
   if (event.type === 'call' || event.type === 'fold') {
     if (toCall === null) return null
     if (toCall <= 0) {
       return { ...base, verdict: 'standard', bb: 0, line: `Nothing to pay. ${who} had ${held}.` }
     }
-    // What calling was worth, with every card face up.
-    const callValue = equity * (pot + toCall) - toCall
+    // What calling was worth, with every card face up. Chips bet this street
+    // past what this call can match are a side pot this seat cannot win, so
+    // they come out of the pot it is playing for.
+    const reach = actor.committedThisStreet + toCall
+    const uncalled = before.hand.players.reduce(
+      (sum, p) => sum + (p.id === actor.id ? 0 : Math.max(0, p.committedThisStreet - reach)),
+      0,
+    )
+    const callValue = equity * (pot - uncalled + toCall) - toCall
     const gained = event.type === 'call' ? callValue : -callValue
     const asBb = gained / bb
     const head =

@@ -237,3 +237,37 @@ test('a board card is not a move', (t) => {
   const hand = record(onFlop())
   t.is(gradeMove(hand, 0), null)
 })
+
+test('a short stack is priced at what it can call, for the pot it can win', (t) => {
+  // Doris has 300 behind and faces a 1000 bet into 500: the engine charges her
+  // 300, and the 700 she cannot match is a side pot she was never playing for.
+  // With 35% that call is worth 0.35 * 1100 - 300 = +85, so the fold cost her.
+  // Priced at the full bet it read 0.35 * 2500 - 1000 = -125, a good fold.
+  const hand = record(
+    onFlop(
+      {
+        kind: 'action',
+        playerId: 'hero',
+        playerName: 'Will',
+        type: 'bet',
+        amount: 1000,
+        pot: 1500,
+        stacks: { hero: 1700, ai1: 300 },
+        committed: { hero: 1000, ai1: 0 },
+      },
+      {
+        kind: 'action',
+        playerId: 'ai1',
+        playerName: 'Doris',
+        type: 'fold',
+        pot: 1500,
+        committed: { hero: 1000, ai1: 0 },
+      },
+    ),
+  )
+  const solve = () => ({ share: { hero: 0.65, ai1: 0.35 }, exact: true, runouts: 1 })
+  const move = gradeMove(hand, 2, solve)
+  t.truthy(move)
+  t.is(Math.round((move?.bb ?? 0) * 20), -85, 'the fold gave up the 85 chips calling was worth')
+  t.regex(move?.line ?? '', /pot worth calling/)
+})
