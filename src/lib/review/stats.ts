@@ -131,9 +131,11 @@ export function foldHand(stats: ReviewStats, hand: ReviewHand): ReviewStats {
   // answer to "says who?", and a 0.4bb slip is not an answer.
   const worst = hand.decisions.filter((d) => isMistake(d.grade)).sort((a, b) => a.bb - b.bb)[0]
   if (worst) {
+    // The street buckets are calls only: they prove "you pay off at the end"
+    // and "you enter too many pots", which a fold cannot show.
     const keys: EvidenceKey[] = worst.folded ? ['tight-fold'] : ['loose-call']
-    if (worst.street === 'river') keys.push('river-call')
-    if (worst.street === 'preflop') keys.push('preflop-call')
+    if (!worst.folded && worst.street === 'river') keys.push('river-call')
+    if (!worst.folded && worst.street === 'preflop') keys.push('preflop-call')
     const example: EvidenceHand = {
       token: encodeHand(hand.record),
       line: `The ${worst.street} ${worst.folded ? 'fold' : 'call'} — ${Math.abs(worst.bb).toFixed(1)} big blinds`,
@@ -147,6 +149,22 @@ export function foldHand(stats: ReviewStats, hand: ReviewHand): ReviewStats {
   }
 
   return next
+}
+
+/**
+ * The examples kept for a bucket, as the report should show them.
+ *
+ * Before 2026-10-01 a fold could land in `river-call` and `preflop-call`, and
+ * those are on players' profiles now. They are dropped here rather than by a
+ * migration: the line was written by `foldHand` above, so it says which it was.
+ */
+export function evidenceFor(
+  stats: Pick<ReviewStats, 'evidence'>,
+  key: EvidenceKey,
+): EvidenceHand[] {
+  const hands = stats.evidence[key] ?? []
+  if (key !== 'river-call' && key !== 'preflop-call') return hands
+  return hands.filter((h) => !/^The \w+ fold\b/.test(h.line))
 }
 
 /** Big blinds given up per hundred hands, or null below a usable sample. */

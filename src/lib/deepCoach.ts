@@ -435,7 +435,7 @@ export function deepRead(input: DeepCoachInput): DeepRead {
     leaks.push({
       id: `leaky-${leakiest.street}`,
       title: `The ${leakiest.street} is where it goes`,
-      finding: `Your ${leakiest.street} calls have given up ${leakiest.bbPer100.toFixed(1)} big blinds per hundred hands, over ${leakiest.settled} priced decisions.`,
+      finding: `Your ${leakiest.street} calls and folds have given up ${leakiest.bbPer100.toFixed(1)} big blinds per hundred hands, over ${leakiest.settled} priced decisions.`,
       advice:
         leakiest.street === 'river'
           ? 'The last call is the one with nothing behind it. Fold the hands that only beat a bluff.'

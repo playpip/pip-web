@@ -117,10 +117,14 @@ function priceNote(hand: ReviewHand, eventIndex: number, gained: number): string
   const priced = hand.decisions.find((d) => d.eventIndex === eventIndex)
   if (!priced || priced.verdict === 'unknowable') return ''
   if (priced.verdict === 'right' && gained < 0) {
-    return ` ${priceLine(priced)}, so the price justified it — they just had it.`
+    return priced.folded
+      ? ` ${priceLine(priced)}, so the fold was right. Calling would have won this one.`
+      : ` ${priceLine(priced)}, so the price justified it — they just had it.`
   }
   if (priced.verdict === 'wrong' && gained > 0) {
-    return ` ${priceLine(priced)}, though, so it got there rather than being right.`
+    return priced.folded
+      ? ` ${priceLine(priced)}, though, so the fold was wrong on the price. It happened to dodge a better hand.`
+      : ` ${priceLine(priced)}, though, so it got there rather than being right.`
   }
   return ''
 }
