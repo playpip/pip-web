@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { A, LegalPage, Section } from '@/components/marketing/LegalPage'
+import { A, Correction, LegalPage, Section } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import { POSTFLOP_GATE_HEADS_UP } from '@/config/aiGates'
 import { CORRECTIONS } from '@/config/corrections'
@@ -56,6 +56,16 @@ export default function AugustRoundupPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="2 October 2026">
+        <p>
+          This post says nothing which ships free gets metered afterwards. The seven side tables
+          shipped free, and on 27 September they went behind the membership. The roadmap now
+          promises the core game, not everything that ships free, and says so in the open. The
+          drills below are still free. The sentence is left as it shipped, because the date on this
+          post is part of what it says.
+        </p>
+      </Correction>
+
       <Section title="The short version">
         <p>
           In August Pip stopped being only a poker table. There is somewhere to learn the game now,
