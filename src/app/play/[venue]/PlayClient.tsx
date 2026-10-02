@@ -6,7 +6,8 @@ import { Table } from '@/components/table/Table'
 import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
-import { venueById } from '@/config/venues'
+import { featureForVenue, venueById } from '@/config/venues'
+import { membershipFor } from '@/config/membership'
 import { CUSTOM_VENUE_ID, customVenue, refuseCustomTable } from '@/config/customTable'
 import { refuseSitDown } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
@@ -72,14 +73,20 @@ export function PlayClient() {
     // The same question the card on the lobby answered, asked of the same
     // function, so a table the app offered is a table the route seats you at
     // (lib/sitDown). A challenge goes back to the Rail it was offered on; a
-    // member table goes back to the side tables, which is the shelf it sits on
-    // and the one screen that explains what it is and how to get it, rather than
-    // to a home screen that would say nothing at all; everything else to the
-    // home screen, which is where the Roll is.
+    // member table goes to `/membership` opened on that game, the same answer
+    // its tile on the shelf gives (the side tables if it maps to nothing);
+    // everything else to the home screen, which is where the Roll is.
     const refusal = refuseSitDown(venue, profile, deviceId(), member)
     if (refusal) {
+      const feature = featureForVenue(venue)
       const back =
-        refusal === 'not-your-challenge' ? '/game' : refusal === 'members-only' ? '/game/side' : '/'
+        refusal === 'not-your-challenge'
+          ? '/game'
+          : refusal === 'members-only'
+            ? feature
+              ? membershipFor(feature)
+              : '/game/side'
+            : '/'
       router.replace(back)
       return
     }
