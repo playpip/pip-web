@@ -14,8 +14,14 @@
 // everybody. The query string is read from `window.location` rather than
 // `useSearchParams`, which would suspend the prerendered page (the same reason
 // `Join` reads `?joined=1` this way).
+//
+// A tap on the review also names the session already kept on this device
+// (`waitingSessionLine`), read from local storage after hydration. Nothing is
+// sent anywhere.
 
 import { type LocalPrice, tappedFeature } from '@/config/membership'
+import { waitingSessionLine } from '@/lib/review/highlights'
+import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
 
 export function TappedFor({ price }: { price: LocalPrice }) {
@@ -25,6 +31,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
   // Back from checkout the same `?for=` rides along, and the answer to it is
   // the link in the welcome box, not the price again.
   if (!feature || new URLSearchParams(search).has('joined')) return null
+  const waiting = feature.id === 'review' ? waitingSessionLine(loadReview()) : null
 
   return (
     <section
@@ -37,6 +44,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
           {feature.title}
         </h2>
         <p className="mt-2 leading-relaxed text-muted-foreground">{feature.blurb}</p>
+        {waiting && <p className="mt-3 font-medium tabular-nums text-foreground">{waiting}</p>}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a

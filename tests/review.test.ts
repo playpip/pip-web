@@ -9,7 +9,13 @@ import {
   marginLine,
 } from '@/lib/review/grade'
 import { handGrade, tallySession, type ReviewSession } from '@/lib/review/session'
-import { highlightsOf, highlightsOfHand, isNotable } from '@/lib/review/highlights'
+import {
+  highlightsOf,
+  highlightsOfHand,
+  isNotable,
+  PICKED_HIGHLIGHTS,
+  waitingSessionLine,
+} from '@/lib/review/highlights'
 import { cardFromString } from '@/lib/poker/cards'
 import {
   reviewableVenue,
@@ -290,6 +296,26 @@ test('highlights offer each hand once, best first', (t) => {
     marks.map((m) => m.index),
     [2, 1],
   )
+})
+
+test("the membership page names the waiting session in the picker's own count", (t) => {
+  const record = hand([])
+  const big = { record: { ...record, heroDelta: 2000 }, decisions: [] }
+  const small = { record: { ...record, heroDelta: 700 }, decisions: [] }
+  const quiet = { record: { ...record, heroDelta: 10 }, decisions: [] }
+  t.is(
+    waitingSessionLine(session([quiet, small, big])),
+    "Your last session at Friends' Garage: 3 hands, 2 worth a second look.",
+  )
+  t.is(waitingSessionLine(session([quiet])), "Your last session at Friends' Garage: 1 hand.")
+  // Never more than the review's strip offers.
+  const many = session(Array.from({ length: 9 }, () => big))
+  t.regex(waitingSessionLine(many)!, new RegExp(`9 hands, ${PICKED_HIGHLIGHTS} worth`))
+})
+
+test('no session, or an empty one, puts nothing on the membership page', (t) => {
+  t.is(waitingSessionLine(null), null)
+  t.is(waitingSessionLine(session([])), null)
 })
 
 // --- which tables are reviewed ----------------------------------------------

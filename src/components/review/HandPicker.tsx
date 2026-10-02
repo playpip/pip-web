@@ -24,7 +24,7 @@ import { PlayingCard } from '@/components/PlayingCard'
 import { GRADE_DOTS } from './GradeChip'
 import { isMistake } from '@/lib/review/grade'
 import { handGrade, tallySession, type ReviewHand, type ReviewSession } from '@/lib/review/session'
-import { highlightsOf } from '@/lib/review/highlights'
+import { highlightsOf, PICKED_HIGHLIGHTS } from '@/lib/review/highlights'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 
@@ -64,7 +64,7 @@ export function HandPicker({
   const money = useMoney()
   const hands = session.hands
   const tally = tallySession(session)
-  const highlights = highlightsOf(session, 4)
+  const highlights = highlightsOf(session, PICKED_HIGHLIGHTS)
   const rows = hands
     .map((hand, index) => ({ hand, index }))
     .filter(({ hand }) => matchesFilter(hand, filter))
