@@ -57,7 +57,10 @@ import { formatChips } from '@/lib/useMoney'
  * is exactly the kind of arithmetic that goes quietly wrong.
  */
 export interface HeroDecision {
-  /** Chips already in the pot, before this action. */
+  /**
+   * Chips in the pot this call can win, before this action. A short stack
+   * cannot win the part of a bet it cannot match, so that is left out.
+   */
   pot: number
   /** Chips it cost to call. 0 when checking was free. */
   toCall: number
@@ -89,8 +92,16 @@ export function heroDecision(
     (p) => p.id !== heroId && p.status !== 'folded' && p.status !== 'out',
   )
   if (opponents.length === 0) return undefined
+  // Chips bet this street past what the hero's call reaches go to a side pot
+  // the hero cannot win (`toCall` is already capped at their stack, as the
+  // engine charges it). Same subtraction as `gradeMove` in lib/review.
+  const reach = hero.committedThisStreet + toCall
+  const uncalled = state.players.reduce(
+    (sum, p) => sum + (p.id === heroId ? 0 : Math.max(0, p.committedThisStreet - reach)),
+    0,
+  )
   return {
-    pot: potSize(state),
+    pot: potSize(state) - uncalled,
     toCall,
     opponents: opponents.length,
     selectivity: opponents.map((p) => opponentSelectivity(state, p)),

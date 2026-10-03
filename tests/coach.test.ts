@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import test from 'ava'
-import { readHand, type HeroDecision } from '@/lib/coach'
+import { heroDecision, readHand, type HeroDecision } from '@/lib/coach'
 import { cardFromString } from '@/lib/poker/cards'
+import { applyAction, legalActions, startHand, type SeatConfig } from '@/lib/poker/engine'
 import type { HandEvent, HandRecord } from '@/store/game'
 
 const cards = (...s: string[]) => s.map(cardFromString)
@@ -159,6 +160,60 @@ test('the price quoted is the price the pot laid', (t) => {
   )
   t.truthy(read)
   t.regex(read!.text, /You needed 25%/)
+})
+
+// --- a short stack's call -------------------------------------------------
+
+/**
+ * Heads-up, both in for 250 preflop, then a 1000 bet on the flop. The hero has
+ * `heroStack - 250` behind. With `third`, a deep seat has called preflop and
+ * flatted the 1000 before the hero acts.
+ */
+function flopFacing1000(heroStack: number, third = false) {
+  const seats: SeatConfig[] = [
+    { id: 'hero', name: 'Will', stack: heroStack },
+    { id: 'ai0', name: 'Vivienne', stack: 5000 },
+    ...(third ? [{ id: 'ai1', name: 'Otto', stack: 5000 }] : []),
+  ]
+  let s = startHand({ seats, buttonIndex: 0, smallBlind: 25, bigBlind: 50, rng: () => 0.5 })
+  const act = (type: 'call' | 'bet' | 'raise', amount?: number) => {
+    s = applyAction(s, { type, amount })
+  }
+  // Preflop: whoever opens raises to 250, everybody calls it.
+  act('raise', 250)
+  while (s.street === 'preflop') act('call')
+  while (s.players[s.toActIndex].id !== 'hero') {
+    if (s.currentBet === 0) act('bet', 1000)
+    else act('call')
+  }
+  return { state: s, toCall: legalActions(s)!.callAmount }
+}
+
+test('a short stack calling an over-bet plays for what it can match', (t) => {
+  // 300 behind, 1000 bet into 500. The 700 the hero cannot match is not theirs
+  // to win: the call risks 300 to win 800, which needs 27%, not 300 / 1800.
+  const { state, toCall } = flopFacing1000(550)
+  t.is(toCall, 300)
+  const d = heroDecision(state, 'hero', toCall)!
+  t.is(d.pot, 800)
+
+  const read = readHand(hand('call', { ...d, board: cards('Ah', 'Kh', 'Qs') }))
+  t.truthy(read)
+  t.regex(read!.text, /You needed 27%/)
+})
+
+test('a covered call still plays for the whole pot', (t) => {
+  const { state, toCall } = flopFacing1000(5000)
+  t.is(toCall, 1000)
+  t.is(heroDecision(state, 'hero', toCall)!.pot, 1500)
+})
+
+test("a short stack leaves every bigger stack's excess out of the pot", (t) => {
+  // Three in for 250, then 1000 and a flat call. The hero's 300 can win 300
+  // from each of them: 750 + 300 + 300.
+  const { state, toCall } = flopFacing1000(550, true)
+  t.is(toCall, 300)
+  t.is(heroDecision(state, 'hero', toCall)!.pot, 1350)
 })
 
 test('the largest swing is the one that gets talked about', (t) => {
