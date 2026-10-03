@@ -19,6 +19,12 @@
 import { isMistake } from './grade'
 import type { ReviewHand, ReviewSession } from './session'
 
+/**
+ * How many highlights the review offers first. The hand list's strip and the
+ * line on `/membership?for=review` both read this, so they cannot disagree.
+ */
+export const PICKED_HIGHLIGHTS = 4
+
 /** How big a pot swing is worth marking, in big blinds. */
 const BIG_SWING_BB = 12
 /** How much a good call has to be worth before it is worth pointing at. */
@@ -146,4 +152,21 @@ export function highlightsOf(session: ReviewSession, limit = 6): Highlight[] {
 /** Does this hand carry anything worth marking in the list? */
 export function isNotable(hand: ReviewHand, index: number): boolean {
   return highlightsOfHand(hand, index).length > 0
+}
+
+/**
+ * The line `/membership?for=review` shows about the session already waiting:
+ * "Your last session at Friends' Garage: 41 hands, 3 worth a second look."
+ *
+ * Null with no session or no hands, so the page says nothing rather than
+ * "0 hands". It answers a tap on the review, so it only ever describes what
+ * the player has already played, and never counts down to anything.
+ */
+export function waitingSessionLine(session: ReviewSession | null): string | null {
+  if (!session || session.hands.length === 0) return null
+  const count = session.hands.length
+  const hands = `${count} ${count === 1 ? 'hand' : 'hands'}`
+  const picked = highlightsOf(session, PICKED_HIGHLIGHTS).length
+  const second = picked > 0 ? `, ${picked} worth a second look` : ''
+  return `Your last session at ${session.venueName}: ${hands}${second}.`
 }
