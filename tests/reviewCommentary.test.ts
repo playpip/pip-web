@@ -82,12 +82,12 @@ const say = (verdict: 'right' | 'wrong', heroShare: number) => {
 
 test('a fold right on the price that would have won says the fold was right', (t) => {
   const line = say('right', 0.8) ?? ''
-  t.regex(line, /the fold was right/)
-  t.notRegex(line, /they just had it/)
+  t.regex(line, /folding was right/)
+  t.notRegex(line, /better hand this time/)
 })
 
 test('a fold wrong on the price that would have lost says the fold was wrong', (t) => {
   const line = say('wrong', 0.1) ?? ''
-  t.regex(line, /the fold was wrong on the price/)
-  t.notRegex(line, /got there/)
+  t.regex(line, /you should have called/)
+  t.notRegex(line, /worked out/)
 })

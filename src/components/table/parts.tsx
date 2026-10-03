@@ -337,7 +337,8 @@ export function HeroPanel({
   isButton,
   isActive,
   defaultPage = 0,
-  oddsLabel = 'win',
+  oddsLabel = 'to win',
+  result = null,
 }: {
   hero: Player
   avatar: AvatarSpec
@@ -349,6 +350,12 @@ export function HeroPanel({
   defaultPage?: 0 | 1
   /** Review only: the words under the number. Carries the "≈", if there is one. */
   oddsLabel?: string
+  /**
+   * Chips up or down on the session, worked out the way the stand-up dialog
+   * does (`cashOutValue` less what went in). Null where there is none to show:
+   * a freeroll, and the review.
+   */
+  result?: number | null
 }) {
   const money = useMoney()
   const label = useHandLabel(hero, hand)
@@ -432,9 +439,19 @@ export function HeroPanel({
               <span className="whitespace-nowrap px-1 text-3xs uppercase tracking-wider text-muted-foreground">
                 {oddsLabel}
               </span>
-              <span className="whitespace-nowrap text-3xs tabular-nums text-muted-foreground">
-                {money(hero.stack)}
-              </span>
+              {/* **The session, not the stack.** The bare stack sat under
+                  "win" and read as "win 5,779" to a player who was down 221
+                  on the 6,000 they sat with (Will, 2026-10-03). */}
+              {result !== null && (
+                <span
+                  className={cn(
+                    'whitespace-nowrap text-3xs font-medium tabular-nums',
+                    result >= 0 ? 'text-emerald-500' : 'text-suit-red',
+                  )}
+                >
+                  {result >= 0 ? `+${money(result)}` : money(result)}
+                </span>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

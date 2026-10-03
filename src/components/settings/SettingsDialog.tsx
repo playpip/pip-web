@@ -13,7 +13,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { useTheme } from '@/components/theme-provider'
 import { useTextScale } from '@/components/text-scale-provider'
 import { isTableRoute, TABLE_MAX_TEXT_SCALE, TEXT_SCALES, textScaleLabel } from '@/lib/textScale'
 import { useProfile } from '@/store/profile'
@@ -43,7 +42,6 @@ export function SettingsDialog({
         </DialogHeader>
 
         <div className="flex min-w-0 flex-col gap-6 pt-1">
-          <AppearanceSection />
           <TextSizeSection />
           <SoundSection />
           <HapticsSection />
@@ -108,24 +106,6 @@ function ToggleRow({
         />
       </button>
     </div>
-  )
-}
-
-/** Light or dark — the toggle that used to live in the top bars. */
-function AppearanceSection() {
-  const { resolvedTheme, setTheme } = useTheme()
-  const hydrated = useHydrated()
-  const isDark = hydrated && resolvedTheme === 'dark'
-  return (
-    <ToggleRow
-      label="Dark mode"
-      hint="Switch the whole app between light and dark."
-      checked={isDark}
-      onChange={() => {
-        sound.play('tap')
-        setTheme(isDark ? 'light' : 'dark')
-      }}
-    />
   )
 }
 

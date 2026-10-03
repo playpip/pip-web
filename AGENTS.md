@@ -28,8 +28,8 @@ Hold'em web app). This mirrors [`CLAUDE.md`](./CLAUDE.md); full docs are in
 
 - **pnpm** for everything; never hand-pin versions.
 - **AVA** for tests (not Vitest); engine changes ship with tests.
-- **Theme tokens only** for colour (`foreground/<alpha>`, `bg-primary`) — must work in
-  light *and* dark. Never hardcode `white`/`black`.
+- **Theme tokens only** for colour (`foreground/<alpha>`, `bg-primary`). Dark only —
+  there is no light mode. Never hardcode `white`/`black`.
 - **No real-money framing:** "chips", never `$`; no casino textures or pop-ups.
 - **Engine is pure & deterministic** (seeded `Rng`; no React/store imports).
 - **Persisted-schema changes** bump `PERSIST_VERSION` + add a migration.

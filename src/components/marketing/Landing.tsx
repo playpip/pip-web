@@ -7,7 +7,7 @@
 // four feature cards that draw product output, so anything here that pictures
 // something the game emits either calls the game's own function or is a
 // constant that a test recomputes (`src/config/landingMocks.ts`). Flat,
-// black-first, one accent (pip). Works in both light and dark (see docs/design.md).
+// black-first, one accent (pip). Dark only (see docs/design.md).
 
 import Link from 'next/link'
 import { motion, type Variants } from 'framer-motion'
@@ -29,7 +29,6 @@ import {
 import { FaGithub } from 'react-icons/fa'
 import { CardBack } from '@/components/CardBack'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { Wordmark } from './Wordmark'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
@@ -52,7 +51,7 @@ import { cn } from '@/lib/utils'
 
 export function Landing() {
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-x-clip">
+    <div className="relative flex min-h-dvh flex-col overflow-x-clip bg-background">
       <Header />
       <main className="flex-1">
         <Hero />
@@ -121,7 +120,6 @@ function Header() {
           >
             <FaGithub className="size-4" />
           </a>
-          <ThemeToggle className="hidden sm:block" />
           <PlayButton size="sm" className="ml-1" />
         </nav>
       </div>

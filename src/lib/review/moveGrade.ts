@@ -110,7 +110,7 @@ function verdictFor(bb: number, equity: number): MoveVerdict {
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
 /**
- * What it was worth, **in chips**.
+ * A chip count, **in chips**, or null when there is nothing to report.
  *
  * The verdict bands are in big blinds, because four chips at Friends' Garage
  * and four at The Main Event are not the same mistake. The sentence is in
@@ -122,11 +122,30 @@ const pct = (n: number) => `${Math.round(n * 100)}%`
  * Under half a chip there is nothing to report, so the clause is dropped rather
  * than rounding to a number it does not mean.
  */
-function worth(chips: number, money: (n: number) => string, gained: string, lost: string): string {
+function chipsOf(chips: number, money: (n: number) => string): string | null {
   const size = Math.round(Math.abs(chips))
-  if (size < 1) return ''
-  // The unit is named. "Worth 47" is a number with nothing attached to it.
-  return ` ${chips >= 0 ? gained : lost} ${money(size)} ${size === 1 ? 'chip' : 'chips'}.`
+  if (size < 1) return null
+  return `${money(size)} ${size === 1 ? 'chip' : 'chips'}`
+}
+
+/**
+ * The sentence after the read: what the move made or lost, in chips.
+ *
+ * **Written for somebody in their first week** (Will, 2026-10-03). The old
+ * lines — "Bet into a better hand — you had about 22% of it. It cost 68 chips."
+ * — assumed the player already knew what "22% of it" was a share of. Each line
+ * now says who held what, the chance to win as a plain percentage, and what the
+ * move did to their chips.
+ */
+function chipsLine(
+  chips: number,
+  money: (n: number) => string,
+  gained: (c: string) => string,
+  lost: (c: string) => string,
+): string {
+  const c = chipsOf(chips, money)
+  if (!c) return ''
+  return ` ${chips >= 0 ? gained(c) : lost(c)}`
 }
 
 /**
@@ -172,7 +191,6 @@ export function gradeMove(
   if (pot === null) return null
   const bb = record.bigBlind || 1
   const mine = actor.id === HERO_ID
-  const who = mine ? 'You' : actor.name
 
   const odds = solve(
     [{ id: actor.id, hole: actor.hole }, ...others.map((p) => ({ id: p.id, hole: p.hole }))],
@@ -180,11 +198,13 @@ export function gradeMove(
   )
   const equity = odds.share[actor.id] ?? 0
   const about = odds.exact ? '' : 'about '
-  const held = `${about}${pct(equity)} of it`
+  const chance = `${about}${pct(equity)}`
+  // "Your chance to win was 22%." / "Sam's chance to win was 22%."
+  const theirChance = `${mine ? 'Your' : `${actor.name}’s`} chance to win was ${chance}.`
   const base = { eventIndex, playerId: actor.id, equity, exact: odds.exact }
 
   if (event.type === 'check') {
-    return { ...base, verdict: 'standard', bb: 0, line: `Nothing committed. ${who} had ${held}.` }
+    return { ...base, verdict: 'standard', bb: 0, line: `No chips put in. ${theirChance}` }
   }
 
   // What it cost to stay in, from the chips already in front of everybody —
@@ -208,7 +228,7 @@ export function gradeMove(
   if (event.type === 'call' || event.type === 'fold') {
     if (toCall === null) return null
     if (toCall <= 0) {
-      return { ...base, verdict: 'standard', bb: 0, line: `Nothing to pay. ${who} had ${held}.` }
+      return { ...base, verdict: 'standard', bb: 0, line: `Nothing to pay. ${theirChance}` }
     }
     // What calling was worth, with every card face up. Chips bet this street
     // past what this call can match are a side pot this seat cannot win, so
@@ -221,18 +241,21 @@ export function gradeMove(
     const callValue = equity * (pot - uncalled + toCall) - toCall
     const gained = event.type === 'call' ? callValue : -callValue
     const asBb = gained / bb
-    const head =
+    const line =
       event.type === 'call'
-        ? `${who} had ${held} against what the rest actually held.`
-        : asBb >= 0
-          ? `${who} laid down ${about}${pct(equity)}, and the price was wrong for it.`
-          : `${who} laid down ${about}${pct(equity)} of a pot worth calling.`
-    return {
-      ...base,
-      verdict: verdictFor(asBb, equity),
-      bb: asBb,
-      line: `${head}${worth(gained, money, 'Worth', 'It cost')}`,
-    }
+        ? `${theirChance}${chipsLine(
+            gained,
+            money,
+            (c) => `That was enough to call. On average, calling here wins ${c}.`,
+            (c) => `That was too low to call. On average, calling here loses ${c}.`,
+          )}`
+        : `${theirChance}${chipsLine(
+            gained,
+            money,
+            (c) => `That was too low to call, so folding saved ${c} on average.`,
+            (c) => `That was enough to call. On average, folding here gives up ${c}.`,
+          )}`
+    return { ...base, verdict: verdictFor(asBb, equity), bb: asBb, line }
   }
 
   // --- bets and raises: what the chips going in actually did
@@ -248,16 +271,25 @@ export function gradeMove(
   const asBb = gained / bb
   const head = folds
     ? equity < 0.5
-      ? `Everyone folded, and ${mine ? 'you had' : `${actor.name} had`} ${held}.`
-      : `Everyone folded to it, though ${mine ? 'you were' : `${actor.name} was`} ahead anyway.`
+      ? `Everyone folded, so ${mine ? 'you' : actor.name} took the pot with the worse hand. ${theirChance}`
+      : `Everyone folded, and ${mine ? 'you' : actor.name} had the best hand anyway. ${theirChance}`
     : equity >= 0.5
-      ? `Paid off, with ${held}.`
-      : `Bet into a better hand — ${mine ? 'you had' : `${actor.name} had`} ${held}.`
+      ? `Called by a worse hand. ${theirChance}`
+      : `Called by a better hand. ${theirChance}`
+  const action = event.type === 'raise' ? 'raise' : 'bet'
   return {
     ...base,
     verdict: verdictFor(asBb, equity),
     bb: asBb,
-    line: `${head}${worth(gained, money, 'Worth', 'It cost')}`,
+    line: `${head}${chipsLine(
+      gained,
+      money,
+      (c) =>
+        folds
+          ? `The ${action} won ${c} more than a showdown would have.`
+          : `On average, a ${action} here wins ${c}.`,
+      (c) => `On average, a ${action} here loses ${c}.`,
+    )}`,
   }
 }
 

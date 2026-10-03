@@ -36,7 +36,7 @@ Rules change → engine (+ tests). Pacing/money → game store. Looks → compon
 - **Tests: AVA**, not Vitest. Engine changes ship with tests.
 - **Colours: theme tokens only.** Never hardcode `bg-white/…`, `text-black`, etc. Use
   `foreground/<alpha>` for subtle surfaces, `bg-primary`/`text-primary-foreground` for
-  emphasis. Must work in **both light and dark**. (See docs/design.md.)
+  emphasis. **Dark only** — there is no light mode (removed 2026-10-03). (See docs/design.md.)
 - **No real money framing.** Play-money "chips" only; never show `$`. No casino textures,
   no pop-ups, no dark patterns. (See docs/brand.md.)
 - **Determinism in the engine.** Pass a seeded `Rng`; no `Date.now()`/`Math.random()` in

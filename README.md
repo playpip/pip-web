@@ -74,11 +74,10 @@ play money only, no pop-ups, no fake felt.
   confirm, and it carries all of it to every device you sign in on (see
   [sync](docs/sync.md)).
   The only analytics are anonymous and cookieless — see [Privacy](#privacy) below.
-- Light and dark themes, quiet tactile sound, desktop and mobile layouts.
+- Dark, quiet tactile sound, desktop and mobile layouts.
 
 <p align="center">
-  <img src="docs/assets/table-light.png" width="380" alt="Pip's table, light theme" />
-  <img src="docs/assets/table-dark.png" width="380" alt="Pip's table, dark theme" />
+  <img src="docs/assets/table-dark.png" width="380" alt="Pip's table" />
 </p>
 
 Play money only: balances are **chips**, never a currency. Chips cannot be bought

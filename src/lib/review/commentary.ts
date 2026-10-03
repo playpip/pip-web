@@ -118,13 +118,13 @@ function priceNote(hand: ReviewHand, eventIndex: number, gained: number): string
   if (!priced || priced.verdict === 'unknowable') return ''
   if (priced.verdict === 'right' && gained < 0) {
     return priced.folded
-      ? ` ${priceLine(priced)}, so the fold was right. Calling would have won this one.`
-      : ` ${priceLine(priced)}, so the price justified it — they just had it.`
+      ? ` ${priceLine(priced)}, so folding was right. Calling would have won this time.`
+      : ` ${priceLine(priced)}, so calling was right. They had a better hand this time.`
   }
   if (priced.verdict === 'wrong' && gained > 0) {
     return priced.folded
-      ? ` ${priceLine(priced)}, though, so the fold was wrong on the price. It happened to dodge a better hand.`
-      : ` ${priceLine(priced)}, though, so it got there rather than being right.`
+      ? ` ${priceLine(priced)}, so you should have called. Folding happened to save chips this time.`
+      : ` ${priceLine(priced)}, so you should have folded. It worked out this time.`
   }
   return ''
 }

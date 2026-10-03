@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from '@/components/theme-provider'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HelpCircle, History } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
@@ -27,7 +26,6 @@ import { useIsMobile } from '@/lib/useMediaQuery'
 import { useFreerollOnOffer } from '@/lib/useSpendableRoll'
 import { ordinal } from '@/lib/recap'
 import { KITCHEN_TABLE, cashOutValue, reviewableVenue } from '@/config/venues'
-import { tableFinishById } from '@/config/shop'
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
 import { opponentPositions } from '@/lib/tableSeats'
@@ -67,7 +65,6 @@ export function Table() {
   // the same function the route uses (lib/sitDown). The rebuy below is not: it
   // spends `roll` at a table already open here and reclaims nothing.
   const freerollOffered = useFreerollOnOffer()
-  const finish = tableFinishById(useProfile((s) => s.tableFinish))
   // The player's own furniture, handed to the felt in one value (see
   // `TableStyleContext` in ./parts). Selected field by field rather than as an
   // object so that a re-render of the profile for any other reason — the Roll
@@ -75,7 +72,6 @@ export function Table() {
   const ring = avatarRingById(useProfile((s) => s.avatarRing))
   const dealerButton = dealerButtonById(useProfile((s) => s.dealerButton))
   const tableStyle = useMemo(() => ({ ring, button: dealerButton }), [ring, dealerButton])
-  const { resolvedTheme } = useTheme()
   const adjustRoll = useProfile((s) => s.adjustRoll)
   const money = useMoney()
   const isMobile = useIsMobile()
@@ -139,6 +135,12 @@ export function Table() {
   const buttonPlayerId = hand.players[hand.buttonIndex]?.id
   const activeId = hand.players[hand.toActIndex]?.id
   const hero = hand.players.find((p) => p.id === 'hero')
+  // Up or down on the session, the same sum the stand-up dialog shows. A
+  // freeroll has none: the stack is the house's.
+  const sessionResult =
+    hero && !venue.freeroll
+      ? cashOutValue(venue, hero.stack) - (venue.cash ? cashInvested : venue.buyIn)
+      : null
   const opponents = hand.players.filter((p) => p.id !== 'hero')
   const positions = opponentPositions(opponents.length)
   const pot = potSize(hand)
@@ -273,21 +275,6 @@ export function Table() {
     </AnimatePresence>
   )
 
-  // An owned table finish recolours the felt — flat, no texture, ever. The two
-  // themes need different physics: on dark, translucent colour glows over the
-  // near-black background; on light, translucency makes a muddy stain that
-  // kills text contrast, so we mix an OPAQUE pastel toward white instead — a
-  // pale, designed surface that dark ink still reads on.
-  const finishStyle = finish
-    ? resolvedTheme === 'light'
-      ? {
-          background: `radial-gradient(120% 90% at 50% 42%, color-mix(in srgb, ${finish.swatch} 26%, white), color-mix(in srgb, ${finish.swatch} 12%, white) 78%)`,
-        }
-      : {
-          background: `radial-gradient(120% 90% at 50% 42%, ${finish.swatch}66, ${finish.swatch}24 78%), linear-gradient(${finish.swatch}1a, ${finish.swatch}1a)`,
-        }
-    : undefined
-
   // Help + last-hand controls. On desktop they sit in the AppBar; on mobile
   // they move down to just above the community cards (see below).
   const tableControls = (
@@ -317,7 +304,7 @@ export function Table() {
 
   return (
     <TableStyleContext.Provider value={tableStyle}>
-      <div className="relative flex h-dvh w-full flex-col overflow-hidden" style={finishStyle}>
+      <div className="relative flex h-dvh w-full flex-col overflow-hidden">
         {/* top bar — the shared AppBar; back confirms via the leave dialog */}
         <AppBar
           className="z-20"
@@ -428,6 +415,7 @@ export function Table() {
                       equity={heroEquity}
                       isButton={hero.id === buttonPlayerId}
                       isActive={activeId === hero.id}
+                      result={sessionResult}
                     />
                   </div>
                 </div>
@@ -454,6 +442,7 @@ export function Table() {
                     equity={heroEquity}
                     isButton={hero.id === buttonPlayerId}
                     isActive={activeId === hero.id}
+                    result={sessionResult}
                   />
                 </div>
               ))}
@@ -536,6 +525,7 @@ export function Table() {
                       equity={heroEquity}
                       isButton={hero.id === buttonPlayerId}
                       isActive={activeId === hero.id}
+                      result={sessionResult}
                     />
                   </div>
                 </div>

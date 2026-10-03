@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { BackButton } from './BackButton'
 import { Footer } from './Footer'
 import { Wordmark } from './Wordmark'
@@ -67,7 +66,7 @@ export function LegalPage({
  */
 export function MarketingFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col bg-background">
       <header className="sticky top-0 z-40 border-b border-foreground/5 bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 md:px-10">
           {/* The back control is the installed app's only way home from here: a
@@ -78,7 +77,6 @@ export function MarketingFrame({ children }: { children: React.ReactNode }) {
               <Wordmark />
             </Link>
           </div>
-          <ThemeToggle />
         </div>
       </header>
 

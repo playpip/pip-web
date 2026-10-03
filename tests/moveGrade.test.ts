@@ -170,7 +170,7 @@ test('calling off with nothing is a blunder, and the number says how much', (t) 
   t.is(move?.playerId, 'hero')
   t.is(move?.verdict, 'blunder')
   t.true((move?.bb ?? 0) <= -4)
-  t.regex(move?.line ?? '', /It cost/)
+  t.regex(move?.line ?? '', /calling here loses/)
 })
 
 test('folding a hand that was never getting there saves money', (t) => {
@@ -197,7 +197,7 @@ test('folding a hand that was never getting there saves money', (t) => {
   )
   const move = gradeMove(hand, 2)
   t.true((move?.bb ?? 0) > 0, 'laying down a losing hand facing a real price is a gain')
-  t.regex(move?.line ?? '', /laid down/)
+  t.regex(move?.line ?? '', /folding saved/)
 })
 
 test('a check commits nothing, so it is never a mistake', (t) => {
@@ -269,5 +269,5 @@ test('a short stack is priced at what it can call, for the pot it can win', (t) 
   const move = gradeMove(hand, 2, solve)
   t.truthy(move)
   t.is(Math.round((move?.bb ?? 0) * 20), -85, 'the fold gave up the 85 chips calling was worth')
-  t.regex(move?.line ?? '', /pot worth calling/)
+  t.regex(move?.line ?? '', /folding here gives up/)
 })

@@ -20,7 +20,6 @@ import { DealtCard, PlayingCard } from '@/components/PlayingCard'
 import { HandTimeline } from '@/components/HandTimeline'
 import { CountUp } from '@/components/CountUp'
 import { Splash } from '@/components/Splash'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { Transport } from '@/components/replay/Transport'
 import {
   narrate,
@@ -262,7 +261,6 @@ function Shell({ children }: { children: React.ReactNode }) {
           >
             pip
           </Link>
-          <ThemeToggle />
         </div>
         {children}
       </div>

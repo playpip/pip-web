@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import { THEME_BOOT_SCRIPT, ThemeProvider } from '@/components/theme-provider'
+import { FeltBackdrop } from '@/components/FeltBackdrop'
 import { TEXT_SCALE_BOOT_SCRIPT, TextScaleProvider } from '@/components/text-scale-provider'
 import { AppBoot } from '@/components/AppBoot'
 import { SyncConflictDialog } from '@/components/settings/SyncConflictDialog'
@@ -56,10 +56,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0b' },
-  ],
+  themeColor: '#0a0a0b',
   // Native-app feel: no pinch-zoom, and no auto-zoom when focusing an input.
   width: 'device-width',
   initialScale: 1,
@@ -76,20 +73,16 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      style={{ colorScheme: 'dark' }}
     >
       <body className="bg-background text-foreground min-h-full">
-        {/* No-flash theme boot — inline from the server so it runs pre-paint
-            (and React never sees a client-rendered script). */}
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         {/* Same trick for the text size setting: root font size before first
             paint, or every rem in the app reflows after hydration. */}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}
         <script dangerouslySetInnerHTML={{ __html: TEXT_SCALE_BOOT_SCRIPT }} />
-        <ThemeProvider>
-          <TextScaleProvider>{children}</TextScaleProvider>
-        </ThemeProvider>
+        <FeltBackdrop />
+        <TextScaleProvider>{children}</TextScaleProvider>
         <AppBoot />
         <SyncConflictDialog />
         <UpdatePrompt />

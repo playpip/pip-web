@@ -137,7 +137,7 @@ export function gradeLabel(d: Pick<GradedDecision, 'grade' | 'folded'>): string 
  */
 export function priceLine(d: GradedDecision): string {
   const pct = (n: number) => `${Math.round(n * 100)}%`
-  return `You needed ${pct(d.required)} and had about ${pct(d.equity)}`
+  return `To call, you needed a ${pct(d.required)} chance to win. From the cards you could see, you had about ${pct(d.equity)}`
 }
 
 /**

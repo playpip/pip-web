@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { Wordmark } from './Wordmark'
 
 /**
@@ -74,9 +73,7 @@ export function Footer() {
             Casual Texas Hold’em, redesigned. Free, open source, and play money — never real
             gambling.
           </p>
-          <div className="mt-5">
-            <ThemeToggle />
-          </div>
+          <div className="mt-5"></div>
         </div>
         <div className="grid grid-cols-2 gap-x-12 gap-y-8 sm:grid-cols-3">
           {FOOTER_GROUPS.map((group) => (

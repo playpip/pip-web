@@ -159,10 +159,17 @@ own.
 **It is hindsight, and it says so when hindsight and the price disagree.** A
 call that was right on the price and lost is not a mistake; a call that was
 wrong on the price and got there is not a read. Where the two part company the
-line adds the price: *"You needed 29% and had about 13%, so the price justified
-it — they just had it."* A fold gets its own version: *"so the fold was right.
-Calling would have won this one."* That sentence is the whole reason the review may be
+line adds the price: *"To call, you needed a 29% chance to win. From the cards
+you could see, you had about 35%, so calling was right. They had a better hand
+this time."* A fold gets its own version: *"…so folding was right. Calling would
+have won this time."* That sentence is the whole reason the review may be
 results-oriented at all.
+
+**Every line is written for a beginner** (Will, 2026-10-03). It names who
+held the better hand, the chance to win as a plain percentage, and what the move
+did in chips: *"Called by a better hand. Your chance to win was 22%. On average,
+a raise here loses 68 chips."* No "22% of it", no shorthand that assumes the
+reader already knows what equity is.
 
 **Priced at one street.** No implied odds, no future betting — the same
 simplification `lib/coach.ts` makes. A raise is read as a bet of what it added,

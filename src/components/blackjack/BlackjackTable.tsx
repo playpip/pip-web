@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { CountUp } from '@/components/CountUp'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { DealtCard, PlayingCard, type CardSize } from '@/components/PlayingCard'
-import { useTheme } from '@/components/theme-provider'
 import { LeaveDialog } from '@/components/table/LeaveDialog'
 import {
   type BlackjackHand,
@@ -25,7 +24,6 @@ import type { HouseRules } from '@/lib/blackjack/rules'
 import { betLadder, minimumBet } from '@/lib/blackjack/session'
 import { mulberry32 } from '@/lib/poker/cards'
 import { characterById } from '@/config/cast'
-import { tableFinishById } from '@/config/shop'
 import { avatarRingById } from '@/config/cosmetics'
 import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
@@ -74,13 +72,11 @@ export function BlackjackTable({
   const router = useRouter()
   const money = useMoney()
   const isMobile = useIsMobile()
-  const { resolvedTheme } = useTheme()
   const adjustRoll = useProfile((s) => s.adjustRoll)
   const setSession = useProfile((s) => s.setBlackjack)
   const avatar = useProfile((s) => s.avatar)
   // The player's own ring. Vic deals in his own face and wears nothing.
   const ring = avatarRingById(useProfile((s) => s.avatarRing))
-  const finish = tableFinishById(useProfile((s) => s.tableFinish))
   const dealer = characterById('vic')
 
   // One Rng for the session. Seeded at mount rather than calling Math.random
@@ -136,18 +132,6 @@ export function BlackjackTable({
   const staked = game.hand?.bet ?? 0
   const broke = game.stack < minimumBet(boughtIn) && game.phase !== 'player'
 
-  // The same gradient the poker felt uses, from the same owned finish, so the
-  // two rooms are recognisably the same building.
-  const finishStyle = finish
-    ? resolvedTheme === 'light'
-      ? {
-          background: `radial-gradient(120% 90% at 50% 42%, color-mix(in srgb, ${finish.swatch} 26%, white), color-mix(in srgb, ${finish.swatch} 12%, white) 78%)`,
-        }
-      : {
-          background: `radial-gradient(120% 90% at 50% 42%, ${finish.swatch}66, ${finish.swatch}24 78%), linear-gradient(${finish.swatch}1a, ${finish.swatch}1a)`,
-        }
-    : undefined
-
   const standUp = () => {
     sound.play('call')
     // The stack goes back whole. It left the Roll as chips and returns as the
@@ -176,7 +160,7 @@ export function BlackjackTable({
   }
 
   return (
-    <div className="relative flex h-dvh w-full flex-col overflow-hidden" style={finishStyle}>
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden">
       <AppBar
         className="z-20"
         leading="back"

@@ -10,7 +10,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { LESSONS } from './lessons'
 import { drillHref } from '@/components/drills/exit'
 import { firstSeatHref } from '@/components/onboarding/firstSeat'
@@ -94,7 +93,6 @@ export function Tutorial() {
             pip
           </Link>
           <div className="flex items-center gap-1">
-            <ThemeToggle />
             <button
               onClick={leave}
               className="rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"

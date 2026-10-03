@@ -1,29 +1,31 @@
 # Design System
 
-Pip is **black-first, flat, minimal** — a fintech/tech feel, not a casino. Both light
-and dark themes are supported; **dark is the default and the design's home base.**
+Pip is **black-first, flat, minimal** — a fintech/tech feel, not a casino. **Dark
+only.** Light mode was removed on 2026-10-03: the felt, the venue art and the table
+finishes were all designed for dark, and light was a second set of rules that never
+looked right. The `dark` class is fixed on `<html>` in `app/layout.tsx`.
 
 ## Golden rule: use tokens, not hardcoded colours
 
-Do **not** write `bg-white/10`, `text-black`, `border-white/…` etc. — they don't adapt
-to light mode. Use theme-aware tokens:
+Do **not** write `bg-white/10`, `text-black`, `border-white/…` etc. — keep colour in
+one place so it can be tuned. Use the tokens:
 
 - Text: `text-foreground`, `text-muted-foreground`.
-- Subtle surfaces/borders/rings: **`foreground/<alpha>`** (a light tint in dark mode, a
-  dark tint in light mode). e.g. `bg-foreground/[0.03]`, `border-foreground/10`,
+- Subtle surfaces/borders/rings: **`foreground/<alpha>`** (a light tint over the dark
+  canvas). e.g. `bg-foreground/[0.03]`, `border-foreground/10`,
   `ring-foreground/80`.
 - Primary/emphasis (buttons, badges, chips that must pop): **`bg-primary` +
-  `text-primary-foreground`** (flips correctly per theme).
-- Backdrops meant to stay dark in both themes (win/bust overlay, chips over dark art):
-  `bg-black/…` is fine and intentional.
-
-This convention is what makes the app coherent in both themes. When adding UI, follow it.
+  `text-primary-foreground`**.
+- Backdrops over art (win/bust overlay, chips over venue art): `bg-black/…` is fine and
+  intentional.
 
 ## Theme tokens
 
 Defined in `src/app/globals.css`:
-- shadcn/Tailwind semantic tokens under `:root` (light) and `.dark` (dark). Dark
-  `--background` is near-black (`oklch(0.08 0 0)`).
+- shadcn/Tailwind semantic tokens under `:root` (dark values only). `--background` is
+  near-black (`oklch(0.08 0 0)`). Older components still carry `dark:` variants; they
+  always apply, and the unprefixed classes beside them are dead weight to drop when
+  touched.
 - **Pip brand tokens** (`@theme`, static across themes):
   - `--color-suit-red: #f0574e` — soft coral for ♥/♦ (not fire-engine red).
   - `--color-suit-black: #16161d`, `--color-cardface: #fafafa`, `--color-cardface-ink: #16161d`.
@@ -31,17 +33,18 @@ Defined in `src/app/globals.css`:
   - `--color-felt: #0a0a0b`.
 - Generous radii scale (`--radius-*`), large rounded corners are on-brand.
 
-Theming is via **next-themes** (`class` strategy, `defaultTheme="dark"`,
-`ThemeToggle` in the home + table top bars). `useHydrated()` guards client-only reads
-to avoid SSR flashes.
+There is no theme provider and no toggle. `useHydrated()` guards client-only reads to
+avoid SSR flashes. The owned **table finish** is a fixed backdrop behind every app
+screen (`components/FeltBackdrop.tsx`, mounted in the root layout); marketing pages
+paint `bg-background` over it and stay plain.
 
 ## Colour
 
-- **Canvas:** near-black (dark) / near-white (light).
+- **Canvas:** near-black.
 - **Accent:** one at a time. Each **venue** carries its own `accent` (see `config/venues.ts`)
   used for its tier chip.
-- **Cards:** white face (`bg-cardface`) with coral-red or ink pips. Shadow is
-  theme-aware — soft in light, deeper on the dark table.
+- **Cards:** white face (`bg-cardface`) with coral-red or ink pips. Deep shadow on the
+  dark table.
 - **Card backs:** user-customizable colour + pattern (muted, Notion-style palette). See
   `config/cardBacks.ts` and `components/CardBack.tsx`.
 
@@ -151,7 +154,7 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 
 ## Adding UI — checklist
 
-1. Use theme tokens (see the golden rule). Test both light and dark.
+1. Use theme tokens (see the golden rule).
 2. `tabular-nums` for any animating number.
 3. Fire an appropriate `sound.play(...)` cue on meaningful actions.
 4. Prefer Framer Motion for enter/exit and value transitions; keep it subtle.
