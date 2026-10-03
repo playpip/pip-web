@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'short-stack-pot-odds',
+    title: 'Pot odds when you can’t cover the bet',
+    description:
+      'Facing a bet bigger than your stack, you pay less than the bet and play for less than the pot. Our session review got both halves wrong and called a fold that cost four big blinds a good one. The right sum, worked through one spot.',
+    date: '2026-10-02',
+  },
+  {
     slug: 'deal-me-in',
     title: 'Deal me in dealt you a menu',
     description:
