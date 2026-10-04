@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'sign-in-with-google-and-apple',
+    title: 'What Google and Apple tell us when you sign in',
+    description:
+      'Pip accounts can now be made with Google or Apple. Both send us your email and an id, Google adds your name and picture, Apple your name once. We never show or use them.',
+    date: '2026-10-04',
+  },
+  {
     slug: 'short-stack-pot-odds',
     title: 'Pot odds when you can’t cover the bet',
     description:
