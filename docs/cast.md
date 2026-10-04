@@ -30,10 +30,10 @@ Each `Character` in `src/config/cast.ts`:
 - **`only`** — pins a character to specific venues instead: Uncle Ray hosts the
   Kitchen Table; Sable is the Vault's boss; Bev, Dez and Winnie keep the member
   rooms. Pinned characters never wander.
-- **`delta`** — small nudges (±0.12 max) over the venue's `AiProfile`
+- **`delta`**: nudges (±0.2 max) over the venue's `AiProfile`
   (tightness / aggression / bluff). **The venue owns difficulty** — `skill` and
   `iterations` are never touched, so the ladder curve is exactly as tuned.
-  Applied by `profileFor` per seat; validate big changes with `pnpm sim`.
+  Applied by `profileFor` per seat; validate big changes with `pnpm sim --cast`, and keep each band's mean delta near zero so the rung keeps its difficulty.
 - **`lines`** — table talk (below).
 
 ### The one exception: a guest brings their own rung

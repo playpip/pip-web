@@ -67,7 +67,7 @@ export const CAST: readonly Character[] = [
     bio: 'Brings her own biscuits. Plays every hand she’s dealt.',
     avatar: av('doris', 'ffd5dc'),
     bands: ['low'],
-    delta: { tightness: -0.1, aggression: -0.05 },
+    delta: { tightness: -0.2, aggression: -0.1 },
     lines: {
       seat: ['Doris settles in and opens a tin of biscuits.', '“Deal me in, love,” says Doris.'],
       win: [
@@ -84,7 +84,7 @@ export const CAST: readonly Character[] = [
     bio: 'Swears he’s never bluffed in his life. Bluffs constantly.',
     avatar: av('frank', 'b6e3f4'),
     bands: ['low'],
-    delta: { bluff: 0.1, aggression: 0.08 },
+    delta: { bluff: 0.12, aggression: 0.1 },
     lines: {
       seat: [
         'Frank arrives ten minutes late and blames traffic.',
@@ -107,7 +107,7 @@ export const CAST: readonly Character[] = [
     bio: 'Waits for aces. Sometimes gets them.',
     avatar: av('marge', 'd1f4d0'),
     bands: ['low'],
-    delta: { tightness: 0.12, aggression: -0.05 },
+    delta: { tightness: 0.2, aggression: -0.1 },
     lines: {
       seat: [
         'Marge orders a lemonade and means business.',
@@ -127,7 +127,7 @@ export const CAST: readonly Character[] = [
     bio: 'Watched every training video. Understood some.',
     avatar: av('benny', 'f4e7b6'),
     bands: ['low'],
-    delta: { aggression: 0.12, bluff: 0.05 },
+    delta: { aggression: 0.2, bluff: 0.04 },
     lines: {
       seat: [
         'Benny shuffles his chips like the videos taught him.',
@@ -147,7 +147,7 @@ export const CAST: readonly Character[] = [
     bio: 'Says three words an hour. All of them true.',
     avatar: av('priya', 'c0aede'),
     bands: ['low', 'mid'],
-    delta: { tightness: 0.06, aggression: 0.06 },
+    delta: { tightness: 0.1, aggression: 0.1 },
     lines: {
       seat: ['Priya nods hello and says nothing else.', 'Priya sits, watches, waits.'],
       win: ['Priya says nothing. The chips say it.', '“Thank you,” says Priya, precisely once.'],
@@ -164,7 +164,7 @@ export const CAST: readonly Character[] = [
     bio: 'It’s his garage. He’d rather you didn’t win in it.',
     avatar: av('gus', 'ffdfbf'),
     bands: ['low'],
-    delta: { tightness: -0.06 },
+    delta: { tightness: -0.12 },
     lines: {
       seat: [
         'Gus drags in another folding chair. “Room for one more.”',
@@ -184,7 +184,7 @@ export const CAST: readonly Character[] = [
     bio: 'Between shots. Never misses either table.',
     avatar: av('sofia', 'b6e3f4'),
     bands: ['low', 'mid'],
-    delta: { bluff: 0.06, aggression: 0.05 },
+    delta: { bluff: 0.08, aggression: 0.05 },
     lines: {
       seat: [
         'Sofia chalks a cue she isn’t using.',
@@ -204,7 +204,7 @@ export const CAST: readonly Character[] = [
     bio: 'Has a seat at the bar with his name on it. Literally.',
     avatar: av('ted', 'd1f4d0'),
     bands: ['low'],
-    delta: { aggression: -0.08 },
+    delta: { aggression: -0.15 },
     lines: {
       seat: [
         'Ted brings his pint over. It’s not his first.',
@@ -227,7 +227,7 @@ export const CAST: readonly Character[] = [
     bio: 'On her fourth coffee. It’s not helping. Or it is.',
     avatar: av('astrid', 'c0aede'),
     bands: ['low', 'mid'],
-    delta: { aggression: 0.08, bluff: 0.04 },
+    delta: { aggression: 0.12, bluff: 0.03 },
     lines: {
       seat: [
         'Astrid arrives with a thermos the size of a leg.',
@@ -249,7 +249,7 @@ export const CAST: readonly Character[] = [
     bio: 'Plays position like a chess opening.',
     avatar: av('vivienne', 'c0aede'),
     bands: ['mid'],
-    delta: { tightness: 0.08, aggression: 0.08 },
+    delta: { tightness: 0.12, aggression: 0.1 },
     lines: {
       seat: [
         'Vivienne takes the seat on the button’s left. Deliberately.',
@@ -291,7 +291,7 @@ export const CAST: readonly Character[] = [
     bio: 'Works the docks. Collects bounties both places.',
     avatar: av('jun', 'b6e3f4'),
     bands: ['mid'],
-    delta: { aggression: 0.1 },
+    delta: { aggression: 0.15 },
     lines: {
       seat: [
         'Jun cracks his knuckles out of habit, not menace.',
@@ -308,7 +308,7 @@ export const CAST: readonly Character[] = [
     bio: 'Floats the flop, barrels the turn, blames the river.',
     avatar: av('mo', 'd1f4d0'),
     bands: ['mid'],
-    delta: { bluff: 0.08 },
+    delta: { bluff: 0.12 },
     lines: {
       seat: ['Mo boards last, as always.', 'Mo licks a thumb and checks the wind. Indoors.'],
       win: ['“The river provides,” says Mo.', 'Mo hauls the pot in hand over hand.'],
@@ -325,7 +325,7 @@ export const CAST: readonly Character[] = [
     bio: 'Owns the chop shop. The name isn’t about cars.',
     avatar: av('elaine', 'ffd5dc'),
     bands: ['mid'],
-    delta: { aggression: 0.1, tightness: -0.05 },
+    delta: { aggression: 0.12, tightness: -0.1 },
     lines: {
       seat: [
         'Elaine sets a kitchen timer on the table.',
@@ -345,7 +345,7 @@ export const CAST: readonly Character[] = [
     bio: 'Thinks four streets ahead. Occasionally in the wrong hand.',
     avatar: av('dmitri', 'f4e7b6'),
     bands: ['mid'],
-    delta: { tightness: 0.1 },
+    delta: { tightness: 0.18 },
     lines: {
       seat: [
         'Dmitri cleans his glasses. Twice.',
@@ -368,7 +368,7 @@ export const CAST: readonly Character[] = [
     bio: 'Calls the flop, the turn, your bluff.',
     avatar: av('rosa', 'ffd5dc'),
     bands: ['mid'],
-    delta: { aggression: 0.02, tightness: -0.04 },
+    delta: { tightness: -0.15, aggression: -0.15 },
     lines: {
       seat: [
         'Rosa sits down like she never left.',
@@ -390,7 +390,7 @@ export const CAST: readonly Character[] = [
     bio: 'Old money. Older patience.',
     avatar: av('laurent', 'b6e3f4'),
     bands: ['high'],
-    delta: { tightness: 0.1, aggression: 0.02 },
+    delta: { tightness: 0.18, aggression: -0.02 },
     lines: {
       seat: [
         'Laurent’s watch costs more than the prize.',
@@ -432,7 +432,7 @@ export const CAST: readonly Character[] = [
     bio: 'Wrote the book. The other pros wrote reviews.',
     avatar: av('webb', 'd1f4d0'),
     bands: ['high'],
-    delta: { tightness: 0.05, aggression: 0.05 },
+    delta: { tightness: 0.08, aggression: 0.05 },
     lines: {
       seat: [
         'Webb reads the table like a first edition.',
@@ -452,7 +452,7 @@ export const CAST: readonly Character[] = [
     bio: 'Three bracelets. Sleeps with the third.',
     avatar: av('kenji', 'f4e7b6'),
     bands: ['high'],
-    delta: { aggression: 0.08 },
+    delta: { aggression: 0.12 },
     lines: {
       seat: [
         'Kenji stacks his chips into perfect towers.',
@@ -495,7 +495,7 @@ export const CAST: readonly Character[] = [
     bio: 'Plays big pots on feel. The feel is usually right.',
     avatar: av('sal', 'ffdfbf'),
     bands: ['high'],
-    delta: { tightness: -0.08, aggression: 0.1 },
+    delta: { tightness: -0.18, aggression: 0.1 },
     lines: {
       seat: [
         'Big Sal’s laugh arrives before he does.',
@@ -610,7 +610,7 @@ export const CAST: readonly Character[] = [
       'deepstack-40000',
       'bigpot',
     ],
-    delta: { tightness: 0.04, aggression: 0.06 },
+    delta: { tightness: 0.06, aggression: 0.1 },
     lines: {
       seat: ['Bev bolts the door and deals.', '“Nobody’s in a rush,” says Bev, dealing.'],
       win: [
@@ -634,7 +634,7 @@ export const CAST: readonly Character[] = [
       'deepstack-40000',
       'bigpot',
     ],
-    delta: { tightness: -0.05, aggression: 0.04 },
+    delta: { tightness: -0.1, aggression: 0.06 },
     lines: {
       seat: ['Dez sits down still in his hi-vis.', '“Ten minutes,” says Dez, at half past one.'],
       win: [
@@ -661,7 +661,7 @@ export const CAST: readonly Character[] = [
       'deepstack-40000',
       'bigpot',
     ],
-    delta: { tightness: 0.08, aggression: -0.03 },
+    delta: { tightness: 0.15, aggression: -0.06 },
     lines: {
       seat: [
         'Winnie sets the needles down. Briefly.',

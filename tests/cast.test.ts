@@ -69,12 +69,13 @@ test('draftCast tops up from the wider cast when a roster runs short', (t) => {
 
 test('profileFor nudges personality but never skill, and clamps to [0,1]', (t) => {
   const venue = VENUES.find((v) => v.id === 'garage')! // tightness 0.15
-  const marge = characterById('marge')! // tightness +0.12
-  const doris = characterById('doris')! // tightness -0.1
+  const marge = characterById('marge')! // tightness +0.2
+  const doris = characterById('doris')! // tightness -0.2
   t.true(profileFor(venue, marge).tightness > venue.ai.tightness)
   t.true(profileFor(venue, doris).tightness >= 0)
   t.is(profileFor(venue, marge).skill, venue.ai.skill)
   t.is(profileFor(venue, marge).iterations, venue.ai.iterations)
-  // A big negative delta can't push below zero.
-  t.true(profileFor(venue, doris).tightness === Math.max(0, venue.ai.tightness - 0.1))
+  // A big negative delta can't push below zero: 0.15 - 0.2 clamps to 0.
+  t.true(venue.ai.tightness + (doris.delta?.tightness ?? 0) < 0)
+  t.is(profileFor(venue, doris).tightness, 0)
 })
