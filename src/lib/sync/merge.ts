@@ -23,6 +23,7 @@ import type {
   VenueRecord,
 } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
+import { emptyReviewStats } from '@/lib/review/stats'
 import { STARTING_ROLL } from '@/config/venues'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
@@ -62,6 +63,11 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // with it rather than being independently wrong.
     stats: winner.stats,
     tendencies: winner.tendencies,
+    // The career table of priced decisions follows them, and for the same
+    // reason: it is counted hand by hand out of the same hands `tendencies` is,
+    // so a merge that took one side's hands and the other side's verdicts about
+    // them would describe a player who does not exist.
+    reviewStats: winner.reviewStats ?? emptyReviewStats(),
     // The other half of the Roll, so it follows the Roll (lib/sync/escrow).
     // `pickUnhandled` would have taken `winner.escrow ?? loser.escrow`, which
     // is the one wrong answer available: a winner holding nothing would inherit
@@ -121,10 +127,27 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     cardBack: winner.cardBack,
     deckFace: winner.deckFace,
     tableFinish: winner.tableFinish,
+    // The three that arrived with v21. Named here rather than left to
+    // `pickUnhandled` because that helper takes `winner ?? loser`, and for
+    // `avatarRing` the commonest real value is `null` — "I took my ring off" —
+    // which `??` would read as "nothing to say" and quietly restore the ring
+    // from the other device on every sync.
+    avatarRing: winner.avatarRing ?? null,
+    dealerButton: winner.dealerButton ?? loser.dealerButton,
+    soundPack: winner.soundPack ?? loser.soundPack,
     tableTalk: winner.tableTalk,
     handCoaching: winner.handCoaching,
     haptics: winner.haptics,
     cameFromFreeroll: winner.cameFromFreeroll,
+    // The table they last built. One slot, so there is nothing to merge: the
+    // chosen side's is the one they most recently sat at. `?? null` because a
+    // profile written before v18 has no such field and `pickUnhandled` would
+    // otherwise leave it `undefined`, which the type does not allow.
+    customTable: winner.customTable ?? loser.customTable ?? null,
+    // An open blackjack session belongs to the device holding the chips, and
+    // the chips are in the Roll that the chosen side won. Taking the loser's
+    // session would hand this device a stack the winning Roll never paid for.
+    blackjack: winner.blackjack ?? null,
 
     // The Daily is once per UTC day and abandoning counts as played, so the
     // record that says "played today" has to win or syncing becomes a re-roll.
@@ -261,7 +284,8 @@ function mergeCastRecords(
  * is not monotonic — the whole point is that it goes down when you get an easy
  * spot wrong — so max() would quietly ratchet it up every time two devices met,
  * and the mean of two ratings is a number neither device ever earned. More
- * answers is the better reading of the same player, so it wins.
+ * answers is the better reading of the same player, so it wins, and its
+ * history comes with it.
  */
 function mergeDrills(
   a: Record<string, DrillRecord>,
@@ -275,12 +299,18 @@ function mergeDrills(
       out[id] = (x ?? y) as DrillRecord
       continue
     }
+    const busier = x.answered >= y.answered ? x : y
     out[id] = {
       answered: Math.max(x.answered, y.answered),
       correct: Math.max(x.correct, y.correct),
-      rating: x.answered >= y.answered ? x.rating : y.rating,
+      rating: busier.rating,
       bestRun: Math.max(x.bestRun, y.bestRun),
       shapes: mergeShapes(x.shapes, y.shapes),
+      // The graph goes with the rating it ends on. Splicing two devices' lines
+      // together would draw a path neither of them took, and a history that
+      // ended somewhere other than the rating beside it would be a graph that
+      // disagreed with its own headline.
+      history: busier.history,
     }
   }
   return out
@@ -357,6 +387,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'roll',
     'stats',
     'tendencies',
+    'reviewStats',
     'peakRoll',
     'awards',
     'owned',
@@ -369,6 +400,9 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'cardBack',
     'deckFace',
     'tableFinish',
+    'avatarRing',
+    'dealerButton',
+    'soundPack',
     'tableTalk',
     'handCoaching',
     'haptics',

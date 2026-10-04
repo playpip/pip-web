@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { DoItWithWebb } from '@/components/learn/DoItWithWebb'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { ThePrice } from '@/components/learn/ThePrice'
 import { WhatItCosts } from '@/components/learn/WhatItCosts'
@@ -321,6 +322,11 @@ export default function PotOddsGuide() {
         </p>
       </Section>
 
+      {/* The lesson that plays this page out at a table. After the prose and
+          before the one call to play, so it adds a door without touching a
+          word of the teaching. */}
+      <DoItWithWebb lesson="pot-odds" />
+
       <TryIt>
         <p>
           The arithmetic takes a minute to learn and a few hundred hands to apply without thinking,
@@ -328,9 +334,9 @@ export default function PotOddsGuide() {
         </p>
         <p>
           You can play Texas Hold’em on Pip right now, in the browser, against opponents that price
-          their own decisions the same way. Nothing to install, no money involved anywhere and none
-          to spend. The table shows your win chance while the hand is live, so you can make your
-          estimate first and then check it.
+          their own decisions the same way. Nothing to install, free to play, and the chips are
+          never for sale. The table shows your win chance while the hand is live, so you can make
+          your estimate first and then check it.
         </p>
       </TryIt>
     </GuidePage>

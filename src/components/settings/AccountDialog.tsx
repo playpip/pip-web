@@ -17,7 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { FaApple } from 'react-icons/fa'
+import { FcGoogle } from 'react-icons/fc'
 import { useSync } from '@/store/sync'
+import { oauthProviders, type OAuthProvider } from '@/lib/sync/client'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -42,6 +45,11 @@ const wideSecondaryButton = `w-full ${secondaryButtonBase}`
 // worst thing in here on a phone.
 const textLink =
   'flex min-h-11 items-center justify-center text-xs text-muted-foreground/70 underline-offset-2 transition hover:text-foreground hover:underline'
+
+const PROVIDERS: Record<OAuthProvider, { label: string; icon: React.ReactNode }> = {
+  google: { label: 'Continue with Google', icon: <FcGoogle aria-hidden className="size-5" /> },
+  apple: { label: 'Continue with Apple', icon: <FaApple aria-hidden className="size-5" /> },
+}
 
 const COPY: Record<AccountMode, { title: string; description: string }> = {
   signin: {
@@ -97,13 +105,19 @@ export function AccountDialog({
   }, [status, open, current])
 
   const copy = COPY[current]
+  // With Google or Apple on offer, "an email and a password" is no longer the
+  // only way in, so the signup line stops saying it is.
+  const description =
+    current === 'signup' && oauthProviders().length > 0
+      ? 'Use Google, Apple or an email and a password. Nothing to confirm. Your Roll follows you to every device you sign in on.'
+      : copy.description
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
-          <DialogDescription>{copy.description}</DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 pt-1">
           {current === 'manage' ? (
@@ -129,7 +143,8 @@ function AuthForm({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [sent, setSent] = useState(false)
-  const { busy, error, signIn, signUp, sendReset, clearError } = useSync()
+  const { busy, error, signIn, signUp, signInWith, sendReset, clearError } = useSync()
+  const providers = mode === 'reset' ? [] : oauthProviders()
 
   const go = (next: AccountMode) => {
     sound.play('tap')
@@ -156,6 +171,24 @@ function AuthForm({
 
   return (
     <>
+      {providers.map((p) => (
+        <button
+          key={p}
+          onClick={() => {
+            sound.play('tap')
+            void signInWith(p)
+          }}
+          disabled={busy}
+          className={cn(wideSecondaryButton, 'flex items-center justify-center gap-2')}
+        >
+          {PROVIDERS[p].icon}
+          {PROVIDERS[p].label}
+        </button>
+      ))}
+      {providers.length > 0 && (
+        <p className="py-1 text-center text-xs text-muted-foreground/70">or with your email</p>
+      )}
+
       <input
         type="email"
         value={email}
@@ -231,8 +264,18 @@ function Manage({ onDone }: { onDone: () => void }) {
   const [confirming, setConfirming] = useState(false)
   const [changing, setChanging] = useState(false)
   const [changed, setChanged] = useState(false)
-  const { email, busy, dirty, lastSyncedAt, error, signOut, syncNow, deleteAccount, clearError } =
-    useSync()
+  const {
+    email,
+    hasPassword,
+    busy,
+    dirty,
+    lastSyncedAt,
+    error,
+    signOut,
+    syncNow,
+    deleteAccount,
+    clearError,
+  } = useSync()
 
   return (
     <>
@@ -293,13 +336,13 @@ function Manage({ onDone }: { onDone: () => void }) {
           disabled={busy}
           className={wideSecondaryButton}
         >
-          Change password
+          {hasPassword ? 'Change password' : 'Set a password'}
         </button>
       )}
 
       {changed && !changing && (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Password changed. You’re still signed in here.
+          Password saved. You’re still signed in here.
         </p>
       )}
 

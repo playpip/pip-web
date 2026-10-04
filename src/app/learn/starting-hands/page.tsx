@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { DoItWithWebb } from '@/components/learn/DoItWithWebb'
 import { ReuseChart } from '@/components/learn/ReuseChart'
 import { StartingHandChart } from '@/components/learn/StartingHandChart'
 import { Section } from '@/components/marketing/LegalPage'
@@ -250,6 +251,11 @@ export default function StartingHandsGuide() {
         </p>
       </Section>
 
+      {/* The lesson that plays this page out at a table. After the prose and
+          before the one call to play, so it adds a door without touching a
+          word of the teaching. */}
+      <DoItWithWebb lesson="starting-hands" />
+
       <TryIt>
         <p>
           A chart is a memory aid for a decision you have to make in about four seconds, and it only
@@ -257,7 +263,7 @@ export default function StartingHandsGuide() {
         </p>
         <p>
           You can play Texas Hold’em on Pip right now, in the browser, against opponents that
-          actually play. Nothing to install, no money involved anywhere and none to spend. Your
+          actually play. Nothing to install, free to play, and the chips are never for sale. Your
           position moves every hand, so the interesting half of this page turns up on its own,
           several times a minute.
         </p>

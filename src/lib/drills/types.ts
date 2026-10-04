@@ -1,3 +1,4 @@
+import type { SeatId } from '@/config/positions'
 import type { Card } from '@/lib/poker/cards'
 import type { SpotKind } from './rating'
 
@@ -47,7 +48,39 @@ import type { SpotKind } from './rating'
  * `pot-odds` above: an estimate has a tolerance, and a tolerance is a way to
  * mark a correct answer wrong.
  */
-export type DrillKindId = 'which-hand-wins' | 'count-your-outs' | 'pot-odds' | 'hand-strength'
+/**
+ * **`whats-your-hand` is free, and it is the bottom of the ladder**
+ * (Will, 2026-09-21). Your two cards, a finished board, and one question:
+ * what have you got? It exists because every other kind in this folder assumes
+ * an answer to it — you cannot count the cards that win it for you, or price a
+ * call, until you can read what is in front of you — and until it shipped the
+ * app's easiest spot still meant applying the whole ranking table to two
+ * seven-card hands.
+ *
+ * Free for the same reason `which-hand-wins` is, and under the same rule: it
+ * carries no `membersOnly` in `config/drills.ts`, and absent means free forever
+ * (see config/membership.ts). It is graded by `evaluateHand`, which is the
+ * solver reading a finished hand, so it is exact in the way the free kind is:
+ * nothing sampled, no tolerance, nothing that can mark a correct answer wrong.
+ *
+ * **`which-five-play` comes with the membership**, and carries `membersOnly`
+ * from the commit that registered it (technology#55). Seven cards, and you tap
+ * the five that actually play. Exact by enumeration, like the other paid kinds:
+ * all twenty-one ways to take five from seven are evaluated at generation time
+ * and every one that ties the best hand is a correct answer, so a player who
+ * picks the other equally-good kicker is not marked wrong for it.
+ */
+export type DrillKindId =
+  | 'whats-your-hand'
+  | 'which-five-play'
+  | 'which-hand-wins'
+  | 'count-your-outs'
+  | 'pot-odds'
+  | 'hand-strength'
+  | 'calling-the-river'
+  | 'open-or-fold'
+  | 'bet-or-check'
+  | 'shove-or-fold'
 
 /** One of the answers on offer. */
 export interface DrillChoice {
@@ -108,6 +141,85 @@ export interface DrillStakes {
   toCall: number
 }
 
+/**
+ * One street of the betting that led to a decision, as the table would show it.
+ *
+ * For a kind whose question is a line rather than a snapshot: "they checked the
+ * flop, bet 40 into 80 on the turn, bet 90 into 160 on the river". `potBefore`
+ * is the pot as it stood when they acted, so each step says what the bet was
+ * measured against without the screen having to replay any arithmetic.
+ */
+export interface DrillLineStep {
+  // On the river kind every step is theirs. On the bet-or-check kind a flop or
+  // turn `bet` is yours and they called it, and the river `check` is theirs:
+  // the line is what they did with the chips, which is what their range reads.
+
+  street: 'flop' | 'turn' | 'river'
+  action: 'check' | 'bet'
+  /** Chips bet, on a bet. */
+  amount?: number
+  potBefore: number
+}
+
+/**
+ * The range a river bet is facing, counted against the hero's hand, at the
+ * bluffing rate the explanation quotes. Weighted counts, so the bluffs can be
+ * fractional (see lib/drills/riverRange.ts): the felt draws proportions from
+ * these, never a list of hands.
+ */
+export interface RiverRangeSummary {
+  /** Hands they bet for value. */
+  value: number
+  /** Of those, the ones the hero beats (a tie counts half). */
+  valueBeaten: number
+  /** Hands that missed, weighted by how often they bet them. */
+  bluffs: number
+  /** Of those, the ones the hero beats. */
+  bluffsBeaten: number
+  /** The weakest hand in the value half, in words: "a pair of queens". */
+  weakestValue: string
+  /** The hero's share of the pot against all of it. The number the grade came from. */
+  equity: number
+}
+
+/**
+ * The hands that call a river value bet, counted against the hero's hand, at
+ * the calling rate the explanation quotes (see lib/drills/valueRange.ts).
+ * Unweighted counts of two-card hands: the felt draws these as they are.
+ */
+export interface CallingRangeSummary {
+  /** The bet on offer, and the pot it goes into, in chips. */
+  pot: number
+  bet: number
+  /** Hands that call it. */
+  calls: number
+  /** Of those, the ones the hero beats (a tie counts half). */
+  callsBeaten: number
+  /** Hands that fold to it. */
+  folds: number
+  /** The calling hands grouped the way a player reads them, strongest first. */
+  groups: { label: string; hands: number; beaten: number }[]
+  /** The hero's share of the pot against the calling hands. The number the grade came from. */
+  equity: number
+}
+
+/**
+ * A short-stack shove, priced at the Nash callers the explanation quotes (see
+ * lib/drills/shoveRange.ts). Everything in big blinds or shares.
+ */
+export interface ShoveSummary {
+  /** The hero's stack, in big blinds. */
+  stack: number
+  /** What shoving is worth over folding. The number the grade came from. */
+  ev: number
+  /** The chance everybody behind folds. */
+  foldAll: number
+  /** The hero's equity when called, averaged over who calls. */
+  equityCalled: number
+  /** Each player behind, in turn order: how often it reaches them and they call, and the hero's equity then. */
+  callers: { seat: SeatId; calls: number; equity: number }[]
+}
+
 /** A generated spot: everything the runner draws and the grader needs. */
 export interface Drill {
   kind: DrillKindId
@@ -131,8 +243,43 @@ export interface Drill {
    * else, and the runner draws nothing rather than drawing a zero.
    */
   stakes?: DrillStakes
+  /**
+   * The betting that led here, for a kind that asks about a line. Absent
+   * everywhere else, like `stakes`.
+   */
+  line?: DrillLineStep[]
+  /** What the bet in front of you is made of, for the river kind. */
+  range?: RiverRangeSummary
+  /** Who calls a value bet, for the bet-or-check kind. */
+  calling?: CallingRangeSummary
+  /** What a shove is worth, for the shove-or-fold kind. */
+  shove?: ShoveSummary
+  /**
+   * The seat it folded round to, for the kinds that are asked before the flop.
+   * Absent everywhere else: a spot with a board has no seat that matters to it.
+   */
+  seat?: SeatId
   /** The id of the correct choice. */
   answer: string
+  /**
+   * Every id that is correct, where more than one is.
+   *
+   * Absent on a kind with a single right answer, which is most of them, and the
+   * grader treats an absent list as `[answer]` — so nothing that shipped before
+   * this field existed behaves differently for it being here.
+   *
+   * It exists for `which-five-play`, where it is a fact about poker rather than
+   * a kindness: with two kings on the board and a king in your hand, which king
+   * you keep does not change what you have. Marking one of two identical hands
+   * wrong would be the drill asserting something the engine does not agree
+   * with, which is the failure this whole folder is arranged against.
+   *
+   * **A split pot is not this.** There, both hands really do win and the
+   * correct button is still only `split`; `DrillChoice.winning` is what marks
+   * the two hands for the reveal. Correct answers and winning cards are
+   * different questions and they are kept in different places.
+   */
+  answers?: readonly string[]
   /**
    * What settled it, taken from the same evaluation that set `answer` and wrote
    * `explanation`. One reading of the hand feeds the grade, the sentence and
@@ -215,6 +362,16 @@ export interface Grade {
  * not, which is the right way round: it is about the question being fair, not
  * about the estimate being steady.
  */
+/**
+ * The last one belongs to "which five play", and it is the same objection the
+ * others make in a form only a kind with several right answers can have.
+ *
+ * - `free-guess`: too many of the twenty-one ways to take five from seven tie
+ *   the best hand, so picking at random is a decent strategy. A spot where
+ *   guessing does most of the work is not asking anything, which is exactly
+ *   what `one-sided` means on the other kinds — it is spelled differently here
+ *   because what is wrong with it is countable and that count is worth naming.
+ */
 export type RejectReason =
   | 'one-sided'
   | 'unexplainable'
@@ -222,6 +379,7 @@ export type RejectReason =
   | 'chop-possible'
   | 'drawing-dead'
   | 'ambiguous'
+  | 'free-guess'
 
 /** The result of generating at one seed: a spot, or the reason there isn't one. */
 export interface Generated {

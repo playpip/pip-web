@@ -123,6 +123,36 @@ function sources(dir = src, prefix = 'src'): { path: string; text: string }[] {
 //    with the service role, which bypasses RLS; the policy grants select alone.
 //    A single `.upsert()` here would make the membership free to anybody who
 //    can open a console, and it would look like an ordinary line of code.
+// The membership store reacts to the sync session, and `status` alone is not
+// the session: it starts at 'signed-out' before the stored session has been
+// looked for, and `ready` is what says the looking is done (docs/sync.md).
+//
+// Acting on the placeholder cleared this device's cached row on **every boot**,
+// which quietly voided "a member offline is still a member" — the cache could
+// never survive a reload, so a member whose server read then failed saw a locked
+// app with nothing to fall back on. Pinned as source because the store needs a
+// browser to run.
+test('the membership waits for the session to be looked for before believing it', (t) => {
+  const source = readFileSync(new URL('../src/store/entitlement.ts', import.meta.url), 'utf-8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^\s*\/\/.*$/gm, ' ')
+
+  t.regex(
+    source,
+    /if \(!ready\) return/,
+    'start() acts on the sync status without waiting for `ready`',
+  )
+  t.regex(
+    source,
+    /state\.ready !== previous\.ready/,
+    'the subscription ignores `ready` flipping, which is the moment the answer becomes real',
+  )
+  // And the destructive half: clearing the cache must sit behind that gate.
+  const applyBody = source.slice(source.indexOf('const apply = ('), source.indexOf('const initial'))
+  t.true(applyBody.includes('!ready'), 'the cache can be cleared before the session is known')
+  t.true(applyBody.includes('clearCache()'), 'signing out no longer drops the cache')
+})
+
 test('nothing in the app writes the memberships table', (t) => {
   let read = 0
   for (const { path, text } of sources()) {

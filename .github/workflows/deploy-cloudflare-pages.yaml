@@ -151,6 +151,13 @@ jobs:
           NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${{ vars.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Google / Apple sign-in buttons (docs/sync.md). Unset → email only.
+          NEXT_PUBLIC_AUTH_PROVIDERS: ${{ vars.NEXT_PUBLIC_AUTH_PROVIDERS }}
+          # The two Stripe price ids (docs/stripe.md). Unset → checkoutReady() is
+          # false and /membership shows "Checkout isn't open yet". Set both in the
+          # same breath as deploying the billing Edge Functions, never before.
+          NEXT_PUBLIC_STRIPE_PRICE_MONTHLY: ${{ vars.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY }}
+          NEXT_PUBLIC_STRIPE_PRICE_ANNUAL: ${{ vars.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL }}
         run: pnpm build
 
       # The only place the truth about sync config exists is the emitted bundle. `pnpm build`

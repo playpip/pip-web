@@ -85,3 +85,25 @@ redirect_uri = ""
 # Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
 # or any other third-party OIDC providers.
 url = ""
+
+[auth.external.google]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+url = ""
+
+# Billing (docs/stripe.md). Every function but the webhook requires a signed-in
+# player's token. The webhook cannot — Stripe holds no Supabase token — so its
+# gate is the Stripe signature, checked inside the function before anything else.
+[functions.checkout]
+verify_jwt = true
+
+[functions.portal]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false

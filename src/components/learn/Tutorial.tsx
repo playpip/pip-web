@@ -5,13 +5,14 @@
 // landing on any page cold is fine. MotionConfig makes every spring inside
 // degrade to calm fades under prefers-reduced-motion.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { LESSONS } from './lessons'
+import { drillHref } from '@/components/drills/exit'
+import { firstSeatHref } from '@/components/onboarding/firstSeat'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -24,8 +25,27 @@ const variants = {
   exit: (dir: number) => ({ x: dir * -72, opacity: 0 }),
 }
 
+const noop = () => () => {}
+
+/**
+ * Whether the tour was opened from Webb's course shelf on /learn.
+ *
+ * There it is step one of Level 1, so its last page leads on to step two
+ * rather than to the lobby — "Take a seat" sent everybody home, including the
+ * people who had come to learn (Will, 2026-09-23). Read off the query without
+ * `useSearchParams`, which would suspend the prerendered page.
+ */
+function useFromLearn(): boolean {
+  return useSyncExternalStore(
+    noop,
+    () => new URLSearchParams(window.location.search).get('from') === 'learn',
+    () => false,
+  )
+}
+
 export function Tutorial() {
   const router = useRouter()
+  const fromLearn = useFromLearn()
   const [[page, dir], setPage] = useState<[number, number]>([0, 0])
   const lesson = LESSONS[page]
   const last = page === LESSONS.length - 1
@@ -49,12 +69,15 @@ export function Tutorial() {
     return () => window.removeEventListener('keydown', onKey)
   }, [page, goTo])
 
-  // Skip goes back where you came from: the onboarding offer → home;
-  // anywhere else → back (or home, if this tab has nowhere to go back to).
+  // Skip goes back where you came from: the onboarding offer → the first
+  // table, as "Deal me in" would have; anywhere else → back (or home, if this
+  // tab has nowhere to go back to).
   const leave = () => {
     sound.play('tap')
     const fromOnboarding = new URLSearchParams(window.location.search).get('from') === 'onboarding'
-    if (fromOnboarding || window.history.length <= 1) router.push('/game')
+    if (fromLearn) router.push('/learn')
+    else if (fromOnboarding) router.push(firstSeatHref())
+    else if (window.history.length <= 1) router.push('/game')
     else router.back()
   }
 
@@ -70,7 +93,6 @@ export function Tutorial() {
             pip
           </Link>
           <div className="flex items-center gap-1">
-            <ThemeToggle />
             <button
               onClick={leave}
               className="rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
@@ -118,13 +140,37 @@ export function Tutorial() {
                 transition={{ delay: 0.35 }}
                 className="pt-7"
               >
-                <Link
-                  href="/game"
-                  onClick={() => sound.play('call')}
-                  className="rounded-2xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
-                >
-                  Take a seat
-                </Link>
+                {fromLearn ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Link
+                      href={drillHref('whats-your-hand', 'learn')}
+                      onClick={() => sound.play('call')}
+                      className="rounded-2xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+                    >
+                      Next: What have you got?
+                    </Link>
+                    <Link
+                      href="/learn"
+                      onClick={() => sound.play('tap')}
+                      className="px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                    >
+                      Back to Learn
+                    </Link>
+                  </div>
+                ) : (
+                  // Seats you at the next-up table rather than the lobby
+                  // (see onboarding/firstSeat). A visitor with no player yet
+                  // still goes to /game, which makes one first.
+                  <button
+                    onClick={() => {
+                      sound.play('call')
+                      router.push(firstSeatHref())
+                    }}
+                    className="rounded-2xl bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+                  >
+                    Take a seat
+                  </button>
+                )}
               </motion.div>
             )}
           </motion.div>

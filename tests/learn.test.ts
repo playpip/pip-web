@@ -9,6 +9,7 @@ import {
   relatedGuides,
 } from '@/config/learn'
 import { breakevenFolds, pct } from '@/config/potOdds'
+import { COURSE } from '@/config/lessons'
 
 test('every guide has a valid slug, ISO date, and non-empty copy', (t) => {
   for (const guide of LEARN_GUIDES) {
@@ -102,14 +103,19 @@ test('the bet-sizing hero repeats the break-even numbers the page computes', (t)
   }
 })
 
-// The /learn index renders the two lists and nothing else, so a page that falls
-// out of both is in the sitemap with no link to it from anywhere on the site.
-// That is the silent failure this partition exists to make loud: add a third
-// `kind` and this goes red before the page ships.
-test('every registered page is on the index exactly once', (t) => {
-  const listed = [...PILLAR_GUIDES, ...ANSWER_PAGES].map((page) => page.slug).sort()
+// The /learn index links the guides from the course timeline and nowhere else
+// (2026-09-23: the separate guides grid and quick-answers list went into
+// Lessons with Webb). A page that falls off the course is in the sitemap with
+// no link to it from anywhere on the site — that is the silent failure this
+// exists to make loud.
+test('every registered page is on the course exactly once', (t) => {
+  const listed = COURSE.flatMap((level) => level.items)
+    .flatMap((item) => (item.kind === 'guide' ? [item.slug] : []))
+    .sort()
   t.deepEqual(listed, LEARN_GUIDES.map((guide) => guide.slug).sort())
   t.is(new Set(listed).size, listed.length)
+  // The two kinds still partition the registry, which the sitemap relies on.
+  t.is(PILLAR_GUIDES.length + ANSWER_PAGES.length, LEARN_GUIDES.length)
 })
 
 test('an unknown slug resolves to nothing rather than throwing', (t) => {

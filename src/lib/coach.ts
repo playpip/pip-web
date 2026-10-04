@@ -72,7 +72,10 @@ import { formatChips } from '@/lib/useMoney'
  * is exactly the kind of arithmetic that goes quietly wrong.
  */
 export interface HeroDecision {
-  /** Chips already in the pot, before this action. */
+  /**
+   * Chips in the pot this call can win, before this action. A short stack
+   * cannot win the part of a bet it cannot match, so that is left out.
+   */
   pot: number
   /** Chips it cost to call. 0 when checking was free. */
   toCall: number
@@ -112,8 +115,16 @@ export function heroDecision(
     (p) => p.id !== heroId && p.status !== 'folded' && p.status !== 'out',
   )
   if (opponents.length === 0) return undefined
+  // Chips bet this street past what the hero's call reaches go to a side pot
+  // the hero cannot win (`toCall` is already capped at their stack, as the
+  // engine charges it). Same subtraction as `gradeMove` in lib/review.
+  const reach = hero.committedThisStreet + toCall
+  const uncalled = state.players.reduce(
+    (sum, p) => sum + (p.id === heroId ? 0 : Math.max(0, p.committedThisStreet - reach)),
+    0,
+  )
   return {
-    pot: potSize(state),
+    pot: potSize(state) - uncalled,
     toCall,
     opponents: opponents.length,
     selectivity: opponents.map((p) => opponentSelectivity(state, p)),
@@ -179,6 +190,18 @@ export interface Scored {
   /** What the hero did at this moment. */
   action: HeroAction
   /**
+   * `action === 'fold'`. Kept as its own field because the session review and
+   * the `/hand` wire format read it, and they only ever see calls and folds.
+   */
+  folded: boolean
+  /**
+   * Which entry of `record.events` this was, so a caller can anchor to the
+   * moment rather than re-find it. The replay in the session review steps
+   * through that list and needs to know which step it is standing on; matching
+   * on the decision object would work until a hand called the same price twice.
+   */
+  eventIndex: number
+  /**
    * The equity the moment demanded. For a call or a fold it is the price the
    * pot laid, `toCall / (pot + toCall)`. For a bet or a raise it is the share
    * of the pot the extra chips have to win back when everybody calls, which
@@ -219,7 +242,18 @@ function seedFor(record: HandRecord): number {
   return h >>> 0
 }
 
-function streetOf(board: readonly Card[]): string {
+/**
+ * The four streets a decision can be priced on.
+ *
+ * Narrower than the engine's `Street`, which also carries Five-Card Draw's two
+ * draw streets: nothing priced here happens at a draw table, and a type that
+ * admitted `postdraw` would make every consumer handle a case that cannot
+ * arrive.
+ */
+export type PricedStreet = 'preflop' | 'flop' | 'turn' | 'river'
+
+/** Which street a board of this size is. */
+export function streetOf(board: readonly Card[]): PricedStreet {
   if (board.length === 0) return 'preflop'
   if (board.length === 3) return 'flop'
   if (board.length === 4) return 'turn'
@@ -243,7 +277,19 @@ const pct = (fraction: number): string => `${Math.round(fraction * 100)}%`
  * inside either floor.
  */
 export function readHand(record: HandRecord, rng?: Rng): HandRead | null {
-  const best = analyseHand(record, { rng })
+  return readFrom(scoreDecisions(record, { rng }), record)
+}
+
+/**
+ * The same read, from decisions somebody has already scored.
+ *
+ * The game store scores each finished hand once and spends it twice — the read
+ * on the banner and the session it is keeping for review — because the
+ * arithmetic is fifteen hundred simulations per decision and doing it twice
+ * would be doing it twice.
+ */
+export function readFrom(scored: readonly Scored[], record: HandRecord): HandRead | null {
+  const best = biggest(scored)
   if (!best) return null
   if (Math.abs(best.equity - best.required) < EDGE_FLOOR) return null
   if (Math.abs(best.margin) < record.bigBlind * COST_FLOOR_IN_BB) return null
@@ -254,40 +300,59 @@ export function readHand(record: HandRecord, rng?: Rng): HandRead | null {
 }
 
 /**
- * The arithmetic behind `readHand`, without the two floors that decide whether
- * to say anything.
+ * Every priced decision the hero made in this hand, scored.
  *
- * Scores each priced hero decision by how much it gained or cost against the
- * other choice, in chips, and returns the largest, or `null` for a hand that
- * carries none. Separate from `readHand` so `scripts/coach-sim.ts` can re-score
- * the same hand under other seeds and see whether the read a player got was a
- * property of the hand or of the seed.
+ * The arithmetic behind `readHand`, without the two floors that decide whether
+ * to say anything: each priced decision is scored by how much it gained or cost
+ * against the other choice, in chips. Returned in the order they were made,
+ * because that is the order anything reviewing a hand walks them in.
+ *
+ * **This is where the shared line between the free read and the paid review
+ * is.** `readHand` takes the biggest of these and applies two floors; the
+ * session review (`lib/review/`) grades all of them. One pass of arithmetic,
+ * two readers, and **nothing in this file knows which one is calling** — it has
+ * no entitlement, no membership import and no branch that could grow one. That
+ * is the property docs/membership.md is protecting, and it holds by there being
+ * nothing here to gate.
+ *
+ * `max` bounds the work on a raise war by keeping the biggest pots, which is
+ * what the read wants; the review passes a larger one, because a hand where the
+ * fifth decision was the expensive one is exactly the hand worth reviewing.
  */
-export function analyseHand(
+export function scoreDecisions(
   record: HandRecord,
-  opts: { rng?: Rng; iterations?: number } = {},
-): Scored | null {
-  const decisions = record.events.flatMap((ev) =>
+  opts: { rng?: Rng; iterations?: number; max?: number } = {},
+): Scored[] {
+  const decisions = record.events.flatMap((ev, eventIndex) =>
     ev.kind === 'action' && ev.decision
-      ? [{ playerId: ev.playerId, type: ev.type, amount: ev.amount, decision: ev.decision }]
+      ? [
+          {
+            playerId: ev.playerId,
+            type: ev.type,
+            amount: ev.amount,
+            decision: ev.decision,
+            eventIndex,
+          },
+        ]
       : [],
   )
-  if (decisions.length === 0) return null
+  if (decisions.length === 0) return []
 
   // Only the hero's actions ever carry a snapshot, so the first one names them.
   const heroId = decisions[0].playerId
   const hole = record.reveals.find((r) => r.playerId === heroId)?.cards
-  if (!hole || hole.length < 2) return null
+  if (!hole || hole.length < 2) return []
 
   /** One hero action the arithmetic can price, and what it cost to take it. */
-  type Priced = { action: HeroAction; decision: HeroDecision; put: number }
+  type Priced = { action: HeroAction; decision: HeroDecision; eventIndex: number; put: number }
 
   const priced = decisions
     .flatMap<Priced>((d) => {
       const { toCall, opponents, committed } = d.decision
       if (opponents === 0) return []
+      const { decision, eventIndex } = d
       if (d.type === 'call' || d.type === 'fold') {
-        return toCall > 0 ? [{ action: d.type, decision: d.decision, put: toCall }] : []
+        return toCall > 0 ? [{ action: d.type, decision, eventIndex, put: toCall }] : []
       }
       if (d.type !== 'bet' && d.type !== 'raise') return []
       // What this aggression actually cost, which on a raise is not `amount`:
@@ -295,14 +360,18 @@ export function analyseHand(
       const put = (d.amount ?? 0) - (committed ?? 0)
       // A bet or raise that risks no more than calling would have is either a
       // record we cannot price or an all-in call wearing the wrong label.
-      return put > toCall ? [{ action: d.type, decision: d.decision, put }] : []
+      return put > toCall ? [{ action: d.type, decision, eventIndex, put }] : []
     })
+    // Biggest pot first to choose what survives the cap, then back into the
+    // order they happened: which ones to score is a budget, but which order to
+    // hand them back is a fact about the hand.
     .sort((a, b) => b.decision.pot + b.put - (a.decision.pot + a.put))
-    .slice(0, MAX_ANALYSED)
-  if (priced.length === 0) return null
+    .slice(0, opts.max ?? MAX_ANALYSED)
+    .sort((a, b) => a.eventIndex - b.eventIndex)
+  if (priced.length === 0) return []
 
   const random = opts.rng ?? mulberry32(seedFor(record))
-  const scored: Scored[] = priced.map(({ action, decision, put }) => {
+  return priced.map(({ action, decision, eventIndex, put }) => {
     const { equity } = estimateEquity({
       hole,
       community: decision.board,
@@ -312,10 +381,29 @@ export function analyseHand(
       rng: random,
     })
     return action === 'bet' || action === 'raise'
-      ? scoreAggressive(action, decision, put, equity)
-      : scorePriced(action, decision, equity)
+      ? scoreAggressive(action, decision, eventIndex, put, equity)
+      : scorePriced(action, decision, eventIndex, equity)
   })
+}
 
+/**
+ * The one decision in the hand with the most riding on it, or `null` for a hand
+ * that carries none.
+ *
+ * Separate from `readHand` so `scripts/coach-sim.ts` can re-score the same hand
+ * under other seeds and see whether the read a player got was a property of the
+ * hand or of the seed.
+ */
+export function analyseHand(
+  record: HandRecord,
+  opts: { rng?: Rng; iterations?: number } = {},
+): Scored | null {
+  return biggest(scoreDecisions(record, opts))
+}
+
+/** The scored decision with the most at stake, either way. */
+export function biggest(scored: readonly Scored[]): Scored | null {
+  if (scored.length === 0) return null
   return scored.reduce((a, b) => (Math.abs(b.margin) > Math.abs(a.margin) ? b : a))
 }
 
@@ -325,11 +413,18 @@ export function analyseHand(
  * Calling is worth `finalPot * (equity - required)` more than folding, and
  * folding is worth exactly that much less. One number, two signs.
  */
-function scorePriced(action: 'call' | 'fold', decision: HeroDecision, equity: number): Scored {
+function scorePriced(
+  action: 'call' | 'fold',
+  decision: HeroDecision,
+  eventIndex: number,
+  equity: number,
+): Scored {
   const finalPot = decision.pot + decision.toCall
   const required = decision.toCall / finalPot
-  const scale = action === 'fold' ? -finalPot : finalPot
-  return { decision, action, required, equity, scale, margin: scale * (equity - required) }
+  const folded = action === 'fold'
+  const scale = folded ? -finalPot : finalPot
+  const margin = scale * (equity - required)
+  return { decision, action, folded, eventIndex, required, equity, scale, margin }
 }
 
 /**
@@ -366,6 +461,7 @@ function scorePriced(action: 'call' | 'fold', decision: HeroDecision, equity: nu
 function scoreAggressive(
   action: 'bet' | 'raise',
   decision: HeroDecision,
+  eventIndex: number,
   put: number,
   equity: number,
 ): Scored {
@@ -373,18 +469,20 @@ function scoreAggressive(
   const scale = (opponents + 1) * put - toCall
   const required = (put - toCall) / scale
   const margin = scale * (equity - required)
-  if (margin >= 0) return { decision, action, required, equity, scale, margin }
-  // Winning it now is worth `pot + toCall`; the alternative won `equity` of it.
-  const ifTheyFold = (pot + toCall) * (1 - equity)
-  return {
+  const scored: Scored = {
     decision,
     action,
+    folded: false,
+    eventIndex,
     required,
     equity,
     scale,
     margin,
-    needsFold: -margin / (ifTheyFold - margin),
   }
+  if (margin >= 0) return scored
+  // Winning it now is worth `pot + toCall`; the alternative won `equity` of it.
+  const ifTheyFold = (pot + toCall) * (1 - equity)
+  return { ...scored, needsFold: -margin / (ifTheyFold - margin) }
 }
 
 /**

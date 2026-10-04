@@ -8,6 +8,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { PlayingCard } from '@/components/PlayingCard'
+import type { Card } from '@/lib/poker/cards'
 import type { SeatMeta } from '@/store/game'
 import { useProfile } from '@/store/profile'
 import { deriveReads, READS_MIN_HANDS, type SeatStats } from '@/lib/reads'
@@ -20,12 +22,24 @@ export function PlayerDialog({
   seat,
   stack,
   stats,
+  hole,
+  equity,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   seat: SeatMeta | null
   stack: number
   stats?: SeatStats
+  /**
+   * Their actual cards, and their chance of taking it.
+   *
+   * **Only ever supplied while spectating a tournament you are out of**
+   * (pip-web#120). The store returns null for both at every other moment, so
+   * this component cannot become a way to see a live opponent's hand by
+   * opening a dialog — the refusal is upstream, not a prop nobody passed.
+   */
+  hole?: readonly Card[] | null
+  equity?: number | null
 }) {
   const money = useMoney()
   const record = useProfile((s) =>
@@ -54,6 +68,24 @@ export function PlayerDialog({
           <Stat label="At the table" value={money(stack)} />
           <Stat label="Bankroll" value={money(seat.bankroll ?? 0)} />
         </div>
+
+        {/* The spectator's view: what they are holding and what it is worth
+            right now. Absent entirely at a live table. */}
+        {hole && hole.length > 0 && (
+          <div className="mt-1 flex flex-col items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/[0.03] p-3">
+            <div className="flex items-center gap-1.5">
+              {hole.map((card) => (
+                <PlayingCard key={`${card.rank}${card.suit}`} card={card} size="sm" />
+              ))}
+            </div>
+            {equity !== null && equity !== undefined && (
+              <p className="text-sm tabular-nums text-muted-foreground">
+                <span className="font-semibold text-foreground">{Math.round(equity * 100)}%</span>{' '}
+                to win it
+              </p>
+            )}
+          </div>
+        )}
 
         {/* what you've noticed about them — career-long for cast regulars */}
         {!seat.isHuman && (

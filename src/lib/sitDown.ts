@@ -45,7 +45,11 @@ export interface RollInput {
 export interface SitDownInput extends ChallengeInput, RollInput {}
 
 /** Why the table said no. `null` from {@link refuseSitDown} means it said yes. */
-export type SitDownRefusal = 'cannot-afford' | 'freeroll-closed' | 'not-your-challenge'
+export type SitDownRefusal =
+  | 'cannot-afford'
+  | 'freeroll-closed'
+  | 'not-your-challenge'
+  | 'members-only'
 
 /**
  * The Roll every question on this page is answered against.
@@ -60,15 +64,32 @@ export function rollToSitDownWith(p: RollInput, device: string): number {
 /**
  * Why this player cannot sit at this venue, or `null` if they can.
  *
- * Money only: the Daily's once-a-day rule and a resumed table are the route's
- * business, because both are about what has already happened rather than what
- * the Roll can cover.
+ * Money only, with one exception: the Daily's once-a-day rule and a resumed
+ * table are the route's business, because both are about what has already
+ * happened rather than what the Roll can cover.
+ *
+ * **`member` is a fourth argument rather than a field on `p` on purpose.**
+ * Everything in `p` comes off the persisted profile, and membership must never
+ * live there: `profiles` is written by the client under an own-row-only policy,
+ * so a `member` in that blob would be settable by editing localStorage. It
+ * comes from `useEntitlement()`, which reads a table the client cannot write.
+ * Keeping it out of the profile-shaped object is what stops the next person
+ * adding it to the profile for tidiness.
+ *
+ * It is required rather than defaulted for the reason the rest of this file
+ * exists: a caller that forgets it should fail to compile, not quietly seat a
+ * stranger. `false` is the honest answer while the row is still in flight.
  */
 export function refuseSitDown(
   venue: Venue,
   p: SitDownInput,
   device: string,
+  member: boolean,
 ): SitDownRefusal | null {
+  // Before the money, because "you need a membership" is the true reason and
+  // "you cannot afford it" would be a lie told to a player whose Roll is fine.
+  // It also keeps the buy-in off the screen for a table they cannot open.
+  if (venue.membersOnly && !member) return 'members-only'
   const roll = rollToSitDownWith(p, device)
   if (!canAfford(venue, roll)) return 'cannot-afford'
   // The freeroll is a safety net, not a farm: only when you can't afford the

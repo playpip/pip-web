@@ -34,6 +34,24 @@ export function syncConfigured(): boolean {
   return Boolean(URL && KEY)
 }
 
+/** The sign-in providers Pip knows how to offer besides email and password. */
+export type OAuthProvider = 'google' | 'apple'
+
+const KNOWN_PROVIDERS: readonly OAuthProvider[] = ['google', 'apple']
+
+/**
+ * The providers this build offers, from `NEXT_PUBLIC_AUTH_PROVIDERS` (e.g.
+ * `google,apple`). Each one has to be switched on in the Supabase dashboard
+ * first, and this list is what keeps the button off until it is: a button for a
+ * provider the project hasn't enabled sends the player to a raw JSON error on
+ * supabase.co. Same rule as `checkoutReady()`. Order is the order shown.
+ */
+export function oauthProviders(): OAuthProvider[] {
+  if (!syncConfigured()) return []
+  const raw = (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '').toLowerCase().split(',')
+  return KNOWN_PROVIDERS.filter((p) => raw.map((r) => r.trim()).includes(p))
+}
+
 let client: SupabaseClient<Database> | null = null
 let loading: Promise<SupabaseClient<Database> | null> | null = null
 
@@ -59,6 +77,8 @@ export async function getSupabase(): Promise<SupabaseClient<Database> | null> {
           persistSession: true,
           autoRefreshToken: true,
           // The reset link comes back as a URL fragment; let the client consume it.
+          // Google and Apple sign-in come back the same way, and `init()` picks
+          // the session up through getSession(), which waits for this.
           //
           // The fragment holds a real access token with the account's email in
           // it, and it sits in the URL until this client loads and strips it.

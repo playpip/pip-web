@@ -123,6 +123,109 @@ export type PriceShape = 'clear-price' | 'close-price' | 'thin-price'
 export type StrengthShape = 'clear-favourite' | 'live-underdog' | 'draw-is-favourite'
 
 /**
+ * How a "what have you got" spot is shaped, easiest first: how much of your
+ * hand is actually yours. Read off the engine's own comparison of your seven
+ * cards against the five on the board, so, as above, the difficulty cannot
+ * disagree with the grade.
+ *
+ * What makes naming a hand hard is not the hand, it is whether the cards you
+ * are looking at are the cards that count. Both of yours playing is the read
+ * everybody makes correctly; the board playing is the one nobody does, because
+ * an ace in your hand looks like it must be doing something.
+ *
+ * - `uses-both`: both your cards are needed for the hand you have.
+ * - `uses-one`: one of them is doing all the work and the other is dead.
+ * - `plays-the-board`: neither is needed. What you have is what everybody has.
+ */
+export type ReadShape = 'uses-both' | 'uses-one' | 'plays-the-board'
+
+/**
+ * How a "which five play" spot is shaped, easiest first: how much choosing
+ * there is once you have seen the hand. Read off the same evaluation that set
+ * the answer.
+ *
+ * - `made-five`: the hand uses all five cards — a straight, a flush, a full
+ *   house. Spot it and there is nothing left to decide.
+ * - `kickers-matter`: the hand is made of fewer than five, so the rest of the
+ *   five are the highest cards left and picking them is the question.
+ * - `board-plays`: neither of your cards is needed, so the five are the five in
+ *   front of everybody. The one people get wrong by keeping their ace.
+ */
+export type FiveShape = 'made-five' | 'kickers-matter' | 'board-plays'
+
+/**
+ * How a "calling the river" spot is shaped, easiest first: how much room
+ * there was between what your hand wins against the range and what the call
+ * costs. Read off the same count that set the answer, so, as above, the
+ * difficulty cannot disagree with the grade.
+ *
+ * - `clear-read`: sixteen points or more apart.
+ * - `close-read`: ten to sixteen.
+ * - `thin-read`: under ten, and never under the margin.
+ *
+ * **Gaps, not hand types, and that was a correction.** The first cut rated a
+ * bluff-catcher (a hand that beats only the misses) as the hardest shape. It is
+ * the hardest *idea*, but every bluff-catcher the generator can defend is a
+ * fold, so a ladder built on it taught "top rung means fold" and a beginner
+ * aimed at the bottom rung could score nine in ten by calling everything. A gap
+ * says how hard a spot is without saying which way it goes as strongly:
+ * measured over 8,000 seeds (207 spots, 2026-09-23) the three rungs deal calls
+ * 39%, 72% and 58% of the time and hold 53%, 26% and 22% of the spots. Not
+ * even, which is why the pack deals five calls and five folds on top of it.
+ */
+export type RiverShape = 'clear-read' | 'close-read' | 'thin-read'
+
+/**
+ * How an "open or fold" spot is shaped, easiest first. Read off the chart that
+ * set the answer, so, as above, the difficulty cannot disagree with the grade.
+ *
+ * - `every-seat`: the chart gives this hand the same answer from every seat
+ *   that opens — aces are a raise anywhere, and a hand off the chart is a fold
+ *   anywhere. Knowing the hand is enough.
+ * - `seat-decides`: the answer turns on the seat. The spot the Position lesson
+ *   is about, and the one a player who ignores position gets wrong half the time.
+ * - `looks-wrong`: the cards look like the other answer — an ace or two
+ *   picture cards that fold, or small cards that raise. Computed from the cards
+ *   rather than asserted, the way `DECOY` and `MIRAGE` are.
+ */
+export type OpenShape = 'every-seat' | 'seat-decides' | 'looks-wrong'
+
+/**
+ * How a "bet or check" spot is shaped, easiest first: how far your share
+ * against the hands that call sits from a half. Read off the same count that set
+ * the answer, so, as above, the difficulty cannot disagree with the grade.
+ *
+ * - `clear-value`: twenty points or more from a half.
+ * - `close-value`: fifteen to twenty.
+ * - `thin-value`: under fifteen, and never under the margin.
+ *
+ * **Wider than the river's cuts, and measured before they were chosen.** A spot
+ * is only asked when it is clear at every calling range in the band, so the
+ * range the sentence quotes (the middle of it) is rarely near the line: over
+ * 3,000 seeds the gap has a median of 18 points, and 15 and 20 cut the spots
+ * roughly 34 / 30 / 36.
+ *
+ * Gaps rather than hand types, for the reason {@link RiverShape} gives: a rung
+ * that meant "two pair" would mean "bet", and a ladder whose rungs give away the
+ * answer is not measuring anybody.
+ */
+export type ValueShape = 'clear-value' | 'close-value' | 'thin-value'
+
+/**
+ * How a "shove or fold" spot is shaped, easiest first: how many big blinds
+ * apart shoving and folding are, at the Nash callers. Read off the same line of
+ * arithmetic that set the answer.
+ *
+ * - `clear-shove`: a big blind or more apart.
+ * - `close-shove`: half a big blind to one.
+ * - `thin-shove`: under half, and never under the margin.
+ *
+ * Named for the question rather than the answer: a `clear-shove` spot is as
+ * likely to be a clear fold. The pack deals five of each on top of it.
+ */
+export type ShoveShape = 'clear-shove' | 'close-shove' | 'thin-shove'
+
+/**
  * Any spot's shape, whichever kind dealt it.
  *
  * One union rather than a field per kind, because everything downstream of a
@@ -130,7 +233,17 @@ export type StrengthShape = 'clear-favourite' | 'live-underdog' | 'draw-is-favou
  * only that a spot has a shape and a number, never which kind's vocabulary the
  * shape is drawn from.
  */
-export type SpotKind = SettledBy | OutsShape | PriceShape | StrengthShape
+export type SpotKind =
+  | SettledBy
+  | OutsShape
+  | PriceShape
+  | StrengthShape
+  | ReadShape
+  | FiveShape
+  | RiverShape
+  | OpenShape
+  | ValueShape
+  | ShoveShape
 
 /**
  * What each shape is rated.
@@ -268,6 +381,159 @@ export const EASIEST_STRENGTH = STRENGTH_BASE['clear-favourite']
 export const HARDEST_STRENGTH = STRENGTH_BASE['draw-is-favourite']
 
 /**
+ * What each shape of a "what have you got" spot is rated.
+ *
+ * Same judgement and same caveat as the four above: the ordering is the
+ * defensible part and nobody has answered one of these yet.
+ *
+ * **The whole ladder sits below every other kind's, and that is the point of
+ * the kind.** Naming the hand in front of you is the first thing a player can
+ * do and the thing every other kind silently assumes: you cannot count the
+ * cards that win it for you until you can say what winning would look like.
+ * A player who tops this ladder out is still under the floor of the counting
+ * kind, which is the honest shape of a beginner's rating and is why the
+ * rating's own floor ({@link RATING_FLOOR}) sits below all of it.
+ */
+const READ_BASE: Record<ReadShape, number> = {
+  'uses-both': 620,
+  'uses-one': 760,
+  'plays-the-board': 900,
+}
+
+/**
+ * Added when four of the seven cards are one suit, or four run in sequence,
+ * without the hand being the flush or the straight that nearly arrived.
+ *
+ * The one adjustment, and the same rule as {@link DECOY} and {@link TRAP}:
+ * computed from the cards rather than asserted about them. Four hearts on the
+ * screen is the misread that makes a beginner say "flush" out loud, and a spot
+ * carrying one genuinely asks more than its shape does.
+ */
+const MIRAGE = 120
+
+/** The least a reading spot can be rated. Both your cards play, nothing to mislead. */
+export const EASIEST_READ = READ_BASE['uses-both']
+
+/** The most a reading spot can be rated. */
+export const HARDEST_READ = READ_BASE['plays-the-board'] + MIRAGE
+
+/**
+ * What each shape of a "which five play" spot is rated.
+ *
+ * Pitched a little above the reading kind on purpose, and the reason is what
+ * the two ask for. Naming the hand is one word and the five cards are implied;
+ * picking the five is that same read, said exactly, with the kickers settled.
+ * A player who can do the first cannot always do the second, and the gap
+ * between the two ladders is that step.
+ *
+ * **No adjustment on top**, for the reason the pricing and strength kinds have
+ * none: the thing that would be one — having to choose at all — already *is*
+ * the shape.
+ */
+const FIVE_BASE: Record<FiveShape, number> = {
+  'made-five': 700,
+  'kickers-matter': 880,
+  'board-plays': 1010,
+}
+
+/** The least a "which five play" spot can be rated. */
+export const EASIEST_FIVE = FIVE_BASE['made-five']
+
+/** The most a "which five play" spot can be rated. */
+export const HARDEST_FIVE = FIVE_BASE['board-plays']
+
+/**
+ * What each shape of a river spot is rated.
+ *
+ * Same judgement and same caveat as every table above: the ordering is the
+ * defensible part and nobody has answered one of these yet.
+ *
+ * **Pitched at and above the pot odds kind, on purpose.** Its hardest spot is
+ * this kind's first step: the price is the same arithmetic, and then the equity
+ * has to be read off a range of hands rather than counted off two you can see.
+ */
+const RIVER_BASE: Record<RiverShape, number> = {
+  'clear-read': 1180,
+  'close-read': 1360,
+  'thin-read': 1520,
+}
+
+/** The least a river spot can be rated. */
+export const EASIEST_RIVER = RIVER_BASE['clear-read']
+
+/** The most a river spot can be rated. */
+export const HARDEST_RIVER = RIVER_BASE['thin-read']
+
+/**
+ * What each shape of an "open or fold" spot is rated.
+ *
+ * Same judgement and same caveat as every table above: the ordering is the
+ * defensible part and nobody has answered one of these yet.
+ *
+ * **Pitched low, beside the reading kinds.** It is the second step a beginner
+ * takes — which hands to play at all — and it asks for no arithmetic: a player
+ * who has learned the chart and the seats answers every spot. What makes the
+ * top rung hard is the cards arguing with the chart, not a sum.
+ */
+const OPEN_BASE: Record<OpenShape, number> = {
+  'every-seat': 700,
+  'seat-decides': 860,
+  'looks-wrong': 1020,
+}
+
+/** The least an open-or-fold spot can be rated. */
+export const EASIEST_OPEN = OPEN_BASE['every-seat']
+
+/** The most an open-or-fold spot can be rated. */
+export const HARDEST_OPEN = OPEN_BASE['looks-wrong']
+
+/**
+ * What each shape of a "bet or check" spot is rated.
+ *
+ * Same judgement and same caveat as every table above: the ordering is the
+ * defensible part and nobody has answered one of these yet.
+ *
+ * **A step under the river call, on purpose.** It is the same range read from
+ * the other side, but the line you are measuring against never moves: a value
+ * bet wants more than half of the hands that call, whatever the size, where a
+ * river call wants a price worked out from the pot first. One less piece of
+ * arithmetic is one step down.
+ */
+const VALUE_BASE: Record<ValueShape, number> = {
+  'clear-value': 1140,
+  'close-value': 1320,
+  'thin-value': 1480,
+}
+
+/** The least a bet-or-check spot can be rated. */
+export const EASIEST_VALUE = VALUE_BASE['clear-value']
+
+/** The most a bet-or-check spot can be rated. */
+export const HARDEST_VALUE = VALUE_BASE['thin-value']
+
+/**
+ * What each shape of a "shove or fold" spot is rated.
+ *
+ * Same judgement and same caveat as every table above.
+ *
+ * **Pitched between the preflop chart and the pricing kinds.** It is asked
+ * before the flop like open-or-fold, but its answer is not a chart you can
+ * learn by heart from the free guides: it moves with the stack and the seat, and
+ * the close ones need the blinds weighed against a call.
+ */
+const SHOVE_BASE: Record<ShoveShape, number> = {
+  'clear-shove': 1080,
+  'close-shove': 1260,
+  'thin-shove': 1420,
+}
+
+/** The least a shove-or-fold spot can be rated. */
+export const EASIEST_SHOVE = SHOVE_BASE['clear-shove']
+
+/** The most a shove-or-fold spot can be rated. */
+export const HARDEST_SHOVE = SHOVE_BASE['thin-shove']
+
+/**
  * What this spot is worth. Splits take no decoy adjustment: with two winners
  * there is no losing hand to be misled by.
  */
@@ -288,6 +554,75 @@ export function priceDifficulty(shape: PriceShape): number {
 /** What a hand-strength spot is worth. Its shape, and nothing else. */
 export function strengthDifficulty(shape: StrengthShape): number {
   return STRENGTH_BASE[shape]
+}
+
+/** What a reading spot is worth: its shape, plus the mirage if it has one. */
+export function readDifficulty(shape: ReadShape, mirage: boolean): number {
+  return READ_BASE[shape] + (mirage ? MIRAGE : 0)
+}
+
+/** What a "which five play" spot is worth. Its shape, and nothing else. */
+export function fiveDifficulty(shape: FiveShape): number {
+  return FIVE_BASE[shape]
+}
+
+/** What a river spot is worth. Its shape, and nothing else. */
+export function riverDifficulty(shape: RiverShape): number {
+  return RIVER_BASE[shape]
+}
+
+/** What an open-or-fold spot is worth. Its shape, and nothing else. */
+export function openDifficulty(shape: OpenShape): number {
+  return OPEN_BASE[shape]
+}
+
+/** What a bet-or-check spot is worth. Its shape, and nothing else. */
+export function valueDifficulty(shape: ValueShape): number {
+  return VALUE_BASE[shape]
+}
+
+/** What a shove-or-fold spot is worth. Its shape, and nothing else. */
+export function shoveDifficulty(shape: ShoveShape): number {
+  return SHOVE_BASE[shape]
+}
+
+/**
+ * How many spots a player is given to settle before the kind stops holding
+ * back.
+ *
+ * The rating's own settling-in window ({@link kFactor}) is fifteen and this is
+ * ten, which is deliberate: the rating should still be moving freely by the
+ * time the spots stop being chosen gently, or the two would finish together and
+ * the tenth spot would be a cliff.
+ */
+export const SETTLING_SPOTS = 10
+
+/**
+ * What to aim the next spot at, for a player with this record on this kind.
+ *
+ * **This is the difference between a rating that describes you and a set of
+ * spots that meets you** (Will, 2026-09-21: "I'm new to poker and I want the
+ * drills to teach me"). Until now every kind dealt the first spot its filter
+ * accepted, so a player's second-ever hand could be a split pot or three draws
+ * at once — the shapes the ladder in ./standing calls the top of the kind. The
+ * rating existed and selected nothing.
+ *
+ * Everybody starts at {@link STARTING_RATING}, which is above the bottom of
+ * every ladder, so aiming straight at the rating would hand a beginner the
+ * middle of the kind on their first spot and call it calibration. Instead the
+ * aim opens at the easiest shape the kind deals and walks to the rating across
+ * {@link SETTLING_SPOTS} answers. After that it is the rating and only the
+ * rating, in both directions: a player who is better than the kind gets its
+ * hardest shapes, which is the same mechanism read the other way.
+ *
+ * Pure, like everything in this folder: the caller reads the record off the
+ * profile and passes the two numbers in. Nothing here can tell how long anybody
+ * has been away, and there is no version of this that speeds up or slows down
+ * with the clock.
+ */
+export function aimFor(easiest: number, rating: number, answered: number): number {
+  const settled = Math.min(answered, SETTLING_SPOTS) / SETTLING_SPOTS
+  return Math.round(easiest + (rating - easiest) * settled)
 }
 
 /** Elo's expectation: the share of spots at this difficulty you should get right. */

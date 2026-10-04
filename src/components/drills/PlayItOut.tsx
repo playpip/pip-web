@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { MotionConfig, motion } from 'framer-motion'
-import { PlayingCard } from '@/components/PlayingCard'
 import {
   ITERATIONS,
   type PlayedHand,
@@ -17,7 +16,7 @@ import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
-import { Header, ShownHand, Stakes, cardKey } from './parts'
+import { ActionBar, Answer, Board, Dealing, Felt, Holding, NextButton, Pot, TalkLine } from './felt'
 
 /**
  * Pot odds, played out: one hand, dealt once, priced street by street against a
@@ -142,52 +141,32 @@ function useDealer(): { hand: PlayedHand | null; deal: () => void; dealAhead: ()
   return { hand, deal, dealAhead: useCallback(() => setAhead(true), []) }
 }
 
-export function PlayItOut({ title }: { title: string }) {
-  const { hand, deal, dealAhead } = useDealer()
+export function PlayItOut({
+  run,
+  setRun,
+  onRated,
+}: {
   // The run belongs to the visit rather than to the hand, which is why it is
-  // held here and not inside `Hand`: a hand carries 1.41 decisions on average
-  // and never more than three (n=27, 2026-09-07), so a run reset at every deal
-  // could not reach the three answers that make it worth saying, and the best
-  // run on the profile would be a fact about how long a hand was.
-  const [run, setRun] = useState(0)
-  if (hand === null) return <Dealing title={title} />
+  // passed in and not held inside `Hand`: a hand carries 1.41 decisions on
+  // average and never more than three (n=27, 2026-09-07), so a run reset at
+  // every deal could not reach the three answers that make it worth saying, and
+  // the best run on the profile would be a fact about how long a hand was.
+  run: number
+  setRun: (run: number) => void
+  onRated: (delta: number | null) => void
+}) {
+  const { hand, deal, dealAhead } = useDealer()
+  if (hand === null) return <Dealing slots={BOARD_CARDS} />
   return (
     <Hand
       key={hand.seed}
       hand={hand}
-      title={title}
       deal={deal}
       dealAhead={dealAhead}
       run={run}
       setRun={setRun}
+      onRated={onRated}
     />
-  )
-}
-
-/**
- * The screen before the first hand lands: the shape of it, in card backs.
- *
- * A second of this on arrival, against four of a frozen screen if the hand were
- * dealt during render. The placeholders are the sizes of the real cards so that
- * the hand arriving is a deal rather than a jump.
- */
-function Dealing({ title }: { title: string }) {
-  return (
-    <>
-      <Header title={title} />
-      <p className="text-center text-sm text-muted-foreground">Dealing.</p>
-      <div className="mt-3 flex items-center justify-center gap-1 sm:gap-2" aria-hidden>
-        {Array.from({ length: BOARD_CARDS }, (_, i) => (
-          <PlayingCard key={i} size="drill" />
-        ))}
-      </div>
-      <div className="mt-6 rounded-2xl border border-foreground/10 p-3" aria-hidden>
-        <span className="flex gap-1.5">
-          <PlayingCard size="md" />
-          <PlayingCard size="md" />
-        </span>
-      </div>
-    </>
   )
 }
 
@@ -198,26 +177,26 @@ function Dealing({ title }: { title: string }) {
  */
 function Hand({
   hand,
-  title,
   deal,
   dealAhead,
   run,
   setRun,
+  onRated,
 }: {
   hand: PlayedHand
-  title: string
   deal: () => void
   dealAhead: () => void
   run: number
   setRun: (run: number) => void
+  onRated: (delta: number | null) => void
 }) {
   const [index, setIndex] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
-  const [before, setBefore] = useState<{ rating: number } | null>(null)
 
   const record = useProfile((s) => s.drills[PLAY_IT_OUT_RECORD])
   const recordDrill = useProfile((s) => s.recordDrill)
   const progress = record ?? emptyDrillRecord()
+  const avatar = useProfile((s) => s.avatar)
 
   const street = hand.streets[index]
   const drill = street.drill
@@ -231,10 +210,11 @@ function Hand({
       if (drill === null || picked !== null) return
       const result = gradeDrill(drill, choiceId)
       const next = result.correct ? run + 1 : 0
+      const was = progress.rating
       setPicked(choiceId)
       setRun(next)
-      setBefore({ rating: progress.rating })
       recordDrill(PLAY_IT_OUT_RECORD, result.correct, result.difficulty, next, drill.settledBy)
+      onRated(useProfile.getState().drills[PLAY_IT_OUT_RECORD].rating - was)
       sound.play(result.correct ? 'win' : 'fold')
       haptics.fire(result.correct ? 'win' : 'bust')
       // The next hand costs a second of the main thread, and this is the moment
@@ -242,20 +222,20 @@ function Hand({
       // button.
       dealAhead()
     },
-    [drill, picked, run, setRun, progress.rating, recordDrill, dealAhead],
+    [drill, picked, run, setRun, progress.rating, recordDrill, dealAhead, onRated],
   )
 
   const onward = useCallback(() => {
     if (step === 'over') {
       deal()
-      return
+    } else {
+      setIndex(step)
     }
-    setIndex(step)
     setPicked(null)
-    setBefore(null)
+    onRated(null)
     sound.play('deal')
     haptics.fire('deal')
-  }, [step, deal])
+  }, [step, deal, onRated])
 
   // The same keys the face-up kinds use, so the two modes play the same on a
   // desktop: c and f are the two answers, 1 and 2 are the same two by position,
@@ -287,113 +267,86 @@ function Hand({
   // mounted by one screen today. Declared anyway: a part that animates and
   // relies on somebody else honouring the motion setting is one move away from
   // being mounted somewhere that does not.
+  //
+  // **The same felt the one-spot mode plays on** (Will, 2026-09-21). The two
+  // modes ask the same question in different shapes, so a player switching
+  // between them should be moving around one table rather than between two
+  // screens — the board in the same place at the same size, the price on the
+  // same line, the answers under the same thumb.
   return (
     <MotionConfig reducedMotion="user">
-      <Header
-        title={title}
-        rating={progress.rating}
-        delta={before === null ? null : progress.rating - before.rating}
-        run={run}
-        answered={progress.answered}
-        correct={progress.correct}
-        bestRun={progress.bestRun}
-      />
-
       <motion.div
         // Keyed by the street so each card arriving reads as a card arriving.
         key={street.street}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="flex min-h-0 flex-1 flex-col"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
       >
-        <p className="text-center text-sm text-muted-foreground">
-          {drill === null ? 'They check.' : 'Call or fold?'}
-        </p>
-        {drill?.stakes && <Stakes stakes={drill.stakes} />}
+        <Felt
+          board={
+            <>
+              {/* The board at its finished width from the first street, with
+                  backs where the cards still to come will go. A board that
+                  grows from three cards to five moves everything under it twice
+                  a hand. */}
+              <Board cards={street.board} slots={BOARD_CARDS} />
+              {drill?.stakes && <Pot stakes={drill.stakes} />}
+              {grade !== null ? (
+                <TalkLine tone={grade.correct ? 'right' : 'wrong'}>
+                  {grade.explanation}
+                  {picked === 'fold' && ' You fold, and that is the hand.'}
+                </TalkLine>
+              ) : drill === null ? (
+                // A street nobody could be asked about. Saying why is the whole
+                // difference between a hand playing out and a question missing:
+                // no bet this pot could make is a fair question here, so there
+                // is nothing to answer and the hand moves on.
+                <TalkLine>
+                  No bet they could make here is a close question. They check it through.
+                </TalkLine>
+              ) : (
+                <TalkLine>Call or fold?</TalkLine>
+              )}
+            </>
+          }
+          hero={
+            <Holding
+              label="You"
+              detail={street.detail}
+              cards={hand.hole}
+              size="hero"
+              avatar={avatar ?? undefined}
+              layout="below"
+            />
+          }
+        />
+      </motion.div>
 
-        {/* The board at its finished width from the first street, with backs
-            where the cards still to come will go. A board that grows from three
-            cards to five moves everything under it twice a hand. */}
-        <div className="mt-3 flex items-center justify-center gap-1 sm:gap-2">
-          {Array.from({ length: BOARD_CARDS }, (_, i) =>
-            street.board[i] ? (
-              <PlayingCard key={cardKey(street.board[i])} card={street.board[i]} size="drill" />
-            ) : (
-              <PlayingCard key={`back-${i}`} size="drill" />
-            ),
-          )}
-        </div>
-
-        <div className="mt-6">
-          <ShownHand hand={{ label: 'You', cards: hand.hole, detail: street.detail }} />
-        </div>
-
-        {drill !== null && (
-          <div className="mt-6 grid grid-cols-2 gap-3">
+      <ActionBar>
+        {grade !== null || drill === null ? (
+          <NextButton
+            label={step === 'over' ? 'Next hand' : `See ${STREET_LABEL[hand.streets[step].street]}`}
+            onClick={onward}
+          />
+        ) : (
+          <div className="flex gap-2">
             {drill.choices.map((choice, i) => (
-              <button
+              <Answer
                 key={choice.id}
-                type="button"
-                onClick={() => pick(choice.id)}
-                disabled={picked !== null}
-                aria-pressed={picked === choice.id}
-                className={cn(
-                  'relative rounded-2xl border py-4 text-center text-lg font-semibold transition',
-                  picked !== null && choice.winning
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-foreground'
-                    : 'border-foreground/10',
-                  picked !== null && !choice.winning && 'opacity-60',
-                  picked === null && 'hover:border-foreground/25 active:scale-[0.99]',
-                  'motion-reduce:transition-none motion-reduce:active:scale-100',
-                )}
-              >
-                {choice.label}
-                {picked === null && (
-                  <span className="absolute right-2 top-2 hidden size-5 place-items-center rounded-md bg-foreground/[0.06] text-[0.65rem] font-medium text-muted-foreground sm:grid">
-                    {i + 1}
-                  </span>
-                )}
-              </button>
+                label={choice.label}
+                shortcut={String(i + 1)}
+                state="open"
+                onPick={() => pick(choice.id)}
+              />
             ))}
           </div>
         )}
-      </motion.div>
+      </ActionBar>
 
-      {(grade !== null || drill === null) && (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="mt-5 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4"
-        >
-          <p className="text-sm font-medium">
-            {grade === null ? (
-              // A street nobody could be asked about. Saying why is the whole
-              // difference between a hand playing out and a question missing:
-              // no bet this pot could make is a fair question here, so there is
-              // nothing to answer and the hand moves on.
-              <span className="font-normal text-muted-foreground">
-                No bet they could make here is a close question. They check it through.
-              </span>
-            ) : (
-              <>
-                {grade.correct ? 'That’s it.' : 'Not this time.'}{' '}
-                <span className="font-normal text-muted-foreground">
-                  {grade.explanation}
-                  {picked === 'fold' && ' You fold, and that is the hand.'}
-                </span>
-              </>
-            )}
-          </p>
-          <button
-            type="button"
-            onClick={onward}
-            className="mt-4 w-full rounded-2xl bg-primary px-6 py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
-          >
-            {step === 'over' ? 'Next hand' : `See ${STREET_LABEL[hand.streets[step].street]}`}
-          </button>
-        </motion.div>
-      )}
+      <p className="px-4 pb-2 text-center text-2xs text-muted-foreground/70">
+        {PLAY_IT_OUT_MODE.gradedBy}
+      </p>
     </MotionConfig>
   )
 }

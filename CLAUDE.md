@@ -16,6 +16,9 @@ work. This file is the quick-start and the non-negotiables.
 | UI / styling | [docs/design.md](./docs/design.md) |
 | Copy / naming / tone | [docs/brand.md](./docs/brand.md) |
 | Venues / venue art | [docs/venues.md](./docs/venues.md) |
+| Blackjack | `src/lib/blackjack/` — its own engine, deliberately outside `src/lib/poker/` |
+| Coaching / review / the report | [docs/review.md](./docs/review.md) |
+| Anything paid / gated | [docs/membership.md](./docs/membership.md) |
 | Persistence / backup / offline PWA | [docs/data-and-offline.md](./docs/data-and-offline.md) |
 | Setup / testing / conventions / deploy | [docs/development.md](./docs/development.md) |
 
@@ -33,7 +36,7 @@ Rules change → engine (+ tests). Pacing/money → game store. Looks → compon
 - **Tests: AVA**, not Vitest. Engine changes ship with tests.
 - **Colours: theme tokens only.** Never hardcode `bg-white/…`, `text-black`, etc. Use
   `foreground/<alpha>` for subtle surfaces, `bg-primary`/`text-primary-foreground` for
-  emphasis. Must work in **both light and dark**. (See docs/design.md.)
+  emphasis. **Dark only** — there is no light mode (removed 2026-10-03). (See docs/design.md.)
 - **No real money framing.** Play-money "chips" only; never show `$`. No casino textures,
   no pop-ups, no dark patterns. (See docs/brand.md.)
 - **Determinism in the engine.** Pass a seeded `Rng`; no `Date.now()`/`Math.random()` in

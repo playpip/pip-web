@@ -1,13 +1,22 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { PageShell } from '@/components/PageShell'
+import { Reveal } from '@/components/Reveal'
 import { RollGraph } from '@/components/RollGraph'
 import { CountUp } from '@/components/CountUp'
+import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
+import { RatingGraph } from './DrillRating'
 import { PlayStyleChart } from './PlayStyleChart'
+import { Card, CardLabel, Mini, Stat } from './bento'
+import { RangePicker } from './RangePicker'
+import { ROLL_RANGES, type RollRange, pointsInRange } from '@/lib/rollRange'
 import { RankLadder } from './RankLadder'
 import { useProfile } from '@/store/profile'
+import { avatarRingById } from '@/config/cosmetics'
 import { VENUES, SIDE_TABLES, KITCHEN_TABLE } from '@/config/venues'
 import { DRILL_KINDS } from '@/config/drills'
 import type { DrillKindId } from '@/lib/drills/types'
@@ -17,14 +26,25 @@ import { rankFor } from '@/config/ranks'
 import { derivePlayStyle } from '@/lib/playStyle'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
-import { cn } from '@/lib/utils'
+import { drillHref } from '@/components/drills/exit'
 
 const ALL_VENUES = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE]
 
 /** Lifetime stats — a full-page bento, the play-style quadrant at its centre. */
 export function StatsPage() {
-  const { name, avatar, roll, peakRoll, stats, rollHistory, venueRecords, tendencies, drills } =
-    useProfile()
+  const {
+    name,
+    avatar,
+    roll,
+    peakRoll,
+    stats,
+    rollHistory,
+    venueRecords,
+    tendencies,
+    drills,
+    avatarRing,
+  } = useProfile()
+  const ring = avatarRingById(avatarRing)
   const money = useMoney()
 
   const style = derivePlayStyle(tendencies)
@@ -41,8 +61,11 @@ export function StatsPage() {
       ? Math.round((stats.tournamentsWon / stats.tournamentsEntered) * 100)
       : null
 
-  const min = rollHistory.length > 0 ? Math.min(...rollHistory.map((p) => p.roll)) : null
-  const max = rollHistory.length > 0 ? Math.max(...rollHistory.map((p) => p.roll)) : null
+  // The graph's span, and the moment it is measured from. `now` is frozen once
+  // per mount so the picker and the filter cannot disagree by a render.
+  const [now] = useState(() => Date.now())
+  const [range, setRange] = useState<RollRange>(ROLL_RANGES[ROLL_RANGES.length - 1])
+  const shown = useMemo(() => pointsInRange(rollHistory, range, now), [rollHistory, range, now])
 
   // A kind you have answered at least one spot in. Absent otherwise, so the
   // whole section is missing for a player who has never opened a drill rather
@@ -66,7 +89,7 @@ export function StatsPage() {
         className="mb-6 flex flex-wrap items-center justify-between gap-6"
       >
         <div className="flex items-center gap-4">
-          {avatar && <PlayerAvatar spec={avatar} size={64} />}
+          {avatar && <PlayerAvatar spec={avatar} size={64} ring={ring} />}
           <div>
             <p className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">
               The story so far
@@ -141,28 +164,66 @@ export function StatsPage() {
               {Math.max(0, 20 - style.hands)} more hands and your style earns a name.
             </p>
           )}
+          {/* The chart says where you are; the report says what it is costing
+              you and what to do about it. Two text links, and the second one is the same rule as the first:
+              the page is already about your own play, so this is the one place
+              a way into the coaching belongs. Not a banner, and nowhere near a
+              hand. */}
+          <div className="mt-4 flex flex-col items-center gap-1.5">
+            <Link
+              href="/game/report"
+              className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+            >
+              Read the full report
+            </Link>
+            <Link
+              href="/game/review"
+              className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+            >
+              Review your last session
+            </Link>
+          </div>
         </Card>
 
         {/* right column: roll graph over a grid of numbers */}
         <div className="flex flex-col gap-4 lg:col-span-2">
           <Card>
-            <div className="flex items-baseline justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <CardLabel>Your Roll</CardLabel>
               <p className="text-2xl font-semibold tabular-nums">{money(roll)}</p>
             </div>
             {rollHistory.length >= 2 ? (
-              <div className="mt-3">
-                <RollGraph
+              <>
+                <RangePicker
+                  className="mt-3"
                   points={rollHistory}
-                  format={money}
-                  className="h-40 w-full"
-                  accent={accent}
+                  now={now}
+                  value={range}
+                  onPick={setRange}
                 />
-                <div className="mt-1 flex justify-between text-2xs tabular-nums text-muted-foreground/70">
-                  <span>low {money(min!)}</span>
-                  <span>high {money(max!)}</span>
-                </div>
-              </div>
+                {shown.length >= 2 ? (
+                  <div className="mt-3">
+                    {/* Keyed on the span so switching redraws the line. */}
+                    <RollGraph
+                      key={range.id}
+                      points={shown}
+                      format={money}
+                      className="h-40 w-full"
+                      accent={accent}
+                    />
+                    {/* Low and high are of what is drawn, not of the career:
+                        a span that hides a crash must not keep reporting it. */}
+                    <div className="mt-1 flex justify-between text-2xs tabular-nums text-muted-foreground/70">
+                      <span>low {money(Math.min(...shown.map((p) => p.roll)))}</span>
+                      <span>high {money(Math.max(...shown.map((p) => p.roll)))}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex h-40 items-center justify-center rounded-xl bg-foreground/[0.03]">
+                    <p className="text-sm text-muted-foreground">Nothing recorded in this span.</p>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="mt-3 flex h-40 items-center justify-center rounded-xl bg-foreground/[0.03]">
                 <p className="text-sm text-muted-foreground">
@@ -197,12 +258,9 @@ export function StatsPage() {
 
       {/* venues — full-width footer */}
       {playedVenues.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4, ease: 'easeOut' }}
-          className="mt-4"
-        >
+        // Below the fold, so it arrives when you reach it rather than a tenth
+        // of a second after the page loads, off-screen, where nobody sees it.
+        <Reveal className="mt-4">
           <Card>
             <div className="mb-3 flex items-baseline justify-between">
               <CardLabel>Venues</CardLabel>
@@ -234,33 +292,42 @@ export function StatsPage() {
               })}
             </div>
           </Card>
-        </motion.section>
+        </Reveal>
       )}
 
       {/* drills: the practice room's side of the story, under the table's */}
-      {playedDrills.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12, duration: 0.4, ease: 'easeOut' }}
-          className="mt-4"
-        >
-          <Card>
-            <div className="mb-3 flex items-baseline justify-between gap-4">
-              <CardLabel>Drills</CardLabel>
-              {/* The one thing worth saying about these numbers, and it is the
-                  opposite of what a streak says. No count of what is left, no
-                  date, nothing to be behind on. */}
-              <p className="text-xs text-muted-foreground/70">Yours. None of it expires</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+      <Reveal className="mt-4">
+        <Card>
+          <div className="mb-3 flex items-baseline justify-between gap-4">
+            <CardLabel>Drills</CardLabel>
+            {/* The one thing worth saying about these numbers, and it is the
+                opposite of what a streak says. No count of what is left, no
+                date, nothing to be behind on. */}
+            <p className="text-xs text-muted-foreground/70">Yours. None of it expires</p>
+          </div>
+          {playedDrills.length > 0 ? (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {playedDrills.map((kind) => (
-                <DrillStanding key={kind.id} kindId={kind.id} title={kind.title} />
+                <DrillStanding key={kind.id} kindId={kind.id} title={kind.title} accent={accent} />
               ))}
             </div>
-          </Card>
-        </motion.section>
-      )}
+          ) : (
+            // A line and a way in, and nothing more. Not a row of zeroes and not
+            // a pitch: the drills are there whenever somebody wants them.
+            <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-foreground/[0.03] px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Every spot you answer draws a line here.
+              </p>
+              <Link
+                href="/game/drills"
+                className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+              >
+                Open the drills
+              </Link>
+            </div>
+          )}
+        </Card>
+      </Reveal>
     </PageShell>
   )
 }
@@ -280,32 +347,67 @@ export function StatsPage() {
  * fact about what you did rather than about what you can currently open. Should
  * a kind ever stop being available to somebody, their history of it stays.
  */
-function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }) {
+function DrillStanding({
+  kindId,
+  title,
+  accent,
+}: {
+  kindId: DrillKindId
+  title: string
+  accent: string
+}) {
   const record = useProfile((s) => s.drills[kindId])
   if (!record || record.answered === 0) return null
 
   const accuracy = drillAccuracy(record)
   const line = standingLine(kindId, record.rating)
   const shapes = shapeBreakdown(kindId, record.shapes)
-  // Facts, quietest first. `bestRun` only once it is a run: "best 1" is not a
-  // personal best, it is one right answer.
-  const facts = [
-    accuracy !== null ? `${accuracy}% of ${record.answered.toLocaleString()}` : null,
-    record.bestRun > 1 ? `best run ${record.bestRun}` : null,
-  ].filter(Boolean)
+  const history = record.history ?? []
+  const ratings = history.map(([, r]) => r)
 
   return (
-    <div className="rounded-2xl bg-foreground/[0.04] p-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">{title}</h3>
-        <p className="shrink-0 text-2xl font-semibold tabular-nums leading-none">
-          {record.rating.toLocaleString()}
-        </p>
+    <div className="flex flex-col rounded-2xl bg-foreground/[0.04] p-4">
+      <div className="flex items-start justify-between gap-3">
+        {/* The title is the way back into the kind: the card is about a thing
+            you can go and do again, so the name of it goes there. */}
+        <Link
+          href={drillHref(kindId, 'stats')}
+          className="group -m-1 inline-flex min-w-0 items-center gap-1 rounded-lg p-1 text-sm font-semibold transition hover:text-foreground/80"
+        >
+          <span className="truncate">{title}</span>
+          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5" />
+        </Link>
+        <div className="shrink-0 text-right">
+          <CountUp
+            value={record.rating}
+            className="block text-2xl font-semibold tabular-nums leading-none"
+          />
+          <p className="mt-1 text-3xs uppercase tracking-[0.12em] text-muted-foreground">Rating</p>
+        </div>
       </div>
-      {facts.length > 0 && (
-        <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">{facts.join(' · ')}</p>
+
+      {/* The line over spots answered. Two points is the least a line needs;
+          a record always has them after one answer, and a migrated one arrives
+          with them. */}
+      {history.length >= 2 && (
+        <div className="mt-3">
+          <RatingGraph history={history} accent={accent} className="h-24 w-full" />
+          <div className="mt-1 flex justify-between text-2xs tabular-nums text-muted-foreground/70">
+            <span>low {Math.min(...ratings).toLocaleString()}</span>
+            <span>high {Math.max(...ratings).toLocaleString()}</span>
+          </div>
+        </div>
       )}
-      {line && <p className="mt-2 text-sm leading-snug text-muted-foreground">{line}</p>}
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Fact label="Answered" value={record.answered.toLocaleString()} />
+        <Fact label="Right" value={accuracy !== null ? `${accuracy}%` : '–'} />
+        {/* A personal best, not a streak: nothing here can be lost by being
+            away. "Best 1" is one right answer rather than a run, so it waits. */}
+        <Fact label="Best run" value={record.bestRun > 1 ? record.bestRun.toLocaleString() : '–'} />
+      </div>
+
+      {line && <p className="mt-3 text-sm leading-snug text-muted-foreground">{line}</p>}
       {shapes.length > 0 && (
         <dl className="mt-3 space-y-1 border-t border-foreground/10 pt-3">
           {shapes.map((shape) => (
@@ -331,40 +433,12 @@ function DrillStanding({ kindId, title }: { kindId: DrillKindId; title: string }
   )
 }
 
-function Card({ children, className }: { children: React.ReactNode; className?: string }) {
+/** One small figure under a drill's graph. */
+function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className={cn('rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5', className)}
-    >
-      {children}
-    </div>
-  )
-}
-
-function CardLabel({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{children}</p>
-}
-
-function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return (
-    <div className="flex flex-col justify-center rounded-2xl bg-foreground/[0.04] p-4">
-      <p className="text-2xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">
-        {value}
-        {detail && (
-          <span className="ml-1.5 text-sm font-medium text-muted-foreground">{detail}</span>
-        )}
-      </p>
-    </div>
-  )
-}
-
-function Mini({ label, value, sub }: { label: string; value: string; sub: string }) {
-  return (
-    <div className="rounded-xl bg-foreground/[0.04] px-2 py-2.5 text-center">
-      <p className="text-lg font-semibold tabular-nums leading-none">{value}</p>
+    <div className="rounded-xl bg-foreground/[0.04] px-2 py-2 text-center">
+      <p className="text-base font-semibold tabular-nums leading-none">{value}</p>
       <p className="mt-1 text-3xs uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
-      <p className="text-3xs text-muted-foreground/60">{sub}</p>
     </div>
   )
 }

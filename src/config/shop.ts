@@ -5,10 +5,11 @@
 // is the point.
 
 import type { AwardDef } from '@/lib/awards'
-import { SHOP_BACKS, type CardBackDesign } from './cardBacks'
+import { AVATAR_RINGS, DEALER_BUTTONS, SOUND_PACKS, type Cosmetic } from './cosmetics'
+import { MEMBER_BACKS, MEMBER_SHOP_BACKS, SHOP_BACKS, type CardBackDesign } from './cardBacks'
 import { KITCHEN_TABLE, SIDE_TABLES, VENUES } from './venues'
 
-export type ShopItemKind = 'back' | 'face' | 'finish' | 'souvenir'
+export type ShopItemKind = 'back' | 'face' | 'finish' | 'souvenir' | 'ring' | 'button' | 'sound'
 
 export interface ShopItem {
   id: string
@@ -16,9 +17,22 @@ export interface ShopItem {
   name: string
   /** One dry line under the name. */
   blurb: string
+  /**
+   * Chips. **Zero is a real price here**, and it was not before: the shelves
+   * now carry free stock — the Hairline ring, the Hush pack, the Big Index
+   * deck, the Baize finish — so that the new categories are not four more
+   * things a free player can only look at. A zero-priced row shows "Use", never
+   * a disabled Buy.
+   */
   price: number
   /** Winning this venue unlocks the right to buy (souvenirs, hybrid backs). */
   requiresVenueWin?: string
+  /**
+   * The member shelf. With a `price`, the membership opens the right to buy and
+   * chips still buy it; without one, it simply comes with the membership. See
+   * the table on `Cosmetic` in config/cosmetics.ts — that is the whole economy.
+   */
+  membersOnly?: boolean
   /** Display accent (finishes, souvenirs). */
   swatch?: string
   /** Souvenirs render as chips (AwardChip) — the motif stamped in the centre. */
@@ -28,6 +42,18 @@ export interface ShopItem {
 // --- deck faces ----------------------------------------------------------------
 
 export const DECK_FACES: readonly ShopItem[] = [
+  {
+    // **Free, and it has to be.** A bigger rank is the change somebody makes
+    // because they cannot comfortably read the small one, and a readability
+    // option behind a price is a toll on the players least able to skip it.
+    // The same argument the Hush sound pack makes (config/cosmetics.ts), and
+    // the reason neither of them is ever given a price "later".
+    id: 'face-bigindex',
+    kind: 'face',
+    name: 'Big Index Deck',
+    blurb: 'A larger rank in the corner. Free, and always will be.',
+    price: 0,
+  },
   {
     id: 'face-contrast',
     kind: 'face',
@@ -42,6 +68,14 @@ export const DECK_FACES: readonly ShopItem[] = [
     blurb: 'Diamonds blue, clubs green. Misread nothing.',
     price: 5_000,
   },
+  {
+    id: 'face-minimal',
+    kind: 'face',
+    name: 'Minimal Deck',
+    blurb: 'Light type, small suit, nothing shouting. Comes with the membership.',
+    price: 0,
+    membersOnly: true,
+  },
 ] as const
 
 // --- table finishes --------------------------------------------------------------
@@ -51,6 +85,16 @@ export interface TableFinish extends ShopItem {
 }
 
 export const TABLE_FINISHES: readonly TableFinish[] = [
+  {
+    // The one everybody pictures when you say "card table", given away so that
+    // the plain felt is a choice rather than the only thing a free player has.
+    id: 'finish-baize',
+    kind: 'finish',
+    name: 'Baize',
+    blurb: 'The green you were already imagining. Free.',
+    price: 0,
+    swatch: '#2F6B4F',
+  },
   {
     id: 'finish-slate',
     kind: 'finish',
@@ -90,6 +134,24 @@ export const TABLE_FINISHES: readonly TableFinish[] = [
     blurb: 'Old leather, older money.',
     price: 50_000,
     swatch: '#5E3138',
+  },
+  {
+    id: 'finish-smoke',
+    kind: 'finish',
+    name: 'Smoke',
+    blurb: 'Grey with something violet in it. Comes with the membership.',
+    price: 0,
+    membersOnly: true,
+    swatch: '#5A5566',
+  },
+  {
+    id: 'finish-marble',
+    kind: 'finish',
+    name: 'Marble',
+    blurb: 'Cold, pale and wildly impractical to play cards on.',
+    price: 120_000,
+    membersOnly: true,
+    swatch: '#8E9AA6',
   },
 ] as const
 
@@ -182,6 +244,17 @@ export function souvenirAward(item: ShopItem): AwardDef {
 // --- shop backs (from the card-back set) --------------------------------------------
 
 const BACK_BLURBS: Record<string, string> = {
+  // The four that come with the membership. They are not *sold*, but they are
+  // listed: every other category shows its included item on the members' shelf
+  // reading "With the membership", and four card backs missing from that shelf
+  // made the membership look smaller than it is (Will, 2026-09-22).
+  'back-lockin': 'The door is shut and nobody is going home.',
+  'back-backroom': 'Quieter than the room you came from.',
+  'back-rematch': 'One more, then bed. Allegedly.',
+  'back-lastorders': 'The bell went twenty minutes ago.',
+  'back-oyster': 'Pale grey, faintly iridescent.',
+  'back-cask': 'Stored somewhere dark for a long time.',
+  'back-eclipse': 'Rings round a hole. The expensive one.',
   ocean: 'The deep end, gently.',
   rose: 'A soft touch at the table.',
   slate: 'Cool, grey, all business.',
@@ -202,12 +275,41 @@ const backItem = (design: CardBackDesign): ShopItem => ({
   blurb: BACK_BLURBS[design.id] ?? '',
   price: design.unlock?.price ?? 0,
   requiresVenueWin: design.unlock?.venueWin,
+  membersOnly: design.unlock?.membersOnly,
   swatch: design.color,
 })
 
+// --- rings, buttons and packs ------------------------------------------------
+//
+// The three categories added on 2026-09-21 live in config/cosmetics.ts as their
+// own registries and become shop rows here. The registry is the source of truth
+// and this is a projection of it: a ring's price is written once, next to the
+// ring, and the shop reads it. The alternative — a second list of the same
+// items with their own prices — is the failure docs/membership.md already
+// names about the price living in four files.
+
+const cosmeticItem =
+  (kind: ShopItemKind) =>
+  (item: Cosmetic): ShopItem => ({
+    id: item.id,
+    kind,
+    name: item.name,
+    blurb: item.blurb,
+    price: item.price,
+    membersOnly: item.membersOnly,
+  })
+
 export const SHOP_ITEMS: readonly ShopItem[] = [
   ...SHOP_BACKS.map(backItem),
+  // Included first, then the ones with a price: the members' shelf reads
+  // "here is what comes with it" before "here is what it lets you buy", which
+  // is the order somebody weighing the membership wants them in.
+  ...MEMBER_BACKS.map(backItem),
+  ...MEMBER_SHOP_BACKS.map(backItem),
   ...DECK_FACES,
   ...TABLE_FINISHES,
+  ...AVATAR_RINGS.map(cosmeticItem('ring')),
+  ...DEALER_BUTTONS.map(cosmeticItem('button')),
+  ...SOUND_PACKS.map(cosmeticItem('sound')),
   ...SOUVENIRS,
 ]

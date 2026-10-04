@@ -10,8 +10,14 @@ import type { AvatarSpec } from '@/lib/avatar'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
+import { DEALER_BUTTONS, DEFAULT_SOUND_PACK } from '@/config/cosmetics'
+import type { BlackjackSession } from '@/lib/blackjack/session'
+import type { CustomTableSpec } from '@/config/customTable'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
+import { type RatingPoint, appendRatingPoint, seedRatingHistory } from '@/lib/drills/history'
 import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
+import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
+import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
 
 export interface LifetimeStats {
@@ -97,6 +103,15 @@ export interface DrillRecord {
    * Anything reading it joins against a kind's ladder and ignores the rest.
    */
   shapes: Record<string, ShapeRecord>
+  /**
+   * The rating's past, as `[answered, rating]` pairs: the line on the graph.
+   *
+   * Over spots answered, never over dates, because nothing in the drills layer
+   * reads the clock (lib/drills/history.ts). Capped, and thinned rather than
+   * truncated when the cap bites, so the first point and the recent stretch are
+   * always there. The last point is always `[answered, rating]`.
+   */
+  history: RatingPoint[]
 }
 
 /** What one shape of spot knows about you. Two counters, nothing derived. */
@@ -155,6 +170,18 @@ export interface ProfileState {
   deckFace: string
   /** Equipped table finish (an owned finish id), or null for the plain table. */
   tableFinish: string | null
+  /**
+   * Equipped avatar ring (see config/cosmetics), or null for a bare avatar.
+   *
+   * Null is the default and the commonest choice: a ring on every avatar from
+   * day one would be a change to how the app looks rather than something a
+   * player picked.
+   */
+  avatarRing: string | null
+  /** Equipped dealer button. Always set — the house's is free and is the default. */
+  dealerButton: string
+  /** Equipped sound pack. Always set — 'sound-house' is what Pip has always been. */
+  soundPack: string
   /** Cast characters beaten in a challenge, earliest first: the scalp collection. */
   challengeWins: string[]
   /**
@@ -178,6 +205,45 @@ export interface ProfileState {
    * (technology#90). The rules are pure and live in lib/sync/escrow.
    */
   escrow: Escrow | null
+  /**
+   * Every priced decision you have ever been graded on, in big blinds.
+   *
+   * Counted at every reviewed table for everybody, member or not (see
+   * lib/review/stats). It is what lets the report name the street the money
+   * leaves by rather than only the rate you fold at, and counting it for
+   * everybody is what stops the report being empty on the day somebody joins.
+   */
+  reviewStats: ReviewStats
+  /**
+   * The last table this player built, or null.
+   *
+   * One slot rather than a library: the value is in building the thing, and a
+   * saved-tables list is a management screen nobody asked for. It persists so
+   * that "play it again" costs no clicks and, more importantly, so a refresh
+   * mid-tournament can resolve `/play/custom` back into the table that is
+   * actually on the screen.
+   *
+   * Persisted, therefore client-written, therefore **not trusted for anything
+   * that matters**: `refuseCustomTable` re-checks every field on the way in, so
+   * a hand-edited blob is a refusal rather than a 40-seat table.
+   */
+  customTable: CustomTableSpec | null
+
+  /**
+   * An open blackjack session: the chips in front of you and the table you sat
+   * at, or `null` when you are not sitting at one.
+   *
+   * **Persisted because the stack is real money to a player.** A blackjack
+   * buy-in leaves the Roll at sit-down and comes back at cash-out, so a hard
+   * refresh in between with nothing stored would simply delete it — the same
+   * failure the poker table's snapshot exists to prevent, one game over. The
+   * chips live here rather than in a transient store for exactly that reason.
+   *
+   * Client-written like everything else on the profile, so it is re-checked on
+   * the way in (`resumeBlackjack`): an unknown table id or a stack that is not
+   * a finite number is a trip back to the shelf, not a free bankroll.
+   */
+  blackjack: BlackjackSession | null
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -188,6 +254,9 @@ export interface ProfileState {
   /** Record newly earned award chips (already-owned ids are left untouched). */
   grantAwards: (ids: string[]) => void
   setCameFromFreeroll: (value: boolean) => void
+  /** Remember the table they just built. */
+  setCustomTable: (spec: CustomTableSpec) => void
+  setBlackjack: (session: BlackjackSession | null) => void
   /** Fold a hand's observed tendencies into each character's career record. */
   mergeCastStats: (deltas: Record<string, Partial<SeatStats>>) => void
   /** You took this character's last chip. */
@@ -217,6 +286,9 @@ export interface ProfileState {
   buyItem: (id: string, price: number) => void
   setDeckFace: (id: string) => void
   setTableFinish: (id: string | null) => void
+  setAvatarRing: (id: string | null) => void
+  setDealerButton: (id: string) => void
+  setSoundPack: (id: string) => void
   /** Sitting down at today's Daily — marks it played immediately. */
   recordDailyStart: (date: string, dayNo: number) => void
   /** Final placing for the daily started on `date` (ignored if dates mismatch). */
@@ -240,10 +312,15 @@ export interface ProfileState {
    * many. Zero, and no write, when there is nothing to take.
    */
   reclaimEscrow: (deviceId: string) => number
+  /** Fold one reviewed hand into the career table of priced decisions. */
+  recordReviewHand: (hand: ReviewHand) => void
   reset: () => void
 }
 
-export const PERSIST_VERSION = 17
+/** The dealer button everybody starts with — free, and the one already on the table. */
+const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
+
+export const PERSIST_VERSION = 22
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -253,6 +330,7 @@ export const emptyDrillRecord = (): DrillRecord => ({
   rating: STARTING_RATING,
   bestRun: 0,
   shapes: {},
+  history: seedRatingHistory(0, STARTING_RATING),
 })
 
 export const useProfile = create<ProfileState>()(
@@ -278,10 +356,16 @@ export const useProfile = create<ProfileState>()(
       owned: [],
       deckFace: 'classic',
       tableFinish: null,
+      avatarRing: null,
+      dealerButton: DEFAULT_DEALER_BUTTON,
+      soundPack: DEFAULT_SOUND_PACK.id,
       challengeWins: [],
       challengesPlayed: 0,
       drills: {},
       escrow: null,
+      customTable: null,
+      reviewStats: emptyReviewStats(),
+      blackjack: null,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -316,6 +400,8 @@ export const useProfile = create<ProfileState>()(
           return { awards }
         }),
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
+      setCustomTable: (spec) => set({ customTable: spec }),
+      setBlackjack: (session) => set({ blackjack: session }),
       mergeCastStats: (deltas) =>
         set((s) => {
           const ids = Object.keys(deltas)
@@ -344,15 +430,16 @@ export const useProfile = create<ProfileState>()(
         set((s) => {
           const rec = s.drills[kindId] ?? emptyDrillRecord()
           const was = rec.shapes?.[shape] ?? { answered: 0, correct: 0 }
+          // `rec.answered` is the count before this spot, which is what the
+          // K-factor is asking about.
+          const rating = nextRating(rec.rating, difficulty, correct, rec.answered)
           return {
             drills: {
               ...s.drills,
               [kindId]: {
                 answered: rec.answered + 1,
                 correct: rec.correct + (correct ? 1 : 0),
-                // `rec.answered` is the count before this spot, which is what
-                // the K-factor is asking about.
-                rating: nextRating(rec.rating, difficulty, correct, rec.answered),
+                rating,
                 bestRun: Math.max(rec.bestRun, run),
                 // The same answer counted a second time, by shape. Counted here
                 // rather than derived anywhere, for the reason the rating is:
@@ -365,6 +452,14 @@ export const useProfile = create<ProfileState>()(
                     correct: was.correct + (correct ? 1 : 0),
                   },
                 },
+                // And once more as a point on the graph, at the count after
+                // this spot. Same rule: the place that moves the rating is the
+                // place that records where it moved to.
+                history: appendRatingPoint(
+                  rec.history ?? seedRatingHistory(rec.answered, rec.rating),
+                  rec.answered + 1,
+                  rating,
+                ),
               },
             },
           }
@@ -380,6 +475,13 @@ export const useProfile = create<ProfileState>()(
         }),
       setDeckFace: (id) => set({ deckFace: id }),
       setTableFinish: (id) => set({ tableFinish: id }),
+      setAvatarRing: (id) => set({ avatarRing: id }),
+      setDealerButton: (id) => set({ dealerButton: id }),
+      // The pack is applied to the engine by whoever sets it (the Style picker)
+      // and at boot (AppBoot). Not here: the store is persisted state and
+      // lib/sound is a live AudioContext, and a store that reached into one
+      // would make every test that touches a profile need a Web Audio stub.
+      setSoundPack: (id) => set({ soundPack: id }),
       recordDailyStart: (date, dayNo) => set({ daily: { date, dayNo, place: null, hands: 0 } }),
       recordDailyResult: (date, place, hands) =>
         set((s) => (s.daily?.date === date ? { daily: { ...s.daily, place, hands } } : s)),
@@ -436,6 +538,7 @@ export const useProfile = create<ProfileState>()(
         })
         return escrow.chips
       },
+      recordReviewHand: (hand) => set((s) => ({ reviewStats: foldHand(s.reviewStats, hand) })),
       reset: () =>
         set({
           created: false,
@@ -458,10 +561,16 @@ export const useProfile = create<ProfileState>()(
           owned: [],
           deckFace: 'classic',
           tableFinish: null,
+          avatarRing: null,
+          dealerButton: DEFAULT_DEALER_BUTTON,
+          soundPack: DEFAULT_SOUND_PACK.id,
           challengeWins: [],
           challengesPlayed: 0,
           drills: {},
           escrow: null,
+          customTable: null,
+          reviewStats: emptyReviewStats(),
+          blackjack: null,
         }),
     }),
     {
@@ -567,6 +676,54 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // another device). Null reads as "unclaimed" rather than "not yours", so
   // their tournament survives and the resume path claims it on the way in.
   if (fromVersion < 17) s.escrow = null
+  // v17 -> v18: build-your-own-table. Null for everybody, including members:
+  // there is nothing to infer from an older profile, and a null slot is the
+  // same state as a member who has never opened the builder.
+  if (fromVersion < 18) s.customTable = null
+  // v18 → v19: blackjack, whose stack has to survive a refresh (see the field).
+  if (fromVersion < 19) s.blackjack = null
+  // v19 → v20: the career table of priced decisions (lib/review/stats). Empty
+  // for everybody, including a player with a thousand hands behind them: the
+  // hands are gone, nothing was kept that could be re-scored, and seeding it
+  // from the tendency counters would be a claim about *where* the money went
+  // made out of numbers that only say how often you called. So the table
+  // starts at zero here and fills from the next hand on, which is the same
+  // answer v15 gave the drills for the same reason.
+  if (fromVersion < 20) s.reviewStats = emptyReviewStats()
+  // v20 → v21: three new cosmetic categories — avatar rings, dealer buttons and
+  // sound packs (config/cosmetics.ts).
+  //
+  // **Everybody lands on the free default, and nobody is handed anything.**
+  // The v10 → v11 branch above grandfathered three card backs because they had
+  // genuinely been free and were moving behind a price; nothing of the kind is
+  // happening here. These are new, so an existing profile starts where a new
+  // one does: no ring, the house's button, the sound Pip has always made.
+  //
+  // Written unconditionally rather than `??`-guarded because a v20 profile
+  // cannot have these fields, and a guard would quietly paper over the one bug
+  // worth catching — a later version reaching back through this branch and
+  // resetting somebody's choice on every load.
+  if (fromVersion < 21) {
+    s.avatarRing = null
+    s.dealerButton = DEFAULT_DEALER_BUTTON
+    s.soundPack = DEFAULT_SOUND_PACK.id
+  }
+  // v21 → v22: the drill rating's history, the line on the graph.
+  //
+  // **Seeded, not left empty**, and this is the opposite call from v15 and v16
+  // for a reason those two did not have: here there are two points that are
+  // simply true. Every record started at the starting rating with nothing
+  // answered, and it is at `rating` after `answered` now. The middle was never
+  // kept and is not invented; the graph draws the one straight line between two
+  // facts. A player with two hundred answers opens `/stats` to a line rather
+  // than to "nothing yet", and the next answer carries on from the end of it.
+  //
+  // Unconditional for the reason v21 gives: a v21 record cannot have a history.
+  if (fromVersion < 22) {
+    for (const rec of Object.values(s.drills ?? {})) {
+      rec.history = seedRatingHistory(rec.answered ?? 0, rec.rating ?? STARTING_RATING)
+    }
+  }
   return s
 }
 

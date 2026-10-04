@@ -28,8 +28,8 @@ Hold'em web app). This mirrors [`CLAUDE.md`](./CLAUDE.md); full docs are in
 
 - **pnpm** for everything; never hand-pin versions.
 - **AVA** for tests (not Vitest); engine changes ship with tests.
-- **Theme tokens only** for colour (`foreground/<alpha>`, `bg-primary`) — must work in
-  light *and* dark. Never hardcode `white`/`black`.
+- **Theme tokens only** for colour (`foreground/<alpha>`, `bg-primary`). Dark only —
+  there is no light mode. Never hardcode `white`/`black`.
 - **No real-money framing:** "chips", never `$`; no casino textures or pop-ups.
 - **Engine is pure & deterministic** (seeded `Rng`; no React/store imports).
 - **Persisted-schema changes** bump `PERSIST_VERSION` + add a migration.
@@ -39,3 +39,13 @@ Hold'em web app). This mirrors [`CLAUDE.md`](./CLAUDE.md); full docs are in
 
 `pnpm test:all` passes — format, types, lint (biome), AVA, knip, audit — (plus
 `pnpm build` for structural changes). Verify UI by running `pnpm dev`. Commit/push only when asked.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -154,10 +154,38 @@ test('delete_own_account is callable only when signed in', (t) => {
   t.regex(all, /delete from auth\.users where id = uid/i)
 })
 
+/**
+ * The grants to anon somebody stopped and looked at. Each is the exact line,
+ * and each has its own test below pinning what it is on. Adding to this list is
+ * the review, not a way round it.
+ */
+const ANON_GRANTS = [
+  // The CMO's weekly export reads the account total with the publishable key,
+  // so CI holds no database credential (cto#101, pip-web#169).
+  'grant execute on function public.user_count() to anon, authenticated;',
+]
+
 test('nothing else in the schema is granted to anon', (t) => {
   // The anon role is every visitor. It needs no execute grant on anything, and
   // a `grant ... to anon` is worth stopping to look at whatever it is on.
   for (const { name, sql } of migrations) {
-    t.notRegex(sql, /^\s*grant\b[^;]*\bto\b[^;]*\banon\b/im, `${name}: grants something to anon`)
+    const reviewed = ANON_GRANTS.reduce((text, line) => text.replaceAll(line, ' '), sql)
+    t.notRegex(
+      reviewed,
+      /^\s*grant\b[^;]*\bto\b[^;]*\banon\b/im,
+      `${name}: grants something to anon`,
+    )
   }
+})
+
+test('user_count is the total and nothing else', (t) => {
+  // It is callable by every visitor and runs as the owner, over auth.users. The
+  // only thing that makes that safe is that it can say one number: a column or
+  // a filter turns it into a user list or a signup-timing oracle.
+  const body = all.match(
+    /create (?:or replace )?function public\.user_count\(\)\s*returns bigint\s*language sql\s*stable\s*security definer\s*set search_path = ''\s*as \$\$([\s\S]*?)\$\$/i,
+  )
+  t.truthy(body, 'user_count() is no longer a stable, no-argument function returning bigint')
+  t.is(body?.[1].trim(), 'select count(*) from auth.users;')
+  t.regex(all, /revoke execute on function public\.user_count\(\) from public;/i)
 })

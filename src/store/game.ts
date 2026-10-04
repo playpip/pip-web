@@ -14,11 +14,25 @@ import { draftCast, profileFor, characterById } from '@/config/cast'
 import { styleFor, randomBankroll } from '@/config/opponents'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
-import { freerollOpen, type Venue } from '@/config/venues'
+import { cashOutValue, freerollOpen, reviewableVenue, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
-import { heroDecision, readHand, type HandRead, type HeroDecision } from '@/lib/coach'
+import {
+  heroDecision,
+  readFrom,
+  scoreDecisions,
+  type HandRead,
+  type HeroDecision,
+} from '@/lib/coach'
+import { gradeDecision, isGraded, type GradedDecision } from '@/lib/review/grade'
+import {
+  appendReviewHand,
+  clearReview,
+  endReviewSession,
+  loadReview,
+  startReviewSession,
+} from '@/lib/review/session'
 import { buildRecap, type Recap } from '@/lib/recap'
 import { deviceId } from '@/lib/sync/client'
 import { type Escrow, tableIsBacked } from '@/lib/sync/escrow'
@@ -33,6 +47,7 @@ import {
   type SeatConfig,
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity } from '@/lib/poker/ai/policy'
+import { decideDiscard } from '@/lib/poker/ai/draw'
 import { estimateEquity } from '@/lib/poker/equity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
 import {
@@ -63,7 +78,7 @@ export interface SeatMeta {
   ai?: AiProfile
 }
 
-export type GameStatus = 'idle' | 'playing' | 'handover' | 'busted' | 'won'
+export type GameStatus = 'idle' | 'playing' | 'handover' | 'busted' | 'won' | 'watching'
 
 // --- hand history ------------------------------------------------------------
 // A lightweight timeline of the previous hand, recorded as it plays so the
@@ -91,6 +106,23 @@ export interface HandActionEvent {
    * none of these and gets no read. That is the intended behaviour.
    */
   decision?: HeroDecision
+  /**
+   * The pot, and every stack, immediately after this action.
+   *
+   * Recorded rather than rebuilt for the same reason `decision` is: the pot at
+   * a given moment *can* be derived by replaying blinds and per-street totals
+   * out of the event list, and that arithmetic goes quietly wrong. Taken off
+   * the live `HandState` it cannot, and the review can draw the table exactly
+   * as it stood at any step instead of approximately.
+   *
+   * Optional because a hand recorded before the review shipped has neither,
+   * and a plain (v1) `/hand` permalink does not carry them. A review link (v2,
+   * lib/handLink) does, which is what lets it open on the felt.
+   */
+  pot?: number
+  stacks?: Record<string, number>
+  /** Chips in front of each player this betting round, after this action. */
+  committed?: Record<string, number>
 }
 
 export interface HandBoardEvent {
@@ -110,14 +142,67 @@ export interface HandRecord {
   community: Card[]
   /** Hole cards known at the end: the hero's always, everyone live at showdown. */
   reveals: { playerId: string; playerName: string; cards: Card[]; handName?: string }[]
+  /**
+   * Who was at the table, in seat order, with the avatar each of them wore.
+   *
+   * So the review can draw the hand as the table drew it. Optional: a hand
+   * recorded before the review shipped has none, and nor does one decoded
+   * from a plain (v1) `/hand` link.
+   */
+  seats?: { id: string; name: string; avatar: AvatarSpec }[]
+  /**
+   * **Every** hand that was dealt, including the ones that folded and were
+   * never shown.
+   *
+   * Separate from `reveals`, which is what the table actually turned over. This
+   * is for the review, where the hand is over, the result is recorded, and
+   * nothing anybody learns can be played — the same argument that lets a busted
+   * player watch a tournament out. A shared hand is a public review of that one
+   * hand, so a v2 `/hand` link carries these too; a plain v1 link does not.
+   */
+  hole?: { playerId: string; cards: Card[] }[]
+  /** Who had the button. Optional for the same reason `seats` is. */
+  buttonId?: string
+  /** The table as the cards landed: stacks and blinds before anybody acted. */
+  start?: { stacks: Record<string, number>; committed: Record<string, number>; pot: number }
   summary: string
+  /**
+   * What the hand did to the hero's stack — chips won less chips put in.
+   *
+   * Recorded rather than derived, for the same reason `HeroDecision` is: it can
+   * be rebuilt by walking the events and the pots, and that arithmetic goes
+   * quietly wrong. Taken as the difference between the stack the hero sat down
+   * with this hand and the one they have now, it cannot.
+   *
+   * Optional because a hand decoded from a `/hand` permalink has none: the wire
+   * format predates it and does not carry it (see lib/handLink).
+   */
+  heroDelta?: number
 }
 
 const HUMAN_ID = 'hero'
+/**
+ * Priced decisions scored per hand.
+ *
+ * Higher than the free read's own cap, which keeps the four biggest pots
+ * because it only ever names one of them. A review listing every hand has to
+ * account for the hand where the fifth decision was the expensive one — that is
+ * exactly the hand somebody opens the review to find. Eight is past the longest
+ * raise war six-handed poker produces, so in practice nothing is dropped.
+ */
+const MAX_REVIEWED_DECISIONS = 8
 // AI acts a touch slower while the human is still contesting the pot (so it's
 // followable), and briskly once the human has folded and is just spectating.
 const AI_DELAY_IN_HAND = 1050
 const AI_DELAY_FOLDED = 450
+/**
+ * How long a spectator is left on a finished hand before the next is dealt.
+ *
+ * Longer than the AI's own beat because there is no button to press and nothing
+ * to do: the only reason to pause is so the result can be read. Short enough
+ * that a six-handed table does not take an evening to play down to one.
+ */
+const WATCH_HAND_PAUSE = 2200
 
 interface GameState {
   venue: Venue | null
@@ -138,6 +223,12 @@ interface GameState {
   handIndex: number
   /** Timeline of the previous completed hand (for the history dialog). */
   lastHand: HandRecord | null
+  /**
+   * The hero's priced calls and folds in `lastHand`, graded — the same pass the
+   * session review keeps, held here so a shared link can carry the price on
+   * each of them without scoring the hand a second time.
+   */
+  lastDecisions: GradedDecision[]
   /**
    * One honest line on the hand just finished, or null when it had no lesson
    * in it (most hands) or the player has the setting off. Shown on the handover
@@ -161,22 +252,59 @@ interface GameState {
   /** Chips bought in this session — the sit-in plus any rebuys. Drives the cash
    * table's cash-out P/L (which must count rebuys, not just the first buy-in). */
   cashInvested: number
+  /**
+   * Whether this table was sat down at by a member.
+   *
+   * **Handed in at sit-down rather than read from the entitlement store**, and
+   * the reason is a rule rather than taste: nothing in the game loop asks
+   * whether the player is a member (`tests/membershipSurfaces.test.ts` fails the
+   * build on the import). A table is told what it is when it opens, the same
+   * way it is told the venue, and it cannot re-derive entitlement mid-hand.
+   *
+   * It gates one thing: watching the tournament out after you bust.
+   */
+  member: boolean
 
-  sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec }) => void
+  sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec; member: boolean }) => void
   /** Rebuild an interrupted table from its snapshot (no buy-in taken). */
-  resumeTable: (venue: Venue, snapshot: TableSnapshot) => void
+  resumeTable: (venue: Venue, snapshot: TableSnapshot, member: boolean) => void
   act: (action: Action) => void
   nextHand: () => void
   /** Cash tables only: buy a fresh stack after busting and deal on. */
   rebuy: () => void
+  /**
+   * Tournaments only, members only: stay and watch it play out after busting.
+   *
+   * **Nothing about the run changes.** The place, the records, the recap and the
+   * chips were all settled the moment the last chip went, and this is a
+   * spectator seat at a game that is already over for the player. That is also
+   * what makes it honest under "nothing you can buy changes a hand": watching
+   * hands you are no longer in cannot be acted on.
+   */
+  watchItOut: () => void
+  /**
+   * A still-live player's chance of taking the pot, for the spectator view.
+   *
+   * Computed on demand rather than held in state: it is several Monte Carlo
+   * estimates per player and almost nobody opens more than one seat at a time.
+   * Returns null unless the player is actually watching, so this cannot become
+   * a way to read equity while a hand is live.
+   */
+  spectatorEquity: (playerId: string) => number | null
   leave: () => void
 }
 
 let turnTimer: ReturnType<typeof setTimeout> | null = null
+/** The pause between spectated hands, so leaving the table can cancel it. */
+let watchTimer: ReturnType<typeof setTimeout> | null = null
+/** Latched once the spectated table is down to one, so no stray timer deals on. */
+let watchOver = false
 
 function clearTimers() {
   if (turnTimer) clearTimeout(turnTimer)
   turnTimer = null
+  if (watchTimer) clearTimeout(watchTimer)
+  watchTimer = null
 }
 
 // --- table snapshot ----------------------------------------------------------
@@ -344,6 +472,20 @@ let runTally: RunTally = emptyRunTally(0)
 let seatStatsLive: Record<string, SeatStats> = {}
 /** Hero tendencies already pushed to the lifetime profile — the flush baseline. */
 let heroTendencyFlushed: SeatStats = emptySeatStats()
+/**
+ * The table at the moment of the deal, for the review's opening step.
+ *
+ * Module-level like `currentEvents`, and for the same reason: it belongs to the
+ * hand being played rather than to any screen, and the record is only built at
+ * the end.
+ */
+let handStart: { stacks: Record<string, number>; committed: Record<string, number>; pot: number } =
+  {
+    stacks: {},
+    committed: {},
+    pot: 0,
+  }
+
 /** Cast tendencies already pushed to career records — flush baselines by seat. */
 let castFlushed: Record<string, SeatStats> = {}
 
@@ -419,6 +561,9 @@ function recordStep(prev: HandState, action: Action, next: HandState) {
       amount,
       decision:
         actor.id === HUMAN_ID ? heroDecision(prev, HUMAN_ID, legal?.callAmount ?? 0) : undefined,
+      pot: potSize(next),
+      stacks: Object.fromEntries(next.players.map((p) => [p.id, p.stack])),
+      committed: Object.fromEntries(next.players.map((p) => [p.id, p.committedThisStreet])),
     })
 
     // Tendencies (feeds the reads in the player dialog).
@@ -511,6 +656,9 @@ export const useGame = create<GameState>((set, get) => {
       smallBlind: blinds.smallBlind,
       bigBlind: blinds.bigBlind,
       rng: dailyBase !== null ? mulberry32(handSeed(dailyBase, handIndex)) : undefined,
+      // Four cards and pot-limit at an Omaha table. Absent everywhere else, so
+      // every existing table deals exactly what it always did.
+      variant: venue!.variant,
     })
     // The opponents get their own stream off the same per-hand seed as the deck.
     armDailyHand(handIndex)
@@ -520,6 +668,15 @@ export const useGame = create<GameState>((set, get) => {
     // busy session doesn't drown the signal; anonymous.
     trackOnce('first-hand')
     currentEvents = []
+    // The table as the cards land, before anybody has acted: stacks after the
+    // blinds, and the blinds themselves sitting in front. The review's first
+    // step draws from this — without it the felt opens on stacks of zero and an
+    // empty pot, because nothing had been recorded yet.
+    handStart = {
+      stacks: Object.fromEntries(hand.players.map((p) => [p.id, p.stack])),
+      committed: Object.fromEntries(hand.players.map((p) => [p.id, p.committedThisStreet])),
+      pot: potSize(hand),
+    }
     vpipThisHand = new Set()
     for (const c of configs) statsFor(c.id).handsDealt++
     set({
@@ -570,7 +727,15 @@ export const useGame = create<GameState>((set, get) => {
       if (!cur || isHandComplete(cur)) return
       const venue = get().venue!
       const seatAi = get().seats.find((s) => s.id === toAct.id)?.ai
-      const action = decideAction(cur, seatAi ?? venue.ai, dailyAiRng ?? Math.random)
+      const rng = dailyAiRng ?? Math.random
+      // The draw round is not a betting round, so it does not go through the
+      // betting policy. Everything after this — the sound, the history, the
+      // snapshot — is identical, because to the rest of the loop a discard is
+      // just another action somebody took.
+      const action: Action =
+        cur.street === 'draw'
+          ? { type: 'draw', discard: decideDiscard(cur.players[cur.toActIndex].hole, rng) }
+          : decideAction(cur, seatAi ?? venue.ai, rng)
       playActionSound(action, cur)
       const next = applyAction(cur, action)
       recordStep(cur, action, next)
@@ -593,14 +758,31 @@ export const useGame = create<GameState>((set, get) => {
         if (p.status !== 'folded' && p.status !== 'out') statsFor(p.id).showdowns++
       }
     }
-    // The read runs here rather than in the render path: it is several Monte
+    // The scoring runs here rather than in the render path: it is several Monte
     // Carlo estimates and the hand is already over, so nobody is waiting on it.
-    const record = buildHandRecord(hand, get())
+    //
+    // **One pass, two readers.** `scoreDecisions` prices every decision the
+    // hero was charged for; the banner's free read takes the biggest of them
+    // and the session being kept for review keeps all of them. Scoring twice
+    // would be three thousand simulations a hand for one answer.
+    const heroStackBefore = seats.find((s) => s.id === HUMAN_ID)?.stack ?? 0
+    const record = buildHandRecord(hand, { ...get(), heroStackBefore })
+    const scored = scoreDecisions(record, { max: MAX_REVIEWED_DECISIONS })
+    // The read prices bets and raises too; the review grades calls and folds.
+    const priced = scored.filter(isGraded)
     set({
       lastHand: record,
-      lastRead: useProfile.getState().handCoaching ? readHand(record) : null,
+      lastDecisions: priced.map((s) => gradeDecision(s, record.bigBlind)),
+      lastRead: useProfile.getState().handCoaching ? readFrom(scored, record) : null,
       seatStats: { ...seatStatsLive },
     })
+    // No-ops at every table the review does not cover — nothing opened a
+    // session there. The store never asks who is paying (see the `member`
+    // field): collecting is free, the screen that reads it is not.
+    const reviewed = appendReviewHand(record, priced)
+    // The career table behind the report. Same rule: written at reviewed tables
+    // only, for everybody, and the screen that reads it is the gated one.
+    if (reviewed) useProfile.getState().recordReviewHand(reviewed)
     const heroWon = !!result && (result.payouts[HUMAN_ID] ?? 0) > 0
     const pot = potSize(hand)
 
@@ -698,6 +880,42 @@ export const useGame = create<GameState>((set, get) => {
       }
     }
 
+    // Spectating: the run's outcome was settled the hand the player busted, so
+    // none of the recording below may run a second time. What is left is to
+    // play the table down to one and then stop.
+    if (get().status === 'watching') {
+      if (survivors.length <= 1) {
+        clearTableSnapshot()
+        set({
+          seats: nextSeats,
+          hand,
+          status: 'watching',
+          aiThinkingId: null,
+          message: survivors[0] ? `${survivors[0].name} takes it.` : describeResult(hand),
+          talk: null,
+        })
+        watchOver = true
+        return
+      }
+      set({
+        seats: nextSeats,
+        hand,
+        aiThinkingId: null,
+        message: describeResult(hand),
+        talk: maybeTalk('bust', eliminated[0], get().handIndex, 0.8),
+      })
+      // No "Next hand" button to wait for — there is nobody to press it. The
+      // pause is so a spectator can read the result rather than watch a blur.
+      watchTimer = setTimeout(() => {
+        if (get().status !== 'watching' || watchOver) return
+        const live = get().seats.filter((s) => s.stack > 0)
+        if (live.length <= 1) return
+        set({ message: null, talk: null })
+        dealHand(nextButtonSeatId(get().seats, get().buttonSeatId, live))
+      }, WATCH_HAND_PAUSE)
+      return
+    }
+
     // Tournament outcomes.
     if (!humanAlive) {
       clearTableSnapshot()
@@ -712,6 +930,7 @@ export const useGame = create<GameState>((set, get) => {
         profile.setCameFromFreeroll(false)
       }
       buzz('bust')
+      endReviewSession({ kind: 'busted', place, seats: seats.length })
       set({
         seats: nextSeats,
         hand,
@@ -735,6 +954,7 @@ export const useGame = create<GameState>((set, get) => {
       if (venue.freeroll) profile.setCameFromFreeroll(true)
       const newAwards = grantEarnedAwards(hand, venue, heroWon, true, knockedOut, eliminatedCount)
       buzz('finish')
+      endReviewSession({ kind: 'won', seats: seats.length })
       set({
         seats: nextSeats,
         hand,
@@ -978,6 +1198,7 @@ export const useGame = create<GameState>((set, get) => {
     blindLevel: 0,
     handIndex: 0,
     lastHand: null,
+    lastDecisions: [],
     lastRead: null,
     newAwards: [],
     lastBounty: 0,
@@ -985,9 +1206,11 @@ export const useGame = create<GameState>((set, get) => {
     recap: null,
     talk: null,
     cashInvested: 0,
+    member: false,
 
     sitDown: (venue, human) => {
       clearTimers()
+      watchOver = false
       const stack = venue.startingStack ?? venue.buyIn
       heroLowTide = stack
       runTally = emptyRunTally(useProfile.getState().peakRoll)
@@ -1058,6 +1281,7 @@ export const useGame = create<GameState>((set, get) => {
       set({
         venue,
         seats,
+        member: human.member,
         status: 'playing',
         place: null,
         message: null,
@@ -1068,6 +1292,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        lastDecisions: [],
         lastRead: null,
         newAwards: [],
         lastBounty: 0,
@@ -1076,6 +1301,11 @@ export const useGame = create<GameState>((set, get) => {
         talk: null,
         cashInvested: venue.buyIn,
       })
+      // Open the session the review will read, or throw away the last one: a
+      // table that is not reviewed must not leave the previous table's session
+      // sitting there looking like it belongs to this one.
+      if (reviewableVenue(venue)) startReviewSession(venue)
+      else clearReview()
       dealHand(seats[0].id)
       // Someone might say hello — one line at most, often nobody.
       const speaker = aiSeats[Math.floor(Math.random() * aiSeats.length)]
@@ -1083,8 +1313,9 @@ export const useGame = create<GameState>((set, get) => {
       if (seatTalk) set({ talk: seatTalk })
     },
 
-    resumeTable: (venue, snapshot) => {
+    resumeTable: (venue, snapshot, member) => {
       clearTimers()
+      watchOver = false
       const live = snapshot.live
       heroLowTide = snapshot.heroLow
       // A snapshot written before the recap shipped carries no tally, so the
@@ -1104,6 +1335,7 @@ export const useGame = create<GameState>((set, get) => {
       set({
         venue,
         seats: snapshot.seats,
+        member,
         status: 'playing',
         place: null,
         message: null,
@@ -1114,6 +1346,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: snapshot.handIndex,
         lastHand: null,
+        lastDecisions: [],
         lastRead: null,
         newAwards: [],
         lastBounty: 0,
@@ -1121,6 +1354,14 @@ export const useGame = create<GameState>((set, get) => {
         talk: null,
         cashInvested: snapshot.cashInvested ?? venue.buyIn,
       })
+      // A refresh mid-run keeps the session it was collecting — the hands
+      // already in it are this table's. Anything else (a stale session from
+      // another venue, or none) starts over, because appending this run's hands
+      // to another table's session would be the one way this feature could lie.
+      if (reviewableVenue(venue)) {
+        const open = loadReview()
+        if (!open || open.venueId !== venue.id || open.endedAt !== null) startReviewSession(venue)
+      } else clearReview()
 
       // Between hands: deal the next one. Mid-hand: pick the hand back up on
       // the street it was on, with the same deck (#22).
@@ -1163,6 +1404,45 @@ export const useGame = create<GameState>((set, get) => {
 
     nextHand: dealNextHand,
 
+    watchItOut: () => {
+      const { venue, status, member, seats } = get()
+      // Tournaments only: a cash table has no finish to watch, and busting at
+      // one offers a rebuy rather than an ending.
+      if (!venue || venue.cash) return
+      if (status !== 'busted') return
+      if (!member) return
+      // Nothing left to watch. Can happen at a heads-up table, where busting
+      // and the table being down to one are the same moment.
+      const live = seats.filter((s) => s.stack > 0)
+      if (live.length <= 1) return
+
+      clearTimers()
+      watchOver = false
+      set({ status: 'watching', message: null, talk: null, recap: null })
+      dealHand(nextButtonSeatId(seats, get().buttonSeatId, live))
+    },
+
+    spectatorEquity: (playerId) => {
+      const { hand, status } = get()
+      // The guard that makes this feature honest rather than a peek: outside
+      // the spectator view there is no answer, whoever asks.
+      if (status !== 'watching' || !hand) return null
+      const player = hand.players.find((p) => p.id === playerId)
+      if (!player || player.hole.length < 2) return null
+      if (player.status === 'folded' || player.status === 'out') return null
+      const opponents = hand.players.filter(
+        (p) => p.id !== playerId && p.status !== 'folded' && p.status !== 'out',
+      )
+      if (opponents.length === 0) return 1
+      return estimateEquity({
+        hole: player.hole,
+        community: hand.community,
+        opponents: opponents.length,
+        opponentSelectivity: opponents.map((p) => opponentSelectivity(hand, p)),
+        iterations: 800,
+      }).equity
+    },
+
     rebuy: () => {
       const { venue, seats, status } = get()
       if (!venue?.cash || status !== 'busted') return
@@ -1188,6 +1468,21 @@ export const useGame = create<GameState>((set, get) => {
       clearTimers()
       clearTableSnapshot()
       armDaily(null)
+      // Standing up closes the session, unless it closed itself: busting and
+      // winning are already stamped, and `endReviewSession` leaves those alone
+      // rather than relabelling a knockout as a walk to the door.
+      //
+      // The P/L is the one `LeaveDialog` shows — what the stack cashes for,
+      // less everything bought in, rebuys included. Not the stack: two venues
+      // deal chips that are not Roll chips (see `cashOutValue`).
+      const { venue: leaving, seats: leavingSeats, cashInvested: invested } = get()
+      if (leaving) {
+        const stack = leavingSeats.find((s) => s.id === HUMAN_ID)?.stack ?? 0
+        endReviewSession({
+          kind: 'stood-up',
+          rollDelta: cashOutValue(leaving, stack) - invested,
+        })
+      }
       set({
         venue: null,
         seats: [],
@@ -1203,6 +1498,7 @@ export const useGame = create<GameState>((set, get) => {
         blindLevel: 0,
         handIndex: 0,
         lastHand: null,
+        lastDecisions: [],
         lastRead: null,
         newAwards: [],
         lastBounty: 0,
@@ -1237,6 +1533,13 @@ function subtractStats(total: SeatStats, part: SeatStats): SeatStats {
 function computeHeroEquity(hand: HandState): number | null {
   const hero = hand.players.find((p) => p.id === HUMAN_ID)
   if (!hero || hero.hole.length < 2) return null
+  // **No number at all at Five-Card Draw**, which is better than a wrong one.
+  // `estimateEquity` works by running out a board, and a draw hand has none:
+  // asked anyway it deals five community cards onto five hole cards and
+  // evaluates ten, which produces a confident percentage of nothing. The real
+  // answer would have to model what four opponents are about to discard, and
+  // until that exists the odds panel shows an em dash.
+  if (hand.variant === 'draw') return null
   const opponents = hand.players.filter(
     (p) => p.id !== HUMAN_ID && p.status !== 'folded' && p.status !== 'out',
   )
@@ -1247,6 +1550,7 @@ function computeHeroEquity(hand: HandState): number | null {
     opponents: opponents.length,
     opponentSelectivity: opponents.map((p) => opponentSelectivity(hand, p)),
     iterations: 800,
+    variant: hand.variant,
   }).equity
 }
 
@@ -1260,6 +1564,13 @@ function buzz(cue: Buzz) {
 }
 
 function playActionSound(action: Action, hand: HandState) {
+  // Cards going away and coming back has its own cue; `action.type` is not a
+  // sound name for this one because "draw" is the only action that is not
+  // about chips.
+  if (action.type === 'draw') {
+    sound.play('draw')
+    return
+  }
   const legal = legalActions(hand)
   if (action.type === 'raise' || action.type === 'bet') {
     const allIn = legal && action.amount === legal.maxRaiseTo
@@ -1286,13 +1597,19 @@ function nextButtonSeatId(
 
 function buildHandRecord(
   hand: HandState,
-  ctx: { handIndex: number; smallBlind: number; bigBlind: number },
+  ctx: {
+    handIndex: number
+    smallBlind: number
+    bigBlind: number
+    heroStackBefore: number
+    seats: SeatMeta[]
+  },
 ): HandRecord {
   const showdown = hand.result?.showdown === true
   const reveals = hand.players
     .filter(
       (p) =>
-        p.hole.length === 2 &&
+        p.hole.length >= 2 &&
         (p.id === HUMAN_ID || (showdown && p.status !== 'folded' && p.status !== 'out')),
     )
     .map((p) => ({
@@ -1308,7 +1625,16 @@ function buildHandRecord(
     events: currentEvents,
     community: hand.community.slice(),
     reveals,
+    seats: ctx.seats.map((s) => ({ id: s.id, name: s.name, avatar: s.avatar })),
+    buttonId: hand.players[hand.buttonIndex]?.id,
+    start: handStart,
+    hole: hand.players
+      .filter((p) => p.hole.length >= 2)
+      .map((p) => ({ playerId: p.id, cards: p.hole.slice() })),
     summary: describeResult(hand),
+    heroDelta:
+      (hand.players.find((p) => p.id === HUMAN_ID)?.stack ?? ctx.heroStackBefore) -
+      ctx.heroStackBefore,
   }
 }
 

@@ -28,7 +28,7 @@ export default function Page() {
       {!created ? (
         <Onboarding onCreated={() => setOffering(true)} />
       ) : offering ? (
-        <TutorialOffer onDeclined={() => setOffering(false)} />
+        <TutorialOffer />
       ) : (
         <Home />
       )}

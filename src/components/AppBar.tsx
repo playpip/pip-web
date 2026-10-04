@@ -9,6 +9,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { AccountBarButton } from '@/components/settings/AccountOffer'
 import { StyleDialog } from '@/components/settings/StyleDialog'
 import { useProfile } from '@/store/profile'
+import { avatarRingById } from '@/config/cosmetics'
 import { rankFor } from '@/config/ranks'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -27,6 +28,10 @@ type Leading = 'profile' | 'back' | 'none'
  * - `title` — an optional centred label (the table shows venue + blinds).
  * - `actions` — page-specific buttons, rendered just before the shared
  *   pip · Style · Settings cluster.
+ * - `chrome={false}` — no account, Style or Settings buttons: for a screen a
+ *   stranger lands on from a link, where only the page's own actions belong.
+ * - `leading='none'` — nothing on the left, and the title sits there in the
+ *   flow instead of floating centred, so it can never run under the actions.
  */
 export function AppBar({
   leading = 'back',
@@ -35,6 +40,7 @@ export function AppBar({
   title,
   actions,
   showWordmark = true,
+  chrome = true,
   className,
 }: {
   leading?: Leading
@@ -44,10 +50,15 @@ export function AppBar({
   actions?: React.ReactNode
   /** The pip wordmark. Off on the table, where the venue name is the title. */
   showWordmark?: boolean
+  /** The account · Style · Settings buttons. Off on a shared hand. */
+  chrome?: boolean
   className?: string
 }) {
   const router = useRouter()
-  const { name, avatar, peakRoll } = useProfile()
+  const { name, avatar, peakRoll, avatarRing } = useProfile()
+  // The player's own ring, on the player's own face. Every other avatar in
+  // the app belongs to somebody in the cast and wears nothing.
+  const ring = avatarRingById(avatarRing)
   const [profileOpen, setProfileOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -71,7 +82,7 @@ export function AppBar({
             className="flex items-center gap-3 rounded-full py-1 pl-1 pr-3 transition hover:bg-foreground/5 active:scale-[0.98]"
             aria-label="Edit player"
           >
-            {avatar && <PlayerAvatar spec={avatar} size={40} />}
+            {avatar && <PlayerAvatar spec={avatar} size={40} ring={ring} />}
             <div className="text-left leading-tight">
               <div className="text-sm font-medium text-muted-foreground">{name}</div>
               <div className="text-2xs text-muted-foreground/70">{rankFor(peakRoll).name}</div>
@@ -85,12 +96,14 @@ export function AppBar({
             <ChevronLeft className="size-4" />
             {backLabel}
           </button>
+        ) : title ? (
+          <div className="flex min-w-0 flex-col items-start leading-tight">{title}</div>
         ) : (
           <div />
         )}
 
         {/* centred title (absolute so it stays centred regardless of side widths) */}
-        {title && (
+        {title && leading !== 'none' && (
           <div className="pointer-events-none absolute left-1/2 flex -translate-x-1/2 flex-col items-center leading-tight">
             {title}
           </div>
@@ -106,33 +119,41 @@ export function AppBar({
           )}
           {/* Signed out only, and it vanishes permanently once there is an
               account. One tap from anywhere beats three taps from two screens. */}
-          <AccountBarButton />
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setStyleOpen(true)
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Style"
-          >
-            <Palette className="size-4" />
-          </button>
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setSettingsOpen(true)
-            }}
-            className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-            aria-label="Settings"
-          >
-            <Settings className="size-4" />
-          </button>
+          {chrome && (
+            <>
+              <AccountBarButton />
+              <button
+                onClick={() => {
+                  sound.play('tap')
+                  setStyleOpen(true)
+                }}
+                className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+                aria-label="Style"
+              >
+                <Palette className="size-4" />
+              </button>
+              <button
+                onClick={() => {
+                  sound.play('tap')
+                  setSettingsOpen(true)
+                }}
+                className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+                aria-label="Settings"
+              >
+                <Settings className="size-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {leading === 'profile' && <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />}
-      <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {chrome && (
+        <>
+          <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
+          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+        </>
+      )}
     </header>
   )
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { MEMBERSHIP_PRICE } from './membership'
 import { contentAlternates, contentSocial } from './site'
 
 // The blog's table of contents. Each post is a static page under
@@ -17,6 +18,26 @@ export interface BlogPost {
 
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
+  {
+    slug: 'short-stack-pot-odds',
+    title: 'Pot odds when you can’t cover the bet',
+    description:
+      'Facing a bet bigger than your stack, you pay less than the bet and play for less than the pot. Our session review got both halves wrong and called a fold that cost four big blinds a good one. The right sum, worked through one spot.',
+    date: '2026-10-02',
+  },
+  {
+    slug: 'deal-me-in',
+    title: 'Deal me in dealt you a menu',
+    description:
+      'In September, 68 of the 217 people who made a player on Pip did not play a hand within the hour. The tour was not why. The button that said Deal me in opened the lobby, and now it opens a table.',
+    date: '2026-09-30',
+  },
+  {
+    slug: 'pip-has-a-membership',
+    title: 'Pip has a membership now',
+    description: `${MEMBERSHIP_PRICE.monthly} a month or ${MEMBERSHIP_PRICE.annual} a year, for the side tables and the games that are not Hold’em. The ladder, the Rail, the Daily and the freeroll stay free.`,
+    date: '2026-09-29',
+  },
   {
     slug: 'landing-page-mockups',
     title: 'The mock-ups on your landing page are untested claims',

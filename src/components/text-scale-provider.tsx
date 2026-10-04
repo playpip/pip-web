@@ -1,15 +1,17 @@
 'use client'
 
-// Text size, wired the same way as the theme: an inline boot script from the
-// SERVER layout sets the root font size before first paint, and this provider
-// owns the state afterwards. See theme-provider.tsx for why the split exists.
+// Text size: an inline boot script from the SERVER layout sets the root font
+// size before first paint, and this provider owns the state afterwards. The
+// script renders from the server because React 19 warns about a <script>
+// rendered from a client component ("scripts inside components are never
+// executed…").
 //
 // Pre-paint matters more here than it does for colour. Root font size is what
 // every rem in the app is measured against, so applying it after hydration
 // would reflow the entire page in front of the reader on every single load.
 //
 // It is stored per device, not on the profile, and that is deliberate:
-//   - it describes this screen, exactly like dark mode does, and a phone and a
+//   - it describes this screen, exactly like screen brightness does, and a phone and a
 //     desktop want different answers. Syncing it would push one device's answer
 //     onto the other, and last-write-wins would then flip it back and forth.
 //   - the profile store hydrates after paint (zustand persist), so reading it

@@ -13,7 +13,7 @@
 | Avatars | **DiceBear** `notionists` (`@dicebear/core` + `/collection`) | Rendered locally to SVG, offline |
 | Hand ranking | **pokersolver** | Wrapped in `handEval.ts`; typed via `src/types/pokersolver.d.ts` |
 | Sound | **Web Audio** (custom synth) | `src/lib/sound.ts`; `howler` is installed but the current SFX are synthesised |
-| Theming | **next-themes** | class strategy, dark default |
+| Theming | none | dark only; `dark` class fixed on `<html>` |
 | Tests | **AVA** (via `tsx`) | Engine only; see [development.md](./development.md) |
 
 Everything is installed with **pnpm**. Do not hand-pin versions — install latest and
@@ -28,7 +28,7 @@ src/
     page.tsx                # "/" — onboarding vs home (hydration-gated)
     play/[venue]/page.tsx   # sits the player down at a venue, renders <Table>
     game/drills/[kind]/     # the drills — one screen per kind, in the app, off the menu
-    globals.css             # Tailwind + theme tokens (light/dark + pip palette)
+    globals.css             # Tailwind + theme tokens (dark + pip palette)
 
   lib/poker/                # ── PURE ENGINE (no React, unit-tested) ──
     cards.ts                # Card types, deck, seeded RNG (mulberry32), shuffle
@@ -43,6 +43,15 @@ src/
     whichHandWins.ts        # the free kind: generate + reject + explain, graded by determineWinners
     rating.ts               # the Elo arithmetic: what a spot is worth, what an answer moves
     index.ts                # nextDrill (a filtered stream of spots) + gradeDrill
+
+  lib/review/               # ── COACHING ACROSS HANDS (pure; the membership's) ──
+    grade.ts                # what a scored decision is worth saying, in big blinds
+    handState.ts            # a finished hand rebuilt into the engine's HandState at step N
+    commentary.ts           # what to say at each step
+    moveGrade.ts            # every move graded against the cards they actually held
+    session.ts              # the session being kept for review (localStorage `pip.review`)
+    highlights.ts           # which hands are worth opening first
+    stats.ts                # the career table of priced decisions (profile.reviewStats)
 
   lib/
     avatar.ts               # notionists render helpers + seeds
@@ -73,13 +82,14 @@ src/
     onboarding/             # first-launch flow
     profile/                # AvatarEditor (shared), ProfileDialog
     settings/               # SettingsDialog (table talk + backup/transfer), RestoreConfirm, ImportHandler
-    table/                  # Table, ActionBar
+    table/                  # Table, ActionBar, parts (Seat/HeroCards/HeroPanel — shared with the review)
+    replay/                 # the shared hand replay: state machine + transport (/hand, the report's evidence)
+    review/                 # the session review: the table, the hand sheet, the evidence dialog
     ui/                     # shadcn primitives (button, dialog)
     AppBoot.tsx             # boot work: storage.persist(), roll-graph seed
     UpdatePrompt.tsx        # "new version ready → Reload" nudge (uses useServiceWorker)
     QrCode.tsx              # scannable QR image (fixed contrast — see design note)
     PlayingCard.tsx, CardBack.tsx, PlayerAvatar.tsx, CountUp.tsx,
-    ThemeToggle.tsx, theme-provider.tsx
 
   types/pokersolver.d.ts    # ambient types for the CJS pokersolver module
 

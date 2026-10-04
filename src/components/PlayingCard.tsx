@@ -93,6 +93,14 @@ export function PlayingCard({
   const deckFace = useProfile((st) => st.deckFace)
   // The High-Contrast deck: same colours, ink like it means it.
   const contrast = deckFace === 'face-contrast'
+  // Big Index (free) and Minimal (the membership's) are weight-and-size
+  // changes and nothing else. **Neither may take information off the card**:
+  // the rank and the suit are both drawn by every face here, because a deck
+  // that showed less would be the one thing docs/shop.md rule 1 forbids —
+  // cosmetics that touch what you can know.
+  const bigIndex = deckFace === 'face-bigindex'
+  const minimal = deckFace === 'face-minimal'
+  const rankWeight = contrast ? 'font-black' : minimal ? 'font-light' : 'font-semibold'
 
   if (hidden) {
     return (
@@ -125,10 +133,24 @@ export function PlayingCard({
           className,
         )}
       >
-        <span className={cn(s.rank, contrast ? 'font-black' : 'font-bold', ink)}>
+        <span
+          className={cn(
+            s.rank,
+            contrast ? 'font-black' : minimal ? 'font-light' : 'font-bold',
+            bigIndex && 'inline-block scale-110',
+            ink,
+          )}
+        >
           {rankLabel(card.rank)}
         </span>
-        <span className={cn(s.suit, ink, contrast && 'inline-block scale-110')}>
+        <span
+          className={cn(
+            s.suit,
+            ink,
+            contrast && 'inline-block scale-110',
+            minimal && 'inline-block scale-90 opacity-80',
+          )}
+        >
           {SUIT_GLYPH[card.suit]}
         </span>
       </div>
@@ -152,13 +174,24 @@ export function PlayingCard({
         className={cn(
           s.rank,
           'leading-none tracking-tight',
-          contrast ? 'font-black' : 'font-semibold',
+          rankWeight,
+          // The whole of the Big Index deck: the corner rank, a fifth larger,
+          // anchored to its own corner so nothing else on the card moves.
+          bigIndex && 'inline-block origin-top-left scale-[1.2]',
           ink,
         )}
       >
         {rankLabel(card.rank)}
       </span>
-      <span className={cn(s.suit, 'leading-none', ink, contrast && 'inline-block scale-110')}>
+      <span
+        className={cn(
+          s.suit,
+          'leading-none',
+          ink,
+          contrast && 'inline-block scale-110',
+          minimal && 'inline-block scale-90 opacity-80',
+        )}
+      >
         {SUIT_GLYPH[card.suit]}
       </span>
     </div>

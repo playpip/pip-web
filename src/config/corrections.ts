@@ -93,6 +93,18 @@ export const CORRECTIONS: readonly Correction[] = [
     guard: null,
   },
   {
+    id: 'august-nothing-free-gets-metered',
+    where: ['/blog/august-what-shipped'],
+    said: 'The roadmap says plainly that nothing which ships free gets metered afterwards, and this is the first thing that rule has had to hold.',
+    wrong:
+      'The first thing that rule had to hold was the seven side tables, and it did not hold them. They shipped free and went behind the membership on 27 September, and the roadmap now promises the core game rather than everything that ships free. The drills the sentence was about are still free.',
+    liveFrom: '2026-09-27',
+    fixedOn: '2026-10-02',
+    caught: 'Reading the post against the branch that moved the side tables, before it merged.',
+    gone: null,
+    guard: 'tests/corrections.test.ts',
+  },
+  {
     id: 'privacy-account-section',
     where: ['/privacy'],
     said: 'Sync is "off unless you turn it on, in Settings, under Account".',

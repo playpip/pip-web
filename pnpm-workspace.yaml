@@ -33,3 +33,15 @@ overrides:
   js-yaml@3: '>=3.15.2 <4'
   js-yaml@4: '>=4.3.2 <5'
   smol-toml: '>=1.7.1' # GHSA-7w5x-hrqm-74c2 (DoS on malformed TOML); knip's config reader, build-time only
+
+# Advisories with no fix to move to. An override can only point at a published
+# version, and these have none, so they are ignored by id instead. Each one says
+# where it arrives and why it cannot reach a player. Delete the line as soon as a
+# patched version ships, and add an override above in its place.
+auditConfig:
+  ignoreGhsas:
+    # braces (DoS on deeply nested patterns). The advisory names 3.0.4 as the
+    # fix and npm's latest is 3.0.3 (checked 2026-10-04). Arrives through
+    # fast-glob in the shadcn CLI and in ava: build and test time only, fed our
+    # own glob patterns, never shipped to a browser.
+    - GHSA-vfj7-8cjw-p6xm

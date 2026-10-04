@@ -100,7 +100,7 @@ Field by field:
 | `venueRecords`, `castRecords` | per key, the better of the two |
 | `challengeWins` | union: you beat them, and a device that hasn't heard isn't evidence you didn't |
 | `challengesPlayed` | `max()`, monotonic, like `peakRoll` |
-| `drills` | per kind: counters and `bestRun` take the better of the two; **`rating` follows whichever side answered more spots** |
+| `drills` | per kind: counters and `bestRun` take the better of the two; **`rating` (and its `history`, the graph's line) follows whichever side answered more spots** |
 | `created` | either side saying yes wins |
 | cosmetics (`name`, `avatar`, `cardBack`, `deckFace`, `tableFinish`, `tableTalk`) | chosen side |
 | `daily` | later day; same day, a played run beats an abandoned one |
@@ -223,6 +223,39 @@ Offline, the reset stays dirty and goes up on reconnect like any other change.
 where it can never be used. It is now a lazy chunk fetched only when someone has a session or
 opens the sign-in form. **Keep it that way** — `getSupabase()` returns a promise for this reason
 and for no other.
+
+## Signing in with Google or Apple
+
+Both go through Supabase's built-in providers with the same implicit flow as the password reset
+(no PKCE, see `lib/sync/client.ts`). `signInWith()` in `store/sync.ts` sends the player to the
+provider, they come back to the page they left, and `init()` finds the session through
+`getSession()` and syncs as it does on any app open. The buttons only show for providers listed in
+`NEXT_PUBLIC_AUTH_PROVIDERS`, so a provider is turned on in this order:
+
+1. **Supabase dashboard → Authentication → URL Configuration.** Add
+   `https://playpip.io/**` to Redirect URLs. Without it the player lands on the Site URL instead
+   of where they started. Add any preview domain the same way.
+2. **Google.** In Google Cloud console, create an OAuth client (type *Web application*), fill in
+   the consent screen (app name, logo, `https://playpip.io/privacy`, `https://playpip.io/terms`)
+   and add the callback URL that Supabase shows under Providers → Google as an authorised
+   redirect URI. Paste the client id and secret into Providers → Google and enable it.
+3. **Apple.** Needs the Apple Developer account. Create a Services ID for sign-in with
+   `playpip.io` as the domain and the Supabase callback as the return URL, and a Sign in with
+   Apple key. Supabase generates the client secret from the key on the Providers → Apple page.
+   **That secret expires after six months** and has to be regenerated, or Apple sign-in stops.
+4. **Then** add the provider to the `NEXT_PUBLIC_AUTH_PROVIDERS` repo Variable (`google,apple`)
+   and redeploy.
+
+**Same email, one account.** Supabase links a Google or Apple sign-in to an existing account with
+the same email, so someone who made a password account and later presses Google keeps their Roll.
+Because email confirmation is off, that has a known weakness: someone could create a password
+account on an address they don't own, and if the real owner later signs in with Google on it, the
+squatter's password still works on that account. It needs someone to set it up in advance on one
+particular address, and what it gets them is a poker profile, so it is accepted for now. Turning
+confirmation on closes it.
+
+**An account made with Google or Apple has no password.** The account dialog offers "Set a
+password" instead of "Change password", and setting one adds email sign-in to the same account.
 
 ## Running without a backend
 
