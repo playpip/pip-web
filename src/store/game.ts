@@ -25,7 +25,7 @@ import {
   type HandRead,
   type HeroDecision,
 } from '@/lib/coach'
-import { gradeDecision, type GradedDecision } from '@/lib/review/grade'
+import { gradeDecision, isGraded, type GradedDecision } from '@/lib/review/grade'
 import {
   appendReviewHand,
   clearReview,
@@ -768,16 +768,18 @@ export const useGame = create<GameState>((set, get) => {
     const heroStackBefore = seats.find((s) => s.id === HUMAN_ID)?.stack ?? 0
     const record = buildHandRecord(hand, { ...get(), heroStackBefore })
     const scored = scoreDecisions(record, { max: MAX_REVIEWED_DECISIONS })
+    // The read prices bets and raises too; the review grades calls and folds.
+    const priced = scored.filter(isGraded)
     set({
       lastHand: record,
-      lastDecisions: scored.map((s) => gradeDecision(s, record.bigBlind)),
+      lastDecisions: priced.map((s) => gradeDecision(s, record.bigBlind)),
       lastRead: useProfile.getState().handCoaching ? readFrom(scored, record) : null,
       seatStats: { ...seatStatsLive },
     })
     // No-ops at every table the review does not cover — nothing opened a
     // session there. The store never asks who is paying (see the `member`
     // field): collecting is free, the screen that reads it is not.
-    const reviewed = appendReviewHand(record, scored)
+    const reviewed = appendReviewHand(record, priced)
     // The career table behind the report. Same rule: written at reviewed tables
     // only, for everybody, and the screen that reads it is the gated one.
     if (reviewed) useProfile.getState().recordReviewHand(reviewed)

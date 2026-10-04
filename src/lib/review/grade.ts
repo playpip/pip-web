@@ -28,6 +28,15 @@
 import { EDGE_FLOOR, type PricedStreet, type Scored, streetOf } from '@/lib/coach'
 
 /**
+ * Whether the review grades this decision at all. The free read prices bets
+ * and raises too (see `scoreAggressive` in lib/coach.ts); this report does not,
+ * for the reason at the top of this file.
+ */
+export function isGraded(scored: Scored): boolean {
+  return scored.action === 'call' || scored.action === 'fold'
+}
+
+/**
  * How thin an edge still counts as sharp.
  *
  * A call that was right by forty points was right the way a card back is blue;

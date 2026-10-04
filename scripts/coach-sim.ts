@@ -235,7 +235,7 @@ function playVenue(venue: Venue, hero: AiProfile, hands: number, seed: number) {
         if (clears(shipped, record.bigBlind)) {
           speech.spoke++
           if (shipped.margin > 0) speech.good++
-          if (shipped.folded) speech.folds++
+          if (shipped.action === 'fold') speech.folds++
           const street = streetOf(shipped.decision.board.length)
           speech.byStreet[street] = (speech.byStreet[street] ?? 0) + 1
         }
@@ -326,12 +326,10 @@ function stabilityOf(records: HandRecord[], repeats: number, seed: number): Stab
 
     // The reference decision, rebuilt from the mean equity: everything else in a
     // Scored is arithmetic on the snapshot and does not move with the seed.
-    const finalPot = shipped.decision.pot + shipped.decision.toCall
-    const swing = finalPot * (mean - shipped.required)
     const truth: Scored = {
       ...shipped,
       equity: mean,
-      margin: shipped.folded ? -swing : swing,
+      margin: shipped.scale * (mean - shipped.required),
     }
 
     const spoke = clears(shipped, record.bigBlind)

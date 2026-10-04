@@ -5,6 +5,7 @@ import {
   SHARP_EDGE,
   gradeDecision,
   gradeLabel,
+  isGraded,
   isMistake,
   marginLine,
 } from '@/lib/review/grade'
@@ -69,10 +70,12 @@ function hand(
 function scored(over: Partial<Scored> = {}): Scored {
   return {
     decision: decision(),
+    action: 'call',
     folded: false,
     eventIndex: 0,
     required: 0.25,
     equity: 0.45,
+    scale: 800,
     margin: 100,
     ...over,
   }
@@ -105,13 +108,19 @@ test('a bet is never graded, because nothing here can price fold equity', (t) =>
   // What makes a bet good is whether they fold, which is a guess about an
   // opponent rather than a number on the table. The review inherits that limit
   // from lib/coach.ts and must not quietly start marking bets right or wrong.
-  const all = scoreDecisions(
-    hand([
-      { type: 'bet', d: decision({ pot: 600, toCall: 0 }) },
-      { type: 'check', d: decision({ pot: 600, toCall: 0 }) },
-    ]),
+  // The free read prices a bet (lib/coach.ts), so the line is `isGraded`.
+  const all = scoreDecisions({
+    ...hand([]),
+    events: [
+      { kind: 'action', ...HERO, type: 'bet', amount: 400, decision: decision({ toCall: 0 }) },
+      { kind: 'action', ...HERO, type: 'check', decision: decision({ toCall: 0 }) },
+    ],
+  })
+  t.deepEqual(
+    all.map((s) => s.action),
+    ['bet'],
   )
-  t.is(all.length, 0)
+  t.deepEqual(all.filter(isGraded), [])
 })
 
 test('scoring never reaches for an opponent’s revealed cards', (t) => {
