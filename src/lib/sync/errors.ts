@@ -59,6 +59,8 @@ export function friendly(message: string): string {
   // with advice about the address being malformed.
   if (m.includes('rate limit') || m.includes('too many') || m.includes('for security purposes'))
     return 'Too many tries. Give it a minute.'
+  // A provider switched off in the dashboard while the build still offers it.
+  if (m.includes('provider')) return 'That sign-in option isn’t working right now. Use your email.'
   if (m.includes('password')) return 'Passwords need to be at least 8 characters.'
   if (m.includes('email')) return 'That doesn’t look like a valid email address.'
   return 'Something went wrong. Your progress is safe on this device.'

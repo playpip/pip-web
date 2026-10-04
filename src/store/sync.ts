@@ -21,7 +21,13 @@
 
 import { create } from 'zustand'
 import { checkoutReady } from '@/config/membership'
-import { deviceId, getSupabase, syncConfigured, type ProfileRow } from '@/lib/sync/client'
+import {
+  deviceId,
+  getSupabase,
+  syncConfigured,
+  type OAuthProvider,
+  type ProfileRow,
+} from '@/lib/sync/client'
 import { mergeProfiles, summarise, type ProfileData, type SideSummary } from '@/lib/sync/merge'
 import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/plan'
 import { friendly, neverReachedServer } from '@/lib/sync/errors'
@@ -29,6 +35,7 @@ import { migrateProfile, PERSIST_VERSION, useProfile } from '@/store/profile'
 import { dropUnbackedTable } from '@/store/game'
 import { track, trackOnce } from '@/lib/analytics'
 import type { Json } from '@/types/supabase-types'
+import type { Session } from '@supabase/supabase-js'
 
 /** Where this device got to last time, so divergence is detectable. */
 const BOOKMARK_KEY = 'pip.sync'
@@ -96,6 +103,12 @@ interface SyncState {
    */
   ready: boolean
   email: string | null
+  /**
+   * Whether the account has a password. False for one made with Google or
+   * Apple until the player sets one, which is what turns "Change password"
+   * into "Set a password".
+   */
+  hasPassword: boolean
   /** A request is in flight (sign-in, push, pull). Drives button spinners. */
   busy: boolean
   /** Local changes not yet accepted by the server. */
@@ -107,6 +120,8 @@ interface SyncState {
   init: () => Promise<void>
   signUp: (email: string, password: string) => Promise<boolean>
   signIn: (email: string, password: string) => Promise<boolean>
+  /** Leaves the page for the provider; the session arrives back through init(). */
+  signInWith: (provider: OAuthProvider) => Promise<void>
   signOut: () => Promise<void>
   sendReset: (email: string) => Promise<boolean>
   updatePassword: (password: string) => Promise<boolean>
@@ -117,6 +132,17 @@ interface SyncState {
   clearError: () => void
 }
 
+/** The fields the session alone decides. */
+function fromSession(session: Session | null) {
+  const email = session?.user.email ?? null
+  const providers = (session?.user.app_metadata.providers as string[] | undefined) ?? ['email']
+  return {
+    status: email ? ('signed-in' as const) : ('signed-out' as const),
+    email,
+    hasPassword: providers.includes('email'),
+  }
+}
+
 let started = false
 let pushTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -124,6 +150,7 @@ export const useSync = create<SyncState>()((set, get) => ({
   status: syncConfigured() ? 'signed-out' : 'off',
   ready: false,
   email: null,
+  hasPassword: true,
   busy: false,
   dirty: false,
   lastSyncedAt: null,
@@ -149,15 +176,14 @@ export const useSync = create<SyncState>()((set, get) => ({
 
     const { data } = await sb.auth.getSession()
     if (data.session?.user.email) {
-      set({ ready: true, status: 'signed-in', email: data.session.user.email })
+      set({ ready: true, ...fromSession(data.session) })
       await get().syncNow()
     } else {
       set({ ready: true })
     }
 
     sb.auth.onAuthStateChange((_event, session) => {
-      const email = session?.user.email ?? null
-      set({ status: email ? 'signed-in' : 'signed-out', email })
+      set(fromSession(session))
     })
 
     // Anything that changes the profile marks it dirty and schedules a push.
@@ -235,6 +261,29 @@ export const useSync = create<SyncState>()((set, get) => ({
     return true
   },
 
+  signInWith: async (provider) => {
+    trackOnce('sync-auth-attempt')
+    const sb = await getSupabase()
+    if (!sb) return
+    set({ busy: true, error: null })
+    track(`sync-oauth-${provider}`)
+    // Back to the page the player started from, minus any fragment. The URL has
+    // to be on the project's redirect allow-list (docs/sync.md); one that isn't
+    // lands on the Site URL instead, which still signs them in.
+    const { error } = await sb.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${location.origin}${location.pathname}${location.search}` },
+    })
+    if (error) {
+      if (neverReachedServer(error)) trackOnce('sync-auth-unreachable')
+      set({ busy: false, error: friendly(error.message) })
+    }
+    // On success the browser is already on its way to the provider. `busy`
+    // stays on so nothing can be pressed twice in the moment before it leaves,
+    // and comes off if Back restores this page from the cache instead.
+    window.addEventListener('pageshow', (e) => e.persisted && set({ busy: false }), { once: true })
+  },
+
   /**
    * Signing out leaves the profile on the device exactly as it is. It is a
    * local app that happens to have an account, not an account you log into.
@@ -265,6 +314,7 @@ export const useSync = create<SyncState>()((set, get) => ({
     set({ busy: true, error: null })
     const { error } = await sb.auth.updateUser({ password })
     set({ busy: false, error: error ? friendly(error.message) : null })
+    if (!error) set({ hasPassword: true })
     return !error
   },
 

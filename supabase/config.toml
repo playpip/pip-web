@@ -86,6 +86,13 @@ redirect_uri = ""
 # or any other third-party OIDC providers.
 url = ""
 
+[auth.external.google]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+url = ""
+
 # Billing (docs/stripe.md). Every function but the webhook requires a signed-in
 # player's token. The webhook cannot — Stripe holds no Supabase token — so its
 # gate is the Stripe signature, checked inside the function before anything else.

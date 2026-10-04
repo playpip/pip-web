@@ -47,6 +47,14 @@ export default function PrivacyPage() {
           and password-reset email goes out through <A href="https://resend.com">Resend</A>.
         </p>
         <p>
+          If you sign in with Google or Apple instead of a password, they send us your email address
+          and an id for your account with them. Google also sends the name and picture on your
+          Google account, and Apple sends your name the first time. Supabase keeps those with the
+          account record. Pip never shows or uses them, and deleting the account deletes them. With
+          Apple you can choose to hide your email, and then we only ever see a relay address Apple
+          gives us.
+        </p>
+        <p>
           You can delete it from the same place you made it. “Delete my account and synced data” in
           Settings removes the account and the stored profile together, and it is genuinely gone
           rather than flagged. Your profile on the device stays exactly as it is, and Pip keeps
