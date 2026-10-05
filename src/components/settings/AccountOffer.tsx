@@ -20,11 +20,22 @@ import { useState } from 'react'
 import { UserPlus } from 'lucide-react'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { useSync } from '@/store/sync'
+import { oauthProviders } from '@/lib/sync/client'
 import { useHydrated } from '@/lib/useHydrated'
 import { sound } from '@/lib/sound'
 
 /** The strongest fact we have about signing up, and nothing else said it. */
 export const SIGNUP_FACT = 'An email and a password. There is no confirmation email to go and find.'
+
+/**
+ * The same fact once Google or Apple are on offer. The signup dialog stopped
+ * saying "an email and a password" was the only way in when they shipped; this
+ * card sits one tap before that dialog and has to agree with it.
+ */
+export const SIGNUP_FACT_OAUTH =
+  'Google, Apple, or an email and a password. There is no confirmation email to go and find.'
+
+export const signupFact = () => (oauthProviders().length > 0 ? SIGNUP_FACT_OAUTH : SIGNUP_FACT)
 
 export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overlay' }) {
   const status = useSync((s) => s.status)
@@ -88,7 +99,7 @@ export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overl
             : 'mt-1.5 text-xs leading-relaxed text-muted-foreground'
         }
       >
-        {SIGNUP_FACT}
+        {signupFact()}
       </p>
 
       {/* Outlined, never filled. On the lobby the loudest thing is a table you
