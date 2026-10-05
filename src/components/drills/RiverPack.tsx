@@ -3,19 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MotionConfig, motion } from 'framer-motion'
-import { CardBack } from '@/components/CardBack'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { cardBackById } from '@/config/cardBacks'
-import { CAST, type Character } from '@/config/cast'
+import type { Character } from '@/config/cast'
 import { type DrillKind, RIVER_PACK_ID } from '@/config/drills'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { PACK_SIZE, dealPlanned, planPack } from '@/lib/drills/pack'
 import { kindFloor } from '@/lib/drills/standing'
-import type { Drill, DrillLineStep } from '@/lib/drills/types'
+import type { Drill } from '@/lib/drills/types'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { formatChips } from '@/lib/useMoney'
-import { cn } from '@/lib/utils'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
 import {
   ActionBar,
@@ -29,6 +27,7 @@ import {
   TalkLine,
 } from './felt'
 import { RangeStrip, RiverLesson } from './RiverLesson'
+import { Opponent, opponentFor } from './riverSeat'
 import { PackProgress, PackSummary } from './pack'
 import { featureForDrill, membershipFor } from '@/config/membership'
 
@@ -54,17 +53,6 @@ import { featureForDrill, membershipFor } from '@/config/membership'
  * were average would be the screen contradicting the answer key.
  */
 
-/**
- * Who can sit across the table: regulars of the low and middle tables, not
- * pinned to a room, and with no bluffing claimed in their personality.
- */
-const OPPONENTS: readonly Character[] = CAST.filter(
-  (ch) =>
-    !ch.only &&
-    ch.delta?.bluff === undefined &&
-    ch.bands.some((band) => band === 'low' || band === 'mid'),
-)
-
 /** What the end of a pack says, from every one right down to not many. */
 const RIVER_LINES = [
   'Every one. The river is less of a stranger than it was.',
@@ -79,25 +67,6 @@ const RIVER_LINES = [
  * be reproducible, and each spot still carries its own seed.
  */
 const riverPlan = () => planPack<'call' | 'fold'>('call', 'fold', Math.random)
-
-/** The seat for a spot, off its seed, so the same spot always has the same face. */
-const opponentFor = (drill: Drill): Character => OPPONENTS[drill.seed % OPPONENTS.length]
-
-const STREET: Record<DrillLineStep['street'], string> = {
-  flop: 'the flop',
-  turn: 'the turn',
-  river: 'the river',
-}
-
-/** What they did, as one sentence: "checked the flop, bet 40 into 80 on the turn, …". */
-function lineSentence(line: readonly DrillLineStep[]): string {
-  const parts = line.map((step) =>
-    step.action === 'check'
-      ? `checked ${STREET[step.street]}`
-      : `bet ${formatChips(step.amount ?? 0)} into ${formatChips(step.potBefore)} on ${STREET[step.street]}`,
-  )
-  return `${parts.slice(0, -1).join(', ')}, and ${parts.at(-1)}`
-}
 
 type Phase = 'lesson' | 'spots' | 'done'
 
@@ -376,84 +345,6 @@ function Spot({
         <p className="px-4 pb-2 text-center text-2xs text-muted-foreground/70">{kind.gradedBy}</p>
       )}
     </>
-  )
-}
-
-/**
- * Across the table: who bet, their two cards face down, and what they did on
- * each street. The line is the question as much as the cards are, so it is set
- * as three steps you can read at a glance, with the river's bet — the one you
- * are facing — lit.
- */
-function Opponent({
-  character,
-  line,
-  cardBack,
-  dim,
-}: {
-  character: Character
-  line: readonly DrillLineStep[]
-  cardBack: ReturnType<typeof cardBackById>
-  dim: boolean
-}) {
-  return (
-    // One column on a phone, where height is cheap and width is not; one row
-    // on a desktop, where the verdict needs the height the column would take.
-    <div
-      className={cn(
-        'flex flex-col items-center gap-2 transition-opacity sm:flex-row sm:gap-4',
-        dim && 'opacity-45',
-      )}
-    >
-      <span className="sr-only">{`${character.name} ${lineSentence(line)}.`}</span>
-      <div className="flex items-center gap-2" aria-hidden>
-        <PlayerAvatar spec={character.avatar} size={28} />
-        <span className="text-sm font-medium">{character.name}</span>
-        <span className="flex gap-0.5">
-          <CardBack design={cardBack} size="xs" className="-rotate-6" />
-          <CardBack design={cardBack} size="xs" className="rotate-6" />
-        </span>
-      </div>
-      <ol className="flex items-stretch gap-1.5" aria-hidden>
-        {line.map((step, i) => {
-          const facing = step.street === 'river'
-          return (
-            <motion.li
-              key={step.street}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 28, delay: 0.25 + i * 0.12 }}
-              className={cn(
-                'flex min-w-[4.75rem] flex-col items-center rounded-xl px-2.5 py-1.5',
-                facing ? 'bg-primary text-primary-foreground' : 'bg-foreground/[0.05]',
-              )}
-            >
-              <span
-                className={cn(
-                  'text-3xs font-medium uppercase tracking-[0.18em]',
-                  facing ? 'text-primary-foreground/70' : 'text-muted-foreground',
-                )}
-              >
-                {step.street}
-              </span>
-              <span className="text-xs font-semibold tabular-nums">
-                {step.action === 'check' ? 'Check' : `Bet ${formatChips(step.amount ?? 0)}`}
-              </span>
-              {step.action === 'bet' && (
-                <span
-                  className={cn(
-                    'text-3xs tabular-nums',
-                    facing ? 'text-primary-foreground/70' : 'text-muted-foreground',
-                  )}
-                >
-                  into {formatChips(step.potBefore)}
-                </span>
-              )}
-            </motion.li>
-          )
-        })}
-      </ol>
-    </div>
   )
 }
 

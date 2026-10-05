@@ -5,6 +5,7 @@ import { RIVER_MARGIN, generateRiverCall } from '@/lib/drills/callingTheRiver'
 import { EASIEST_RIVER, HARDEST_RIVER, HARDEST_PRICE } from '@/lib/drills/rating'
 import { BLUFF_WEIGHTS, count, riverRange, weigh } from '@/lib/drills/riverRange'
 import { kindFloor, spotLadder } from '@/lib/drills/standing'
+import { RIVER_SAMPLE_SEED, riverSample } from '@/lib/drills/sample'
 import type { Drill } from '@/lib/drills/types'
 
 // The first practice pack. Graded by counting (see tests/riverRange.test.ts
@@ -144,4 +145,25 @@ test('the river pack is registered as the membership’s, under its stable id', 
   t.true(canPlayDrill(kind, true))
   t.is(kind.boardCards, 5)
   t.is(DRILL_KINDS.at(-1)?.id, KIND, 'the hardest kind sits at the end of the ladder')
+})
+
+// The one spot `/membership?for=river` deals to somebody who tapped the
+// padlock (lib/drills/sample.ts). It has to be a spot the pack would ask, with
+// everything the felt draws, and the same one on every visit.
+test('the membership page deals a real, fixed river spot', (t) => {
+  const spot = riverSample()
+  t.deepEqual(riverSample(), spot, 'a fixed seed dealt two different spots')
+  t.is(spot.kind, KIND)
+  t.true(spot.seed >= RIVER_SAMPLE_SEED)
+  t.deepEqual(
+    spot,
+    nextDrill(KIND, spot.seed, kindFloor(KIND)),
+    'not what the pack deals at that seed',
+  )
+  t.truthy(generateRiverCall(spot.seed).drill, 'the generator rejects this spot')
+  t.is(spot.board.length, 5)
+  t.is(spot.hands?.[0]?.cards.length, 2)
+  t.truthy(spot.stakes && spot.stakes.toCall > 0)
+  t.is(spot.line?.at(-1)?.street, 'river')
+  t.is(spot.line?.at(-1)?.action, 'bet')
 })

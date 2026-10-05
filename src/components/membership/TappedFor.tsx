@@ -18,11 +18,19 @@
 // A tap on the review also names the session already kept on this device
 // (`waitingSessionLine`), read from local storage after hydration. Nothing is
 // sent anywhere.
+//
+// A tap on Calling the river also deals one spot from it (`TappedSpot`), loaded
+// only then, so nobody else's page carries the drill generator.
 
+import dynamic from 'next/dynamic'
 import { type LocalPrice, tappedFeature } from '@/config/membership'
 import { waitingSessionLine } from '@/lib/review/highlights'
 import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
+
+const TappedSpot = dynamic(() => import('./TappedSpot').then((m) => m.TappedSpot), {
+  ssr: false,
+})
 
 export function TappedFor({ price }: { price: LocalPrice }) {
   const hydrated = useHydrated()
@@ -45,6 +53,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
         </h2>
         <p className="mt-2 leading-relaxed text-muted-foreground">{feature.blurb}</p>
         {waiting && <p className="mt-3 font-medium tabular-nums text-foreground">{waiting}</p>}
+        {feature.id === 'river' && <TappedSpot />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a
