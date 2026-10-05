@@ -218,9 +218,17 @@ function Report({
             <Card>
               {/* The sentence first, the chart under it. Somebody who reads one
                   line and scrolls on has still been told the answer. */}
+              {/* Under a twentieth of a big blind prints as 0.0, and naming the
+                  worst of four zeros would be a finding made of rounding. */}
               <p className="text-lg font-semibold">
-                Most of it goes on the{' '}
-                <span className="text-suit-red">{read.streets[0].street}</span>.
+                {read.streets[0].bbPer100 >= 0.05 ? (
+                  <>
+                    The most goes on the{' '}
+                    <span className="text-suit-red">{read.streets[0].street}</span>.
+                  </>
+                ) : (
+                  'Next to nothing has gone on any street.'
+                )}
               </p>
               <StreetCosts streets={read.streets} />
             </Card>

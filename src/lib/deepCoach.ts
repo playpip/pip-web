@@ -3,6 +3,7 @@ import type { SeatStats } from '@/lib/reads'
 import type { PricedStreet } from '@/lib/coach'
 import { bbPer100, emptyReviewStats, type EvidenceKey, type ReviewStats } from '@/lib/review/stats'
 import { rollTrend } from '@/lib/rollRange'
+import { venueById } from '@/config/venues'
 
 // Coaching across hands — the membership's half of the coaching line.
 //
@@ -489,7 +490,8 @@ export function deepRead(input: DeepCoachInput): DeepRead {
     leaks.push({
       id: 'wrong-table',
       title: 'One table keeps taking your money',
-      finding: `You have entered ${worst.id} ${worst.entered} times and not won it.`,
+      // The record is keyed by id; the player knows the table by its name.
+      finding: `You have entered ${venueById(worst.id)?.name ?? 'one table'} ${worst.entered} times and not won it.`,
       advice:
         'Drop a rung and win there first. A table you never take down is paying for the practice at the worst possible price.',
       severity: 'costly',

@@ -73,6 +73,14 @@ const PINNED: { seed: number; answer: string; settledBy: SpotKind; explanation: 
     settledBy: 'two-draws',
     explanation: '11 of the 44 cards left win it for you: 8 make a straight and 3 make a pair.',
   },
+  {
+    // A group of one card is "1 makes", not "1 make".
+    seed: 194,
+    answer: '9',
+    settledBy: 'two-draws',
+    explanation:
+      '9 of the 44 cards left win it for you: 8 make a full house and 1 makes four of a kind.',
+  },
 ]
 
 test('fixed seeds grade the same way every run', (t) => {

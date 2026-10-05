@@ -231,7 +231,7 @@ function explain(outs: { phrase: string }[], traps: number, trap: boolean): stri
       ? count === 1
         ? `, and it makes ${groups[0][0]}.`
         : `, and they all make ${groups[0][0]}.`
-      : `: ${list(groups.map(([phrase, n]) => `${n} make ${phrase}`))}.`
+      : `: ${list(groups.map(([phrase, n]) => `${n} ${n === 1 ? 'makes' : 'make'} ${phrase}`))}.`
 
   // The trap is the lesson, so it gets its own sentence rather than a clause.
   const tail = trap ? ` ${traps} more improve your hand and still lose.` : ''

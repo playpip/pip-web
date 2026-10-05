@@ -7,6 +7,7 @@ import {
   type DeepCoachInput,
   deepRead,
 } from '@/lib/deepCoach'
+import { venueById } from '@/config/venues'
 import { emptySeatStats } from '@/lib/reads'
 import { emptyReviewStats } from '@/lib/review/stats'
 
@@ -169,6 +170,9 @@ test('the table finding needs a real sample before it accuses a table', (t) => {
     real.leaks.some((l) => l.id === 'wrong-table'),
     'fourteen entries and no win said nothing',
   )
+  const finding = real.leaks.find((l) => l.id === 'wrong-table')?.finding ?? ''
+  t.true(finding.includes(venueById('casino')?.name ?? '?'), finding)
+  t.false(/\bcasino\b/.test(finding), `the finding names the venue by its id: ${finding}`)
 })
 
 // A player doing well gets told so. A report that is only ever a list of faults
