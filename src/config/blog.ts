@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'omaha-exactly-two',
+    title: 'Omaha’s exactly-two rule, in five hands',
+    description:
+      'In Pot-Limit Omaha you hold four cards and must play exactly two with three from the board. Five hands where that changes the answer, checked against the evaluator that settles Pip’s Omaha pots, and how big a pot-limit raise can be.',
+    date: '2026-10-05',
+  },
+  {
     slug: 'sign-in-with-google-and-apple',
     title: 'What Google and Apple tell us when you sign in',
     description:
