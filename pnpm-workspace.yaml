@@ -33,6 +33,8 @@ overrides:
   js-yaml@3: '>=3.15.2 <4'
   js-yaml@4: '>=4.3.2 <5'
   smol-toml: '>=1.7.1' # GHSA-7w5x-hrqm-74c2 (DoS on malformed TOML); knip's config reader, build-time only
+  proxy-addr: '>=2.0.8 <3' # GHSA-jqcg-44mw-7w3h (IP spoofing via IPv4-mapped IPv6); express in the MCP SDK
+  source-map-js: '>=1.2.2 <2' # GHSA-68fv-2mgg-jv7q (DoS on indexed source maps); build-time only, via postcss
 
 # Advisories with no fix to move to. An override can only point at a published
 # version, and these have none, so they are ignored by id instead. Each one says
