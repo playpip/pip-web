@@ -10,6 +10,7 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
 import { PageShell } from '@/components/PageShell'
 import { AccountOffer } from '@/components/settings/AccountOffer'
+import { MembershipLine } from './MembershipLine'
 import { useProfile } from '@/store/profile'
 import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
@@ -244,6 +245,9 @@ export function Home() {
             delay={0.38}
           />
         </div>
+
+        {/* Last, and quiet: the one place the lobby says the membership exists. */}
+        <MembershipLine />
       </div>
 
       <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
