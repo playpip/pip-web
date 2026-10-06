@@ -34,6 +34,7 @@ import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
 import { ACCOUNT_OFFER } from '@/config/account'
+import { oauthProviders } from '@/lib/sync/client'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
 import { guideBySlug } from '@/config/learn'
@@ -303,7 +304,9 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       // unchanged; the offer goes first (#97).
       icon: UserPlus,
       title: 'Free account, nothing to confirm',
-      body: 'An email and a password, and your Roll follows you to every device. Or play without one — nothing free needs an account.',
+      // Names Google and Apple only in a build that offers them, as the signup
+      // dialog does.
+      body: `${oauthProviders().length > 0 ? 'Google, Apple, or an email and a password' : 'An email and a password'}, and your Roll follows you to every device. Or play without one. Nothing free needs an account.`,
     },
     {
       icon: Sparkles,
