@@ -10,6 +10,7 @@
 //   pnpm sim --hero casual          # beginner | casual | competent | best
 //   pnpm sim --seed 7               # deterministic; same seed = same result
 //   pnpm sim garage --skill 0.4     # try a different AI skill before editing config
+//   pnpm sim pub --cast             # seat drafted characters (profileFor), as the game does
 //
 // **This harness cannot measure a cash table** and blanks their outcome columns:
 // a ring table has no elimination and no prize, so a freezeout win rate answers
@@ -32,6 +33,7 @@ import { mulberry32, type Rng } from '@/lib/poker/cards'
 import { applyAction, isHandComplete, startHand } from '@/lib/poker/engine'
 import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
+import { draftCast, profileFor } from '@/config/cast'
 import {
   KITCHEN_TABLE,
   RING_TABLES,
@@ -80,8 +82,16 @@ function nextButtonId(seats: { id: string; stack: number }[], current: string): 
 }
 
 /** One full sit-and-go at `venue`: play until the hero wins it or busts. */
-function runTournament(venue: Venue, hero: AiProfile, rng: Rng): TourneyOutcome {
+function runTournament(venue: Venue, hero: AiProfile, rng: Rng, cast: boolean): TourneyOutcome {
   const startingStack = venue.startingStack ?? venue.buyIn
+  // Without --cast every AI seat plays the venue's own profile. With it, each
+  // seat is a drafted character with their delta applied, as store/game does.
+  const profiles = new Map<string, AiProfile>()
+  if (cast) {
+    draftCast(venue, venue.seats - 1, rng).forEach((ch, i) => {
+      profiles.set(`ai${i + 1}`, profileFor(venue, ch))
+    })
+  }
   const seats = Array.from({ length: venue.seats }, (_, i) => ({
     id: i === 0 ? HERO_ID : `ai${i}`,
     name: i === 0 ? 'Hero' : `AI ${i}`,
@@ -120,7 +130,7 @@ function runTournament(venue: Venue, hero: AiProfile, rng: Rng): TourneyOutcome 
     while (!isHandComplete(state)) {
       if (++guard > 400) throw new Error(`hand never completed at ${venue.id}`)
       const actor = state.players[state.toActIndex]
-      const profile = actor?.id === HERO_ID ? hero : venue.ai
+      const profile = actor?.id === HERO_ID ? hero : (profiles.get(actor?.id ?? '') ?? venue.ai)
       state = applyAction(state, decideAction(state, profile, rng))
     }
 
@@ -144,13 +154,20 @@ interface SliceResult {
  * on its index, so slicing the range across workers is deterministic — the union
  * of slices is byte-identical to running the whole range serially.
  */
-function simulateSlice(venue: Venue, hero: AiProfile, seed: number, tStart: number, tEnd: number) {
+function simulateSlice(
+  venue: Venue,
+  hero: AiProfile,
+  seed: number,
+  tStart: number,
+  tEnd: number,
+  cast: boolean,
+) {
   let wins = 0
   let hands = 0
   let timeouts = 0
   for (let t = tStart; t < tEnd; t++) {
     const rng = mulberry32((hash(venue.id) + seed * 1_000_003 + t) >>> 0)
-    const outcome = runTournament(venue, hero, rng)
+    const outcome = runTournament(venue, hero, rng, cast)
     if (outcome.heroWon) wins++
     if (outcome.timedOut) timeouts++
     hands += outcome.hands
@@ -167,20 +184,21 @@ interface WorkerInput {
   seed: number
   tStart: number
   tEnd: number
+  cast: boolean
 }
 
 // Worker mode: a child process replays `node <tsx-cli> sim.ts` with SIM_SLICE
 // set, runs its tournament slice, and writes the totals back as JSON on stdout.
 // (worker_threads can't be used: the thread wouldn't inherit tsx's TS loader.)
 if (process.env.SIM_SLICE) {
-  const { venueId, skill, heroName, seed, tStart, tEnd } = JSON.parse(
+  const { venueId, skill, heroName, seed, tStart, tEnd, cast } = JSON.parse(
     process.env.SIM_SLICE,
   ) as WorkerInput
   const base = venueById(venueId)
   const heroProfile = HEROES[heroName]
   if (!base || !heroProfile) throw new Error(`worker: bad venue/hero ${venueId}/${heroName}`)
   const venue = skill === undefined ? base : { ...base, ai: { ...base.ai, skill } }
-  process.stdout.write(JSON.stringify(simulateSlice(venue, heroProfile, seed, tStart, tEnd)))
+  process.stdout.write(JSON.stringify(simulateSlice(venue, heroProfile, seed, tStart, tEnd, cast)))
   process.exit(0)
 }
 
@@ -191,6 +209,7 @@ function runVenueParallel(
   heroName: string,
   n: number,
   workers: number,
+  cast: boolean,
 ): Promise<SliceResult> {
   const chunk = Math.ceil(n / workers)
   const ranges: Array<[number, number]> = []
@@ -208,6 +227,7 @@ function runVenueParallel(
             seed,
             tStart,
             tEnd,
+            cast,
           }
           const child = spawn(process.execPath, ['--import', 'tsx', scriptPath], {
             env: { ...process.env, SIM_SLICE: JSON.stringify(input) },
@@ -247,7 +267,9 @@ function parseArgs(argv: string[]) {
   const names: string[] = []
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a.startsWith('--')) {
+    if (a === '--cast') {
+      flags.set('cast', '')
+    } else if (a.startsWith('--')) {
       flags.set(a.slice(2), argv[i + 1] ?? '')
       i++
     } else {
@@ -302,6 +324,7 @@ if (!process.env.SIM_SLICE) {
     console.error(`Unknown hero "${heroName}". Heroes: ${Object.keys(HEROES).join(', ')}`)
     process.exit(1)
   }
+  const cast = flags.has('cast')
   const skillOverride = flags.has('skill') ? Number(flags.get('skill')) : undefined
   const venues = resolveVenues(names).map((v) =>
     skillOverride === undefined ? v : { ...v, ai: { ...v.ai, skill: skillOverride } },
@@ -313,7 +336,7 @@ if (!process.env.SIM_SLICE) {
   const workers = Math.max(1, Math.min(os.cpus().length - 2, n))
 
   console.log(
-    `Simulating ${n} tournaments per venue · hero: ${heroName} (skill ${hero.skill}) · seed ${seed} · ${workers} workers\n`,
+    `Simulating ${n} tournaments per venue · hero: ${heroName} (skill ${hero.skill}) · seed ${seed} · ${cast ? 'cast seated' : 'venue profile'} · ${workers} workers\n`,
   )
 
   const pad = (s: string, w: number) => s.padEnd(w)
@@ -333,7 +356,14 @@ if (!process.env.SIM_SLICE) {
   let sawOutskilled = false
   for (const venue of venues) {
     const started = Date.now()
-    const { wins, hands, timeouts } = await runVenueParallel(venue, seed, heroName, n, workers)
+    const { wins, hands, timeouts } = await runVenueParallel(
+      venue,
+      seed,
+      heroName,
+      n,
+      workers,
+      cast,
+    )
     const winRate = wins / n
     const fair = 1 / venue.seats
     // Expected chips per entry, ignoring bounties and mid-game cash-outs.
