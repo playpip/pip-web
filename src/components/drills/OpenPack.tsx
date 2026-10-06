@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MotionConfig, motion } from 'framer-motion'
 import { type SeatFace, SceneTable } from '@/components/lessons/SceneTable'
 import { CAST } from '@/config/cast'
-import { type DrillKind, OPEN_PACK_ID } from '@/config/drills'
+import { type DrillKind, OPEN_PACK_ID, membershipForDrill } from '@/config/drills'
 import { POSITION_LESSON_ID } from '@/config/lessons'
 import type { SeatId } from '@/config/positions'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
@@ -19,7 +19,6 @@ import { sound } from '@/lib/sound'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { ActionBar, Answer, LockedAnswers, NextButton, TalkLine } from './felt'
 import { PackProgress, PackSummary } from './pack'
-import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Open or fold, the second practice pack: ten hands, then a count.
@@ -292,7 +291,7 @@ function Spot({
         {!allowed ? (
           <LockedAnswers
             blurb={kind.blurb}
-            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+            onJoin={() => router.push(membershipForDrill(kind.id))}
           />
         ) : grade ? (
           <NextButton

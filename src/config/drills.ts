@@ -1,4 +1,4 @@
-import { type MembersOnly, included } from '@/config/membership'
+import { type MembersOnly, featureForDrill, included, membershipFor } from '@/config/membership'
 import type { DrillKindId } from '@/lib/drills/types'
 
 // The drills' table of contents. Each kind is a screen in the app, under
@@ -285,4 +285,42 @@ export function drillKind(id: string): DrillKind {
   const kind = DRILL_KINDS.find((entry) => entry.id === id)
   if (!kind) throw new Error(`No registry entry for drill "${id}". Add one to config/drills.ts`)
   return kind
+}
+
+/**
+ * The paid drills a tap on `/membership?for=drills&drill=<kind>` deals one
+ * read-only spot from (`drillSample` in lib/drills/sample.ts). These four are a
+ * board, some cards and a question, so the shared felt draws them whole. The
+ * other packs need a table scene, a seat or a betting line the felt does not
+ * draw, and a spot missing those is a worse look at the thing than none, so
+ * the page names them and stops there.
+ */
+export const SAMPLED_DRILLS: readonly DrillKindId[] = [
+  'which-five-play',
+  'count-your-outs',
+  'pot-odds',
+  'hand-strength',
+]
+
+/**
+ * Where a tap on a locked drill goes: `/membership`, opened on its feature and
+ * naming the kind. Calling the river is a feature of its own; every other paid
+ * kind is "Every drill", whose blurb lists nine of them, so the page also says
+ * which one was tapped (`tappedDrill`).
+ */
+export function membershipForDrill(kind: DrillKindId): string {
+  const feature = featureForDrill(kind)
+  const href = membershipFor(feature)
+  return feature === 'drills' ? `${href}&drill=${encodeURIComponent(kind)}` : href
+}
+
+/**
+ * The paid kind a `/membership?for=drills&drill=<id>` names, or null for
+ * anything else: a free kind, a kind under another feature, or a typed URL.
+ */
+export function tappedDrill(search: string): DrillKind | null {
+  const params = new URLSearchParams(search)
+  if (params.get('for') !== 'drills') return null
+  const kind = DRILL_KINDS.find((entry) => entry.id === params.get('drill'))
+  return kind?.membersOnly && featureForDrill(kind.id) === 'drills' ? kind : null
 }

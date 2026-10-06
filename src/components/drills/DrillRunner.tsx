@@ -12,6 +12,7 @@ import {
   RIVER_PACK_ID,
   SHOVE_PACK_ID,
   canPlayDrill,
+  membershipForDrill,
 } from '@/config/drills'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { kindFloor } from '@/lib/drills/standing'
@@ -45,7 +46,6 @@ import { useHydrated } from '@/lib/useHydrated'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { cn } from '@/lib/utils'
-import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * A drill, played: one spot, one decision, the answer, the next spot.
@@ -505,7 +505,7 @@ function Run({
         {!allowed ? (
           <LockedAnswers
             blurb={kind.blurb}
-            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+            onJoin={() => router.push(membershipForDrill(kind.id))}
           />
         ) : settled ? (
           <NextButton label="Next hand" onClick={another} />

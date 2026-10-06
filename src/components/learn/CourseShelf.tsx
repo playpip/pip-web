@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { BookOpen, ChevronRight, CircleHelp, FileText, Lock, Play, Target } from 'lucide-react'
 import { drillHref } from '@/components/drills/exit'
-import { canPlayDrill, drillKind } from '@/config/drills'
+import { canPlayDrill, drillKind, membershipForDrill } from '@/config/drills'
 import { guideBySlug } from '@/config/learn'
 import {
   COURSE,
@@ -17,7 +17,7 @@ import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
-import { featureForDrill, membershipFor } from '@/config/membership'
+import { membershipFor } from '@/config/membership'
 
 /**
  * Lessons with Webb, on the Learn shelf: five levels, and what is in each.
@@ -231,7 +231,9 @@ function Item({ item }: { item: Exclude<CourseItem, { kind: 'planned' }> }) {
 
   return (
     <Link
-      href={gated ? membershipFor(row.drill ? featureForDrill(row.drill.id) : 'lessons') : row.href}
+      href={
+        gated ? (row.drill ? membershipForDrill(row.drill.id) : membershipFor('lessons')) : row.href
+      }
       onClick={() => sound.play('tap')}
       aria-label={gated ? `${row.title} — what the membership is` : undefined}
       className="group flex items-center gap-3.5 px-4 py-3.5 transition hover:bg-foreground/[0.03] active:bg-foreground/[0.06] motion-reduce:transition-none"

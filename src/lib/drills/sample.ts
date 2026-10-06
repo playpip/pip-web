@@ -1,7 +1,7 @@
 import { RIVER_PACK_ID } from '@/config/drills'
 import { nextDrill } from './index'
 import { kindFloor } from './standing'
-import type { Drill } from './types'
+import type { Drill, DrillKindId } from './types'
 
 /**
  * The seed `/membership?for=river` deals (playpip/cmo#178).
@@ -18,4 +18,12 @@ export const RIVER_SAMPLE_SEED = 1
 /** The one spot, aimed where a newcomer's first spot is aimed. About 8ms, so dealt on the client. */
 export function riverSample(): Drill {
   return nextDrill(RIVER_PACK_ID, RIVER_SAMPLE_SEED, kindFloor(RIVER_PACK_ID))
+}
+
+/** Fixed for the same reason as the river's: everybody sees the same hand, and a reviewer can check it. */
+const DRILL_SAMPLE_SEED = 1
+
+/** One fixed spot from a paid drill, aimed at the newcomer's floor. */
+export function drillSample(kind: DrillKindId): Drill {
+  return nextDrill(kind, DRILL_SAMPLE_SEED, kindFloor(kind))
 }

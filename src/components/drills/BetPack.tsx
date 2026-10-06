@@ -7,7 +7,7 @@ import { CardBack } from '@/components/CardBack'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { cardBackById } from '@/config/cardBacks'
 import { CAST, type Character } from '@/config/cast'
-import { BET_PACK_ID, type DrillKind } from '@/config/drills'
+import { BET_PACK_ID, type DrillKind, membershipForDrill } from '@/config/drills'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { PACK_SIZE, dealPlanned, planPack } from '@/lib/drills/pack'
 import { kindFloor } from '@/lib/drills/standing'
@@ -29,7 +29,6 @@ import {
   TalkLine,
 } from './felt'
 import { PackProgress, PackSummary } from './pack'
-import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Bet or check, the river pack's mirror: a short lesson, then ten spots.
@@ -316,7 +315,7 @@ function Spot({
         {!allowed ? (
           <LockedAnswers
             blurb={kind.blurb}
-            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+            onJoin={() => router.push(membershipForDrill(kind.id))}
           />
         ) : grade ? (
           <NextButton
