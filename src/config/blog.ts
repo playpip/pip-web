@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'short-deck-flush-beats-full-house',
+    title: 'Why a flush beats a full house in Short Deck',
+    description:
+      'Short Deck throws out the deuces through fives, and the hand order moves to match. Every five- and seven-card hand on a thirty-six card deck, counted by the evaluator that settles Pip’s Short Deck pots.',
+    date: '2026-10-06',
+  },
+  {
     slug: 'omaha-exactly-two',
     title: 'Omaha’s exactly-two rule, in five hands',
     description:
