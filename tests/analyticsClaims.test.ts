@@ -29,6 +29,8 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'sync-auth-attempt': 'someone tried to sign in',
   'sync-auth-unreachable': 'whether a sign-in reached our servers at all',
   'membership-viewed': 'someone opened the membership page',
+  'membership-viewed-signed-out': 'whether they were signed out when they opened it',
+  'membership-signup-tapped': 'whether they tapped to create an account from it',
   'checkout-opened': 'someone went to pay',
   'checkout-completed': 'someone came back from paying',
   'membership-active': 'a membership started',
