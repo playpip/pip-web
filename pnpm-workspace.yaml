@@ -17,9 +17,10 @@ allowBuilds:
 # Bumping shadcn does not fix these. 4.16.1 was tried and carries the same four.
 overrides:
   fast-uri: '>=3.1.6 <4' # GHSA-x6y7-cw3q-r55c, -5jgf-p345-68v8, -f65p-4m7j-42xc, -fph4-wmhf-6fwf, -jqff-g426-hqxp (host confusion, SSRF); stay on ajv's 3.x line
-  sharp: '>=0.35.4' # libvips CVEs, now GHSA-g89c-p67h-r497 / -2jg2-4ch7-h545 / -rgj7-g3m4-5g8c; unused at runtime under static export
+  sharp: '>=0.35.5' # libvips CVEs, now GHSA-g89c-p67h-r497 / -2jg2-4ch7-h545 / -rgj7-g3m4-5g8c / -wq5f-xc86-pv6w; unused at runtime under static export
   postcss: '>=8.5.12' # GHSA-6g55-p6wh-862q (arbitrary file read); next pins 8.4.31
   undici: '>=7.29.0' # GHSA-c96p-vxvm-v55g (cross-user disclosure); via dotenvx
+  '@modelcontextprotocol/sdk': '>=1.31.0' # GHSA-6qxp-vccf-f47h (OAuth credentials sent to a server-chosen auth server); via shadcn's CLI, never in a browser
   ip-address: '>=10.3.1' # GHSA-mwp4-54f8-5fhr (SSRF via octal octets); via the MCP SDK
   brace-expansion: '>=5.0.9' # GHSA-rgw5-rvv9-x895 (DoS); only the 5.x line is here
   browserslist: '>=4.28.7' # GHSA-73wf-gq98-2v4g + unbounded cache growth; build-time only, via next and shadcn
