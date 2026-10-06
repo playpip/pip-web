@@ -17,6 +17,10 @@ const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://playpip.io'
 // before the first paint.
 const BACKGROUND = '#0a0a0b'
 
+// Where the app opens. Same as the PWA's `start_url` in src/app/manifest.ts:
+// the game, not the marketing landing page.
+const START_URL = `${SITE_URL}/game`
+
 const isOwnSite = (url: string) => url.startsWith(SITE_URL) || url === 'about:blank'
 
 export default function App() {
@@ -40,7 +44,7 @@ export default function App() {
         <StatusBar style="light" />
         <WebView
           ref={webView}
-          source={{ uri: SITE_URL }}
+          source={{ uri: START_URL }}
           style={styles.root}
           originWhitelist={['https://*', 'http://*']}
           injectedJavaScriptBeforeContentLoaded={injectedFlag}
