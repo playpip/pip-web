@@ -6,7 +6,7 @@
 
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useRef } from 'react'
-import { BackHandler, Linking, StyleSheet } from 'react-native'
+import { BackHandler, Linking, Platform, StyleSheet, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { handleMessage, injectedFlag } from './src/bridge'
@@ -20,6 +20,12 @@ const BACKGROUND = '#0a0a0b'
 // Where the app opens. Same as the PWA's `start_url` in src/app/manifest.ts:
 // the game, not the marketing landing page.
 const START_URL = `${SITE_URL}/game`
+
+// iOS draws the web view edge to edge, so the felt runs behind the notch and
+// the home bar and the page pads itself clear of them (globals.css, keyed on
+// data-pip-app). Android keeps native safe-area padding for now: its web view
+// doesn't reliably report the insets to CSS.
+const Frame = Platform.OS === 'ios' ? View : SafeAreaView
 
 const isOwnSite = (url: string) => url.startsWith(SITE_URL) || url === 'about:blank'
 
@@ -40,7 +46,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <Frame style={styles.root} edges={['top', 'bottom']}>
         <StatusBar style="light" />
         <WebView
           ref={webView}
@@ -48,6 +54,8 @@ export default function App() {
           style={styles.root}
           originWhitelist={['https://*', 'http://*']}
           injectedJavaScriptBeforeContentLoaded={injectedFlag}
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
           onMessage={(e) => handleMessage(e.nativeEvent.data)}
           onNavigationStateChange={(nav) => {
             canGoBack.current = nav.canGoBack
@@ -68,7 +76,7 @@ export default function App() {
           }}
           onOpenWindow={(e) => Linking.openURL(e.nativeEvent.targetUrl)}
         />
-      </SafeAreaView>
+      </Frame>
     </SafeAreaProvider>
   )
 }

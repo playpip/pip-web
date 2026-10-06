@@ -218,6 +218,21 @@
   html[data-pip-app]:has([data-felt]) body {
     overscroll-behavior: none;
   }
+  /* The shell draws the web view edge to edge so the felt runs behind the
+     notch and the home bar (FeltBackdrop is fixed to the whole screen). The
+     page pads itself clear of them instead. A felt screen pads only the top:
+     it is fixed to the screen height and already clears the home bar itself
+     with env(safe-area-inset-bottom) on its action bar. */
+  html[data-pip-app] body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  html[data-pip-app]:has([data-felt]) body {
+    padding-bottom: 0;
+  }
+  html[data-pip-app] [data-felt] {
+    height: calc(100dvh - env(safe-area-inset-top));
+  }
   /* iOS zooms toward any focused control whose text is under 16px. Keeping the
      font at least 16px stops that jump even where the viewport hint is loose. */
   input,
