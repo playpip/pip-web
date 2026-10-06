@@ -304,7 +304,7 @@ export function Table() {
 
   return (
     <TableStyleContext.Provider value={tableStyle}>
-      <div className="relative flex h-dvh w-full flex-col overflow-hidden">
+      <div data-felt className="relative flex h-dvh w-full flex-col overflow-hidden">
         {/* top bar — the shared AppBar; back confirms via the leave dialog */}
         <AppBar
           className="z-20"

@@ -14,7 +14,6 @@ import { SHOVE_BLINDS, SHOVE_WHERE, playShove, shoveTable } from '@/lib/drills/s
 import { BLINDS, type ShoveSeat } from '@/lib/drills/shoveRange'
 import { kindFloor } from '@/lib/drills/standing'
 import type { Drill } from '@/lib/drills/types'
-import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { formatChips } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
@@ -201,7 +200,6 @@ function Spot({
       onRated(useProfile.getState().drills[SHOVE_PACK_ID].rating - was)
       onAnswered(result.correct)
       sound.play(choiceId === 'shove' ? 'allin' : 'fold')
-      haptics.fire(result.correct ? 'win' : 'bust')
     },
     [drill, picked, allowed, run, setRun, progress.rating, recordDrill, onRated, onAnswered],
   )
@@ -215,7 +213,6 @@ function Spot({
     onRated(null)
     setDrill(dealPlanned(SHOVE_PACK_ID, plan[answered] ?? 'shove', aim(), randomSeed))
     sound.play('deal')
-    haptics.fire('deal')
   }, [last, onFinished, onRated, aim, plan, answered])
 
   useEffect(() => {

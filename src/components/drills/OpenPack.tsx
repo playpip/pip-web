@@ -13,7 +13,6 @@ import { PACK_SIZE, dealPlanned, planPack } from '@/lib/drills/pack'
 import { kindFloor } from '@/lib/drills/standing'
 import type { Drill } from '@/lib/drills/types'
 import { OPEN_TO, foldsTo, playActions, sceneState } from '@/lib/lessons/scene'
-import { haptics } from '@/lib/haptics'
 import { cardToString } from '@/lib/poker/cards'
 import { sound } from '@/lib/sound'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
@@ -215,7 +214,6 @@ function Spot({
       onRated(useProfile.getState().drills[OPEN_PACK_ID].rating - was)
       onAnswered(result.correct)
       sound.play(choiceId === 'raise' ? 'raise' : 'fold')
-      haptics.fire(result.correct ? 'win' : 'bust')
     },
     [drill, picked, allowed, run, setRun, progress.rating, recordDrill, onRated, onAnswered],
   )
@@ -229,7 +227,6 @@ function Spot({
     onRated(null)
     setDrill(dealPlanned(OPEN_PACK_ID, plan[answered] ?? 'raise', aim(), randomSeed))
     sound.play('deal')
-    haptics.fire('deal')
   }, [last, onFinished, onRated, aim, plan, answered])
 
   useEffect(() => {

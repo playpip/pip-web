@@ -663,7 +663,6 @@ export const useGame = create<GameState>((set, get) => {
     // The opponents get their own stream off the same per-hand seed as the deck.
     armDailyHand(handIndex)
     sound.play('deal')
-    buzz('deal')
     // Engagement — someone actually started playing. Once per tab session so a
     // busy session doesn't drown the signal; anonymous.
     trackOnce('first-hand')
@@ -833,8 +832,6 @@ export const useGame = create<GameState>((set, get) => {
     profile.mergeCastStats(castDeltas)
 
     if (result) sound.play(heroWon ? 'win' : result.showdown ? 'lose' : 'tap')
-    // Only the win. A lost pot is the common case and does not want marking.
-    if (result && heroWon) buzz('win')
 
     // Cash / ring tables: no prize, no elimination. Opponents rebuy so the
     // table stays full, and the hand simply resolves to a handover (or, if the
@@ -1390,11 +1387,6 @@ export const useGame = create<GameState>((set, get) => {
       const toAct = hand.players[hand.toActIndex]
       if (!toAct || toAct.id !== HUMAN_ID) return
       playActionSound(action, hand)
-      // Chips going in, and only yours. An opponent's action buzzing would
-      // mean a nine-handed table humming through every orbit.
-      if (action.type === 'bet' || action.type === 'raise' || action.type === 'call') {
-        buzz('commit')
-      }
       const next = applyAction(hand, action)
       recordStep(hand, action, next)
       set({ hand: next, heroEquity: null })
@@ -1555,9 +1547,10 @@ function computeHeroEquity(hand: HandState): number | null {
 }
 
 /**
- * Vibrate, if the player asked for it. Off by default, so this is silent for
- * everyone who has not been into Settings, and it does nothing at all outside
- * Android and desktop Chrome (see lib/haptics).
+ * Vibrate, if the player asked for it. Only for the two tournament endings,
+ * which have no sound: every other buzz comes with its sound (AppBoot joins
+ * them). Off by default, so this is silent for everyone who has not been into
+ * Settings.
  */
 function buzz(cue: Buzz) {
   if (useProfile.getState().haptics) haptics.fire(cue)

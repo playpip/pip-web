@@ -1,6 +1,6 @@
 /**
- * Short, restrained vibration on the physical moments: cards arriving, chips
- * going in, a pot won, a tournament ending.
+ * Short, restrained vibration that follows the sound: every cue that plays
+ * gets a matching tap, plus the end of a tournament, which has none.
  *
  * Mirrors `lib/sound.ts` on purpose. Same shape of problem (one module, feature
  * detects, no-ops when unsupported or switched off), so it gets the same shape
@@ -30,22 +30,51 @@
 'use client'
 
 import { inApp, postToApp } from './nativeApp'
+import type { Cue } from './sound'
 
-export type Buzz = 'deal' | 'commit' | 'win' | 'finish' | 'bust'
+/**
+ * Every sound cue, plus the two tournament endings, which have no sound of
+ * their own. Haptics follow sound: whatever plays a cue also fires its buzz
+ * (see `sound.onPlay`, joined in AppBoot), so the two can't drift apart.
+ */
+export type Buzz = Cue | 'finish' | 'bust'
 
 /**
  * Milliseconds, and they are meant to look small. The brief is tens of
  * milliseconds: if a pattern is noticeable as *buzzing* rather than as a tap,
  * it is wrong. Arrays alternate vibrate and pause, which is the Web Vibration
  * API's own shape.
+ *
+ * **Each one is shaped like its sound** (VOICES in lib/sound): a short blip
+ * is one short pulse, a longer cue a longer one, a rising sweep (bet, raise,
+ * all-in, win) gets taps that build, a falling one (fold, lose) taps that fade.
+ * The store app plays the same shapes with native haptics (mobile/src/bridge.ts).
  */
 export const PATTERNS: Record<Buzz, number | number[]> = {
-  /** Cards arriving. The lightest thing here; it fires every hand. */
+  /** UI taps. Barely there; it fires on almost every button. */
+  tap: 5,
+  /** Cards arriving. Light, because it fires every hand. */
   deal: 8,
-  /** Your chips going in. Never an opponent's, or a nine-handed table hums. */
-  commit: 12,
-  /** A pot to you. Two taps, so it reads as different from a commit. */
-  win: [12, 40, 18],
+  /** Cards going away and coming back. `deal`, shorter. */
+  draw: 6,
+  /** A knock on the table. */
+  check: 8,
+  /** Chips in, one push. */
+  call: 12,
+  /** Chips in, rising: a second, firmer tap. */
+  bet: [10, 30, 14],
+  /** Raise, higher still: three taps that build. */
+  raise: [10, 25, 12, 25, 16],
+  /** Cards away. One soft, falling tap. */
+  fold: [10, 30, 6],
+  /** The long rising sweep. The biggest chip moment, still only taps. */
+  allin: [12, 30, 16, 30, 20, 30, 26],
+  /** A pot to you, rising. */
+  win: [12, 40, 18, 40, 22],
+  /** A pot lost at showdown, falling. */
+  lose: [18, 50, 8],
+  /** A new street. One crisp tap. */
+  turn: 10,
   /** Tournament won. A short cadence, and the only celebratory one. */
   finish: [10, 50, 10, 50, 24],
   /** Out. One soft thud, not a buzzer. Losing does not get a fanfare. */

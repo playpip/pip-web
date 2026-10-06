@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
+import { useInApp } from '@/lib/useInApp'
 
 /**
  * @param name The name shown in the form, so the line reads about *this*
@@ -27,6 +28,7 @@ export function AccountRow({ name }: { name: string }) {
   const email = useSync((s) => s.email)
   const dirty = useSync((s) => s.dirty)
   const [dialog, setDialog] = useState<AccountMode | null>(null)
+  const where = useInApp() ? 'this app' : 'this browser'
 
   // No Supabase project configured — the account doesn't exist in this build.
   if (status === 'off') return null
@@ -56,8 +58,8 @@ export function AccountRow({ name }: { name: string }) {
       ) : (
         <>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            {who} lives in this browser and nowhere else. An account keeps a copy and puts them on
-            your other devices — free, and never required.
+            {who} lives in {where} and nowhere else. An account keeps a copy and puts them on your
+            other devices — free, and never required.
           </p>
           {/* Outlined, not filled: Save is this dialog's primary action and must
               stay the loudest thing in it. This only has to outrank Sign in. */}

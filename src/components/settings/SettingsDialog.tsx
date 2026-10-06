@@ -223,11 +223,11 @@ function TableTalkSection() {
 }
 
 /**
- * Vibration on the physical moments (lib/haptics). Off by default, because a
+ * Vibration with every sound (lib/haptics). Off by default, because a
  * buzz nobody asked for is exactly the casino tell the app is built against.
  *
  * The row hides itself where the browser cannot vibrate at all, which is every
- * iPhone and every Safari. A toggle that provably does nothing is worse than no
+ * Safari and every iPhone outside the store app. A toggle that provably does nothing is worse than no
  * toggle: it reads as a broken feature rather than an absent one. It is gated
  * on `useHydrated` because the server cannot know, and rendering the row and
  * then removing it is a hydration mismatch.
@@ -243,13 +243,13 @@ function HapticsSection() {
   return (
     <ToggleRow
       label="Vibration"
-      hint="A short tap on the deal, your chips going in, and a pot won."
+      hint="A short tap with every sound, shaped like it."
       checked={enabled}
       onChange={() => {
         const next = !enabled
         sound.play('tap')
         setHaptics(next)
-        if (next) haptics.fire('commit')
+        if (next) haptics.fire('bet')
       }}
     />
   )

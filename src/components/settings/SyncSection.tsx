@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
+import { useInApp } from '@/lib/useInApp'
 
 const secondaryButton =
   'min-h-11 flex-1 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12]'
@@ -40,6 +41,7 @@ export function SyncSection() {
   const email = useSync((s) => s.email)
   const dirty = useSync((s) => s.dirty)
   const [dialog, setDialog] = useState<AccountMode | null>(null)
+  const where = useInApp() ? 'this app' : 'this browser'
 
   if (status === 'off') return null
   const signedIn = status === 'signed-in'
@@ -59,9 +61,8 @@ export function SyncSection() {
           </>
         ) : (
           <>
-            Your profile lives in this browser. An account keeps a copy of it and puts it on your
-            other devices. Neither is needed to play, and nothing leaves this device until you pick
-            one.
+            Your profile lives in {where}. An account keeps a copy of it and puts it on your other
+            devices. Neither is needed to play, and nothing leaves this device until you pick one.
           </>
         )}
       </p>

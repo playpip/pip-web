@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, MotionConfig, type PanInfo, motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 
 /**
@@ -40,7 +39,6 @@ export function CardLesson({
       if (to < 0) return
       if (to >= cards.length) {
         sound.play('deal')
-        haptics.fire('deal')
         onDone()
         return
       }

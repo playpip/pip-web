@@ -21,7 +21,6 @@ import {
   questionFor,
 } from '@/lib/lessons/beats'
 import { playActions, sceneState } from '@/lib/lessons/scene'
-import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
@@ -79,7 +78,7 @@ export function LessonScreen({ lesson }: { lesson: Lesson }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative flex h-dvh w-full flex-col overflow-hidden">
+      <div data-felt className="relative flex h-dvh w-full flex-col overflow-hidden">
         <AppBar
           className="z-20"
           leading="back"
@@ -141,7 +140,6 @@ function Beats({ lesson, allowed }: { lesson: Lesson; allowed: boolean }) {
       setPicked(null)
       setPlayed(0)
       sound.play(newCards ? 'deal' : 'tap')
-      if (newCards) haptics.fire('deal')
     },
     [lesson.beats, beat],
   )
@@ -153,7 +151,6 @@ function Beats({ lesson, allowed }: { lesson: Lesson; allowed: boolean }) {
       const right = isRight(question, choiceId)
       setPicked(choiceId)
       sound.play(right ? 'win' : 'fold')
-      haptics.fire(right ? 'win' : 'bust')
       // Then the table plays on, one thing at a time, so you watch it happen.
       playOn.forEach((action, i) => {
         timers.current.push(

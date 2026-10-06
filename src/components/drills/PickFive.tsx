@@ -21,7 +21,6 @@ import { PICKED_RING } from './felt'
 import { PLAYS, selectionId } from '@/lib/drills/whichFivePlay'
 import type { Drill } from '@/lib/drills/types'
 import { type Card, cardName, cardToString } from '@/lib/poker/cards'
-import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -169,7 +168,6 @@ export function usePickFive({
       // one. See the note on `tapped`.
       setTapped({ seed: drill.seed, cards: next })
       sound.play(has ? 'tap' : 'check')
-      haptics.fire('deal')
       if (next.length === PLAYS) onFive(pickedId(next))
     },
     [picked, settled, onFive, drill.seed],

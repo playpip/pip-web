@@ -40,7 +40,6 @@ import { OpenPack } from './OpenPack'
 import { RiverPack } from './RiverPack'
 import { ShovePack } from './ShovePack'
 import { useDrillExit } from './exit'
-import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
 import { useEntitlement, useMembership } from '@/store/entitlement'
@@ -133,7 +132,7 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
   // variants on the classes that scale, which this cannot reach.
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative flex h-dvh w-full flex-col overflow-hidden">
+      <div data-felt className="relative flex h-dvh w-full flex-col overflow-hidden">
         <AppBar
           className="z-20"
           leading="back"
@@ -348,7 +347,6 @@ function Run({
       recordDrill(kind.id, result.correct, result.difficulty, next, drill.settledBy)
       onRated(useProfile.getState().drills[kind.id].rating - was)
       sound.play(result.correct ? 'win' : 'fold')
-      haptics.fire(result.correct ? 'win' : 'bust')
     },
     [
       drill,
@@ -370,7 +368,6 @@ function Run({
     onRated(null)
     setDrill(nextDrill(kind.id, randomSeed(), aim()))
     sound.play('deal')
-    haptics.fire('deal')
   }, [kind.id, aim, onRated])
 
   const five = usePickFive({ drill, settled: settled || !allowed, onFive: pick })

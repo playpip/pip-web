@@ -382,7 +382,7 @@ export function ReviewTable({
 
   return (
     <TableStyleContext.Provider value={tableStyle}>
-      <div className="relative flex h-dvh w-full flex-col overflow-hidden">
+      <div data-felt className="relative flex h-dvh w-full flex-col overflow-hidden">
         <AppBar
           className="z-20"
           // A review is for reading a hand, not dressing the table or changing

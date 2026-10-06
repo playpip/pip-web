@@ -79,6 +79,7 @@ class SoundEngine {
   private volume = 0.7
   private pack: SoundShape = HOUSE
   private lastPlayed: Partial<Record<Cue, number>> = {}
+  private listener: ((cue: Cue) => void) | null = null
 
   setMuted(muted: boolean) {
     this.muted = muted
@@ -111,7 +112,17 @@ class SoundEngine {
     return this.ctx
   }
 
+  /**
+   * Called with every cue, before mute or a missing AudioContext can stop it.
+   * This is how haptics follow sound (AppBoot joins the two): every sound gets
+   * its matching vibration, and muting the sound doesn't take the feel away.
+   */
+  onPlay(listener: ((cue: Cue) => void) | null) {
+    this.listener = listener
+  }
+
   play(cue: Cue) {
+    this.listener?.(cue)
     if (this.muted) return
     const ctx = this.context()
     if (!ctx) return

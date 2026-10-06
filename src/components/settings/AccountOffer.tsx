@@ -23,6 +23,7 @@ import { useSync } from '@/store/sync'
 import { oauthProviders } from '@/lib/sync/client'
 import { useHydrated } from '@/lib/useHydrated'
 import { sound } from '@/lib/sound'
+import { useInApp } from '@/lib/useInApp'
 
 /** The strongest fact we have about signing up, and nothing else said it. */
 export const SIGNUP_FACT = 'An email and a password. There is no confirmation email to go and find.'
@@ -43,6 +44,7 @@ export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overl
   const hydrated = useHydrated()
   const [dialog, setDialog] = useState<AccountMode | null>(null)
   const [inviteSpent, setInviteSpent] = useState(false)
+  const where = useInApp() ? 'this app' : 'this browser'
 
   // Wait for the stored session before offering anything (see sync's `ready`),
   // and render nothing at all in a build with no project behind it.
@@ -89,8 +91,8 @@ export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overl
     >
       <p className={dark ? 'text-xs leading-relaxed text-white/70' : 'text-sm leading-relaxed'}>
         {dark
-          ? 'That run lives in this browser and nowhere else. A free account keeps it, on every device you play on.'
-          : 'Your Roll lives in this browser and nowhere else. A free account keeps a copy, on every device you play on.'}
+          ? `That run lives in ${where} and nowhere else. A free account keeps it, on every device you play on.`
+          : `Your Roll lives in ${where} and nowhere else. A free account keeps a copy, on every device you play on.`}
       </p>
       <p
         className={

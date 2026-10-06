@@ -5,6 +5,8 @@ import { useMembership } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
 import { soundPackById } from '@/config/cosmetics'
+import { haptics } from '@/lib/haptics'
+import { inApp } from '@/lib/nativeApp'
 import { sound } from '@/lib/sound'
 
 /**
@@ -40,6 +42,18 @@ export function AppBoot() {
     // somebody mid-session is worse than that.
     sound.setPack(soundPackById(profile.soundPack))
 
+    // Haptics follow sound: every cue that plays fires its matching buzz, so
+    // nothing has to remember to call both. The setting is read live at each
+    // cue rather than copied in, so switching it off stops the next one.
+    sound.onPlay((cue) => {
+      if (useProfile.getState().haptics) haptics.fire(cue)
+    })
+
+    // In the store app, a marker for CSS: the web view brings back iOS's
+    // springy scroll there (globals.css). Set here, after hydration, because
+    // React never renders this attribute and so never takes it away.
+    if (inApp()) document.documentElement.dataset.pipApp = ''
+
     // No-op unless the player has an account: with no stored session this
     // reads localStorage, finds nothing and stops. No request, no identity.
     void useSync.getState().init()
@@ -47,6 +61,7 @@ export function AppBoot() {
     // Subscribes to that session rather than going looking for one, so a
     // player with no account still makes no request of its own.
     useMembership.getState().start()
+    return () => sound.onPlay(null)
   }, [])
   return null
 }

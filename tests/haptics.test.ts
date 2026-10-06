@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import test from 'ava'
 import { haptics, PATTERNS, type Buzz } from '@/lib/haptics'
+import { sound } from '@/lib/sound'
 
-const ALL: Buzz[] = ['deal', 'commit', 'win', 'finish', 'bust']
+const ALL = Object.keys(PATTERNS) as Buzz[]
 
 /**
  * A fake device. AVA runs in node with no `navigator` and no `window`, which
@@ -69,10 +70,14 @@ test.serial('every cue is tens of milliseconds, not a buzz', (t) => {
   }
 })
 
-test.serial('the deal is the lightest cue, because it fires every hand', (t) => {
+test.serial('the cues that fire most often are the lightest', (t) => {
+  // A tap on nearly every button, a deal every hand. Neither may outweigh
+  // chips going in.
+  const tap = PATTERNS.tap as number
   const deal = PATTERNS.deal as number
-  const commit = PATTERNS.commit as number
-  t.true(deal <= commit)
+  const call = PATTERNS.call as number
+  t.true(tap <= deal)
+  t.true(deal <= call)
 })
 
 test.serial('nothing vibrates on a browser without the API', (t) => {
@@ -108,7 +113,7 @@ test.serial('two cues in the same instant collapse to one', (t) => {
   const { calls, restore } = device()
   settle()
   haptics.fire('deal')
-  haptics.fire('commit')
+  haptics.fire('call')
   haptics.fire('win')
   restore()
   t.is(calls.length, 1, 'the debounce let a second cue through')
@@ -200,7 +205,7 @@ test.serial('in the app, reduced motion and the debounce still apply', (t) => {
   const busy = app()
   settle()
   haptics.fire('deal')
-  haptics.fire('commit')
+  haptics.fire('call')
   busy.restore()
   t.is(busy.sent.length, 1, 'the debounce let a second cue through in the app')
 })
@@ -233,14 +238,34 @@ test.serial('the store only ever buzzes behind the profile flag', (t) => {
   t.true(source.includes('if (useProfile.getState().haptics) haptics.fire(cue)'))
 })
 
-test.serial('the opponents never buzz', (t) => {
-  // playActionSound runs for the AI too. The commit buzz must sit in the hero
-  // branch, which is the one guarded by the HUMAN_ID check.
-  const source = readFileSync(new URL('../src/store/game.ts', import.meta.url), 'utf-8')
-  const heroBranch = source.split('if (!toAct || toAct.id !== HUMAN_ID) return')[1] ?? ''
-  t.true(heroBranch.slice(0, 400).includes("buzz('commit')"), 'the commit buzz moved off the hero')
-  const aiBranch = source.split('const seatAi = get().seats.find')[1]?.slice(0, 400) ?? ''
-  t.false(aiBranch.includes('buzz('), 'an opponent action now buzzes the phone')
+test.serial('every sound reaches the haptics hook, muted or not', (t) => {
+  // Haptics follow sound. The hook runs before mute and before the missing
+  // AudioContext (node has none), so muting the sound keeps the feel.
+  const heard: string[] = []
+  sound.onPlay((cue) => heard.push(cue))
+  sound.setMuted(true)
+  sound.play('raise')
+  sound.setMuted(false)
+  sound.play('fold')
+  sound.onPlay(null)
+  t.deepEqual(heard, ['raise', 'fold'])
+})
+
+test.serial('AppBoot joins sound to haptics behind the profile flag', (t) => {
+  const source = readFileSync(new URL('../src/components/AppBoot.tsx', import.meta.url), 'utf-8')
+  t.true(source.includes('if (useProfile.getState().haptics) haptics.fire(cue)'))
+})
+
+test.serial('nothing else fires a haptic beside its sound', (t) => {
+  // A component calling haptics.fire next to sound.play would buzz twice,
+  // and ungated by the setting. Only the Settings toggle may call it directly,
+  // on purpose, so you feel the thing you just turned on.
+  const hits = (readdirSync('src/components', { recursive: true }) as string[])
+    .filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'))
+    .filter((f) => readFileSync(`src/components/${f}`, 'utf-8').includes('haptics.fire('))
+    .map((f) => `src/components/${f}`)
+    .sort()
+  t.deepEqual(hits, ['src/components/AppBoot.tsx', 'src/components/settings/SettingsDialog.tsx'])
 })
 
 test.serial('the setting is off by default and survives a migration', (t) => {

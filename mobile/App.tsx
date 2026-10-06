@@ -52,9 +52,9 @@ export default function App() {
           onNavigationStateChange={(nav) => {
             canGoBack.current = nav.canGoBack
           }}
-          // The felt shouldn't rubber-band or zoom like a document.
-          bounces={false}
-          overScrollMode="never"
+          // iOS's springy scroll stays on. The page turns it off where it
+          // shouldn't happen (the felt) with overscroll-behavior in CSS.
+          decelerationRate="normal"
           setBuiltInZoomControls={false}
           // Web Audio cues play on a tap, not on load.
           mediaPlaybackRequiresUserAction={false}

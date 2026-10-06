@@ -12,7 +12,6 @@ import {
   randomSeed,
 } from '@/lib/drills'
 import type { DrillKindId } from '@/lib/drills/types'
-import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
@@ -216,7 +215,6 @@ function Hand({
       recordDrill(PLAY_IT_OUT_RECORD, result.correct, result.difficulty, next, drill.settledBy)
       onRated(useProfile.getState().drills[PLAY_IT_OUT_RECORD].rating - was)
       sound.play(result.correct ? 'win' : 'fold')
-      haptics.fire(result.correct ? 'win' : 'bust')
       // The next hand costs a second of the main thread, and this is the moment
       // it is free: the player is reading a sentence rather than waiting on a
       // button.
@@ -234,7 +232,6 @@ function Hand({
     setPicked(null)
     onRated(null)
     sound.play('deal')
-    haptics.fire('deal')
   }, [step, deal, onRated])
 
   // The same keys the face-up kinds use, so the two modes play the same on a

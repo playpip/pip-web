@@ -11,7 +11,6 @@ import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { PACK_SIZE, dealPlanned, planPack } from '@/lib/drills/pack'
 import { kindFloor } from '@/lib/drills/standing'
 import type { Drill } from '@/lib/drills/types'
-import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { formatChips } from '@/lib/useMoney'
 import { emptyDrillRecord, useProfile } from '@/store/profile'
@@ -218,7 +217,6 @@ function Spot({
       onAnswered(result.correct)
       // The chips first, then the verdict under your thumb.
       sound.play(choiceId === 'call' ? 'call' : 'fold')
-      haptics.fire(result.correct ? 'win' : 'bust')
     },
     [drill, picked, allowed, run, setRun, progress.rating, recordDrill, onRated, onAnswered],
   )
@@ -232,7 +230,6 @@ function Spot({
     onRated(null)
     setDrill(dealPlanned(RIVER_PACK_ID, plan[answered] ?? 'call', aim(), randomSeed))
     sound.play('deal')
-    haptics.fire('deal')
   }, [last, onFinished, onRated, aim, plan, answered])
 
   useEffect(() => {
