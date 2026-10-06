@@ -1,6 +1,12 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'ava'
-import { DRILL_KINDS, SAMPLED_DRILLS, membershipForDrill, tappedDrill } from '@/config/drills'
+import {
+  DRILL_KINDS,
+  SAMPLED_DRILLS,
+  drillKind,
+  membershipForDrill,
+  tappedDrill,
+} from '@/config/drills'
 import {
   featureForDrill,
   featureForFamily,
@@ -123,13 +129,13 @@ test('a tap on a paid drill names its kind, and the page reads it back', (t) => 
 test('a sampled drill deals one fixed spot from its own generator', (t) => {
   t.true(SAMPLED_DRILLS.length >= 4)
   for (const id of SAMPLED_DRILLS) {
-    const kind = DRILL_KINDS.find((entry) => entry.id === id)
-    t.true(kind?.membersOnly === true, `${id} is not a paid kind`)
+    const kind = drillKind(id)
+    t.true(kind.membersOnly === true, `${id} is not a paid kind`)
     const spot = drillSample(id)
     t.deepEqual(drillSample(id), spot, `${id}: a fixed seed dealt two different spots`)
     t.is(spot.kind, id)
     t.deepEqual(spot, nextDrill(id, spot.seed, kindFloor(id)), `${id}: not what the drill deals`)
-    t.is(spot.board.length, kind?.boardCards, `${id}: board`)
+    t.is(spot.board.length, kind.boardCards, `${id}: board`)
     const holdings =
       (spot.hands?.length ?? 0) + spot.choices.filter((c) => c.cards.length > 1).length
     t.true(holdings > 0, `${id}: nothing for the felt to draw`)
