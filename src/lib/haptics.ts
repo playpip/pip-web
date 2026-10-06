@@ -11,8 +11,10 @@
  * platform, and there is no Web Vibration support coming. The switch-element
  * tricks that coax a haptic out of iOS depend on a specific control being
  * rendered and break at a Safari release, so we do not ship one. **Never
- * describe this publicly as if an iPhone gets it.** If Pip is ever wrapped for
- * iOS, native haptics come from the wrapper, not from this layer.
+ * describe this publicly as if an iPhone gets it** — in a browser. In the store
+ * app the cue goes over the bridge (lib/nativeApp) and the shell plays it with
+ * the platform's own haptics, which is how an iPhone gets them. The setting,
+ * reduced motion and the debounce below still decide whether a cue is sent.
  *
  * **Off by default, unlike sound.** Vibration without consent is the kind of
  * thing Pip does not do: an unexpected buzz in a calm app reads as a casino
@@ -26,6 +28,8 @@
  */
 
 'use client'
+
+import { inApp, postToApp } from './nativeApp'
 
 export type Buzz = 'deal' | 'commit' | 'win' | 'finish' | 'bust'
 
@@ -54,8 +58,9 @@ const TERMINAL: ReadonlySet<Buzz> = new Set<Buzz>(['finish', 'bust'])
 class HapticEngine {
   private lastFired = 0
 
-  /** Whether this browser could vibrate at all, ignoring the setting. */
+  /** Whether this device could vibrate at all, ignoring the setting. */
   supported() {
+    if (inApp()) return true
     return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
   }
 
@@ -97,6 +102,13 @@ class HapticEngine {
     const now = Date.now()
     if (!TERMINAL.has(buzz) && now - this.lastFired < 60) return
     this.lastFired = now
+
+    // The shell maps the cue to native haptics. The patterns above are the
+    // Web Vibration API's shape and mean nothing to it, so it gets the name.
+    if (inApp()) {
+      postToApp({ type: 'haptic', buzz })
+      return
+    }
 
     // Chrome refuses (and warns) if the document has never been tapped, and a
     // throw here would take a hand's state transition down with it.

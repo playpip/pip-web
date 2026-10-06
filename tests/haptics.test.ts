@@ -154,6 +154,70 @@ test.serial('a vibrate that throws does not take the hand down with it', (t) => 
 })
 
 // ---------------------------------------------------------------------------
+// The store app. Inside the native shell the cue goes over the bridge by name
+// and the shell plays it; `navigator.vibrate` is never touched.
+
+function app(opts: { reducedMotion?: boolean; flag?: boolean; postMessage?: boolean } = {}) {
+  const sent: unknown[] = []
+  const undoNav = stub('navigator', {})
+  const undoWin = stub('window', {
+    matchMedia: (q: string) => ({ matches: !!opts.reducedMotion && q.includes('reduced-motion') }),
+    ...(opts.flag === false ? {} : { PipApp: { platform: 'ios', version: '1.0.0' } }),
+    ...(opts.postMessage === false
+      ? {}
+      : { ReactNativeWebView: { postMessage: (data: string) => sent.push(JSON.parse(data)) } }),
+  })
+  return {
+    sent,
+    restore: () => {
+      undoWin()
+      undoNav()
+    },
+  }
+}
+
+test.serial('in the app, an iPhone with no vibrate API is supported', (t) => {
+  const { restore } = app()
+  t.true(haptics.supported())
+  restore()
+})
+
+test.serial('in the app, the cue crosses the bridge by name', (t) => {
+  const { sent, restore } = app()
+  settle()
+  haptics.fire('win')
+  restore()
+  t.deepEqual(sent, [{ type: 'haptic', buzz: 'win' }])
+})
+
+test.serial('in the app, reduced motion and the debounce still apply', (t) => {
+  const quiet = app({ reducedMotion: true })
+  settle()
+  haptics.fire('deal')
+  quiet.restore()
+  t.deepEqual(quiet.sent, [], 'reduced motion was ignored in the app')
+
+  const busy = app()
+  settle()
+  haptics.fire('deal')
+  haptics.fire('commit')
+  busy.restore()
+  t.is(busy.sent.length, 1, 'the debounce let a second cue through in the app')
+})
+
+test.serial('half a bridge is not the app', (t) => {
+  // The flag alone could be set by any script; the postMessage alone is any
+  // React Native web view. Both, or it's a browser.
+  for (const opts of [{ flag: false }, { postMessage: false }]) {
+    const { sent, restore } = app(opts)
+    t.false(haptics.supported())
+    haptics.fire('finish')
+    restore()
+    t.deepEqual(sent, [])
+  }
+})
+
+// ---------------------------------------------------------------------------
 // The call sites, pinned. The spec's guardrail is "never on the AI's actions,
 // only on yours and on outcomes", and that is a property of where the calls
 // are rather than of anything the module can check.
