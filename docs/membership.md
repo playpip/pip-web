@@ -302,6 +302,12 @@ over them counts tabs rather than clicks:
 | `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL | `Join` in `MembershipScreen` |
 | `membership-active` | `awaitMembership()` sees the row the webhook wrote | `Join` in `MembershipScreen` |
 
+Two more sit beside the four, for the account step a signed-out tab meets before checkout:
+`membership-viewed-signed-out` (the page settled on signed out, not on the way back from Stripe)
+and `membership-signup-tapped` ("Create a free account to join" tapped). Both are in `Join`.
+Signed-in views are `membership-viewed` minus the signed-out ones; a tab that signs in on the page
+counts as signed out, which is the point.
+
 They are counts, not grants: nothing reads them back. Stripe's dashboard stays the count of
 money. Where the funnel undercounts: a blocked Umami tag reports nothing, a player who pays in
 one tab and comes back in another is a new tab, and a webhook slower than ~15 seconds means

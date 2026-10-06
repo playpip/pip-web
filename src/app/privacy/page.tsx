@@ -120,10 +120,12 @@ export default function PrivacyPage() {
           looks exactly like nobody wanting an account, and we would rather know the difference. We
           count the tries so we know whether the failures are rare. For the membership we count four
           steps: someone opened the membership page, someone went to pay, someone came back from
-          paying, and a membership started. That tells us where people stop, not who they are. No
-          cookies, no fingerprinting, no personal data, and never anything you typed or any message
-          we got back. We can’t tie any of it to a person, including you. It exists so we can
-          improve the game, and for nothing else. It’s never sold or shared.
+          paying, and a membership started. Paying needs an account, so we also count whether they
+          were signed out when they opened it, and whether they tapped to create an account from it.
+          That tells us where people stop, not who they are. No cookies, no fingerprinting, no
+          personal data, and never anything you typed or any message we got back. We can’t tie any
+          of it to a person, including you. It exists so we can improve the game, and for nothing
+          else. It’s never sold or shared.
         </p>
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t

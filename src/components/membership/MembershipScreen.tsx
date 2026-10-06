@@ -842,6 +842,7 @@ function Join({
   const hydrated = useHydrated()
   const ready = useSync((s) => s.ready)
   const signedIn = useSync((s) => s.status === 'signed-in')
+  const signedOut = useSync((s) => s.status === 'signed-out')
   const member = useEntitlement()
   const checked = useMembership((s) => s.checked)
   const memberStatus = useMembership((s) => s.status)
@@ -874,6 +875,13 @@ function Join({
       live = false
     }
   }, [joined])
+
+  // A signed-out tab meets the account form before it can reach checkout, so
+  // without these "did not want it" and "stopped at the account step" read the
+  // same. Counts only; `ready` keeps the placeholder signed-out from firing it.
+  useEffect(() => {
+    if (ready && signedOut && !joined) trackOnce('membership-viewed-signed-out')
+  }, [ready, signedOut, joined])
 
   const run = async (action: () => Promise<{ ok: true } | { ok: false; error: BillingError }>) => {
     sound.play('tap')
@@ -1001,6 +1009,7 @@ function Join({
         <button
           onClick={() => {
             sound.play('tap')
+            trackOnce('membership-signup-tapped')
             setAccount('signup')
           }}
           className={joinButton}
