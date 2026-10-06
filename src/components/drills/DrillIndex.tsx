@@ -6,7 +6,7 @@ import { MotionConfig, motion } from 'framer-motion'
 import { ChevronRight, Lock } from 'lucide-react'
 import { SectionScreen } from '@/components/menu/SectionScreen'
 import { PremiumStar } from '@/components/menu/venueCard'
-import { DRILL_KINDS, type DrillKind, canPlayDrill } from '@/config/drills'
+import { DRILL_KINDS, type DrillKind, canPlayDrill, membershipForDrill } from '@/config/drills'
 import { nextDrill, randomSeed } from '@/lib/drills'
 import { DIFFICULTY_LEVELS, kindDifficulty } from '@/lib/drills/standing'
 import { seatById } from '@/config/positions'
@@ -16,7 +16,6 @@ import { useHydrated } from '@/lib/useHydrated'
 import { useEntitlement } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 import { cn } from '@/lib/utils'
-import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * The drills room: one tile per kind, the same shape as the venue browsers.
@@ -107,7 +106,7 @@ function DrillTile({ kind, gated, delay }: { kind: DrillKind; gated: boolean; de
           // locked card on the side-tables shelf makes. Answering a deliberate
           // tap with the page that explains the thing is the least we owe
           // somebody for asking.
-          router.push(gated ? membershipFor(featureForDrill(kind.id)) : `/game/drills/${kind.id}`)
+          router.push(gated ? membershipForDrill(kind.id) : `/game/drills/${kind.id}`)
         }}
         aria-label={gated ? `${kind.title} — what the membership is` : undefined}
         className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"

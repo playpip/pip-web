@@ -1,6 +1,12 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'ava'
-import { DRILL_KINDS } from '@/config/drills'
+import {
+  DRILL_KINDS,
+  SAMPLED_DRILLS,
+  drillKind,
+  membershipForDrill,
+  tappedDrill,
+} from '@/config/drills'
 import {
   featureForDrill,
   featureForFamily,
@@ -16,6 +22,9 @@ import {
   featureForVenue,
   venueById,
 } from '@/config/venues'
+import { kindFloor } from '@/lib/drills/standing'
+import { nextDrill } from '@/lib/drills'
+import { drillSample } from '@/lib/drills/sample'
 
 // A locked tap opens `/membership` on the thing that was tapped.
 //
@@ -87,6 +96,51 @@ test('every paid drill kind maps to a shipped feature', (t) => {
     t.true(SHIPPED.has(featureForDrill(kind.id)), `${kind.id} maps to nothing on the page`)
   }
   t.is(featureForDrill('calling-the-river'), 'river')
+})
+
+// "Every drill" lists nine kinds, so a tap on one of them names which. A drill
+// call site that builds its own link would drop the name without failing
+// anything, so the shortcut is banned outright.
+test('a tap on a paid drill names its kind, and the page reads it back', (t) => {
+  const search = (href: string) => new URL(href, 'https://playpip.io').search
+  const paid = DRILL_KINDS.filter((kind) => kind.membersOnly && kind.id !== 'calling-the-river')
+  t.true(paid.length >= 7, `only ${paid.length} paid drills under "Every drill"`)
+  for (const kind of paid) {
+    const href = membershipForDrill(kind.id)
+    t.is(tappedFeature(search(href))?.id, 'drills', kind.id)
+    t.is(tappedDrill(search(href))?.id, kind.id, kind.id)
+  }
+  t.is(membershipForDrill('calling-the-river'), membershipFor('river'))
+  t.is(tappedDrill('?for=drills&drill=which-hand-wins'), null, 'a free kind is not sold')
+  t.is(tappedDrill('?for=drills&drill=calling-the-river'), null, 'the river has its own entry')
+  t.is(tappedDrill('?for=omaha&drill=pot-odds'), null)
+  t.is(tappedDrill('?for=drills&drill=nonsense'), null)
+  t.is(tappedDrill('?for=drills'), null)
+  for (const { path, code } of sources('src/components')) {
+    t.notRegex(
+      code,
+      /featureForDrill/,
+      `${path} builds a drill's link itself; use membershipForDrill()`,
+    )
+  }
+})
+
+// The spot dealt under a tapped drill is the drill's own, the same on every
+// visit, and has what the felt draws: a board of the kind's size and a holding.
+test('a sampled drill deals one fixed spot from its own generator', (t) => {
+  t.true(SAMPLED_DRILLS.length >= 4)
+  for (const id of SAMPLED_DRILLS) {
+    const kind = drillKind(id)
+    t.true(kind.membersOnly === true, `${id} is not a paid kind`)
+    const spot = drillSample(id)
+    t.deepEqual(drillSample(id), spot, `${id}: a fixed seed dealt two different spots`)
+    t.is(spot.kind, id)
+    t.deepEqual(spot, nextDrill(id, spot.seed, kindFloor(id)), `${id}: not what the drill deals`)
+    t.is(spot.board.length, kind.boardCards, `${id}: board`)
+    const holdings =
+      (spot.hands?.length ?? 0) + spot.choices.filter((c) => c.cards.length > 1).length
+    t.true(holdings > 0, `${id}: nothing for the felt to draw`)
+  }
 })
 
 test('every side-table family maps to a shipped feature', (t) => {

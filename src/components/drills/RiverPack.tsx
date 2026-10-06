@@ -6,7 +6,7 @@ import { MotionConfig, motion } from 'framer-motion'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { cardBackById } from '@/config/cardBacks'
 import type { Character } from '@/config/cast'
-import { type DrillKind, RIVER_PACK_ID } from '@/config/drills'
+import { type DrillKind, RIVER_PACK_ID, membershipForDrill } from '@/config/drills'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
 import { PACK_SIZE, dealPlanned, planPack } from '@/lib/drills/pack'
 import { kindFloor } from '@/lib/drills/standing'
@@ -29,7 +29,6 @@ import {
 import { RangeStrip, RiverLesson } from './RiverLesson'
 import { Opponent, opponentFor } from './riverSeat'
 import { PackProgress, PackSummary } from './pack'
-import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Calling the river, the first practice pack: a short lesson, then ten spots.
@@ -319,7 +318,7 @@ function Spot({
         {!allowed ? (
           <LockedAnswers
             blurb={kind.blurb}
-            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+            onJoin={() => router.push(membershipForDrill(kind.id))}
           />
         ) : grade ? (
           <NextButton

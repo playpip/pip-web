@@ -21,14 +21,24 @@
 //
 // A tap on Calling the river also deals one spot from it (`TappedSpot`), loaded
 // only then, so nobody else's page carries the drill generator.
+//
+// A tap on any other paid drill lands on "Every drill", whose blurb lists nine
+// of them, so the tap also names its kind (`&drill=`, `tappedDrill`) and this
+// says which one it was, with one spot from it where the shared felt can draw
+// one (`TappedDrillSpot`, `SAMPLED_DRILLS`).
 
 import dynamic from 'next/dynamic'
+import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
 import { type LocalPrice, tappedFeature } from '@/config/membership'
 import { waitingSessionLine } from '@/lib/review/highlights'
 import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
 
 const TappedSpot = dynamic(() => import('./TappedSpot').then((m) => m.TappedSpot), {
+  ssr: false,
+})
+
+const TappedDrillSpot = dynamic(() => import('./TappedDrillSpot').then((m) => m.TappedDrillSpot), {
   ssr: false,
 })
 
@@ -40,6 +50,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
   // the link in the welcome box, not the price again.
   if (!feature || new URLSearchParams(search).has('joined')) return null
   const waiting = feature.id === 'review' ? waitingSessionLine(loadReview()) : null
+  const drill = tappedDrill(search)
 
   return (
     <section
@@ -54,6 +65,13 @@ export function TappedFor({ price }: { price: LocalPrice }) {
         <p className="mt-2 leading-relaxed text-muted-foreground">{feature.blurb}</p>
         {waiting && <p className="mt-3 font-medium tabular-nums text-foreground">{waiting}</p>}
         {feature.id === 'river' && <TappedSpot />}
+        {drill && (
+          <p className="mt-3 leading-relaxed text-muted-foreground">
+            You tapped <span className="font-medium text-foreground">{drill.title}</span>.{' '}
+            {drill.blurb}
+          </p>
+        )}
+        {drill && SAMPLED_DRILLS.includes(drill.id) && <TappedDrillSpot kind={drill} />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a

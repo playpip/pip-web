@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MotionConfig, motion } from 'framer-motion'
 import { type SeatFace, SceneTable } from '@/components/lessons/SceneTable'
 import { CAST } from '@/config/cast'
-import { type DrillKind, SHOVE_PACK_ID } from '@/config/drills'
+import { type DrillKind, SHOVE_PACK_ID, membershipForDrill } from '@/config/drills'
 import { pct } from '@/config/potOdds'
 import type { SeatId } from '@/config/positions'
 import { aimFor, gradeDrill, nextDrill, randomSeed } from '@/lib/drills'
@@ -22,7 +22,6 @@ import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { ActionBar, Answer, LockedAnswers, NextButton, TalkLine } from './felt'
 import { PackProgress, PackSummary } from './pack'
 import { ShoveLesson } from './ShoveLesson'
-import { featureForDrill, membershipFor } from '@/config/membership'
 
 /**
  * Shove or fold, the short-stack pack: a short lesson, then ten hands.
@@ -293,7 +292,7 @@ function Spot({
         {!allowed ? (
           <LockedAnswers
             blurb={kind.blurb}
-            onJoin={() => router.push(membershipFor(featureForDrill(kind.id)))}
+            onJoin={() => router.push(membershipForDrill(kind.id))}
           />
         ) : grade ? (
           // The arithmetic sits on the bar rather than on the felt: the felt
