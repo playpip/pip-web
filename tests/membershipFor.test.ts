@@ -47,9 +47,10 @@ function sources(dir: string): { path: string; code: string }[] {
 }
 
 // Links to the page that are not answering a locked tap: the settings row, the
-// landing page, and the page itself.
+// lobby's one line, the landing page, and the page itself.
 const NOT_A_TAP = new Set([
   'src/components/settings/MembershipSection.tsx',
+  'src/components/menu/MembershipLine.tsx',
   'src/components/marketing/Landing.tsx',
   'src/components/marketing/LegalPage.tsx',
   'src/components/membership/MembershipScreen.tsx',
