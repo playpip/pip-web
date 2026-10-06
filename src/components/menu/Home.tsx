@@ -10,7 +10,7 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
 import { PageShell } from '@/components/PageShell'
 import { AccountOffer } from '@/components/settings/AccountOffer'
-import { MembershipLine } from './MembershipLine'
+import { MembershipCard } from './MembershipCard'
 import { useProfile } from '@/store/profile'
 import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
@@ -160,6 +160,10 @@ export function Home() {
           <LadderStrip delay={0.15} />
         </div>
 
+        {/* The one place the lobby says the membership exists: under the
+            Ladder, the way the account offer sits under the Roll. */}
+        <MembershipCard delay={0.2} />
+
         {/* The detours: the same game somewhere else, picked by mood rather
             than by progress. Still 16:10 tiles and still one tap, but under a
             hero and a strip they read as the alternatives they are.
@@ -245,9 +249,6 @@ export function Home() {
             delay={0.38}
           />
         </div>
-
-        {/* Last, and quiet: the one place the lobby says the membership exists. */}
-        <MembershipLine />
       </div>
 
       <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
