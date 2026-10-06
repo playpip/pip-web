@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
+import { inApp } from '@/lib/nativeApp'
 
 /**
  * The way out of a prose page.
@@ -22,8 +23,9 @@ export function BackButton() {
       return
     }
     // iOS reports an installed PWA on navigator.standalone; everyone else
-    // answers the media query.
+    // answers the media query. The store app has no browser chrome either.
     const installed =
+      inApp() ||
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone === true
     router.push(installed ? '/game' : '/')

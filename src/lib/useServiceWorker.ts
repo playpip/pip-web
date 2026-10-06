@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { inApp } from './nativeApp'
 
 // How often to re-check for a new deploy while the app stays open (an installed
 // PWA can run for days). Also checked whenever the tab becomes visible again.
@@ -17,6 +18,10 @@ export function useServiceWorkerUpdate(): { updateReady: boolean; applyUpdate: (
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) return
+    // Not in the store app. Its web view loads the live site, so a worker would
+    // only add a "new version" prompt to an app that updates by itself, and
+    // iOS doesn't run one there anyway (no App-Bound Domains).
+    if (inApp()) return
 
     let registration: ServiceWorkerRegistration | null = null
 

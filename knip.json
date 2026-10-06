@@ -5,7 +5,8 @@
     "public/**",
     "supabase/functions/**",
     "src/components/ui/**",
-    "src/types/supabase-types.ts"
+    "src/types/supabase-types.ts",
+    "mobile/**"
   ],
   "ignoreExportsUsedInFile": true,
   "ignoreBinaries": ["supabase"]

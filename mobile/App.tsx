@@ -1,0 +1,74 @@
+// Phase 0/1 (EXPO-PLAN.md): Pip's web build inside a native shell.
+//
+// Remote mode: the web view loads the live site, so every web deploy reaches
+// the app with no store release. Set EXPO_PUBLIC_SITE_URL to point it at a dev
+// server on your network instead (e.g. http://192.168.1.20:3000).
+
+import { StatusBar } from 'expo-status-bar'
+import { useEffect, useRef } from 'react'
+import { BackHandler, Linking, StyleSheet } from 'react-native'
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
+import { WebView } from 'react-native-webview'
+import { handleMessage, injectedFlag } from './src/bridge'
+
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://playpip.io'
+
+// Matches `background_color` in src/app/manifest.ts, so there's no white flash
+// before the first paint.
+const BACKGROUND = '#0a0a0b'
+
+const isOwnSite = (url: string) => url.startsWith(SITE_URL) || url === 'about:blank'
+
+export default function App() {
+  const webView = useRef<WebView>(null)
+  const canGoBack = useRef(false)
+
+  // Android's back button walks the web view's history, and only leaves the
+  // app once there's nothing left to go back to.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!canGoBack.current) return false
+      webView.current?.goBack()
+      return true
+    })
+    return () => sub.remove()
+  }, [])
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <StatusBar style="light" />
+        <WebView
+          ref={webView}
+          source={{ uri: SITE_URL }}
+          style={styles.root}
+          originWhitelist={['https://*', 'http://*']}
+          injectedJavaScriptBeforeContentLoaded={injectedFlag}
+          onMessage={(e) => handleMessage(e.nativeEvent.data)}
+          onNavigationStateChange={(nav) => {
+            canGoBack.current = nav.canGoBack
+          }}
+          // The felt shouldn't rubber-band or zoom like a document.
+          bounces={false}
+          overScrollMode="never"
+          setBuiltInZoomControls={false}
+          // Web Audio cues play on a tap, not on load.
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback
+          // Off-site links (Stripe, socials) go to the system browser, whether
+          // they navigate the page or open a new window.
+          onShouldStartLoadWithRequest={(req) => {
+            if (isOwnSite(req.url)) return true
+            Linking.openURL(req.url)
+            return false
+          }}
+          onOpenWindow={(e) => Linking.openURL(e.nativeEvent.targetUrl)}
+        />
+      </SafeAreaView>
+    </SafeAreaProvider>
+  )
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: BACKGROUND },
+})
