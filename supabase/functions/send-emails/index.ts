@@ -28,6 +28,7 @@
 import { admin, env, UNSUBSCRIBE_FUNCTION_URL } from '../_shared/service.ts'
 import {
   FROM,
+  REPLY_TO,
   SENT_COLUMN,
   dayKey,
   dueKind,
@@ -288,6 +289,7 @@ Deno.serve(async (req) => {
         sending.push(d)
         messages.push({
           from: FROM,
+          reply_to: REPLY_TO,
           to: [to],
           subject: email.subject,
           html: email.html,

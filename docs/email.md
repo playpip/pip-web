@@ -70,10 +70,12 @@ Do these in order. Nothing is sent until step 6, and nobody sees a switch until 
 
 ### 1. Resend
 
-- The domain `playpip.io` is already verified (Auth mail uses it). Check that sending from
-  `hello@playpip.io` is allowed on it.
-- Create an API key with **Sending access**, restricted to `playpip.io`. That is `RESEND_API_KEY`.
-- Resend → Domains → playpip.io → **open tracking off, click tracking off**.
+- The verified domain is `mail.playpip.io` (Auth mail uses it). Emails send from
+  `hello@mail.playpip.io` with replies to `hello@playpip.io` (`FROM` and `REPLY_TO` in
+  `supabase/functions/_shared/email.ts`).
+- `RESEND_API_KEY` can be the same key Supabase's SMTP uses, or a separate Sending-access key
+  for `mail.playpip.io` if you want to be able to revoke one without the other.
+- Resend → Domains → mail.playpip.io → **open tracking off, click tracking off**.
 
 ### 2. The table
 

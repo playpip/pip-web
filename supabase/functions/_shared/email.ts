@@ -17,7 +17,9 @@
 
 export const SITE_URL = 'https://playpip.io'
 export const PLAY_URL = `${SITE_URL}/play/daily`
-export const FROM = 'Pip <hello@playpip.io>'
+/** The domain verified in Resend is the `mail.` subdomain; replies go to the inbox on the root. */
+export const FROM = 'Pip <hello@mail.playpip.io>'
+export const REPLY_TO = 'hello@playpip.io'
 
 /** The Daily reminder goes out from this hour (UTC), six hours before it closes. */
 export const REMINDER_HOUR_UTC = 18
