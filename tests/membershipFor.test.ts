@@ -80,7 +80,8 @@ test('every locked surface says what was tapped', (t) => {
 
 test('every literal id a call site sends is a shipped feature', (t) => {
   let seen = 0
-  for (const { path, code } of sources('src/components')) {
+  // `src/app` too: a post's link to the game it is about is a call site.
+  for (const { path, code } of [...sources('src/components'), ...sources('src/app')]) {
     for (const [, id] of code.matchAll(/membershipFor\(\s*'([^']+)'\s*\)/g)) {
       seen++
       t.true(SHIPPED.has(id), `${path} sends ?for=${id}, which is not a shipped feature`)
