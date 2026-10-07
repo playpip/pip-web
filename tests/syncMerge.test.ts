@@ -421,6 +421,24 @@ test('merge › same day: played beats abandoned, so syncing is not a re-roll', 
   t.is(mergeProfiles(finished, abandoned, 'local').daily?.place, 2)
 })
 
+// --- the daily free member game, the same shape of re-roll ------------------
+
+test('merge › a free game spent on either device stays spent, whichever side wins', (t) => {
+  const spent = profile({ taste: { date: '2026-10-07', kind: 'table', id: 'omaha-low' } })
+  const unspent = profile({ taste: null })
+  for (const side of ['local', 'remote'] as const) {
+    t.is(mergeProfiles(spent, unspent, side).taste?.id, 'omaha-low')
+    t.is(mergeProfiles(unspent, spent, side).taste?.id, 'omaha-low')
+  }
+  // A profile from before v23 has no field at all.
+  const older = profile({})
+  t.is(mergeProfiles(older, spent, 'local').taste?.date, '2026-10-07')
+})
+
+test('pristine › a device that only spent today’s free game still merges', (t) => {
+  t.false(isPristine(pristine({ taste: { date: '2026-10-07', kind: 'lesson', id: 'ranges' } })))
+})
+
 // --- when to bother the player --------------------------------------------
 
 test('divergence › identical progress never prompts', (t) => {

@@ -86,7 +86,6 @@ const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !
 const count = (v: unknown): number | null =>
   typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : null
 
-
 /** The Daily streak, from `state.dailyStreak` (`src/lib/dailyStreak.ts`). Null means no streak line. */
 export function readStreak(state: unknown): Streak | null {
   if (!isObj(state) || !isObj(state.dailyStreak)) return null

@@ -396,6 +396,17 @@ export const MEMBERSHIP_PROMISES = [
 ] as const
 
 /**
+ * The daily free member game, said once (lib/membership/taste).
+ *
+ * The page, the README and the roadmap all say this, and they say it from here
+ * or are pinned to it by `tests/membership.test.ts` and `tests/roadmapDrills.test.ts`.
+ * Blackjack and the table builder are left out on purpose: neither is one game
+ * you sit down to and finish.
+ */
+export const DAILY_FREE_GAME =
+  'One member game a day is free without joining: any one poker table on the side tables shelf, Omaha and Short Deck included, or one lesson with Webb from Level 2 up. It comes back at midnight UTC.'
+
+/**
  * Where the cancel button is, said plainly.
  *
  * On the page on purpose (technology#52 item 6). "cancel pip membership" is a

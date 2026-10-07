@@ -643,7 +643,7 @@ export function Table() {
                       : `You finished ${ordinal(place)}`
                     : 'Out of the tournament'
                 }
-                detail={recap && <RunRecap recap={recap} />}
+                detail={recap && <RunRecap recap={recap} member={member} />}
                 onHome={goHome}
                 onReview={canReview ? goReview : undefined}
                 secondaryLabel={canWatch ? 'Watch it out' : undefined}
@@ -694,7 +694,7 @@ export function Table() {
                       ))}
                     </div>
                   )}
-                  {recap && <RunRecap recap={recap} />}
+                  {recap && <RunRecap recap={recap} member={member} />}
                 </>
               }
               onHome={goHome}

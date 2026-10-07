@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 import { membershipFor } from '@/config/membership'
+import { TASTE_COPY, tasteOpens } from '@/lib/membership/taste'
+import { useTaste } from '@/lib/useTaste'
 
 /**
  * Lessons with Webb, on the Learn shelf: five levels, and what is in each.
@@ -216,13 +218,22 @@ function Item({ item }: { item: Exclude<CourseItem, { kind: 'planned' }> }) {
   const hydrated = useHydrated()
   const member = useEntitlement()
   const settled = useMembership((state) => state.checked)
+  const taste = useTaste()
   const row = rowFor(item)
   const known = hydrated && (!row.paid || settled)
+  const lessonOpen = item.kind === 'lesson' && canTakeLesson(lessonById(item.id), member)
+  // A paid lesson today's free member game can still open: unspent, or spent on
+  // this one. It goes to the lesson, which asks before it spends anything.
+  const freeToday =
+    item.kind === 'lesson' &&
+    !lessonOpen &&
+    taste.ready &&
+    tasteOpens(taste.record, taste.today, { kind: 'lesson', id: item.id })
   const open =
     item.kind === 'tour'
       ? true
       : item.kind === 'lesson'
-        ? canTakeLesson(lessonById(item.id), member)
+        ? lessonOpen || freeToday
         : row.drill
           ? canPlayDrill(row.drill, member)
           : true
@@ -264,6 +275,11 @@ function Item({ item }: { item: Exclude<CourseItem, { kind: 'planned' }> }) {
           {item.kind === 'tour' && (
             <span className="shrink-0 rounded-full bg-foreground/[0.07] px-2 py-0.5 text-2xs font-medium">
               Start here
+            </span>
+          )}
+          {known && freeToday && (
+            <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-2xs font-medium text-primary">
+              {TASTE_COPY.tile}
             </span>
           )}
           {item.kind === 'guide' && (

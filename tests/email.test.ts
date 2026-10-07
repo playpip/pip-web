@@ -91,7 +91,7 @@ test('readFacts never throws on a strange blob', (t) => {
   t.is(readFacts({ roll: -5 }).roll, null)
 })
 
-test('readStreak reads the profile\'s dailyStreak', (t) => {
+test("readStreak reads the profile's dailyStreak", (t) => {
   t.deepEqual(readStreak({ dailyStreak: { current: 4, best: 9, lastDate: WED } }), {
     current: 4,
     best: 9,
@@ -219,7 +219,7 @@ test('an older snapshot is labelled with its date', (t) => {
 const prefs = { weekly_digest: true, daily_reminder: true, digest_snapshot: null }
 const unsubscribeUrl = `https://playpip.io/unsubscribe?token=${TOKEN}`
 
-test('the reminder names today’s Daily and links to the game', (t) => {
+test('the reminder names today’s Daily and links to the Daily', (t) => {
   const email = render({
     kind: 'reminder',
     now: at(WED, 18),
@@ -229,7 +229,7 @@ test('the reminder names today’s Daily and links to the game', (t) => {
   })
   t.is(email.subject, `Daily #${appDailyNumber(WED)} closes at midnight UTC`)
   t.regex(email.text, /Your Daily streak is 5 days\./)
-  t.regex(email.html, /href="https:\/\/playpip\.io\/game"/)
+  t.regex(email.html, /href="https:\/\/playpip\.io\/play\/daily"/)
   t.true(email.text.includes(unsubscribeUrl))
   t.true(email.html.includes(unsubscribeUrl))
 })

@@ -92,6 +92,7 @@ export function VenueInfoDialog({
   playable,
   canAfford,
   lockedNote,
+  freeNote,
   family,
   onOpenChange,
   onPlay,
@@ -129,6 +130,12 @@ export function VenueInfoDialog({
    * table you cannot sit at should not offer you five prices for it.
    */
   lockedNote?: string
+  /**
+   * Said above the play button when sitting down here spends today's free
+   * member game (lib/membership/taste), so the tap that spends it is a tap
+   * somebody was told about.
+   */
+  freeNote?: string
   /**
    * The side-tables card this dialog was opened from, when it was one.
    *
@@ -252,6 +259,11 @@ export function VenueInfoDialog({
             cover art inside the rounded corners) so it cannot be the scroller
             here, and the cover has to stay whole while the text below it grows. */}
         <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-4">
+          {freeNote && (
+            <p className="rounded-xl bg-primary/10 px-3 py-2 text-sm font-medium text-foreground">
+              {freeNote}
+            </p>
+          )}
           {stakes && picking ? (
             <StakePicker stakes={stakes} canAfford={canAfford} onPlay={onPlay} />
           ) : (

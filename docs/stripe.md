@@ -171,6 +171,31 @@ Rules for whoever is in the dashboard — the code cannot enforce these:
   annual renewals*; both are expected of a UK consumer subscription.
 - **Disputes are not watched by Pip** — see below.
 
+## A free trial: not built, and why (2026-10-07)
+
+A 7-day trial would be one line in `checkout`
+(`subscription_data.trial_period_days: 7`, behind an env flag). It is **not wired in**, not
+even switched off, because it changes what the player agrees to and the legal copy would
+be wrong the moment the flag went on:
+
+- **The consent box** (`Join` in `MembershipScreen.tsx`) says *"Start my membership straight
+  away. I understand this ends my 14-day right to cancel for a refund"*. With a trial nothing
+  is charged on day one, so there is no payment for that waiver to attach to, and the
+  sentence would need to say what happens on day 8 instead: the first charge, its amount,
+  and that cancelling before then costs nothing.
+- **`/terms`** (`src/app/terms/page.tsx`, the billing section) says *"Because the membership
+  starts at once, that ends your 14-day right to cancel for a refund"*. It would need a
+  trial paragraph: when the first charge lands, that Stripe sends a reminder, and how the
+  14-day right runs from the first paid period. Bump `TERMS_VERSION` with it.
+- **`/membership`** — the plan cards and "Can I join yet?" say you pay at checkout; both
+  would need the trial's length and the date of the first charge.
+- **Stripe**: turn on the *trial ending* reminder email (account-wide, so Probus's too), and
+  check the webhook's entitlement rule: `trialing` already counts as a member
+  (`lib/membership/entitlement.ts`), so nothing changes there.
+
+The daily free member game (docs/membership.md) is the try-before-you-pay that shipped
+instead. It needs no card and no legal copy.
+
 ## What is not built
 
 - **Disputes** are not watched. Probus logs its own `charge.dispute.created`; Pip's would

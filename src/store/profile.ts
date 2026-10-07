@@ -20,6 +20,7 @@ import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats
 import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
 import { type DailyStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/dailyStreak'
+import { spendTaste, type TasteRecord, type TasteTarget } from '@/lib/membership/taste'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -247,6 +248,16 @@ export interface ProfileState {
    * a finite number is a trip back to the shelf, not a free bankroll.
    */
   blackjack: BlackjackSession | null
+  /**
+   * The day's free member game, once spent: which UTC day, and on what.
+   *
+   * **Not an entitlement, and it does not need to be one.** It is
+   * client-written, so a player who edits it gets their free game back, which
+   * is a free game they could have had tomorrow. What it can never do is make
+   * somebody a member: it is only ever read through `lib/membership/taste`, and the
+   * membership itself still comes only from `useEntitlement()`.
+   */
+  taste: TasteRecord | null
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -315,6 +326,11 @@ export interface ProfileState {
    * many. Zero, and no write, when there is nothing to take.
    */
   reclaimEscrow: (deviceId: string) => number
+  /**
+   * Spend today's free member game on this table or lesson. Returns whether it
+   * opened: true if it was unspent (or already spent on this lesson today).
+   */
+  spendTaste: (today: string, target: TasteTarget) => boolean
   /** Fold one reviewed hand into the career table of priced decisions. */
   recordReviewHand: (hand: ReviewHand) => void
   reset: () => void
@@ -323,7 +339,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 23
+export const PERSIST_VERSION = 24
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -370,6 +386,7 @@ export const useProfile = create<ProfileState>()(
       customTable: null,
       reviewStats: emptyReviewStats(),
       blackjack: null,
+      taste: null,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -546,6 +563,12 @@ export const useProfile = create<ProfileState>()(
         })
         return escrow.chips
       },
+      spendTaste: (today, target) => {
+        const next = spendTaste(get().taste, today, target)
+        if (!next) return false
+        if (next !== get().taste) set({ taste: next })
+        return true
+      },
       recordReviewHand: (hand) => set((s) => ({ reviewStats: foldHand(s.reviewStats, hand) })),
       reset: () =>
         set({
@@ -580,6 +603,7 @@ export const useProfile = create<ProfileState>()(
           customTable: null,
           reviewStats: emptyReviewStats(),
           blackjack: null,
+          taste: null,
         }),
     }),
     {
@@ -737,6 +761,9 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // profile kept, so yesterday's player carries on to two today (see
   // `streakFromDaily`). Unconditional for the reason v21 gives.
   if (fromVersion < 23) s.dailyStreak = streakFromDaily(s.daily)
+  // v23 → v24: the daily free member game (lib/membership/taste). Null for
+  // everybody: nobody has spent one yet, so everybody has today's.
+  if (fromVersion < 24) s.taste = null
   return s
 }
 
