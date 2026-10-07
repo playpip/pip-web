@@ -4,18 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import {
-  BookOpen,
-  ChevronDown,
-  Moon,
-  MoonStar,
-  Pencil,
-  Play,
-  Store,
-  Sun,
-  Sunrise,
-  Target,
-} from 'lucide-react'
+import { BookOpen, Moon, MoonStar, Pencil, Play, Store, Sun, Sunrise, Target } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
@@ -23,9 +12,8 @@ import { PageShell } from '@/components/PageShell'
 import { AccountOffer } from '@/components/settings/AccountOffer'
 import { GettingStarted } from '@/components/menu/GettingStarted'
 import { MembershipCard } from './MembershipCard'
-import { ChallengerFace } from './ChallengerFace'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
-import { hasPlaceholderName, isNewPlayer } from '@/lib/newPlayer'
+import { hasPlaceholderName } from '@/lib/newPlayer'
 import { useProfile } from '@/store/profile'
 import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
@@ -62,19 +50,13 @@ const PERIOD_ICONS: Record<DayPeriod, LucideIcon> = {
 
 export function Home() {
   const router = useRouter()
-  const { name, roll, avatar, rollHistory, venueRecords, challengeWins, challengesPlayed, stats } =
+  const { name, roll, avatar, rollHistory, venueRecords, challengeWins, challengesPlayed } =
     useProfile()
   const money = useMoney()
   const [shopOpen, setShopOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
-  // A first-timer gets three doors, not eleven: the next table, the Daily and
-  // Learn, with the rest one tap behind "More ways to play" (Will, 2026-10-07).
-  // Nothing is removed, and after a few tournaments the full lobby is the only
-  // one. Not remembered: a new player who opened it once sees the short one
-  // again next time, which is fine while they are still new.
-  const [showAll, setShowAll] = useState(false)
   const gettingStartedDismissed = useProfile((s) => s.gettingStartedDismissed)
-  const focused = isNewPlayer(stats)
+
   // The two faces on the shelf. Pearl keeps the shop; Webb keeps Learn, being
   // the one in the cast who "wrote the book", so his face is the least
   // arbitrary icon available for it.
@@ -175,96 +157,9 @@ export function Home() {
         {gettingStartedDismissed ? <AccountOffer /> : <GettingStarted />}
       </motion.div>
 
-      {focused ? (
-        // Same pieces and sizes as the full lobby, fewer of them: the next
-        // table and the ladder, then one row of four tiles.
-        <div className="flex flex-1 flex-col gap-4 pb-2">
-          <div className="flex flex-col gap-3 md:gap-4">
-            {hydrated && pick && <NextUpCard pick={pick} delay={0.05} />}
-            <LadderStrip delay={0.1} />
-          </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            {hydrated && <DailyTile delay={0.15} />}
-            <CategoryCard
-              artNode={
-                webb && <ChallengerFace character={webb} accent="#7c8cf0" className="size-full" />
-              }
-              title="Learn with Webb"
-              subtitle="Lessons and guides"
-              onClick={() => go('/learn')}
-              delay={0.2}
-            />
-            <CategoryCard
-              art="rail"
-              accent="#4FB477"
-              title="The Rail"
-              subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
-              onClick={() => go('/game/rail')}
-              delay={0.25}
-            />
-            <CategoryCard
-              art="side"
-              accent="#E06D8C"
-              title="Side Tables"
-              subtitle={`${SIDE_SHELF.length} ways to play`}
-              onClick={() => go('/game/side')}
-              delay={0.3}
-            />
-          </div>
-          {/* "More ways to play" adds the rest underneath rather than swapping
-              to the full lobby, so nothing already on screen moves or
-              animates in again. */}
-          {showAll ? (
-            <>
-              {quick && <QuickPlayCard room={quick} delay={0} />}
-              {challenge && pick?.kind !== 'challenge' && (
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-                  <ChallengeCard challenge={challenge} delay={0.05} />
-                </div>
-              )}
-              <MembershipCard delay={0.05} />
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
-                <RoomCard
-                  title="Pearl’s counter"
-                  blurb="Card backs, rings, sounds and souvenirs."
-                  verb="Browse"
-                  icon={Store}
-                  face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
-                  onClick={() => {
-                    sound.play('tap')
-                    setShopOpen(true)
-                  }}
-                  delay={0.1}
-                />
-                <RoomCard
-                  title="Drills"
-                  blurb="Short spots with a right answer."
-                  verb="Play"
-                  icon={Play}
-                  face={<Target className="size-5 text-muted-foreground md:size-6" />}
-                  href="/game/drills"
-                  delay={0.12}
-                />
-              </div>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                sound.play('tap')
-                setShowAll(true)
-              }}
-              className="mx-auto mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/[0.05] hover:text-foreground"
-            >
-              More ways to play
-              <ChevronDown className="size-4" />
-            </button>
-          )}
-        </div>
-      ) : (
-        /* the main menu — one recommendation, the spine, the detours, the rooms */
-        <div className="flex flex-1 flex-col gap-4 pb-2">
-          {/* The spine. Everything below this pair is optional and reads as
+      {/* the main menu — one recommendation, the spine, the detours, the rooms */}
+      <div className="flex flex-1 flex-col gap-4 pb-2">
+        {/* The spine. Everything below this pair is optional and reads as
             optional, which is the whole point of the rearrangement (Will,
             2026-09-20): five identically sized tiles made the ladder — the
             game's actual progression — look like one of four alternatives, so
@@ -272,34 +167,34 @@ export function Home() {
             nothing on the screen ever said where they were. Now the app answers
             "what do I play" itself, and the ladder is a position rather than a
             door. */}
-          <div className="flex min-h-20 flex-col gap-3 md:min-h-[8.75rem] md:gap-4">
-            {/* Two questions, one row: what is next, and what if you have ten
+        <div className="flex min-h-20 flex-col gap-3 md:min-h-[8.75rem] md:gap-4">
+          {/* Two questions, one row: what is next, and what if you have ten
               minutes. They are different axes — progress and time — which is
               the only reason a second card is allowed up here at all. A third
               would make this a tile grid again, which is the thing the whole
               screen was rearranged to stop being. The quick card is absent
               whenever there is no honest stake for it, and the hero simply
               takes the width back. */}
-            <div className="flex flex-col gap-3 md:flex-row md:gap-4">
-              {hydrated && pick && (
-                <div className="min-w-0 flex-1">
-                  <NextUpCard pick={pick} delay={0.05} />
-                </div>
-              )}
-              {hydrated && quick && (
-                <div className="min-w-0 md:w-[38%]">
-                  <QuickPlayCard room={quick} delay={0.1} />
-                </div>
-              )}
-            </div>
-            <LadderStrip delay={0.15} />
+          <div className="flex flex-col gap-3 md:flex-row md:gap-4">
+            {hydrated && pick && (
+              <div className="min-w-0 flex-1">
+                <NextUpCard pick={pick} delay={0.05} />
+              </div>
+            )}
+            {hydrated && quick && (
+              <div className="min-w-0 md:w-[38%]">
+                <QuickPlayCard room={quick} delay={0.1} />
+              </div>
+            )}
           </div>
+          <LadderStrip delay={0.15} />
+        </div>
 
-          {/* The one place the lobby says the membership exists: under the
+        {/* The one place the lobby says the membership exists: under the
             Ladder, the way the account offer sits under the Roll. */}
-          <MembershipCard delay={0.2} />
+        <MembershipCard delay={0.2} />
 
-          {/* The detours: the same game somewhere else, picked by mood rather
+        {/* The detours: the same game somewhere else, picked by mood rather
             than by progress. Still 16:10 tiles and still one tap, but under a
             hero and a strip they read as the alternatives they are.
 
@@ -317,75 +212,74 @@ export function Home() {
             one screen reads as the app repeating itself. The grid keeps its
             column count either way, so the tiles never resize — a short row
             ends in a gap instead. */}
-          <div>
-            <h2 className="mb-2 px-1 text-2xs font-medium uppercase tracking-wider text-muted-foreground">
-              Other ways to play
-            </h2>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-              <CategoryCard
-                art="rail"
-                accent="#4FB477"
-                title="The Rail"
-                subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
-                onClick={() => go('/game/rail')}
-                delay={0.15}
-              />
-              <CategoryCard
-                art="side"
-                accent="#E06D8C"
-                title="Side Tables"
-                subtitle={`${SIDE_SHELF.length} ways to play`}
-                onClick={() => go('/game/side')}
-                delay={0.2}
-              />
-              {hydrated && <DailyTile delay={0.25} />}
-              {challenge && pick?.kind !== 'challenge' && (
-                <ChallengeCard challenge={challenge} delay={0.3} />
-              )}
-            </div>
+        <div>
+          <h2 className="mb-2 px-1 text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+            Other ways to play
+          </h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            <CategoryCard
+              art="rail"
+              accent="#4FB477"
+              title="The Rail"
+              subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
+              onClick={() => go('/game/rail')}
+              delay={0.15}
+            />
+            <CategoryCard
+              art="side"
+              accent="#E06D8C"
+              title="Side Tables"
+              subtitle={`${SIDE_SHELF.length} ways to play`}
+              onClick={() => go('/game/side')}
+              delay={0.2}
+            />
+            {hydrated && <DailyTile delay={0.25} />}
+            {challenge && pick?.kind !== 'challenge' && (
+              <ChallengeCard challenge={challenge} delay={0.3} />
+            )}
           </div>
+        </div>
 
-          {/* The three side rooms: the shop, Learn and the drills are places you
+        {/* The three side rooms: the shop, Learn and the drills are places you
             step out of a hand into, so they belong under the tables and they
             read as a shelf. Three across at every width — on a phone that is
             one row of faces rather than three bands, which is what keeps them
             from competing with the tables. */}
-          <div className="grid grid-cols-3 gap-3 md:gap-4">
-            <RoomCard
-              title="Pearl’s counter"
-              blurb="Card backs, rings, sounds and souvenirs."
-              verb="Browse"
-              icon={Store}
-              face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
-              onClick={() => {
-                sound.play('tap')
-                setShopOpen(true)
-              }}
-              delay={0.3}
-            />
-            <RoomCard
-              title="Learn with Webb"
-              blurb="Lessons at the table, a tour, and the guides."
-              verb="Open"
-              icon={BookOpen}
-              face={webb && <PlayerAvatar spec={webb.avatar} size={44} />}
-              href="/learn"
-              delay={0.34}
-            />
-            <RoomCard
-              title="Drills"
-              blurb="Short spots with a right answer."
-              verb="Play"
-              icon={Play}
-              // No face on this one: the shop is Pearl's and Learn is Webb's, and
-              // a drill is nobody's.
-              face={<Target className="size-5 text-muted-foreground md:size-6" />}
-              href="/game/drills"
-              delay={0.38}
-            />
-          </div>
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <RoomCard
+            title="Pearl’s counter"
+            blurb="Card backs, rings, sounds and souvenirs."
+            verb="Browse"
+            icon={Store}
+            face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
+            onClick={() => {
+              sound.play('tap')
+              setShopOpen(true)
+            }}
+            delay={0.3}
+          />
+          <RoomCard
+            title="Learn with Webb"
+            blurb="Lessons at the table, a tour, and the guides."
+            verb="Open"
+            icon={BookOpen}
+            face={webb && <PlayerAvatar spec={webb.avatar} size={44} />}
+            href="/learn"
+            delay={0.34}
+          />
+          <RoomCard
+            title="Drills"
+            blurb="Short spots with a right answer."
+            verb="Play"
+            icon={Play}
+            // No face on this one: the shop is Pearl's and Learn is Webb's, and
+            // a drill is nobody's.
+            face={<Target className="size-5 text-muted-foreground md:size-6" />}
+            href="/game/drills"
+            delay={0.38}
+          />
         </div>
-      )}
+      </div>
 
       <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />

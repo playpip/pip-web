@@ -131,9 +131,8 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
   Rail, Venues, Side Tables, the Chip Shop). Tapping a section opens its own page
   (`/game/ladder`, `/game/rail`, `/game/side`) via `SectionScreen` — an iOS-style back
   header; venue pages show a responsive grid on desktop, a vertical list on mobile.
-- **A new player's lobby is short.** Until `isNewPlayer` (`lib/newPlayer`: fewer than three
-  tournaments and 150 hands) is false, Home shows the Next Up card, The Daily and Learn with
-  Webb, plus a "More ways to play" button that opens the full lobby. Nothing is hidden for good.
+- **One lobby for everybody.** A new player sees the same lobby as anyone else, with the
+  "Getting started" checklist under the Roll (docs/game-flow.md → The welcome flow).
 - **Above-the-fold copy on marketing pages animates in CSS (`.rise-in`), never with a Framer
   `initial`.** Framer writes `initial` into the static HTML as `opacity:0` and only lifts it
   after hydration. Scroll reveals use `Reveal`, which renders visible and only hides what is
