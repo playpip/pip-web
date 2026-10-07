@@ -15,7 +15,6 @@ import { dailyDateKey } from '@/lib/daily'
 import { useMembership } from '@/store/entitlement'
 import { tasteOpens } from '@/lib/membership/taste'
 import { ensurePlayer } from '@/components/onboarding/firstSeat'
-import { seatedVenue } from '@/lib/newPlayer'
 
 export function PlayClient() {
   const { venue: venueId } = useParams<{ venue: string }>()
@@ -52,14 +51,12 @@ export function PlayClient() {
     // player can build, so the real venue is resolved here from the spec on
     // their profile. The spec is client-written and re-checked on the way in:
     // a hand-edited blob is a trip back to the builder, not a 40-seat table.
-    const found =
+    const venue =
       venueId === CUSTOM_VENUE_ID
         ? profile.customTable && !refuseCustomTable(profile.customTable)
           ? customVenue(profile.customTable)
           : undefined
         : venueById(venueId)
-    // A player's first Garage is the short one (lib/newPlayer).
-    const venue = found && seatedVenue(found, profile.venueRecords)
 
     if (!venue || !profile.avatar) {
       router.replace(venueId === CUSTOM_VENUE_ID ? '/game/custom' : '/')

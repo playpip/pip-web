@@ -1,9 +1,8 @@
 'use client'
 
 // The account, offered where a player can actually see it: the lobby, under the
-// Roll, and the AppBar. A newcomer is also asked at two moments in a tournament
-// (table/SaveNudge, table/FinishFunnel), which are built separately because
-// they are asked, not furniture.
+// Roll, and the end-of-run overlay. Before this it existed in two places, both
+// of them two taps inside a dialog nobody opens.
 //
 // **This is prominence, not a prompt, and the difference is mechanical.** It is
 // permanent furniture. It never appears over anything, never interrupts a hand,
@@ -12,6 +11,10 @@
 // once you are not. The landing page ships "No forced pop-ups, no pay-to-win,
 // no nagging. Ever." Nothing here may grow into something that arrives
 // uninvited or returns after being closed.
+//
+// Two variants, one component: the sentence has the same job in both places and
+// a second copy of it would drift. The lobby sits on theme tokens; the overlay
+// is always dark, so it sits on white alphas like everything else on it.
 
 import { useState } from 'react'
 import { UserPlus } from 'lucide-react'
@@ -34,7 +37,7 @@ export const SIGNUP_FACT_OAUTH = 'Google, Apple, or an email and a password. No 
 
 export const signupFact = () => (oauthProviders().length > 0 ? SIGNUP_FACT_OAUTH : SIGNUP_FACT)
 
-export function AccountOffer() {
+export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overlay' }) {
   const status = useSync((s) => s.status)
   const ready = useSync((s) => s.ready)
   const hydrated = useHydrated()
@@ -53,7 +56,9 @@ export function AccountOffer() {
   // the hydrating pass, so it only runs in the browser, and one dismissal
   // spends it for good.
   const asked =
-    hydrated && !inviteSpent ? new URLSearchParams(window.location.search).get('account') : null
+    variant === 'lobby' && hydrated && !inviteSpent
+      ? new URLSearchParams(window.location.search).get('account')
+      : null
   const invitedMode: AccountMode | null =
     asked === 'new' ? 'signup' : asked === 'signin' ? 'signin' : null
   const invited = invitedMode !== null
@@ -76,24 +81,50 @@ export function AccountOffer() {
     }
   }
 
-  return (
-    <div className="mt-6 w-full max-w-md rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-left">
-      <p className="text-sm leading-relaxed">
-        {`Your Roll is saved in ${where} only. A free account keeps it on every device.`}
-      </p>
-      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{signupFact()}</p>
+  const dark = variant === 'overlay'
 
-      {/* Outlined, never filled: the loudest thing on the lobby is a table you
-          could sit at. */}
+  return (
+    <div
+      className={
+        dark
+          ? 'mt-4 border-t border-white/10 pt-4 text-left'
+          : 'mt-6 w-full max-w-md rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 text-left'
+      }
+    >
+      <p className={dark ? 'text-xs leading-relaxed text-white/70' : 'text-sm leading-relaxed'}>
+        {dark
+          ? `This run is saved in ${where} only. A free account keeps it on every device.`
+          : `Your Roll is saved in ${where} only. A free account keeps it on every device.`}
+      </p>
+      <p
+        className={
+          dark
+            ? 'mt-1.5 text-2xs leading-relaxed text-white/40'
+            : 'mt-1.5 text-xs leading-relaxed text-muted-foreground'
+        }
+      >
+        {signupFact()}
+      </p>
+
+      {/* Outlined, never filled. On the lobby the loudest thing is a table you
+          could sit at; on the overlay it is the button that takes you home. */}
       <button
         onClick={() => open('signup')}
-        className="mt-3 min-h-11 w-full rounded-xl border border-foreground/15 py-3 text-sm font-medium transition hover:bg-foreground/[0.06]"
+        className={
+          dark
+            ? 'mt-3 min-h-11 w-full rounded-xl border border-white/20 py-3 text-sm font-medium text-white transition hover:bg-white/10'
+            : 'mt-3 min-h-11 w-full rounded-xl border border-foreground/15 py-3 text-sm font-medium transition hover:bg-foreground/[0.06]'
+        }
       >
         Create a free account
       </button>
       <button
         onClick={() => open('signin')}
-        className="flex min-h-11 w-full items-center justify-center text-xs text-muted-foreground/70 underline-offset-2 transition hover:text-foreground hover:underline"
+        className={
+          dark
+            ? 'flex min-h-11 w-full items-center justify-center text-xs text-white/50 underline-offset-2 transition hover:text-white hover:underline'
+            : 'flex min-h-11 w-full items-center justify-center text-xs text-muted-foreground/70 underline-offset-2 transition hover:text-foreground hover:underline'
+        }
       >
         Already have one? Sign in
       </button>

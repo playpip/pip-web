@@ -8,10 +8,6 @@ import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
 import { CountUp } from '@/components/CountUp'
 import { ActionBar } from './ActionBar'
-import { SaveNudge } from './SaveNudge'
-import { FinishFunnel } from './FinishFunnel'
-import { nextUp } from '@/lib/nextUp'
-import { deviceId } from '@/lib/sync/client'
 import { HeroCards, HeroPanel, TableStyleContext } from './parts'
 import { FeltSeat } from './seat'
 import { BoardCard, BoardSlot, ChipStack, TableFelt, TableRoom } from './surface'
@@ -66,7 +62,6 @@ export function Table() {
   } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
-  const venueRecords = useProfile((s) => s.venueRecords)
   // The freeroll offer opens a table, so it is decided on the spendable Roll by
   // the same function the route uses (lib/sitDown). The rebuy below is not: it
   // spends `roll` at a table already open here and reclaims nothing.
@@ -88,8 +83,6 @@ export function Table() {
   const hasHistory = useGame((s) => s.lastHand !== null)
   const spectatorEquity = useGame((s) => s.spectatorEquity)
   const handIndex = useGame((s) => s.handIndex)
-  // "Not now" on the save card, for the rest of this sitting (./SaveNudge).
-  const [saveDismissed, setSaveDismissed] = useState(false)
   // The table finish in play is the cloth. Absent, the plain table: graphite
   // lit in the venue's colour (see `TableFelt`).
   const finish = tableFinishById(useProfile((s) => s.tableFinish))
@@ -179,21 +172,6 @@ export function Table() {
   const goHome = () => {
     leave()
     router.push('/game')
-  }
-  // Where "Play …" on the end-of-run card sits you down: the table the lobby's
-  // Next up card would pick (lib/nextUp). `roll` and `venueRecords` are
-  // subscribed above so it reads after the prize and the finish have landed.
-  const finished = status === 'won' || (status === 'busted' && !venue.cash)
-  const next = finished
-    ? nextUp({ ...useProfile.getState(), roll, venueRecords }, deviceId())
-    : null
-  const playNext = () => {
-    if (!next) return
-    sound.play('call')
-    leave()
-    // Same table again: the route would not re-run on a push to itself.
-    if (next.venue.id === venue.id) window.location.assign(`/play/${next.venue.id}`)
-    else router.push(`/play/${next.venue.id}`)
   }
   const cashOutAndLeave = () => {
     // `cashOutValue` handles the freeroll (the stack is the house's, so it pays
@@ -413,13 +391,6 @@ export function Table() {
     // `transition` for hover/press. Animating `y` on the same element that
     // has `transition-property: transform` makes the two fight → jitter (iOS).
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-      <SaveNudge
-        handIndex={handIndex}
-        chipsUp={hero ? hero.stack - (venue.startingStack ?? venue.buyIn) : 0}
-        cash={venue.cash === true}
-        dismissed={saveDismissed}
-        onDismiss={() => setSaveDismissed(true)}
-      />
       <button
         onClick={nextHand}
         className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
@@ -746,12 +717,7 @@ export function Table() {
                         : `You finished ${ordinal(place)}`
                       : 'Out of the tournament'
                   }
-                  detail={
-                    <>
-                      <FinishFunnel />
-                      {recap && <RunRecap recap={recap} member={member} />}
-                    </>
-                  }
+                  detail={recap && <RunRecap recap={recap} member={member} />}
                   onHome={goHome}
                   onReview={canReview ? goReview : undefined}
                   secondaryLabel={canWatch ? 'Watch it out' : undefined}
@@ -763,13 +729,7 @@ export function Table() {
                         }
                       : undefined
                   }
-                  primaryLabel={
-                    freerollOffered
-                      ? 'Play the freeroll'
-                      : next
-                        ? `Play ${next.venue.name}`
-                        : undefined
-                  }
+                  primaryLabel={freerollOffered ? 'Play the freeroll' : undefined}
                   onPrimary={
                     freerollOffered
                       ? () => {
@@ -787,9 +747,7 @@ export function Table() {
                             router.push(`/play/${KITCHEN_TABLE.id}`)
                           }
                         }
-                      : next
-                        ? playNext
-                        : undefined
+                      : undefined
                   }
                 />
               ))}
@@ -813,14 +771,11 @@ export function Table() {
                         ))}
                       </div>
                     )}
-                    <FinishFunnel />
                     {recap && <RunRecap recap={recap} member={member} />}
                   </>
                 }
                 onHome={goHome}
                 onReview={canReview ? goReview : undefined}
-                primaryLabel={next ? `Play ${next.venue.name}` : undefined}
-                onPrimary={next ? playNext : undefined}
                 celebrate
               />
             )}
