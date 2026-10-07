@@ -21,6 +21,7 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
 import { PageShell } from '@/components/PageShell'
 import { AccountOffer } from '@/components/settings/AccountOffer'
+import { GettingStarted } from '@/components/menu/GettingStarted'
 import { MembershipCard } from './MembershipCard'
 import { ChallengerFace } from './ChallengerFace'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
@@ -72,6 +73,7 @@ export function Home() {
   // one. Not remembered: a new player who opened it once sees the short one
   // again next time, which is fine while they are still new.
   const [showAll, setShowAll] = useState(false)
+  const gettingStartedDismissed = useProfile((s) => s.gettingStartedDismissed)
   const focused = isNewPlayer(stats) && !showAll
   // The two faces on the shelf. Pearl keeps the shop; Webb keeps Learn, being
   // the one in the cast who "wrote the book", so his face is the least
@@ -168,7 +170,9 @@ export function Home() {
         {/* Under the Roll, because the Roll is the thing an account keeps.
             Signed out only, and it renders nothing until the stored session has
             been checked. */}
-        <AccountOffer />
+        {/* A newcomer's checklist carries the account offer as one of its
+            steps; once it is put away the plain offer takes its place. */}
+        {gettingStartedDismissed ? <AccountOffer /> : <GettingStarted />}
       </motion.div>
 
       {focused ? (

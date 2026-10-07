@@ -149,6 +149,10 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     handCoaching: winner.handCoaching,
     haptics: winner.haptics,
     cameFromFreeroll: winner.cameFromFreeroll,
+    // Put away on either device is put away.
+    gettingStartedDismissed: Boolean(
+      local.gettingStartedDismissed || remote.gettingStartedDismissed,
+    ),
     // The table they last built. One slot, so there is nothing to merge: the
     // chosen side's is the one they most recently sat at. `?? null` because a
     // profile written before v18 has no such field and `pickUnhandled` would
@@ -431,6 +435,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'handCoaching',
     'haptics',
     'cameFromFreeroll',
+    'gettingStartedDismissed',
     'daily',
     'streak',
     'taste',

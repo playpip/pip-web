@@ -8,6 +8,8 @@ import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
 import { CountUp } from '@/components/CountUp'
 import { ActionBar } from './ActionBar'
+import { nextUp } from '@/lib/nextUp'
+import { deviceId } from '@/lib/sync/client'
 import { HeroCards, HeroPanel, TableStyleContext } from './parts'
 import { FeltSeat } from './seat'
 import { BoardCard, BoardSlot, ChipStack, TableFelt, TableRoom } from './surface'
@@ -62,6 +64,7 @@ export function Table() {
   } = useGame()
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
+  const venueRecords = useProfile((s) => s.venueRecords)
   // The freeroll offer opens a table, so it is decided on the spendable Roll by
   // the same function the route uses (lib/sitDown). The rebuy below is not: it
   // spends `roll` at a table already open here and reclaims nothing.
@@ -173,6 +176,35 @@ export function Table() {
     leave()
     router.push('/game')
   }
+  // The end-of-run card's main button. The Welcome Table carries on into the
+  // welcome flow; any other tournament sits you down at the table the lobby's
+  // Next up card would pick (lib/nextUp), read after the prize has landed.
+  const finished = status === 'won' || (status === 'busted' && !venue.cash)
+  const next =
+    finished && !venue.welcome
+      ? nextUp({ ...useProfile.getState(), roll, venueRecords }, deviceId())
+      : null
+  const endPrimary: { label: string; go: () => void } | null = venue.welcome
+    ? {
+        label: 'Continue',
+        go: () => {
+          sound.play('call')
+          leave()
+          router.push('/welcome?step=save')
+        },
+      }
+    : next
+      ? {
+          label: `Play ${next.venue.name}`,
+          go: () => {
+            sound.play('call')
+            leave()
+            // Same table again: the route would not re-run on a push to itself.
+            if (next.venue.id === venue.id) window.location.assign(`/play/${next.venue.id}`)
+            else router.push(`/play/${next.venue.id}`)
+          },
+        }
+      : null
   const cashOutAndLeave = () => {
     // `cashOutValue` handles the freeroll (the stack is the house's, so it pays
     // nothing) and the two venues whose table stack isn't the buy-in.
@@ -718,7 +750,7 @@ export function Table() {
                       : 'Out of the tournament'
                   }
                   detail={recap && <RunRecap recap={recap} member={member} />}
-                  onHome={goHome}
+                  onHome={venue.welcome ? undefined : goHome}
                   onReview={canReview ? goReview : undefined}
                   secondaryLabel={canWatch ? 'Watch it out' : undefined}
                   onSecondary={
@@ -729,9 +761,11 @@ export function Table() {
                         }
                       : undefined
                   }
-                  primaryLabel={freerollOffered ? 'Play the freeroll' : undefined}
+                  primaryLabel={
+                    freerollOffered && !venue.welcome ? 'Play the freeroll' : endPrimary?.label
+                  }
                   onPrimary={
-                    freerollOffered
+                    freerollOffered && !venue.welcome
                       ? () => {
                           sound.play('call')
                           if (venue.freeroll && heroMeta) {
@@ -747,7 +781,7 @@ export function Table() {
                             router.push(`/play/${KITCHEN_TABLE.id}`)
                           }
                         }
-                      : undefined
+                      : endPrimary?.go
                   }
                 />
               ))}
@@ -774,8 +808,10 @@ export function Table() {
                     {recap && <RunRecap recap={recap} member={member} />}
                   </>
                 }
-                onHome={goHome}
+                onHome={venue.welcome ? undefined : goHome}
                 onReview={canReview ? goReview : undefined}
+                primaryLabel={endPrimary?.label}
+                onPrimary={endPrimary?.go}
                 celebrate
               />
             )}
@@ -827,7 +863,8 @@ function EndOverlay({
   title: string
   subtitle: string
   detail?: React.ReactNode
-  onHome: () => void
+  /** "Back to venues". Absent on the Welcome Table, which only carries on. */
+  onHome?: () => void
   celebrate?: boolean
   primaryLabel?: string
   onPrimary?: () => void
@@ -910,16 +947,18 @@ function EndOverlay({
               {secondaryLabel}
             </button>
           )}
-          <button
-            onClick={onHome}
-            className={cn(
-              primaryLabel || secondaryLabel
-                ? 'text-sm text-white/60 transition hover:text-white'
-                : 'rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]',
-            )}
-          >
-            Back to venues
-          </button>
+          {onHome && (
+            <button
+              onClick={onHome}
+              className={cn(
+                primaryLabel || secondaryLabel
+                  ? 'text-sm text-white/60 transition hover:text-white'
+                  : 'rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]',
+              )}
+            >
+              Back to venues
+            </button>
+          )}
         </div>
       </div>
     </motion.div>

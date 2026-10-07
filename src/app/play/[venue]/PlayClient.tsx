@@ -13,8 +13,8 @@ import { refuseSitDown } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
 import { dailyDateKey } from '@/lib/daily'
 import { useMembership } from '@/store/entitlement'
-import { tasteOpens } from '@/lib/membership/taste'
-import { ensurePlayer } from '@/components/onboarding/firstSeat'
+import { tasteLeft } from '@/lib/membership/taste'
+import { playedWelcome } from '@/components/onboarding/firstSeat'
 
 export function PlayClient() {
   const { venue: venueId } = useParams<{ venue: string }>()
@@ -42,11 +42,12 @@ export function PlayClient() {
     if (started.current === venueId) return
     started.current = venueId
 
-    // A first visit arrives here with no player: make one and deal them in
-    // (onboarding/firstSeat). Anything this table refuses below still sends
-    // them on, with the player made.
-    ensurePlayer()
+    // No player yet: the welcome flow makes one first (onboarding/firstSeat).
     const profile = useProfile.getState()
+    if (!profile.created || !profile.avatar) {
+      router.replace('/welcome')
+      return
+    }
     // `/play/custom` is one generated route standing in for every table a
     // player can build, so the real venue is resolved here from the spec on
     // their profile. The spec is client-written and re-checked on the way in:
@@ -76,6 +77,12 @@ export function PlayClient() {
       return
     }
 
+    // The Welcome Table is played once, as the first game.
+    if (venue.welcome && playedWelcome(profile.venueRecords)) {
+      router.replace('/game')
+      return
+    }
+
     // The same question the card on the lobby answered, asked of the same
     // function, so a table the app offered is a table the route seats you at
     // (lib/sitDown). A challenge goes back to the Rail it was offered on; a
@@ -94,7 +101,7 @@ export function PlayClient() {
       !member &&
       Boolean(venue.membersOnly) &&
       venueId !== CUSTOM_VENUE_ID &&
-      tasteOpens(profile.taste, today, { kind: 'table', id: venue.id })
+      tasteLeft(profile.taste, today)
     const refusal = refuseSitDown(venue, profile, deviceId(), member || tasting)
     if (refusal) {
       const feature = featureForVenue(venue)

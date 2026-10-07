@@ -437,7 +437,7 @@ test('merge › a free game spent on either device stays spent, whichever side w
 })
 
 test('pristine › a device that only spent today’s free game still merges', (t) => {
-  t.false(isPristine(pristine({ taste: { date: '2026-10-07', kind: 'lesson', id: 'ranges' } })))
+  t.false(isPristine(pristine({ taste: { date: '2026-10-07', kind: 'table', id: 'omaha-low' } })))
 })
 
 // --- when to bother the player --------------------------------------------
@@ -612,4 +612,12 @@ test('merge › a player never loses an award or a purchase, whichever side wins
     t.deepEqual([...merged.owned].sort(), ['x', 'y'], `purchases survive on ${side}`)
     t.is(merged.peakRoll, 9_000, `peak Roll survives on ${side}`)
   }
+})
+
+test('merge › the getting-started checklist put away on either device stays away', (t) => {
+  const away = profile({ gettingStartedDismissed: true })
+  const open = profile({ gettingStartedDismissed: false })
+  t.true(mergeProfiles(away, open, 'remote').gettingStartedDismissed)
+  t.true(mergeProfiles(open, away, 'local').gettingStartedDismissed)
+  t.false(mergeProfiles(open, open, 'local').gettingStartedDismissed)
 })

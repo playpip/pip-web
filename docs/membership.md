@@ -46,7 +46,7 @@ of the seven play, how many cards win it, what the pot is charging — is the me
    ships.** See `docs/brand.md` principle 1 and `cto/drafts/build-multiplayer.md`.
 4. **Nothing free is metered, and nothing paid is sliced.** A thing is the membership's or it
    is free. The one third shape is **one whole member game a day** for a non-member (below):
-   a whole table or a whole lesson, never part of one, never a trial that ends mid-session,
+   a whole table, never part of one, never a trial that ends mid-session,
    and never a meter on anything free. *Relaxed by Will on 2026-10-07*: it used to say
    "no sampling" outright, and in the first week on sale eleven tabs saw `/membership` and
    none opened checkout, because nothing paid could be tried before paying.
@@ -102,27 +102,24 @@ to be told before it happened, not after.
 ## One free member game a day (2026-10-07)
 
 A non-member gets **one member game per UTC day**: a seat at any one poker table on the side
-tables shelf (Omaha, Short Deck, Hi-Lo, Draw, and the twists), or one Webb lesson from Level 2
-up. Blackjack and the table builder are left out: neither is one game you sit down to and
-finish. The sentence the page, README and roadmap say is `DAILY_FREE_GAME`
+tables shelf (Omaha, Short Deck, Hi-Lo, Draw, and the twists). Blackjack and the table builder
+are left out: neither is one game you sit down to and finish. **Lessons are left out too**
+(Will, 2026-10-07): eight lessons at one a day is the whole course given away in a week. The sentence the page, README and roadmap say is `DAILY_FREE_GAME`
 (`config/membership.ts`).
 
 - **The rules are pure**, in `lib/membership/taste.ts` (`tests/taste.test.ts`). The record is
   `profile.taste` — `{ date, kind, id }`, persisted (v23), and merged on sync so a spent game
   stays spent (`mergeTaste`: the later day wins; on the same day the local record stands).
 - **It is spent where it is used.** A table spends it at sit-down in `PlayClient`, after
-  `refuseSitDown` is asked with `member || tasting`. A lesson spends it when the player taps
-  *Try it free today* on the locked felt — never on a page view.
+  `refuseSitDown` is asked with `member || tasting` — never on a page view.
 - **A refresh is not a second one, and does not kick anybody out.** At a table, the snapshot
   resume in `PlayClient` runs before any gate, so a tournament in progress comes back without
-  asking. A lesson it was spent on stays open for the rest of that UTC day. The gap is the
-  Daily's: a refresh between sitting down and the first deal loses that game.
+  asking. The gap is the Daily's: a refresh between sitting down and the first deal loses that game.
 - **It is not membership.** The table is handed `member: false`, so no session review and no
   watching it out. The record is client-written, so editing it gets you a free game you could
   have had tomorrow; it can never make anybody a member.
 - **What the cards say.** While unspent, the side-tables card reads *Free today* and opens
-  like a member's, and the dialog says it is today's one; a Webb lesson row says *Free today*
-  and its locked felt offers *Try it free today*. Once spent, the normal lock, with *Your free
+  like a member's, and the dialog says it is today's one. Once spent, the normal lock, with *Your free
   game today is used. Join for every table.* Copy lives in `TASTE_COPY`.
 
 ## Where the answer comes from

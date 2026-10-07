@@ -158,6 +158,8 @@ export interface ProfileState {
   awards: Record<string, number>
   /** Comeback flag: the current run started with a Kitchen Table win. */
   cameFromFreeroll: boolean
+  /** The lobby's "Getting started" checklist has been put away (menu/GettingStarted). */
+  gettingStartedDismissed: boolean
   /** Career history per cast character: reads that persist across sessions. */
   castRecords: Record<string, CastRecord>
   /** Rare one-line character flavour at the table (see docs/cast.md). */
@@ -270,6 +272,7 @@ export interface ProfileState {
   /** Record newly earned award chips (already-owned ids are left untouched). */
   grantAwards: (ids: string[]) => void
   setCameFromFreeroll: (value: boolean) => void
+  dismissGettingStarted: () => void
   /** Remember the table they just built. */
   setCustomTable: (spec: CustomTableSpec) => void
   setBlackjack: (session: BlackjackSession | null) => void
@@ -341,7 +344,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 24
+export const PERSIST_VERSION = 25
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -369,6 +372,7 @@ export const useProfile = create<ProfileState>()(
       cardBack: DEFAULT_CARD_BACK.id,
       awards: {},
       cameFromFreeroll: false,
+      gettingStartedDismissed: false,
       castRecords: {},
       tableTalk: true,
       handCoaching: true,
@@ -423,6 +427,7 @@ export const useProfile = create<ProfileState>()(
           return { awards }
         }),
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
+      dismissGettingStarted: () => set({ gettingStartedDismissed: true }),
       setCustomTable: (spec) => set({ customTable: spec }),
       setBlackjack: (session) => set({ blackjack: session }),
       mergeCastStats: (deltas) =>
@@ -592,6 +597,7 @@ export const useProfile = create<ProfileState>()(
           cardBack: DEFAULT_CARD_BACK.id,
           awards: {},
           cameFromFreeroll: false,
+          gettingStartedDismissed: false,
           castRecords: {},
           tableTalk: true,
           handCoaching: true,
@@ -772,6 +778,9 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // v23 → v24: the daily free member game (lib/membership/taste). Null for
   // everybody: nobody has spent one yet, so everybody has today's.
   if (fromVersion < 24) s.taste = null
+  // v24 → v25: the "Getting started" checklist is for players who came in
+  // through the welcome flow. Anybody already playing has it put away.
+  if (fromVersion < 25) s.gettingStartedDismissed = true
   return s
 }
 

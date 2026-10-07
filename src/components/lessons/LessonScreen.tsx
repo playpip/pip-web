@@ -27,9 +27,6 @@ import { cn } from '@/lib/utils'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { type SeatFace, SceneTable } from './SceneTable'
 import { membershipFor } from '@/config/membership'
-import { TASTE_COPY, tasteLeft, tasteOpens } from '@/lib/membership/taste'
-import { useTaste } from '@/lib/useTaste'
-import { useProfile } from '@/store/profile'
 
 /**
  * A lesson with Webb, played on the table.
@@ -77,18 +74,7 @@ export function LessonScreen({ lesson }: { lesson: Lesson }) {
   // draws either screen, the way a paid drill kind does. `checked` is true at
   // once for anybody signed out.
   const known = !lesson.membersOnly || settled
-  // Today's free member game (lib/membership/taste): a lesson it was spent on
-  // stays open for the rest of the UTC day, so a refresh halfway through does
-  // not lock the player out of the one they chose.
-  const taste = useTaste()
-  const target = { kind: 'lesson', id: lesson.id } as const
-  const tasted =
-    taste.ready &&
-    !tasteLeft(taste.record, taste.today) &&
-    tasteOpens(taste.record, taste.today, target)
-  const allowed = canTakeLesson(lesson, member) || tasted
-  // Unspent, the locked felt offers it rather than the membership.
-  const offer: Offer = allowed ? 'none' : taste.left ? 'try' : taste.record ? 'used' : 'join'
+  const allowed = canTakeLesson(lesson, member)
 
   return (
     <MotionConfig reducedMotion="user">
@@ -106,35 +92,13 @@ export function LessonScreen({ lesson }: { lesson: Lesson }) {
             </span>
           }
         />
-        {!hydrated || !known ? (
-          <Dealing slots={5} />
-        ) : (
-          <Beats
-            lesson={lesson}
-            allowed={allowed}
-            offer={offer}
-            onTry={() => useProfile.getState().spendTaste(taste.today, target)}
-          />
-        )}
+        {!hydrated || !known ? <Dealing slots={5} /> : <Beats lesson={lesson} allowed={allowed} />}
       </div>
     </MotionConfig>
   )
 }
 
-/** What the locked felt offers: today's free game, the membership, or (open) nothing. */
-type Offer = 'none' | 'try' | 'used' | 'join'
-
-function Beats({
-  lesson,
-  allowed,
-  offer,
-  onTry,
-}: {
-  lesson: Lesson
-  allowed: boolean
-  offer: Offer
-  onTry: () => void
-}) {
+function Beats({ lesson, allowed }: { lesson: Lesson; allowed: boolean }) {
   const router = useRouter()
   const [index, setIndex] = useState(0)
   const [picked, setPicked] = useState<string | null>(null)
@@ -278,17 +242,9 @@ function Beats({
       />
 
       <ActionBar>
-        {!allowed && offer === 'try' ? (
-          <TryFree
-            onTry={() => {
-              sound.play('deal')
-              onTry()
-            }}
-          />
-        ) : !allowed ? (
+        {!allowed ? (
           <LockedAnswers
             blurb={lesson.blurb}
-            title={offer === 'used' ? TASTE_COPY.used : undefined}
             onJoin={() => router.push(membershipFor('lessons'))}
           />
         ) : waiting && question ? (
@@ -505,18 +461,5 @@ function BeatProgress({ count, at }: { count: number; at: number }) {
         </li>
       ))}
     </ol>
-  )
-}
-
-/**
- * The locked felt, while today's free member game is unspent: one button that
- * spends it on this lesson, and says that is what it does.
- */
-function TryFree({ onTry }: { onTry: () => void }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <NextButton label={TASTE_COPY.action} onClick={onTry} />
-      <p className="text-center text-xs text-muted-foreground">{TASTE_COPY.note}</p>
-    </div>
   )
 }

@@ -1,11 +1,12 @@
-// The daily free game: one member table or one Webb lesson a UTC day, for a
-// player who is not a member.
+// The daily free game: one member table a UTC day, for a player who is not a
+// member.
 //
 // **Why it exists** (2026-10-07). In the first week on sale eleven tabs saw
 // `/membership` and none opened checkout. Nobody could try anything paid before
 // paying for it, and the most-tapped locked thing on the shelf was Omaha. So a
-// non-member gets one member game a day: a seat at one side table, or one
-// lesson beyond Level 1.
+// non-member gets one member game a day: a seat at one side table. Lessons are
+// not in it (Will, 2026-10-07): eight lessons at one a day is the course given
+// away in a week.
 //
 // **Rule 4 used to say "nothing is metered"** and this is a metered thing. Will
 // relaxed it for exactly this shape and no other: a whole game, once a day,
@@ -16,14 +17,14 @@
 // and the callers pass today's key in, so the tests need no clock.
 
 /** What the day's free game was spent on. */
-export type TasteKind = 'table' | 'lesson'
+export type TasteKind = 'table'
 
 /** The day's free game, once spent. `null` on the profile means never spent. */
 export interface TasteRecord {
   /** UTC day key, e.g. "2026-10-07" (`dailyDateKey`). */
   date: string
   kind: TasteKind
-  /** The venue id or lesson id it was spent on. */
+  /** The venue id it was spent on. */
   id: string
 }
 
@@ -44,38 +45,15 @@ export function tasteLeft(record: TasteRecord | null | undefined, today: string)
 }
 
 /**
- * Does today's free game open this thing?
- *
- * Yes while it is unspent. Once spent, it still opens the **lesson** it was
- * spent on for the rest of the day: a lesson keeps nothing and a refresh
- * halfway through must not lock the player out of the one they chose. A
- * **table** is never re-opened by this — once you have sat down, the table's
- * own snapshot is what carries you back in after a refresh (`resumeTable` in
- * PlayClient runs before any gate), and a second sit-down is a second game.
- */
-export function tasteOpens(
-  record: TasteRecord | null | undefined,
-  today: string,
-  target: TasteTarget,
-): boolean {
-  if (tasteLeft(record, today)) return true
-  return target.kind === 'lesson' && record?.kind === 'lesson' && record.id === target.id
-}
-
-/**
- * Spend today's free game on this thing.
- *
- * Returns the record to store, or `null` if today's is already spent on
- * something else. Spending it again on the lesson it was spent on returns the
- * record unchanged, so a refresh is not a second spend.
+ * Spend today's free game on this table. Returns the record to store, or
+ * `null` if today's is already spent.
  */
 export function spendTaste(
   record: TasteRecord | null | undefined,
   today: string,
   target: TasteTarget,
 ): TasteRecord | null {
-  if (tasteLeft(record, today)) return { date: today, kind: target.kind, id: target.id }
-  return tasteOpens(record, today, target) ? (record ?? null) : null
+  return tasteLeft(record, today) ? { date: today, kind: target.kind, id: target.id } : null
 }
 
 /**
@@ -104,7 +82,7 @@ export function isTasteRecord(value: unknown): value is TasteRecord {
   return (
     typeof r.date === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(r.date) &&
-    (r.kind === 'table' || r.kind === 'lesson') &&
+    r.kind === 'table' &&
     typeof r.id === 'string'
   )
 }

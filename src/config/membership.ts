@@ -404,7 +404,7 @@ export const MEMBERSHIP_PROMISES = [
  * you sit down to and finish.
  */
 export const DAILY_FREE_GAME =
-  'One member game a day is free without joining: any one poker table on the side tables shelf, Omaha and Short Deck included, or one lesson with Webb from Level 2 up. It comes back at midnight UTC.'
+  'One member game a day is free without joining: any one poker table on the side tables shelf, Omaha and Short Deck included. It comes back at midnight UTC.'
 
 /**
  * Where the cancel button is, said plainly.

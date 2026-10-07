@@ -47,6 +47,7 @@ export const NOINDEX_SUBTREES = [
     dir: 'src/app/unsubscribe',
     why: 'a step in a flow, reachable only with a token from an email',
   },
+  { dir: 'src/app/welcome', why: "a new player's first screens, which only make sense in order" },
 ] as const
 
 /** '/game' for 'src/app/game'. */

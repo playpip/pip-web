@@ -323,3 +323,9 @@ test('the whole chain ends with a Daily streak', (t) => {
   t.true(PERSIST_VERSION >= 23)
   t.truthy(migrateProfile(v11(), 11).streak)
 })
+
+test('v24 → v25 puts the getting-started checklist away for an existing player', (t) => {
+  const v24 = { created: true, name: 'Ada', roll: 900 } as Record<string, unknown>
+  const after = migrateProfile(v24, 24) as unknown as { gettingStartedDismissed: boolean }
+  t.true(after.gettingStartedDismissed)
+})

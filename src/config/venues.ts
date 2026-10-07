@@ -75,6 +75,8 @@ export interface Venue extends MembersOnly {
   bounty?: number
   /** The Daily Deal: one seeded tournament a day, same shuffle for everyone. */
   daily?: boolean
+  /** The Welcome Table: a new player's first game, played once (onboarding). */
+  welcome?: boolean
   /**
    * Cash / ring table: fixed blinds, no prize, no elimination. Opponents rebuy
    * to the table stack so the table stays full, and you stand up with your
@@ -956,12 +958,34 @@ export const THE_DAILY: Venue = {
   ai: { tightness: 0.3, aggression: 0.45, bluff: 0.08, iterations: 500, skill: 0.45 },
 }
 
+// The Welcome Table — a new player's first game (Will, 2026-10-07). Heads-up
+// against one soft regular, 8 big blinds, blinds up every 3 hands, so it is
+// over in a few minutes win or lose. Free, on the house's chips, played once:
+// the welcome flow sends you here after making your player, and a win pays a
+// small prize onto the starting Roll.
+export const WELCOME_TABLE: Venue = {
+  id: 'welcome',
+  name: 'The Welcome Table',
+  tagline: 'Your first game. Heads-up and quick.',
+  buyIn: 0,
+  startingStack: 80,
+  smallBlind: 5,
+  bigBlind: 10,
+  seats: 2,
+  handsPerLevel: 3,
+  prize: 100,
+  welcome: true,
+  accent: '#7C8CF0',
+  // As soft as the Kitchen Table's regular: a first game a newcomer can win.
+  ai: { tightness: 0.55, aggression: 0.15, bluff: 0.03, iterations: 80, skill: 0.3 },
+}
+
 /**
  * Whether the table stack belongs to the house rather than the Roll: nothing
  * was bought in, so leaving cashes out nothing and there is no session P/L.
  */
 export function houseStack(venue: Venue): boolean {
-  return venue.freeroll === true || venue.daily === true
+  return venue.freeroll === true || venue.daily === true || venue.welcome === true
 }
 
 /** What finishing in `place` pays onto the Roll (bounties aside). */
@@ -1187,6 +1211,7 @@ export const ALL_VENUES: readonly Venue[] = [
   BIG_POT,
   KITCHEN_TABLE,
   THE_DAILY,
+  WELCOME_TABLE,
   CUSTOM_TABLE_ROUTE,
 ]
 

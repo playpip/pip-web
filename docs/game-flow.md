@@ -179,6 +179,27 @@ tournament bookkeeping (`recordVenueEntry`, `recordVenueResult`, `tournamentsEnt
 stats, tendencies and reads still accrue normally. See [venues.md](./venues.md) for the stakes
 ladder and why difficulty tracks the stake.
 
+## The welcome flow
+
+A new player's way in (Will, 2026-10-07), `/welcome`, four steps with a progress bar
+(`components/onboarding/WelcomeFlow`):
+
+1. **Make your player**: a face and a name. "Already have an account? Sign in" restores one.
+2. **Do you know how to play?** "Yes, deal me in" goes to the Welcome Table; "No, teach me
+   first" goes to Webb's tour, whose "Take a seat" goes to the same table (`firstSeatHref`).
+3. **The Welcome Table**: heads-up against one soft regular, 8 big blinds, blinds up every 3
+   hands, on the house's chips (`WELCOME_TABLE` in `config/venues`). Played once. Its end card
+   has one button, Continue.
+4. **Save your player**: the account, as a whole screen ("Not now" moves on), then **the
+   membership**: what is free, what it adds, and the account again if still not made, above
+   "Go to the lobby".
+
+Anything that needs a player and has none (`/game`, `/play/*`, the lobby's sub-pages) goes to
+`/welcome`; a scanned transfer QR is the one exception. In the lobby, a **Getting started**
+checklist (`menu/GettingStarted`) ticks off player, first game, account, today's Daily and a
+Friends' Garage win, until done or put away (`gettingStartedDismissed`, profile v25; players
+from before v25 have it put away).
+
 ## The Daily Deal
 
 **One seeded tournament a day — everyone in the world who plays it gets the

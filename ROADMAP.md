@@ -78,9 +78,9 @@ tournament out after you bust; the session review; and four member card backs. *
 built**: multiplayer, which is the big one and is honestly some way off.
 
 **One member game a day is free without joining** (2026-10-07): any one poker table on the
-side tables shelf, Omaha and Short Deck included, or one lesson with Webb from Level 2 up.
+side tables shelf, Omaha and Short Deck included. Lessons are not in it.
 It comes back at midnight UTC. It is a whole game, never part of one, and it is the same
-table or lesson a member gets. A non-member whose report has something to say also sees its
+table a member gets. A non-member whose report has something to say also sees its
 top finding on the card at the end of a run, with a link to the rest.
 
 The drills that shipped free stay free and unmetered, which is the paragraph above applied
