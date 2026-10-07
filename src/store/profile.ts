@@ -21,6 +21,7 @@ import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
 import { type DailyStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/dailyStreak'
 import { spendTaste, type TasteRecord, type TasteTarget } from '@/lib/membership/taste'
+import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -393,12 +394,12 @@ export const useProfile = create<ProfileState>()(
         track('profile-created')
         set((s) => ({
           created: true,
-          name: name.trim() || 'Player',
+          name: name.trim() || DEFAULT_PLAYER_NAME,
           avatar,
           rollHistory: [{ t: Date.now(), roll: s.roll }],
         }))
       },
-      setName: (name) => set({ name: name.trim() || 'Player' }),
+      setName: (name) => set({ name: name.trim() || DEFAULT_PLAYER_NAME }),
       setAvatar: (avatar) => set({ avatar }),
       setCardBack: (cardBack) => set({ cardBack }),
       adjustRoll: (delta) =>

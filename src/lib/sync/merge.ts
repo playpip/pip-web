@@ -27,6 +27,7 @@ import { emptyReviewStats } from '@/lib/review/stats'
 import { mergeStreaks, streakFromDaily } from '@/lib/dailyStreak'
 import { mergeTaste } from '@/lib/membership/taste'
 import { STARTING_ROLL } from '@/config/venues'
+import { hasPlaceholderName } from '@/lib/newPlayer'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
 export type ProfileData = Omit<
@@ -54,6 +55,13 @@ const ROLL_HISTORY_CAP = 300
 export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Side): ProfileData {
   const winner = side === 'local' ? local : remote
   const loser = side === 'local' ? remote : local
+  // Who the player is. A new visitor is dealt in under a placeholder name and a
+  // random face (lib/newPlayer), so the side that wins the Roll can be the side
+  // that never chose either. A name somebody typed beats one they were given,
+  // whichever side it is on, and the face goes with the name: a random avatar
+  // on someone's chosen name is still not theirs.
+  const identity =
+    hasPlaceholderName(winner.name) && !hasPlaceholderName(loser.name) ? loser : winner
 
   return {
     // Chosen side. `roll` is the currency: adding invents chips, max() rewards
@@ -124,8 +132,8 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
 
     // Cosmetics and ephemera — last write wins, and the chosen side is the last
     // write by definition.
-    name: winner.name,
-    avatar: winner.avatar,
+    name: identity.name,
+    avatar: identity.avatar ?? winner.avatar,
     cardBack: winner.cardBack,
     deckFace: winner.deckFace,
     tableFinish: winner.tableFinish,
@@ -189,7 +197,9 @@ export function hasDivergence(local: ProfileData, remote: ProfileData): boolean 
  *
  * A profile fresh out of onboarding is not progress. It is the shape of a
  * player — a name, an avatar, the starting Roll — with nothing behind it, and
- * signing in on it is a restore rather than a merge.
+ * signing in on it is a restore rather than a merge. That includes the one a
+ * first visit makes on its own (onboarding/firstSeat): identity is not read
+ * here, so a placeholder name and a random face are as pristine as chosen ones.
  *
  * Merging there is actively wrong, not merely unnecessary. `createProfile`
  * seeds `rollHistory` with an origin point stamped `Date.now()`, which is later

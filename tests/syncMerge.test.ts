@@ -15,6 +15,7 @@ import { emptySeatStats } from '../src/lib/reads'
 import { emptyReviewStats } from '../src/lib/review/stats'
 import { STARTING_ROLL } from '../src/config/venues'
 import { currentChallenge } from '../src/lib/challenge'
+import { DEFAULT_PLAYER_NAME } from '../src/lib/newPlayer'
 
 function profile(over: Partial<ProfileData> = {}): ProfileData {
   return {
@@ -560,6 +561,43 @@ test('pristine › two fresh devices still merge, so the name just typed survive
   const remote = pristine({ name: '', rollHistory: [] })
   t.true(isPristine(local) && isPristine(remote), 'so sync takes the merge path')
   t.is(mergeProfiles(local, remote, 'local').name, 'Will')
+})
+
+// --- the player a first visit makes -----------------------------------------
+//
+// Play deals a new visitor straight in under a placeholder name and a random
+// face (onboarding/firstSeat), so "Player" on one side of a merge is usually
+// somebody who has not chosen a name yet, not a name anybody chose.
+
+test('first visit › the placeholder player is pristine', (t) => {
+  const placeholder = pristine({
+    name: DEFAULT_PLAYER_NAME,
+    avatar: { seed: 'pip-random', backgroundColor: 'ffd5dc' },
+  })
+  t.true(isPristine(placeholder), 'a sign-in on top of it is a restore, not a merge')
+})
+
+test('first visit › a chosen name beats the placeholder, whichever side wins', (t) => {
+  const chosen = { seed: 'will', backgroundColor: 'b6e3f4' }
+  const given = { seed: 'pip-random', backgroundColor: 'ffd5dc' }
+  // A guest session that won the Roll, on a device that never chose a name.
+  const guest = profile({ name: DEFAULT_PLAYER_NAME, avatar: given, roll: 900 })
+  const mine = profile({ name: 'Will', avatar: chosen, roll: 4_000 })
+
+  for (const [local, remote, side] of [
+    [guest, mine, 'local'],
+    [mine, guest, 'remote'],
+  ] as const) {
+    const merged = mergeProfiles(local, remote, side)
+    t.is(merged.name, 'Will', `the name survives the ${side} side winning`)
+    t.deepEqual(merged.avatar, chosen, 'and the face goes with it')
+    t.is(merged.roll, 900, 'while the Roll still follows the side that was picked')
+  }
+})
+
+test('first visit › two chosen names still follow the side that was picked', (t) => {
+  const merged = mergeProfiles(profile({ name: 'Will' }), profile({ name: 'Ava' }), 'remote')
+  t.is(merged.name, 'Ava')
 })
 
 // --- the safety property that matters most --------------------------------

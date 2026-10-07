@@ -128,6 +128,13 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
   Rail, Venues, Side Tables, the Chip Shop). Tapping a section opens its own page
   (`/game/ladder`, `/game/rail`, `/game/side`) via `SectionScreen` — an iOS-style back
   header; venue pages show a responsive grid on desktop, a vertical list on mobile.
+- **A new player's lobby is short.** Until `isNewPlayer` (`lib/newPlayer`: fewer than three
+  tournaments and 150 hands) is false, Home shows the Next Up card, The Daily and Learn with
+  Webb, plus a "More ways to play" button that opens the full lobby. Nothing is hidden for good.
+- **Above-the-fold copy on marketing pages animates in CSS (`.rise-in`), never with a Framer
+  `initial`.** Framer writes `initial` into the static HTML as `opacity:0` and only lifts it
+  after hydration. Scroll reveals use `Reveal`, which renders visible and only hides what is
+  below the fold once JS is running.
 - **The marketing header is wordmark + one link + CTA on a phone.** Everything else in
   `Landing`'s nav (Features, Venues, Blog, GitHub, the theme toggle) is `hidden ... sm:block`,
   because six controls at 357px wide is a crowded bar, not a nav. Hide, don't remove: the
@@ -142,7 +149,8 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 ## Components inventory
 
 - Menu: `Home`, `VenueArt` (image with SVG fallback).
-- Onboarding/profile: `Onboarding`, `AvatarEditor` (shared), `ProfileDialog`,
+- Onboarding/profile: `onboarding/firstSeat` (no screen: a first visit is dealt straight in),
+  `AvatarEditor` (shared), `ProfileDialog`,
   `ChipsDialog` (award collection), `StatsDialog` (lifetime stats + the Roll graph).
 - Settings: `SettingsDialog` (card-back picker + profile backup/restore).
 - Table: `Table`, `ActionBar` (fold / check·call / bet·raise + sizer with ½·¾·Pot·Max),

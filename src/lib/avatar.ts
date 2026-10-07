@@ -103,6 +103,14 @@ export function accentFromSwatch(swatch: string): string {
   return `#${to(rr)}${to(gg)}${to(bb)}`
 }
 
+/** A random face and swatch, for a player who has not made one yet. */
+export function randomAvatar(): AvatarSpec {
+  return {
+    seed: freshSeed(),
+    backgroundColor: AVATAR_BG_SWATCHES[Math.floor(Math.random() * AVATAR_BG_SWATCHES.length)],
+  }
+}
+
 /** A fresh random seed string for the avatar creator's shuffle. */
 export function freshSeed(): string {
   return `pip-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`

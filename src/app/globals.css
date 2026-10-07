@@ -171,11 +171,32 @@
 .foil-sweep {
   animation: foil-sweep 7s ease-in-out infinite;
 }
+/* --- the hero rise ----------------------------------------------------------
+   Above-the-fold copy on the marketing pages. CSS, not Framer: a Framer
+   `initial` is written into the static HTML as `opacity:0` and only lifted once
+   React hydrates, so on a slow script the headline and the Play button were
+   invisible for seconds. This runs on first paint with no JS at all. Stagger
+   with `--rise-delay`. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise-in {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--rise-delay, 0s);
+}
 @media (prefers-reduced-motion: reduce) {
   .venue-drift,
   .venue-breathe,
   .venue-flicker,
-  .foil-sweep {
+  .foil-sweep,
+  .rise-in {
     animation: none;
   }
 }

@@ -274,11 +274,11 @@ function Hero({ price }: { price: LocalPrice }) {
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-4 pb-10 pt-12 text-center md:pb-16 md:pt-20">
         <CardFan />
 
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.25 }}
-          className="flex flex-col items-center"
+        {/* CSS rather than Framer, so the headline is in the static HTML at
+            full opacity and does not wait for hydration (globals.css). */}
+        <div
+          className="rise-in flex flex-col items-center"
+          style={{ '--rise-delay': '0.25s' } as React.CSSProperties}
         >
           <span className="mt-8 inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             <Star className="size-3 fill-pip text-pip" />
@@ -311,7 +311,7 @@ function Hero({ price }: { price: LocalPrice }) {
               How it works
             </a>
           </p>
-        </motion.div>
+        </div>
       </div>
     </section>
   )

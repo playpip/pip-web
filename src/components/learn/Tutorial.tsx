@@ -69,14 +69,11 @@ export function Tutorial() {
     return () => window.removeEventListener('keydown', onKey)
   }, [page, goTo])
 
-  // Skip goes back where you came from: the onboarding offer → the first
-  // table, as "Deal me in" would have; anywhere else → back (or home, if this
-  // tab has nowhere to go back to).
+  // Skip goes back where you came from (or home, if this tab has nowhere to
+  // go back to).
   const leave = () => {
     sound.play('tap')
-    const fromOnboarding = new URLSearchParams(window.location.search).get('from') === 'onboarding'
     if (fromLearn) router.push('/learn')
-    else if (fromOnboarding) router.push(firstSeatHref())
     else if (window.history.length <= 1) router.push('/game')
     else router.back()
   }
@@ -160,7 +157,7 @@ export function Tutorial() {
                 ) : (
                   // Seats you at the next-up table rather than the lobby
                   // (see onboarding/firstSeat). A visitor with no player yet
-                  // still goes to /game, which makes one first.
+                  // gets one made at the table.
                   <button
                     onClick={() => {
                       sound.play('call')

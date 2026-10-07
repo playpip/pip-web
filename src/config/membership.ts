@@ -322,7 +322,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
   },
   {
     id: 'blackjack',
-    title: 'Blackjack, for some reason',
+    title: 'Blackjack',
     blurb:
       'It is not poker and we are not going to pretend otherwise: there are no opponents, no position and nothing to out-play, because the dealer draws to seventeen whatever you do. Three houses, and each one tells you its edge before you sit down. A curiosity, priced honestly.',
     shipped: true,
