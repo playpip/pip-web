@@ -149,7 +149,7 @@ function Hero() {
       />
       <GhostSuits />
 
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 px-6 pt-14 pb-20 md:px-10 md:pt-20 md:pb-28 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-6 pt-14 pb-20 md:px-10 md:pt-20 md:pb-28 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
         {/* copy */}
         <div className="max-w-xl">
           <div className="rise-in" style={riseDelay(0)}>
@@ -161,7 +161,7 @@ function Hero() {
 
           <h1
             style={riseDelay(1)}
-            className="rise-in mt-6 text-5xl font-semibold leading-[1.02] tracking-tight text-balance md:text-6xl lg:text-7xl"
+            className="rise-in mt-6 text-5xl font-semibold leading-[1.02] tracking-tight text-balance md:text-6xl"
           >
             Poker without
             <br />
@@ -323,9 +323,9 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
 function TrustStrip() {
   return (
     <section className="border-y border-foreground/5 bg-foreground/[0.015]">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-px overflow-hidden px-6 py-2 sm:grid-cols-2 lg:grid-cols-4 md:px-10">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-x-8 overflow-hidden px-6 py-2 sm:grid-cols-2 lg:grid-cols-4 md:px-10">
         {TRUST.map(({ icon: Icon, title, body }, i) => (
-          <Reveal key={title} className="flex items-start gap-3 px-2 py-6 sm:px-6" delay={i * 0.05}>
+          <Reveal key={title} className="flex items-start gap-3 py-6" delay={i * 0.05}>
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.05] text-foreground/70">
               <Icon className="size-4.5" />
             </span>
@@ -382,7 +382,7 @@ function Venues() {
 
 function RailHeader({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 px-1">
+    <div className="flex items-baseline justify-between gap-4">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
         {title}
       </p>
