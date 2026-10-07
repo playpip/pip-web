@@ -232,8 +232,8 @@ function AuthForm({
             className="mt-0.5 size-4 shrink-0 accent-primary"
           />
           <span>
-            Email me when my Daily streak is about to end, and a summary on Mondays. You can turn
-            either off in Settings.
+            Email me when my streak is about to end, and a summary on Mondays. You can turn either
+            off in Settings.
           </span>
         </label>
       )}

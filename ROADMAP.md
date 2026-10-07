@@ -8,7 +8,7 @@ and dates aren't listed on purpose. If something here matters to you,
 
 - Single-player Texas Hold'em against a cast of AI regulars
 - The ten-venue ladder, plus side tables (turbo, deep, heads-up, bounty) with the membership
-- The Daily Deal — one free date-seeded tournament a day, identical for everyone, with a streak
+- The Daily Deal — one free date-seeded tournament a day, identical for everyone; a play streak
 - Hand permalinks — share any hand as a URL that replays step by step
 - The Chip Shop — earned cosmetics (style, never edge) + collectible award chips
 - The Kitchen Table freeroll — win your way back when you're broke
@@ -40,8 +40,8 @@ Roughly in order of interest, honestly uncertain:
   biggest lift on this list and a genuine goal for Pip, so it sits further out — but it's
   on the map, and the open, deterministic engine is built to support it.
 - **A reason to come back** — Pip has no way to pull you back once you close the tab.
-  The Daily is now free with a streak, as the returning ritual. Still to explore: an
-  *optional* reminder, keeping "no account needed" true. Retention is the honest weak spot.
+  A free Daily, a streak for days played and an opt-in reminder email are the first answer.
+  Still to explore: push reminders in the iOS app. Retention is the honest weak spot.
 - **More table life** — more table-talk and deeper career reads. Three new regulars and
   the play report have landed; the talk is still thinner than it should be.
 - **Depth in the AI** — it plays real poker (equity, pot odds, position, bluffs) but a

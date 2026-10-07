@@ -204,12 +204,13 @@ difference"**: AI responses diverge once your actions diverge, and we say so.
   because the shuffle is knowable and a re-deal would be an exploit. The play
   route redirects if today's daily is already recorded; a snapshot resume is
   allowed (and keeps its original day's seed via `TableSnapshot.dailyDate`).
-- **Streak**: `profile.dailyStreak` (`{current, best, lastDate}`, v23) counts
-  consecutive UTC days on which the Daily was sat down at — the same "sitting
-  down counts" rule as the lock. Pure logic in `lib/dailyStreak.ts`
-  (`recordPlay`, `liveStreak`, `streakAtRisk`, `mergeStreaks`), unit-tested.
-  The lobby tile shows the live count and, when yesterday was played and today
-  is not, says so ("Play today for N days in a row"). Sync joins runs that
+- **Streak**: `profile.streak` (`{current, best, lastDate}`, v23) counts
+  consecutive UTC days with a hand finished at any table (`mergeStats` in
+  `store/profile`), plus sitting down at the Daily. Pure logic in
+  `lib/streak.ts` (`recordPlay`, `liveStreak`, `streakAtRisk`, `mergeStreaks`),
+  unit-tested. The flame in the app bar (`StreakBadge`) shows the live count,
+  and the lobby shows "Play a hand today to keep your N-day streak" under the
+  Roll when yesterday was played and today is not. Sync joins runs that
   touch across devices (docs/sync.md).
 - **Share**: once played, tapping the Daily tile on the menu copies a calm
   one-liner (`dailyShareText`):

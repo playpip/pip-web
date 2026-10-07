@@ -1,4 +1,4 @@
-// The Daily streak: consecutive UTC days on which the Daily was played.
+// The streak: consecutive UTC days on which the player played poker.
 // Pure over day keys, so every midnight here is one we chose.
 
 import test from 'ava'
@@ -11,10 +11,10 @@ import {
   recordPlay,
   streakAtRisk,
   streakFromDaily,
-  type DailyStreak,
-} from '@/lib/dailyStreak'
+  type PlayStreak,
+} from '@/lib/streak'
 
-const play = (...days: string[]): DailyStreak => days.reduce(recordPlay, emptyStreak())
+const play = (...days: string[]): PlayStreak => days.reduce(recordPlay, emptyStreak())
 
 test('the first play starts a run of one', (t) => {
   t.deepEqual(play('2026-10-01'), { current: 1, best: 1, lastDate: '2026-10-01' })
@@ -130,8 +130,8 @@ test('merge › runs with a gap between them keep the later as current', (t) => 
 })
 
 test('merge › the best of either side is never lost', (t) => {
-  const a: DailyStreak = { current: 1, best: 12, lastDate: '2026-10-05' }
-  const b: DailyStreak = { current: 2, best: 2, lastDate: '2026-10-06' }
+  const a: PlayStreak = { current: 1, best: 12, lastDate: '2026-10-05' }
+  const b: PlayStreak = { current: 2, best: 2, lastDate: '2026-10-06' }
   const merged = mergeStreaks(a, b)
   t.is(merged.best, 12)
   t.is(merged.current, 2)

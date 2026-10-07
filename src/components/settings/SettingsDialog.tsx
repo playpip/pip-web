@@ -409,7 +409,7 @@ function EmailSwitches({ address }: { address: string | null }) {
         </p>
       </div>
       <ToggleRow
-        label="Email me when my Daily streak is about to end"
+        label="Email me when my streak is about to end"
         hint="At 18:00 UTC, if you played yesterday’s Daily and not today’s."
         checked={prefs?.dailyReminder ?? false}
         disabled={status !== 'ready'}
@@ -417,7 +417,7 @@ function EmailSwitches({ address }: { address: string | null }) {
       />
       <ToggleRow
         label="Weekly summary"
-        hint="On Mondays: your Roll, what you played and your Daily streak."
+        hint="On Mondays: your Roll, what you played and your streak."
         checked={prefs?.weeklyDigest ?? false}
         disabled={status !== 'ready'}
         onChange={() => flip('weeklyDigest')}

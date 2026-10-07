@@ -45,8 +45,8 @@ const row = (over: Partial<PrefsRow> = {}): PrefsRow => ({
 
 const facts = (over: Partial<Facts> = {}): Facts => ({
   roll: 12_400,
-  dailyDate: null,
-  streak: null,
+  lastPlayed: null,
+  streak: { current: 3, best: 3 },
   counters: { hands: 500, tournaments: 40, wins: 6 },
   ...over,
 })
@@ -70,13 +70,13 @@ test('addDays crosses months and years', (t) => {
 test('readFacts takes what the profile holds and nothing it does not', (t) => {
   const f = readFacts({
     roll: 9_000,
-    daily: { date: '2026-10-06', dayNo: 83, place: 2, hands: 40 },
+    streak: { current: 4, best: 9, lastDate: '2026-10-06' },
     stats: { handsPlayed: 10, tournamentsEntered: 2, tournamentsWon: 1, handsWon: 4 },
   })
   t.deepEqual(f, {
     roll: 9_000,
-    dailyDate: '2026-10-06',
-    streak: null,
+    lastPlayed: '2026-10-06',
+    streak: { current: 4, best: 9 },
     counters: { hands: 10, tournaments: 2, wins: 1 },
   })
 })
@@ -85,46 +85,47 @@ test('readFacts never throws on a strange blob', (t) => {
   for (const state of [null, undefined, 3, 'x', [], { roll: 'lots' }, { daily: { date: 7 } }]) {
     const f = readFacts(state)
     t.is(f.roll, null)
-    t.is(f.dailyDate, null)
+    t.is(f.lastPlayed, null)
   }
   t.is(readFacts({ stats: { handsPlayed: 1 } }).counters, null, 'half the counters is none')
   t.is(readFacts({ roll: -5 }).roll, null)
 })
 
-test("readStreak reads the profile's dailyStreak", (t) => {
-  t.deepEqual(readStreak({ dailyStreak: { current: 4, best: 9, lastDate: WED } }), {
+test("readStreak reads the profile's streak", (t) => {
+  t.deepEqual(readStreak({ streak: { current: 4, best: 9, lastDate: WED } }), {
     current: 4,
     best: 9,
   })
-  t.deepEqual(readStreak({ dailyStreak: { current: 3 } }), { current: 3, best: null })
+  t.deepEqual(readStreak({ streak: { current: 3 } }), { current: 3, best: null })
 })
 
 test('no streak in the profile means no streak, never a guessed one', (t) => {
   t.is(readStreak({}), null)
-  t.is(readStreak({ dailyStreak: { lastDate: WED } }), null)
-  t.is(readStreak({ dailyStreak: 'long' }), null)
+  t.is(readStreak({ streak: { lastDate: WED } }), null)
+  t.is(readStreak({ streak: 'long' }), null)
   t.is(readStreak(null), null)
 })
 
 test('a streak is only said while it is alive', (t) => {
   const s = { current: 5, best: 5 }
-  t.is(liveStreak(facts({ streak: s, dailyDate: WED }), WED), 5)
-  t.is(liveStreak(facts({ streak: s, dailyDate: '2026-10-06' }), WED), 5)
-  t.is(liveStreak(facts({ streak: s, dailyDate: '2026-10-05' }), WED), null, 'already broken')
-  t.is(liveStreak(facts({ streak: { current: 0, best: 3 }, dailyDate: WED }), WED), null)
+  t.is(liveStreak(facts({ streak: s, lastPlayed: WED }), WED), 5)
+  t.is(liveStreak(facts({ streak: s, lastPlayed: '2026-10-06' }), WED), 5)
+  t.is(liveStreak(facts({ streak: s, lastPlayed: '2026-10-05' }), WED), null, 'already broken')
+  t.is(liveStreak(facts({ streak: { current: 0, best: 3 }, lastPlayed: WED }), WED), null)
 })
 
 // --- who is due what -----------------------------------------------------
 
-test('at risk means yesterday’s Daily was played and today’s was not', (t) => {
-  t.true(streakAtRisk(facts({ dailyDate: '2026-10-06' }), WED))
-  t.false(streakAtRisk(facts({ dailyDate: WED }), WED), 'already played today')
-  t.false(streakAtRisk(facts({ dailyDate: '2026-10-05' }), WED), 'missed yesterday')
-  t.false(streakAtRisk(facts({ dailyDate: null }), WED), 'never played')
+test('at risk means a hand yesterday and none yet today', (t) => {
+  t.true(streakAtRisk(facts({ lastPlayed: '2026-10-06' }), WED))
+  t.false(streakAtRisk(facts({ lastPlayed: WED }), WED), 'already played today')
+  t.false(streakAtRisk(facts({ lastPlayed: '2026-10-05' }), WED), 'missed yesterday')
+  t.false(streakAtRisk(facts({ lastPlayed: null }), WED), 'never played')
+  t.false(streakAtRisk(facts({ lastPlayed: '2026-10-06', streak: null }), WED), 'no streak')
 })
 
 test('the reminder goes once, from the evening, to someone who asked', (t) => {
-  const f = facts({ dailyDate: '2026-10-06' })
+  const f = facts({ lastPlayed: '2026-10-06' })
   t.is(dueKind(row(), f, at(WED, REMINDER_HOUR_UTC)), 'reminder')
   t.is(dueKind(row(), f, at(WED, REMINDER_HOUR_UTC - 1)), null, 'too early')
   t.is(dueKind(row({ daily_reminder: false }), f, at(WED, 20)), null, 'not asked for')
@@ -138,7 +139,7 @@ test('the reminder goes once, from the evening, to someone who asked', (t) => {
     'reminder',
     'yesterday’s send does not count',
   )
-  t.is(dueKind(row(), facts({ dailyDate: WED }), at(WED, 20)), null, 'played today')
+  t.is(dueKind(row(), facts({ lastPlayed: WED }), at(WED, 20)), null, 'played today')
 })
 
 test('the summary goes on Monday from the morning, once', (t) => {
@@ -150,7 +151,7 @@ test('the summary goes on Monday from the morning, once', (t) => {
 })
 
 test('one email a day at most, whatever the kinds', (t) => {
-  const f = facts({ dailyDate: '2026-10-11' })
+  const f = facts({ lastPlayed: '2026-10-11' })
   // Monday morning sent the summary; Monday evening's reminder waits.
   t.is(dueKind(row({ last_sent_digest: `${MON}T09:05:00Z` }), f, at(MON, 19)), null)
   // A welcome today holds everything else until tomorrow.
@@ -223,26 +224,15 @@ test('the reminder names today’s Daily and links to the Daily', (t) => {
   const email = render({
     kind: 'reminder',
     now: at(WED, 18),
-    facts: facts({ dailyDate: '2026-10-06', streak: { current: 5, best: 5 } }),
+    facts: facts({ lastPlayed: '2026-10-06', streak: { current: 5, best: 5 } }),
     prefs,
     unsubscribeUrl,
   })
-  t.is(email.subject, `Daily #${appDailyNumber(WED)} closes at midnight UTC`)
-  t.regex(email.text, /Your Daily streak is 5 days\./)
+  t.is(email.subject, 'Your 5-day streak ends at midnight UTC')
+  t.regex(email.text, /Your streak is 5 days\./)
   t.regex(email.html, /href="https:\/\/playpip\.io\/play\/daily"/)
   t.true(email.text.includes(unsubscribeUrl))
   t.true(email.html.includes(unsubscribeUrl))
-})
-
-test('without a streak the reminder does not mention one', (t) => {
-  const email = render({
-    kind: 'reminder',
-    now: at(WED, 18),
-    facts: facts({ dailyDate: '2026-10-06' }),
-    prefs,
-    unsubscribeUrl,
-  })
-  t.notRegex(email.text, /streak/i)
 })
 
 test('the summary says only what it can read', (t) => {
@@ -258,7 +248,7 @@ test('the summary says only what it can read', (t) => {
     facts: facts({
       roll: 12_400,
       counters: { hands: 501, tournaments: 41, wins: 6 },
-      dailyDate: MON,
+      lastPlayed: MON,
       streak: { current: 3, best: 7 },
     }),
     prefs: {
@@ -269,7 +259,7 @@ test('the summary says only what it can read', (t) => {
   })
   t.regex(later.text, /This week: 1 hand, 1 tournament, 0 wins\./)
   t.regex(later.text, /Your Roll went down 100 chips\./)
-  t.regex(later.text, /Daily streak: 3 days\./)
+  t.regex(later.text, /Streak: 3 days\./)
 })
 
 test('no currency symbol ever sits next to a chip count', (t) => {
@@ -295,7 +285,7 @@ test('every email is dark, has a plain-text twin, and says how to stop it', (t) 
     const email = render({
       kind,
       now: at(MON, 19),
-      facts: facts({ dailyDate: '2026-10-11' }),
+      facts: facts({ lastPlayed: '2026-10-11' }),
       prefs,
       unsubscribeUrl,
     })

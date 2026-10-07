@@ -106,7 +106,7 @@ Field by field:
 | `created` | either side saying yes wins |
 | cosmetics (`name`, `avatar`, `cardBack`, `deckFace`, `tableFinish`, `tableTalk`) | chosen side |
 | `daily` | later day; same day, a played run beats an abandoned one |
-| `dailyStreak` | runs that touch or overlap join into one; otherwise the later run. `best` is the max |
+| `streak` | runs that touch or overlap join into one; otherwise the later run. `best` is the max |
 | **`roll`, `rollHistory`, `stats`, `tendencies`** | **the side the player picks** |
 
 **Why the drill rating is neither maxed nor averaged.** It is the one kept number that is

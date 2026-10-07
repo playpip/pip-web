@@ -71,11 +71,6 @@ const RULES: { thing: string; detail: string }[] = [
     detail: 'One. Sitting down counts, whether you finish or not.',
   },
   {
-    thing: 'Streak',
-    detail:
-      'Each day in a row you play adds one. Miss a day and it starts again from one. Your best run is kept.',
-  },
-  {
     thing: 'Result',
     detail: 'Tap the Daily tile in the lobby after you play to copy a line with your finish.',
   },
@@ -93,9 +88,9 @@ const FAQ: { q: string; a: string[] }[] = [
     a: [`No. ${ACCOUNT_OFFER}`],
   },
   {
-    q: 'How does the streak work?',
+    q: 'Does the Daily count for my streak?',
     a: [
-      'It counts the UTC days in a row you have sat down at the Daily. If you played yesterday and not yet today, the lobby tile tells you. With an account, playing on two devices counts as one streak, and you can turn on an email for the evenings you have not played yet.',
+      'Your streak counts the UTC days in a row you have played a hand anywhere in Pip, and the Daily counts. It is the flame at the top of the lobby. With an account, two devices share one streak, and you can turn on an email for the evenings it is about to end.',
     ],
   },
   {
@@ -160,7 +155,6 @@ export default function DailyPage() {
           One free tournament a day. {THE_DAILY.seats} seats, and everyone who plays gets the same
           cards. A new deal starts at midnight UTC.
         </p>
-        <p>Play on consecutive days to build a streak.</p>
       </Lead>
 
       <div className="mt-8">

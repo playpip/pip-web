@@ -390,10 +390,10 @@ test('merge › a created profile on either side wins', (t) => {
 // --- the Daily, where merging wrong would hand out a re-roll ---------------
 
 test('merge › the Daily streak joins runs played on different devices', (t) => {
-  const laptop = profile({ dailyStreak: { current: 3, best: 3, lastDate: '2026-07-30' } })
-  const phone = profile({ dailyStreak: { current: 1, best: 5, lastDate: '2026-07-31' } })
+  const laptop = profile({ streak: { current: 3, best: 3, lastDate: '2026-07-30' } })
+  const phone = profile({ streak: { current: 1, best: 5, lastDate: '2026-07-31' } })
   for (const pick of ['local', 'remote'] as const) {
-    t.deepEqual(mergeProfiles(laptop, phone, pick).dailyStreak, {
+    t.deepEqual(mergeProfiles(laptop, phone, pick).streak, {
       current: 4,
       best: 5,
       lastDate: '2026-07-31',
@@ -404,8 +404,8 @@ test('merge › the Daily streak joins runs played on different devices', (t) =>
 test('merge › a row written before v23 still yields a streak', (t) => {
   // The row is migrated before it merges, but a missing field must not throw.
   const old = profile({ daily: { date: '2026-07-30', dayNo: 10, place: 1, hands: 20 } })
-  const now = profile({ dailyStreak: { current: 1, best: 1, lastDate: '2026-07-31' } })
-  t.is(mergeProfiles(old, now, 'local').dailyStreak.current, 2)
+  const now = profile({ streak: { current: 1, best: 1, lastDate: '2026-07-31' } })
+  t.is(mergeProfiles(old, now, 'local').streak.current, 2)
 })
 
 test('merge › the Daily keeps the later day', (t) => {

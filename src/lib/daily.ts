@@ -1,7 +1,7 @@
 // The Daily Deal — pure date → seed plumbing. One UTC day, one seed, one
 // tournament: everyone who plays today gets the identical shuffle, provably
 // (the engine is open and deterministic). The streak of days played lives in
-// lib/dailyStreak.
+// lib/streak.
 
 import { mulberry32, type Rng } from './poker/cards'
 

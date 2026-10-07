@@ -4,7 +4,7 @@ Pip sends three kinds of email, and only to a signed-in player who asked for the
 
 | Kind | When | What it says |
 |------|------|--------------|
-| **Daily reminder** | From 18:00 UTC, on a day the player has not played the Daily, if they played it the day before | Today's Daily number, that it closes at midnight UTC, the streak if the profile has one, a link to `/game` |
+| **Streak reminder** | From 18:00 UTC, on a day the player has not played yet, if they played the day before | Today's Daily number, that it closes at midnight UTC, the streak if the profile has one, a link to `/game` |
 | **Weekly summary** | Mondays from 09:00 UTC | The Roll, hands / tournaments / wins and the Roll's change since the last summary, the streak if alive, today's Daily number, one link |
 | **Welcome** | Within the hour of a first opt-in (rows created in the last 2 days with no welcome sent) | Which of the two they turned on, and how to stop them |
 
@@ -47,15 +47,13 @@ in `src/lib/email/prefs.ts`, `src/store/emailPrefs.ts`, Settings → Email, the 
 So a missed hour is caught by the next one, and a doubled run (or a manual one on top of the
 schedule) sends nothing twice.
 
-**The streak.** The Daily streak is read through one helper, `readStreak()`, which looks in
-`state.streak`, `state.dailyStreak`, `state.daily.streak` and top-level `currentStreak` /
-`bestStreak`, as a number or an object with a current count. If none is there, no email mentions a
-streak. A streak is only quoted while it is alive (last Daily today or yesterday). If the streak
-lands under some other name, add it to that helper and its test.
+**The streak.** Read by `readStreak()` from `state.streak` (`{current, best, lastDate}`, see
+`src/lib/streak.ts`): consecutive UTC days with a hand played at any table. If it is missing, no
+email mentions a streak, and a streak is only quoted while it is alive (last played today or
+yesterday).
 
-**"Played yesterday".** The profile keeps only the most recent Daily (`state.daily.date`), so
-"at risk" is exactly "the most recent Daily is yesterday's". It depends on the player's device
-having synced; a Daily played on a device that never got back online looks unplayed.
+**"At risk".** `state.streak.lastDate` is yesterday. It depends on the player's device having
+synced; hands played on a device that never got back online look unplayed.
 
 ## The table
 

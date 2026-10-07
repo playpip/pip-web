@@ -19,7 +19,8 @@ import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
 import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
 import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
-import { type DailyStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/dailyStreak'
+import { type PlayStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/streak'
+import { dailyDateKey } from '@/lib/daily'
 import { spendTaste, type TasteRecord, type TasteTarget } from '@/lib/membership/taste'
 import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
 
@@ -167,8 +168,8 @@ export interface ProfileState {
   haptics: boolean
   /** The most recent Daily Deal played (only today's gates anything). */
   daily: DailyRecord | null
-  /** Consecutive UTC days the Daily was played, and the longest run (lib/dailyStreak). */
-  dailyStreak: DailyStreak
+  /** Consecutive UTC days with a hand played at any table, and the longest run (lib/streak). */
+  streak: PlayStreak
   /** Chip Shop purchases (item ids). Style, never edge — see docs/shop.md. */
   owned: string[]
   /** Equipped deck face: 'classic' or an owned face id (e.g. 'face-fourcolor'). */
@@ -373,7 +374,7 @@ export const useProfile = create<ProfileState>()(
       handCoaching: true,
       haptics: false,
       daily: null,
-      dailyStreak: emptyStreak(),
+      streak: emptyStreak(),
       owned: [],
       deckFace: 'classic',
       tableFinish: null,
@@ -507,12 +508,18 @@ export const useProfile = create<ProfileState>()(
       recordDailyStart: (date, dayNo) =>
         set((s) => ({
           daily: { date, dayNo, place: null, hands: 0 },
-          dailyStreak: recordPlay(s.dailyStreak ?? emptyStreak(), date),
+          streak: recordPlay(s.streak ?? emptyStreak(), date),
         })),
       recordDailyResult: (date, place, hands) =>
         set((s) => (s.daily?.date === date ? { daily: { ...s.daily, place, hands } } : s)),
+      // A finished hand at any table is a day played, for the streak.
       mergeStats: (partial) =>
-        set((s) => ({ stats: { ...s.stats, ...mergeStatValues(s.stats, partial) } })),
+        set((s) => ({
+          stats: { ...s.stats, ...mergeStatValues(s.stats, partial) },
+          ...(partial.handsPlayed
+            ? { streak: recordPlay(s.streak ?? emptyStreak(), dailyDateKey()) }
+            : {}),
+        })),
       mergeTendencies: (delta) => set((s) => ({ tendencies: addTendencies(s.tendencies, delta) })),
       recordRollPoint: () =>
         set((s) => ({
@@ -590,7 +597,7 @@ export const useProfile = create<ProfileState>()(
           handCoaching: true,
           haptics: false,
           daily: null,
-          dailyStreak: emptyStreak(),
+          streak: emptyStreak(),
           owned: [],
           deckFace: 'classic',
           tableFinish: null,
@@ -758,10 +765,10 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
       rec.history = seedRatingHistory(rec.answered ?? 0, rec.rating ?? STARTING_RATING)
     }
   }
-  // v22 → v23: the Daily streak. Seeded from the one Daily record the old
+  // v22 → v23: the streak. Seeded from the one Daily record the old
   // profile kept, so yesterday's player carries on to two today (see
   // `streakFromDaily`). Unconditional for the reason v21 gives.
-  if (fromVersion < 23) s.dailyStreak = streakFromDaily(s.daily)
+  if (fromVersion < 23) s.streak = streakFromDaily(s.daily)
   // v23 → v24: the daily free member game (lib/membership/taste). Null for
   // everybody: nobody has spent one yet, so everybody has today's.
   if (fromVersion < 24) s.taste = null

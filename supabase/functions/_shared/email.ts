@@ -58,7 +58,7 @@ function sentOn(at: string | null | undefined): string | null {
 
 // --- reading the synced profile ------------------------------------------
 
-/** A Daily streak, as far as the profile says one. */
+/** The streak (days in a row with a hand played), as far as the profile says one. */
 export interface Streak {
   current: number
   best: number | null
@@ -74,8 +74,8 @@ export interface Counters {
 /** What an email may say about a player. Every field is optional on purpose. */
 export interface Facts {
   roll: number | null
-  /** UTC day key of the most recent Daily they sat down at. */
-  dailyDate: string | null
+  /** UTC day key of the last day they played a hand (`state.streak.lastDate`). */
+  lastPlayed: string | null
   streak: Streak | null
   counters: Counters | null
 }
@@ -86,28 +86,28 @@ const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !
 const count = (v: unknown): number | null =>
   typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : null
 
-/** The Daily streak, from `state.dailyStreak` (`src/lib/dailyStreak.ts`). Null means no streak line. */
+/** The streak, from `state.streak` (`src/lib/streak.ts`). Null means no streak line. */
 export function readStreak(state: unknown): Streak | null {
-  if (!isObj(state) || !isObj(state.dailyStreak)) return null
-  const current = count(state.dailyStreak.current)
+  if (!isObj(state) || !isObj(state.streak)) return null
+  const current = count(state.streak.current)
   if (current === null) return null
-  return { current, best: count(state.dailyStreak.best) }
+  return { current, best: count(state.streak.best) }
 }
 
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/
 
 /** Everything an email may use, from a `profiles.state` blob. Never throws. */
 export function readFacts(state: unknown): Facts {
-  if (!isObj(state)) return { roll: null, dailyDate: null, streak: null, counters: null }
-  const daily = isObj(state.daily) ? state.daily : null
-  const dailyDate = typeof daily?.date === 'string' && DAY_KEY.test(daily.date) ? daily.date : null
+  if (!isObj(state)) return { roll: null, lastPlayed: null, streak: null, counters: null }
+  const last = isObj(state.streak) ? state.streak.lastDate : null
+  const lastPlayed = typeof last === 'string' && DAY_KEY.test(last) ? last : null
   const stats = isObj(state.stats) ? state.stats : null
   const hands = stats ? count(stats.handsPlayed) : null
   const tournaments = stats ? count(stats.tournamentsEntered) : null
   const wins = stats ? count(stats.tournamentsWon) : null
   return {
     roll: count(state.roll),
-    dailyDate,
+    lastPlayed,
     streak: readStreak(state),
     counters:
       hands !== null && tournaments !== null && wins !== null ? { hands, tournaments, wins } : null,
@@ -115,13 +115,13 @@ export function readFacts(state: unknown): Facts {
 }
 
 /**
- * The streak only if it is still alive on `today`: the last Daily was today or
+ * The streak only if it is still alive on `today`: the last hand was today or
  * yesterday. A streak stored on a profile nobody has opened for a week is a
  * number from the past, and saying it would be saying something untrue.
  */
 export function liveStreak(facts: Facts, today: string): number | null {
-  if (!facts.streak || facts.streak.current < 1 || !facts.dailyDate) return null
-  if (facts.dailyDate !== today && facts.dailyDate !== addDays(today, -1)) return null
+  if (!facts.streak || facts.streak.current < 1 || !facts.lastPlayed) return null
+  if (facts.lastPlayed !== today && facts.lastPlayed !== addDays(today, -1)) return null
   return facts.streak.current
 }
 
@@ -149,15 +149,9 @@ export const SENT_COLUMN = {
   digest: 'last_sent_digest',
 } as const satisfies Record<Kind, keyof PrefsRow>
 
-/**
- * Has the player played yesterday's Daily and not today's?
- *
- * The profile keeps only the most recent Daily, so this is exactly "the most
- * recent one is yesterday's". Sitting down counts as playing, the same rule the
- * game uses.
- */
+/** Played a hand yesterday and none yet today: the streak ends at midnight UTC. */
 export function streakAtRisk(facts: Facts, today: string): boolean {
-  return facts.dailyDate === addDays(today, -1)
+  return facts.lastPlayed === addDays(today, -1) && (facts.streak?.current ?? 0) > 0
 }
 
 /**
@@ -307,19 +301,17 @@ interface Body {
 function reminderBody(ctx: RenderContext): Body {
   const today = dayKey(ctx.now)
   const no = dailyNumber(today)
-  const streak = ctx.facts ? liveStreak(ctx.facts, today) : null
-  const lines = [`You played yesterday's Daily. Today's, #${no}, closes at midnight UTC.`]
-  if (streak !== null) {
-    lines.push(
-      `Your Daily streak is ${plural(streak, 'day', 'days')}. Play today's to keep it going.`,
-    )
-  }
+  const streak = (ctx.facts ? liveStreak(ctx.facts, today) : null) ?? 1
+  const lines = [
+    `Your streak is ${plural(streak, 'day', 'days')}. Play one hand before midnight UTC to keep it.`,
+    `Any table counts. Today's Daily, #${no}, is free.`,
+  ]
   return {
-    subject: `Daily #${no} closes at midnight UTC`,
-    heading: `Daily #${no} is open`,
+    subject: `Your ${streak}-day streak ends at midnight UTC`,
+    heading: `Keep your ${streak}-day streak`,
     lines,
     button: { label: `Play Daily #${no}`, url: PLAY_URL },
-    why: 'You turned on Daily reminders in Pip.',
+    why: 'You turned on streak reminders in Pip.',
   }
 }
 
@@ -347,7 +339,7 @@ function digestBody(ctx: RenderContext): Body {
     )
   }
   const streak = facts ? liveStreak(facts, today) : null
-  if (streak !== null) lines.push(`Daily streak: ${plural(streak, 'day', 'days')}.`)
+  if (streak !== null) lines.push(`Streak: ${plural(streak, 'day', 'days')}.`)
 
   const no = dailyNumber(today)
   lines.push(`Today's Daily is #${no}.`)
@@ -363,14 +355,10 @@ function digestBody(ctx: RenderContext): Body {
 function welcomeBody(ctx: RenderContext): Body {
   const lines = ['Email from Pip is on. You will get:']
   if (ctx.prefs.daily_reminder) {
-    lines.push(
-      `A reminder at ${REMINDER_HOUR_UTC}:00 UTC on a day you have not played the Daily, if you played it the day before.`,
-    )
+    lines.push(`A reminder at ${REMINDER_HOUR_UTC}:00 UTC on a day your streak is about to end.`)
   }
   if (ctx.prefs.weekly_digest) {
-    lines.push(
-      'A summary every Monday: your Roll, what you played that week, and your Daily streak.',
-    )
+    lines.push('A summary every Monday: your Roll, what you played that week, and your streak.')
   }
   lines.push(
     'At most one email a day. Turn either off in Settings, or use the link below to stop all of them.',

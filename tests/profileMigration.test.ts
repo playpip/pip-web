@@ -314,12 +314,12 @@ test('v22 → v23 seeds the Daily streak from the last Daily played', (t) => {
     { ...v11(), daily: { date: '2026-10-06', dayNo: 83, place: 2, hands: 30 } },
     22,
   )
-  t.deepEqual(played.dailyStreak, { current: 1, best: 1, lastDate: '2026-10-06' })
+  t.deepEqual(played.streak, { current: 1, best: 1, lastDate: '2026-10-06' })
   const never = migrateProfile(v11(), 22)
-  t.deepEqual(never.dailyStreak, { current: 0, best: 0, lastDate: null })
+  t.deepEqual(never.streak, { current: 0, best: 0, lastDate: null })
 })
 
 test('the whole chain ends with a Daily streak', (t) => {
   t.true(PERSIST_VERSION >= 23)
-  t.truthy(migrateProfile(v11(), 11).dailyStreak)
+  t.truthy(migrateProfile(v11(), 11).streak)
 })

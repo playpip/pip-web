@@ -24,7 +24,7 @@ import type {
 } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
 import { emptyReviewStats } from '@/lib/review/stats'
-import { mergeStreaks, streakFromDaily } from '@/lib/dailyStreak'
+import { mergeStreaks, streakFromDaily } from '@/lib/streak'
 import { mergeTaste } from '@/lib/membership/taste'
 import { STARTING_ROLL } from '@/config/venues'
 import { hasPlaceholderName } from '@/lib/newPlayer'
@@ -163,10 +163,10 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // record that says "played today" has to win or syncing becomes a re-roll.
     daily: mergeDaily(local.daily, remote.daily),
     // A streak is days played, and either device playing a day means it was
-    // played. Runs that touch join up; the longer best survives (lib/dailyStreak).
-    dailyStreak: mergeStreaks(
-      local.dailyStreak ?? streakFromDaily(local.daily),
-      remote.dailyStreak ?? streakFromDaily(remote.daily),
+    // played. Runs that touch join up; the longer best survives (lib/streak).
+    streak: mergeStreaks(
+      local.streak ?? streakFromDaily(local.daily),
+      remote.streak ?? streakFromDaily(remote.daily),
     ),
     // The daily free member game, for the same reason: a spent game stays
     // spent, or signing in on a second device is a way to get another.
@@ -432,7 +432,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'haptics',
     'cameFromFreeroll',
     'daily',
-    'dailyStreak',
+    'streak',
     'taste',
     'challengeWins',
     'challengesPlayed',

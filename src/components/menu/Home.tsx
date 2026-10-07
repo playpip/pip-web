@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   BookOpen,
-  CalendarCheck,
-  CalendarDays,
   ChevronDown,
   Moon,
   MoonStar,
@@ -39,7 +37,8 @@ import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
 import { SIDE_SHELF, RING_TABLES, THE_DAILY } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
-import { liveStreak, streakAtRisk } from '@/lib/dailyStreak'
+import { liveStreak } from '@/lib/streak'
+import { StreakBadge } from '@/components/StreakBadge'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
@@ -142,6 +141,7 @@ export function Home() {
             )}
           </div>
         )}
+        <StreakBadge />
         {/* A first visit deals you in as "Player" with a random face
             (onboarding/firstSeat). This is where you change that: furniture
             under the Roll, gone once you have a name. */}
@@ -172,18 +172,39 @@ export function Home() {
       </motion.div>
 
       {focused ? (
+        // Same pieces and sizes as the full lobby, fewer of them: the next
+        // table and the ladder, then one row of four tiles.
         <div className="flex flex-1 flex-col gap-4 pb-2">
-          {pick && <NextUpCard pick={pick} delay={0.05} />}
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <DailyTile delay={0.1} />
+          <div className="flex flex-col gap-3 md:gap-4">
+            {hydrated && pick && <NextUpCard pick={pick} delay={0.05} />}
+            <LadderStrip delay={0.1} />
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            {hydrated && <DailyTile delay={0.15} />}
             <CategoryCard
               artNode={
                 webb && <ChallengerFace character={webb} accent="#7c8cf0" className="size-full" />
               }
               title="Learn with Webb"
-              subtitle="Lessons, a tour and the guides"
+              subtitle="Lessons and guides"
               onClick={() => go('/learn')}
-              delay={0.15}
+              delay={0.2}
+            />
+            <CategoryCard
+              art="rail"
+              accent="#4FB477"
+              title="The Rail"
+              subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
+              onClick={() => go('/game/rail')}
+              delay={0.25}
+            />
+            <CategoryCard
+              art="side"
+              accent="#E06D8C"
+              title="Side Tables"
+              subtitle={`${SIDE_SHELF.length} ways to play`}
+              onClick={() => go('/game/side')}
+              delay={0.3}
             />
           </div>
           <button
@@ -431,13 +452,12 @@ function GreetingLine({ hour, name }: { hour: number; name: string }) {
 /**
  * The Daily as a menu tile — reflects today's state. Not yet played: tap to
  * open the details, where playing is a second tap. It is free, so it never
- * locks. Played: tap copies the share line. The streak sits at the end of the
- * title row once there is one, and the subtitle says when today keeps it going.
+ * locks. Played: tap copies the share line.
  */
 function DailyTile({ delay }: { delay: number }) {
   const router = useRouter()
   const daily = useProfile((s) => s.daily)
-  const streak = useProfile((s) => s.dailyStreak)
+  const streak = useProfile((s) => s.streak)
   // Worst of the three #20 sites: 'Copied' sat in place of the finishing
   // position for the rest of the session, so a tile that had real information
   // on it lost it to a confirmation.
@@ -448,7 +468,6 @@ function DailyTile({ delay }: { delay: number }) {
   const dayNo = dailyNumber(today)
   const playedToday = daily?.date === today
   const run = streak ? liveStreak(streak, today) : 0
-  const atRisk = !playedToday && streak ? streakAtRisk(streak, today) : false
 
   const subtitle = copied
     ? 'Copied'
@@ -458,9 +477,7 @@ function DailyTile({ delay }: { delay: number }) {
           ? 'Won it today'
           : `Finished ${ordinal(daily.place)} of ${THE_DAILY.seats}`
         : 'Played today'
-      : atRisk
-        ? `Play today for ${run + 1} days in a row`
-        : 'Free · same cards for everyone'
+      : 'Free · same cards for everyone'
 
   // Played: tap copies the share line. Otherwise: open the details dialog (the
   // same one the venues use), where playing is a deliberate second tap.
@@ -477,27 +494,6 @@ function DailyTile({ delay }: { delay: number }) {
     setInfoOpen(true)
   }
 
-  // A small count with a calendar mark. Pip-coloured once today is played or
-  // while the run is waiting on today; muted otherwise.
-  const aside =
-    run > 0 ? (
-      <span
-        className={cn(
-          'flex items-center gap-1 text-xs font-medium tabular-nums',
-          playedToday || atRisk ? 'text-pip' : 'text-muted-foreground',
-        )}
-        title={`${run}-day streak${streak && streak.best > run ? ` · best ${streak.best}` : ''}`}
-      >
-        {playedToday ? (
-          <CalendarCheck className="size-3.5" aria-hidden />
-        ) : (
-          <CalendarDays className="size-3.5" aria-hidden />
-        )}
-        {run}
-        <span className="sr-only">{run === 1 ? 'day in a row' : 'days in a row'}</span>
-      </span>
-    ) : undefined
-
   return (
     <>
       <CategoryCard
@@ -505,7 +501,6 @@ function DailyTile({ delay }: { delay: number }) {
         accent={THE_DAILY.accent}
         title="The Daily"
         badge={`#${dayNo}`}
-        aside={aside}
         subtitle={subtitle}
         onClick={onClick}
         delay={delay}

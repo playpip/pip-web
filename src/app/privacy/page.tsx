@@ -98,8 +98,7 @@ export default function PrivacyPage() {
           </Item>
           <Item>
             <strong className="font-medium text-foreground">A weekly summary.</strong> On Mondays:
-            your Roll, the hands and tournaments you played since the last one, and your Daily
-            streak.
+            your Roll, the hands and tournaments you played since the last one, and your streak.
           </Item>
           <Item>
             <strong className="font-medium text-foreground">
@@ -110,11 +109,10 @@ export default function PrivacyPage() {
         </List>
         <p>
           They are made from your email address and the profile your account already syncs: your
-          Roll, your lifetime hand and tournament counts, the date of your last Daily and your
-          streak. To say what changed in a week we keep those few numbers as they were at the last
-          summary. We also keep which emails you turned on, when each was last sent, and a random
-          code for the unsubscribe link. We do not track whether you open an email or click anything
-          in it.
+          Roll, your lifetime hand and tournament counts, the date you last played and your streak.
+          To say what changed in a week we keep those few numbers as they were at the last summary.
+          We also keep which emails you turned on, when each was last sent, and a random code for
+          the unsubscribe link. We do not track whether you open an email or click anything in it.
         </p>
         <p>
           Every email has an unsubscribe link at the foot, and your mail app’s own Unsubscribe

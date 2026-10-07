@@ -70,6 +70,8 @@
   --color-cardface: #fafafa;
   --color-cardface-ink: #16161d;
   --color-pip: #7c8cf0;
+  /* The streak's flame (components/StreakBadge), lit once today has a hand. */
+  --color-streak: #ff8a3d;
   --color-felt: #0a0a0b;
 
   /* The table itself (components/table/surface.tsx). A quiet graphite cloth
