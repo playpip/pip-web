@@ -8,6 +8,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      // Hand-written for the same reason as `memberships` below, mirroring
+      // supabase/migrations/20261007090000_email_prefs.sql. Regenerate over the
+      // top once the migration is applied.
+      //
+      // The client may only write the two switches (and its own user_id): the
+      // migration's column grants refuse anything else, so Insert and Update
+      // here are narrowed to match rather than generated wide.
+      email_prefs: {
+        Row: {
+          created_at: string
+          daily_reminder: boolean
+          digest_snapshot: Json | null
+          last_sent_digest: string | null
+          last_sent_reminder: string | null
+          last_sent_welcome: string | null
+          unsubscribe_token: string
+          updated_at: string
+          user_id: string
+          weekly_digest: boolean
+        }
+        Insert: {
+          daily_reminder?: boolean
+          user_id: string
+          weekly_digest?: boolean
+        }
+        Update: {
+          daily_reminder?: boolean
+          user_id?: string
+          weekly_digest?: boolean
+        }
+        Relationships: []
+      }
       // Hand-written, unlike everything else in this file, and it stays that
       // way until `supabase db push` has run against the linked project:
       // `pnpm supabase:generate-types` reads the live schema, so a table that
