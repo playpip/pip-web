@@ -24,6 +24,7 @@ import type {
 } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
 import { emptyReviewStats } from '@/lib/review/stats'
+import { mergeStreaks, streakFromDaily } from '@/lib/dailyStreak'
 import { STARTING_ROLL } from '@/config/venues'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
@@ -152,6 +153,12 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // The Daily is once per UTC day and abandoning counts as played, so the
     // record that says "played today" has to win or syncing becomes a re-roll.
     daily: mergeDaily(local.daily, remote.daily),
+    // A streak is days played, and either device playing a day means it was
+    // played. Runs that touch join up; the longer best survives (lib/dailyStreak).
+    dailyStreak: mergeStreaks(
+      local.dailyStreak ?? streakFromDaily(local.daily),
+      remote.dailyStreak ?? streakFromDaily(remote.daily),
+    ),
 
     // Anything added to ProfileState since this was written follows the chosen
     // side rather than silently vanishing on first sync.
@@ -408,6 +415,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'haptics',
     'cameFromFreeroll',
     'daily',
+    'dailyStreak',
     'challengeWins',
     'challengesPlayed',
     'drills',

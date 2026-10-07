@@ -19,6 +19,7 @@ import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
 import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
 import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
+import { type DailyStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/dailyStreak'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -164,6 +165,8 @@ export interface ProfileState {
   haptics: boolean
   /** The most recent Daily Deal played (only today's gates anything). */
   daily: DailyRecord | null
+  /** Consecutive UTC days the Daily was played, and the longest run (lib/dailyStreak). */
+  dailyStreak: DailyStreak
   /** Chip Shop purchases (item ids). Style, never edge — see docs/shop.md. */
   owned: string[]
   /** Equipped deck face: 'classic' or an owned face id (e.g. 'face-fourcolor'). */
@@ -320,7 +323,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 22
+export const PERSIST_VERSION = 23
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -353,6 +356,7 @@ export const useProfile = create<ProfileState>()(
       handCoaching: true,
       haptics: false,
       daily: null,
+      dailyStreak: emptyStreak(),
       owned: [],
       deckFace: 'classic',
       tableFinish: null,
@@ -482,7 +486,11 @@ export const useProfile = create<ProfileState>()(
       // lib/sound is a live AudioContext, and a store that reached into one
       // would make every test that touches a profile need a Web Audio stub.
       setSoundPack: (id) => set({ soundPack: id }),
-      recordDailyStart: (date, dayNo) => set({ daily: { date, dayNo, place: null, hands: 0 } }),
+      recordDailyStart: (date, dayNo) =>
+        set((s) => ({
+          daily: { date, dayNo, place: null, hands: 0 },
+          dailyStreak: recordPlay(s.dailyStreak ?? emptyStreak(), date),
+        })),
       recordDailyResult: (date, place, hands) =>
         set((s) => (s.daily?.date === date ? { daily: { ...s.daily, place, hands } } : s)),
       mergeStats: (partial) =>
@@ -558,6 +566,7 @@ export const useProfile = create<ProfileState>()(
           handCoaching: true,
           haptics: false,
           daily: null,
+          dailyStreak: emptyStreak(),
           owned: [],
           deckFace: 'classic',
           tableFinish: null,
@@ -724,6 +733,10 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
       rec.history = seedRatingHistory(rec.answered ?? 0, rec.rating ?? STARTING_RATING)
     }
   }
+  // v22 → v23: the Daily streak. Seeded from the one Daily record the old
+  // profile kept, so yesterday's player carries on to two today (see
+  // `streakFromDaily`). Unconditional for the reason v21 gives.
+  if (fromVersion < 23) s.dailyStreak = streakFromDaily(s.daily)
   return s
 }
 
