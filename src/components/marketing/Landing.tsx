@@ -520,7 +520,7 @@ function Features() {
           <FeatureCard
             icon={CalendarDays}
             title="The Daily Deal"
-            body="One tournament a day. Everyone plays the same cards against the same opponents."
+            body="One tournament a day. Everyone gets the same cards, and the regulars play harder the higher your rank."
           >
             <DailyShareMock />
           </FeatureCard>

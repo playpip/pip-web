@@ -83,10 +83,12 @@ export function dailyShareText(
   seats: number,
   hands: number,
   streak = 0,
+  tier?: string,
 ): string {
   const finish = place === 1 ? 'won it' : place ? `${ordinal(place)} of ${seats}` : 'played'
   const run = streak >= 2 ? ` · ${streak}-day streak` : ''
-  return `pip daily #${dayNo} · ${finish} · ${hands} ${hands === 1 ? 'hand' : 'hands'}${run} · playpip.io/daily`
+  const at = tier ? ` · ${tier}` : ''
+  return `pip daily #${dayNo}${at} · ${finish} · ${hands} ${hands === 1 ? 'hand' : 'hands'}${run} · playpip.io/daily`
 }
 
 export function ordinal(n: number): string {

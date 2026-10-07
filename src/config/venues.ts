@@ -4,6 +4,7 @@
 // winner takes the prize. Bust and you're out.
 
 import { type MembersOnly, featureForFamily } from '@/config/membership'
+import { rankFor, rankIndex } from '@/config/ranks'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import type { Variant } from '@/lib/poker/handEval'
 
@@ -77,6 +78,8 @@ export interface Venue extends MembersOnly {
   daily?: boolean
   /** The Welcome Table: a new player's first game, played once (onboarding). */
   welcome?: boolean
+  /** The Daily's tier, named after the rank that plays it (`dailyFor`). */
+  dailyTier?: string
   /**
    * Cash / ring table: fixed blinds, no prize, no elimination. Opponents rebuy
    * to the table stack so the table stays full, and you stand up with your
@@ -978,6 +981,52 @@ export const WELCOME_TABLE: Venue = {
   accent: '#7C8CF0',
   // As soft as the Kitchen Table's regular: a first game a newcomer can win.
   ai: { tightness: 0.55, aggression: 0.15, bluff: 0.03, iterations: 80, skill: 0.3 },
+}
+
+// The Daily's tiers (Will, 2026-10-07): the better you are, the harder it gets.
+// One tier per rank, chosen by your peak Roll. Everyone at a tier plays the
+// identical Daily (same shuffle, same four regulars, same skill), so a result
+// line still means the same thing to anybody at your tier. The regulars play
+// about as hard as the ladder table for that rank, and a harder tier pays more.
+// Free to enter at every tier; only a finish pays.
+const DAILY_TIERS: readonly Pick<Venue, 'ai' | 'prize' | 'runnerUpPrize'>[] = [
+  // Amateur: the Pub's regulars.
+  {
+    ai: { tightness: 0.22, aggression: 0.32, bluff: 0.06, iterations: 400, skill: 0.36 },
+    prize: 500,
+    runnerUpPrize: 125,
+  },
+  // Regular: the Downtown Casino's.
+  {
+    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750, skill: 0.54 },
+    prize: 2_000,
+    runnerUpPrize: 500,
+  },
+  // Shark: the Penthouse's.
+  {
+    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_100, skill: 0.74 },
+    prize: 10_000,
+    runnerUpPrize: 2_500,
+  },
+  // Pro: Vegas's.
+  {
+    ai: { tightness: 0.58, aggression: 0.72, bluff: 0.18, iterations: 1_650, skill: 0.95 },
+    prize: 75_000,
+    runnerUpPrize: 18_750,
+  },
+  // Legend: the Main Event's.
+  {
+    ai: { tightness: 0.6, aggression: 0.75, bluff: 0.2, iterations: 1_800, skill: 1 },
+    prize: 400_000,
+    runnerUpPrize: 100_000,
+  },
+]
+
+/** Today's Daily as this player plays it: the tier their peak Roll's rank puts them at. */
+export function dailyFor(peakRoll: number): Venue {
+  const index = rankIndex(peakRoll)
+  const tier = DAILY_TIERS[Math.min(index, DAILY_TIERS.length - 1)]
+  return { ...THE_DAILY, ...tier, dailyTier: rankFor(peakRoll).name }
 }
 
 /**

@@ -1222,7 +1222,7 @@ export const useGame = create<GameState>((set, get) => {
       // (abandoning counts as played; the shuffle is knowable).
       armDaily(venue.daily ? dailyDateKey() : null)
       if (venue.daily && dailyDay) {
-        useProfile.getState().recordDailyStart(dailyDay, dailyNumber(dailyDay))
+        useProfile.getState().recordDailyStart(dailyDay, dailyNumber(dailyDay), venue.dailyTier)
       }
       const aiCount = venue.seats - 1
       // A challenge table seats no draw: the one chair opposite belongs to the

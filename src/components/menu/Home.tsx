@@ -24,7 +24,7 @@ import { NextUpCard } from './NextUpCard'
 import { QuickPlayCard } from './QuickPlayCard'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import { SIDE_SHELF, RING_TABLES, THE_DAILY } from '@/config/venues'
+import { SIDE_SHELF, RING_TABLES, THE_DAILY, dailyFor } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { liveStreak } from '@/lib/streak'
 import { StreakBadge } from '@/components/StreakBadge'
@@ -394,6 +394,7 @@ function DailyTile({ delay }: { delay: number }) {
   const router = useRouter()
   const daily = useProfile((s) => s.daily)
   const streak = useProfile((s) => s.streak)
+  const peakRoll = useProfile((s) => s.peakRoll)
   // Worst of the three #20 sites: 'Copied' sat in place of the finishing
   // position for the rest of the session, so a tile that had real information
   // on it lost it to a confirmation.
@@ -422,7 +423,9 @@ function DailyTile({ delay }: { delay: number }) {
       if (!daily?.place) return
       sound.play('tap')
       void navigator.clipboard
-        ?.writeText(dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands, run))
+        ?.writeText(
+          dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands, run, daily.tier),
+        )
         .then(() => copy())
       return
     }
@@ -442,7 +445,7 @@ function DailyTile({ delay }: { delay: number }) {
         delay={delay}
       />
       <VenueInfoDialog
-        venue={infoOpen ? THE_DAILY : null}
+        venue={infoOpen ? dailyFor(peakRoll) : null}
         playable
         onOpenChange={(o) => !o && setInfoOpen(false)}
         onPlay={(venue) => {

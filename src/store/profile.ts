@@ -134,6 +134,8 @@ export interface DailyRecord {
   place: number | null
   /** Hands the run lasted. */
   hands: number
+  /** The tier it was played at (config/venues `dailyFor`); absent before tiers. */
+  tier?: string
 }
 
 export interface ProfileState {
@@ -309,7 +311,7 @@ export interface ProfileState {
   setDealerButton: (id: string) => void
   setSoundPack: (id: string) => void
   /** Sitting down at today's Daily — marks it played immediately. */
-  recordDailyStart: (date: string, dayNo: number) => void
+  recordDailyStart: (date: string, dayNo: number, tier?: string) => void
   /** Final placing for the daily started on `date` (ignored if dates mismatch). */
   recordDailyResult: (date: string, place: number, hands: number) => void
   mergeStats: (partial: Partial<LifetimeStats>) => void
@@ -510,9 +512,9 @@ export const useProfile = create<ProfileState>()(
       // lib/sound is a live AudioContext, and a store that reached into one
       // would make every test that touches a profile need a Web Audio stub.
       setSoundPack: (id) => set({ soundPack: id }),
-      recordDailyStart: (date, dayNo) =>
+      recordDailyStart: (date, dayNo, tier) =>
         set((s) => ({
-          daily: { date, dayNo, place: null, hands: 0 },
+          daily: { date, dayNo, place: null, hands: 0, ...(tier ? { tier } : {}) },
           streak: recordPlay(s.streak ?? emptyStreak(), date),
         })),
       recordDailyResult: (date, place, hands) =>

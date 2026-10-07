@@ -7,7 +7,8 @@ import { TodaysDeal } from '@/components/marketing/TodaysDeal'
 import { ACCOUNT_OFFER } from '@/config/account'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import { contentAlternates, contentSocial } from '@/config/site'
-import { THE_DAILY } from '@/config/venues'
+import { THE_DAILY, dailyFor } from '@/config/venues'
+import { RANKS } from '@/config/ranks'
 import { DAILY_EPOCH_UTC } from '@/lib/daily'
 
 // The Daily Deal's front door.
@@ -59,12 +60,16 @@ const RULES: { thing: string; detail: string }[] = [
     detail: `${THE_DAILY.seats}. You and four regulars, the same four for everyone.`,
   },
   {
+    thing: 'Tier',
+    detail: `Set by your rank. The higher your rank, the harder the regulars play and the more the Daily pays. Everyone at your tier plays the identical game.`,
+  },
+  {
     thing: 'Blinds',
     detail: `${THE_DAILY.smallBlind}/${THE_DAILY.bigBlind} to start, going up every ${HANDS_PER_LEVEL} hands.`,
   },
   {
     thing: 'Prizes',
-    detail: `1st: ${chips(THE_DAILY.prize)} chips. 2nd: ${chips(THE_DAILY.runnerUpPrize ?? 0)} chips. Paid onto your Roll.`,
+    detail: `For 1st, by tier: ${RANKS.map((r) => `${r.name} ${chips(dailyFor(r.min).prize)}`).join(', ')}. 2nd gets a quarter of that. Paid onto your Roll.`,
   },
   {
     thing: 'Plays per day',
@@ -102,7 +107,7 @@ const FAQ: { q: string; a: string[] }[] = [
   {
     q: 'Do the opponents play the same way for everyone?',
     a: [
-      'They start from the same seed as the cards. What they do after that depends on what you do, so two players can finish the same deal very differently.',
+      'The same four regulars sit down for everyone, and they start from the same seed as the cards. How hard they play is set by your tier, so everyone at your rank faces the same opponents. What they do after that depends on what you do, so two players can finish the same deal very differently.',
     ],
   },
   {

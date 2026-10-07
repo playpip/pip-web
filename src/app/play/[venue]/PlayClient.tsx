@@ -6,7 +6,7 @@ import { Table } from '@/components/table/Table'
 import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
-import { featureForVenue, venueById } from '@/config/venues'
+import { THE_DAILY, dailyFor, featureForVenue, venueById } from '@/config/venues'
 import { membershipFor } from '@/config/membership'
 import { CUSTOM_VENUE_ID, customVenue, refuseCustomTable } from '@/config/customTable'
 import { refuseSitDown } from '@/lib/sitDown'
@@ -57,7 +57,10 @@ export function PlayClient() {
         ? profile.customTable && !refuseCustomTable(profile.customTable)
           ? customVenue(profile.customTable)
           : undefined
-        : venueById(venueId)
+        : venueId === THE_DAILY.id
+          ? // The Daily at this player's tier (config/venues `dailyFor`).
+            dailyFor(profile.peakRoll)
+          : venueById(venueId)
 
     if (!venue || !profile.avatar) {
       router.replace(venueId === CUSTOM_VENUE_ID ? '/game/custom' : '/')

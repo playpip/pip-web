@@ -208,6 +208,11 @@ anyone can read `lib/daily.ts` + the engine and verify the deal. The honest
 claim (and the copy) is **"same cards, same opponents — your play makes the
 difference"**: AI responses diverge once your actions diverge, and we say so.
 
+**Tiers** (Will, 2026-10-07): the regulars' skill and the prizes are set by the
+player's rank (`dailyFor(peakRoll)` in `config/venues.ts`, one tier per rank,
+Amateur to Legend). Everyone at a tier plays the identical Daily; the tier is
+stored on the day's record and printed in the share line.
+
 - **Venue**: `THE_DAILY` in `config/venues.ts` (`daily: true`) — **free to
   enter** (2026-10-07): `buyIn: 0`, a fixed 500 `startingStack`, 5 seats. 1st
   pays 2,000 and 2nd pays 500 (`runnerUpPrize`, read through `prizeFor`). The

@@ -62,7 +62,7 @@ function formatNote(venue: Venue): string | null {
   if (venue.cash)
     return `Cash game — no prize and no clock. Sit down with a stack, play as many hands as you fancy, and stand up whenever with whatever's in front of you. Bust and you can rebuy or walk; the table doesn't mind either way.`
   if (venue.daily)
-    return `One tournament a day, free to enter. Everyone who plays today gets the same cards and the same opponents. You get one go: sitting down uses today's, and leaving early still counts.`
+    return `One tournament a day, free to enter, with the same cards for everyone. You play at the ${venue.dailyTier ?? 'Amateur'} tier: the higher your rank, the harder the regulars play and the more it pays. You get one go: sitting down uses today's, and leaving early still counts.`
   // Before the format switch, because the game being dealt outranks the speed
   // it is dealt at. The Big Pot is registered as a `deep` table, so without
   // this the one venue in the app that does not deal Hold'em described its
