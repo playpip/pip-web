@@ -31,6 +31,9 @@ Defined in `src/app/globals.css`:
   - `--color-suit-black: #16161d`, `--color-cardface: #fafafa`, `--color-cardface-ink: #16161d`.
   - `--color-pip: #7c8cf0` — brand accent.
   - `--color-felt: #0a0a0b`.
+  - The table: `--color-table-cloth`, `-rail`, `-rail-edge`, `-line`, `-shade`, and
+    the chips `--color-chip-ivory|coral|slate|ink|stripe`. Chip and turn-ring drawing
+    lives in `globals.css` (`.table-chip`, `.seat-turn`).
 - Generous radii scale (`--radius-*`), large rounded corners are on-brand.
 
 There is no theme provider and no toggle. `useHydrated()` guards client-only reads to
@@ -133,9 +136,31 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
   because six controls at 357px wide is a crowded bar, not a nav. Hide, don't remove: the
   links stay in the HTML for crawlers, and each one is repeated in the footer. Anything new
   added to that bar needs a breakpoint and a reason to be the exception.
-- **Table:** opponents arranged around a minimal arc (computed via ellipse math in
-  `Table.tsx`), community + pot dead-center, the hero anchored bottom-center with the
-  action bar. No felt, no table graphic — just the players and cards on the canvas.
+- **Table:** drawn as a real table since 2026-10-07 (`components/table/surface.tsx`,
+  `seat.tsx`). Calm had tipped into empty, so the felt is now a place:
+  - **The room** (`TableRoom`): the venue's own painting, blurred and dimmed behind
+    everything, with the venue `accent` as the light over the table. The Garage glows
+    periwinkle, the Main Event red. A built table (no painting) gets the light only.
+  - **The table** (`TableFelt`): an oval with a dark rail and a cloth lit from above.
+    The cloth is the player's **table finish** (Chip Shop, chosen in Style), a shade
+    darker; the plain table (no finish) is `--color-table-cloth` graphite with the
+    venue accent mixed in, so Baize is still a choice rather than the default.
+    `FeltBackdrop` still paints the finish behind every other screen.
+  - **Seats** (`FeltSeat`) sit on the rail, on the oval's own ellipse
+    (`feltSeatPositions` + `FELT_WIDE` / `FELT_COMPACT` in `lib/tableSeats.ts`): a
+    bigger face, a nameplate on the cloth, their cards tucked face down behind them,
+    the last action as a pill (derived from consecutive hand states in
+    `useSeatActions`; presentation only), and a travelling turn ring on whoever is to
+    act. Folded seats dim. Showdown cards turn over where the backs were.
+  - **Board**: five outlined places on the cloth, not five card backs. Cards drop and
+    flip over (`BoardCard`), the flop staggered.
+  - **Chips**: `ChipStack` draws a bet as a small stack (counted in small blinds, four
+    muted clay colours, `--color-chip-*`) in front of each seat; at the end of a street
+    the stacks slide into the pot, and at the end of a hand the pot slides to the
+    winner. Left/top in stage percent, so nothing is measured.
+  - The hero's cards straddle the near rail; on a phone the action bar is the last
+    row, under the thumb. The review and the lessons keep the older arc (`Seat`,
+    `opponentPositions`) and are tuned to it; they are not on the drawn table yet.
 - **Cards:** `PlayingCard` (face, sizes `sm|md|lg`), `DealtCard` (animated), `CardBack`
   (customizable face-down). Ten renders as "10" though the engine uses `T`.
 
