@@ -1,8 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'ava'
 import {
+  BET_PACK_ID,
   DRILL_KINDS,
+  OPEN_PACK_ID,
   SAMPLED_DRILLS,
+  SHOVE_PACK_ID,
   drillKind,
   membershipForDrill,
   tappedDrill,
@@ -23,6 +26,7 @@ import {
   venueById,
 } from '@/config/venues'
 import { kindFloor } from '@/lib/drills/standing'
+import { SHOVE_WHERE } from '@/lib/drills/shoveOrFold'
 import { nextDrill } from '@/lib/drills'
 import { drillSample } from '@/lib/drills/sample'
 
@@ -140,6 +144,36 @@ test('a sampled drill deals one fixed spot from its own generator', (t) => {
     const holdings =
       (spot.hands?.length ?? 0) + spot.choices.filter((c) => c.cards.length > 1).length
     t.true(holdings > 0, `${id}: nothing for the felt to draw`)
+  }
+})
+
+// The three packs play on a table, so their spot is drawn with the pack's own
+// seat, stack or betting line. A spot missing what its table needs would draw
+// a seat with no words, or a bet of nothing.
+test('a sampled pack has what its table draws', (t) => {
+  const open = drillSample(OPEN_PACK_ID)
+  // OpenPack's `OPEN_WHERE` has a line for these four seats and no other.
+  t.true(['utg', 'mp', 'co', 'btn'].includes(open.seat ?? ''), `open-or-fold seat ${open.seat}`)
+  t.is(open.hands?.[0].cards.length, 2)
+
+  const shove = drillSample(SHOVE_PACK_ID)
+  t.truthy(shove.seat && shove.seat in SHOVE_WHERE, `shove-or-fold seat ${shove.seat}`)
+  t.true((shove.shove?.stack ?? 0) > 0)
+  t.is(shove.hands?.[0].cards.length, 2)
+
+  const bet = drillSample(BET_PACK_ID)
+  t.true((bet.calling?.bet ?? 0) > 0 && (bet.calling?.pot ?? 0) > 0)
+  t.is(bet.line?.at(-1)?.street, 'river')
+  t.is(bet.hands?.[0].cards.length, 2)
+})
+
+// Every paid kind a tap lands on "Every drill" for gets a spot, so no tap is
+// answered with a name alone.
+test('every paid drill under "Every drill" is sampled', (t) => {
+  for (const kind of DRILL_KINDS) {
+    if (kind.membersOnly && featureForDrill(kind.id) === 'drills') {
+      t.true(SAMPLED_DRILLS.includes(kind.id), `${kind.id} is named but not dealt`)
+    }
   }
 })
 

@@ -59,6 +59,7 @@ export function SceneTable({
   marked = null,
   revealed = [],
   dim = false,
+  row = false,
 }: {
   state: HandState
   /** Every seat but yours. */
@@ -77,6 +78,8 @@ export function SceneTable({
   /** Seats playing face up, whose cards are shown the way a showdown shows them. */
   revealed?: readonly SeatId[]
   dim?: boolean
+  /** The phone's layout at any size: seats in a row. For a table drawn inside a page rather than as one. */
+  row?: boolean
 }) {
   const isMobile = useIsMobile()
   // **Compact is narrow *or* short.** The arc needs about 26rem of height to
@@ -87,7 +90,7 @@ export function SceneTable({
   // short window gets it too, held to a readable width. Your own seat still
   // follows width alone, like the live table's: on a wide screen the square
   // cards beside a fixed plate are no taller than the phone's half-and-half.
-  const compact = useMediaQuery('(max-width: 820px), (max-height: 860px)')
+  const compact = useMediaQuery('(max-width: 820px), (max-height: 860px)') || row
   // **A short desktop window gets the drill's card size.** At 1280×720 the
   // phone column (seats, board, pot, talk) plus full-size cards and the
   // two-row answer grid came to more than the window, and the column spilled:
