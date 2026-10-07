@@ -45,9 +45,11 @@ import { VenueArt } from '@/components/menu/VenueArt'
 import { TappedFor } from '@/components/membership/TappedFor'
 import { MEMBER_BACKS, MEMBER_SHOP_BACKS } from '@/config/cardBacks'
 import { DRILL_KINDS } from '@/config/drills'
+import { LESSONS } from '@/config/lessons'
 import {
   CURRENCIES,
   type CurrencyCode,
+  DAILY_FREE_GAME,
   HOW_TO_CANCEL,
   type LocalPrice,
   MEMBERSHIP_FEATURES,
@@ -90,6 +92,9 @@ const STATS = [
   },
   { value: SHOP_ITEMS.filter((i) => i.membersOnly).length, label: 'for the members’ shelf' },
 ]
+
+/** The hero's one number, counted from the course rather than typed. */
+const HERO = { lessons: LESSONS.filter((l) => l.membersOnly).length }
 
 // --- how each feature looks -----------------------------------------------------
 
@@ -226,7 +231,7 @@ export function MembershipScreen() {
             id="plans"
             eyebrow="Price"
             title="One membership, two ways to pay"
-            lede="The same membership either way. Pick how often you would rather be billed."
+            lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table or a lesson first."
           >
             <Plans price={price} currency={currency} onCurrency={setCurrency} />
           </Section>
@@ -284,10 +289,10 @@ function Hero({ price }: { price: LocalPrice }) {
             <span className="block text-muted-foreground">And see it working.</span>
           </h1>
           <p className="mt-5 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
-            Lessons at the table with Webb, a report on what is costing you chips, every session
-            back on the felt, and drills that price the spots beginners get wrong. Plus the side
-            tables, four more kinds of poker and the members’ shelf. The core game stays free, for
-            good.
+            {HERO.lessons} lessons with Webb, played on the felt. A report that reads every hand you
+            have played and names what is costing you chips, in big blinds, with the hands it
+            happened in. Every session back on the table, hand by hand. Plus the side tables, the
+            games that are not Hold’em and the members’ shelf. The core game stays free, for good.
           </p>
           <p className="mt-5 text-sm tabular-nums text-muted-foreground">
             <span className="font-semibold text-foreground">{price.monthly}</span> a month{' '}
@@ -300,6 +305,12 @@ function Hero({ price }: { price: LocalPrice }) {
             </PillLink>
             <PillLink href="#free">What stays free</PillLink>
           </div>
+          <p className="mt-4 max-w-md text-balance text-sm text-muted-foreground">
+            One member game a day is free without joining.{' '}
+            <a href="#plans" className="underline underline-offset-2 hover:text-foreground">
+              How it works
+            </a>
+          </p>
         </motion.div>
       </div>
     </section>
@@ -783,6 +794,7 @@ function Plans({
               'A fixed price in your currency, never converted at checkout, so no exchange fee is hidden in it.',
               'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
               'You need a free Pip account to join. You never need one to play.',
+              DAILY_FREE_GAME,
             ].map((line) => (
               <li key={line} className="flex gap-2.5">
                 <Check className="mt-0.5 size-4 shrink-0 text-pip" />
@@ -1143,6 +1155,13 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
               built the till, on purpose. When that changes, this answer changes with it.
             </p>
           )}
+        </Question>
+        <Question q="Can I try it before I pay?">
+          <p>{DAILY_FREE_GAME}</p>
+          <p>
+            The card on the shelf says <em>Free today</em> while it is there. It is the same table
+            or lesson a member gets.
+          </p>
         </Question>
         <Question q="How do I cancel?">
           <p>{HOW_TO_CANCEL}</p>

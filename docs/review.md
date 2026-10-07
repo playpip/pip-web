@@ -9,6 +9,7 @@ membership; both are counted for everybody.
 |---|---|---|---|
 | **Second opinion** | one hand | everybody, free forever | the handover banner (`lib/coach.ts`) |
 | **End-of-run card** | one run | everybody, free forever | the bust/win overlay (`lib/recap.ts`) |
+| **Report teaser** | the report's top finding: its title and sample, nothing else | non-members, when the report has one | the same overlay (`lib/review/teaser.ts`) |
 | **Session review** | one session, hand by hand | members | `/game/review` |
 | **Your report** | every hand you have played | members | `/game/report` (`lib/deepCoach.ts`) |
 
@@ -233,7 +234,9 @@ an instruction to go and play. It costs a few hundred bytes.
 `store/game.ts` is handed `member` at sit-down like it is handed the venue.
 `Table.tsx` uses it to decide whether the end overlay and the leave dialog offer
 **Review the session** — the same shape "Watch it out" already uses. Neither
-links to `/membership` or imports `config/membership`.
+links to `/membership` or imports `config/membership`. The one file in `components/table/`
+that does is `RunRecap.tsx`, for the report teaser above, and it too is handed `member`
+rather than asking (docs/membership.md).
 
 `/game/review` and `/game/report` do the asking, with `useEntitlement()`, and a
 non-member gets a padlock, a plain line and one text link. The page renders; it

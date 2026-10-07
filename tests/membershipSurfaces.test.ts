@@ -3,12 +3,19 @@ import test from 'ava'
 
 // Where the membership is allowed to be mentioned, enforced rather than agreed.
 //
-// The rule is one sentence: **nothing about buying appears in the game loop.**
-// A player at a table is mid-hand, and a table is the one screen where a line
-// about money would be the thing the landing page promises never happens. The
-// spec for this was written down, and this repo's own lesson — fourth time of
-// asking — is that a document is not a gate. `tests/accountOffer.test.ts` is
-// the precedent: a test that encodes a rule rather than checking code.
+// The rule used to be one sentence: **nothing about buying appears in the game
+// loop.** On 2026-10-07 Will relaxed it by exactly one card: the end-of-run
+// recap may carry one line of the player's own report and a link to the rest,
+// because by then the run is over and no hand is live. Everything else holds:
+//
+// - Nothing under `src/components/table/` other than the recap links to
+//   `/membership` or imports the membership config.
+// - `src/store/game.ts` never learns about buying at all.
+// - Nothing in the game loop, the recap included, asks whether the player is a
+//   member. The table is handed `member` at sit-down and passes it down.
+//
+// `tests/accountOffer.test.ts` is the precedent: a test that encodes a rule
+// rather than checking code.
 //
 // What it cannot cover: whether the locked tile *looks* like a prompt. No
 // browser here. That still needs somebody to open the drills room signed out.
@@ -35,7 +42,14 @@ function sources(dir: string): { path: string; code: string }[] {
 // sitting down and standing up comes out of these.
 const GAME_LOOP = ['src/components/table', 'src/store/game.ts']
 
-test('nothing in the game loop mentions the membership or links to it', (t) => {
+/**
+ * The one card in the game loop that may mention the membership: the recap on
+ * the end-of-run overlay, shown after the last hand. Adding a file here is the
+ * policy changing, and needs Will.
+ */
+const AFTER_THE_RUN = new Set(['src/components/table/RunRecap.tsx'])
+
+test('nothing in the game loop mentions the membership or links to it, bar the end-of-run card', (t) => {
   let checked = 0
   for (const dir of GAME_LOOP) {
     const files = dir.endsWith('.ts')
@@ -44,12 +58,14 @@ test('nothing in the game loop mentions the membership or links to it', (t) => {
     for (const { path, code } of files) {
       checked++
       const stripped = code.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')
-      t.notRegex(stripped, /\/membership/, `${path} links to /membership from inside a hand`)
-      t.notRegex(
-        stripped,
-        /config\/membership/,
-        `${path} imports the membership config — a table does not need a price`,
-      )
+      if (!AFTER_THE_RUN.has(path)) {
+        t.notRegex(stripped, /\/membership/, `${path} links to /membership from inside a hand`)
+        t.notRegex(
+          stripped,
+          /config\/membership/,
+          `${path} imports the membership config — a table does not need a price`,
+        )
+      }
       t.notRegex(
         stripped,
         /useEntitlement|useMembership/,
@@ -58,6 +74,33 @@ test('nothing in the game loop mentions the membership or links to it', (t) => {
     }
   }
   t.true(checked > 3, `scanned ${checked} files, which is too few to mean anything`)
+})
+
+test('the end-of-run card mentions the membership only as one real report line', (t) => {
+  const recap = readFileSync(
+    new URL('../src/components/table/RunRecap.tsx', import.meta.url),
+    'utf-8',
+  )
+  // The line is the report's own finding, computed by the teaser module — not
+  // a sentence typed into the card.
+  t.regex(recap, /reportTeaser\(deepRead\(/, 'the recap line is not drawn from the report')
+  // Shown to non-members only, and decided from what the table was handed.
+  t.regex(
+    recap,
+    /!member && <ReportLine \/>/,
+    'the report line is not gated on the table’s member flag',
+  )
+  // One link, opened on the report.
+  t.is([...recap.matchAll(/membershipFor\(/g)].length, 1)
+  t.regex(recap, /membershipFor\('coaching'\)/)
+  t.notRegex(
+    recap,
+    /checkout|MEMBERSHIP_PRICE/,
+    'the end-of-run card names a price or opens checkout',
+  )
+  // And the store that drives the table still never learns about buying.
+  const game = readFileSync(new URL('../src/store/game.ts', import.meta.url), 'utf-8')
+  t.notRegex(game, /config\/membership|lib\/membership/)
 })
 
 // The other half: the surfaces that *are* allowed to mention it must point at a

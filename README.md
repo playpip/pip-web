@@ -95,7 +95,8 @@ There is also an optional **membership** (£5.99/mo or £49/yr) that adds more t
 play: every side table and member room, the games that aren't Hold'em, build-your-own-table,
 the rest of the drills and practice packs, Lessons with Webb from Level 2, a report on
 your own play across every hand, the session review, and spectating after you bust. It's a real fence and we'd
-rather call it one than pretend otherwise. **It is not pay-to-win** — pay-to-win
+rather call it one than pretend otherwise. One member game a day is free without joining:
+any one poker table on the side tables shelf, or one lesson with Webb from Level 2 up. **It is not pay-to-win** — pay-to-win
 means buying an advantage over another player, and Pip is single-player with no
 leaderboard. Nothing you can buy changes a hand: not the cards, the odds, what
 you're shown, or a rebuy. See [ROADMAP → How Pip pays for itself](ROADMAP.md).
