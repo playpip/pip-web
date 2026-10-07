@@ -13,6 +13,7 @@ import { refuseSitDown } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
 import { dailyDateKey } from '@/lib/daily'
 import { useMembership } from '@/store/entitlement'
+import { ensurePlayer } from '@/components/onboarding/firstSeat'
 
 export function PlayClient() {
   const { venue: venueId } = useParams<{ venue: string }>()
@@ -40,6 +41,10 @@ export function PlayClient() {
     if (started.current === venueId) return
     started.current = venueId
 
+    // A first visit arrives here with no player: make one and deal them in
+    // (onboarding/firstSeat). Anything this table refuses below still sends
+    // them on, with the player made.
+    ensurePlayer()
     const profile = useProfile.getState()
     // `/play/custom` is one generated route standing in for every table a
     // player can build, so the real venue is resolved here from the spec on
@@ -52,7 +57,7 @@ export function PlayClient() {
           : undefined
         : venueById(venueId)
 
-    if (!venue || !profile.created || !profile.avatar) {
+    if (!venue || !profile.avatar) {
       router.replace(venueId === CUSTOM_VENUE_ID ? '/game/custom' : '/')
       return
     }

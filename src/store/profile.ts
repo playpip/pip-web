@@ -19,6 +19,7 @@ import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
 import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
 import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
+import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -372,12 +373,12 @@ export const useProfile = create<ProfileState>()(
         track('profile-created')
         set((s) => ({
           created: true,
-          name: name.trim() || 'Player',
+          name: name.trim() || DEFAULT_PLAYER_NAME,
           avatar,
           rollHistory: [{ t: Date.now(), roll: s.roll }],
         }))
       },
-      setName: (name) => set({ name: name.trim() || 'Player' }),
+      setName: (name) => set({ name: name.trim() || DEFAULT_PLAYER_NAME }),
       setAvatar: (avatar) => set({ avatar }),
       setCardBack: (cardBack) => set({ cardBack }),
       adjustRoll: (delta) =>

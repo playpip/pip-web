@@ -212,11 +212,10 @@ course**: one idea per page, built entirely from product primitives
 presentation layer (`components/learn/`); no engine, no stores mutated, no
 profile required — the route is standalone and shareable.
 
-- **The offer**: after `createProfile` succeeds, `/game` shows a one-time
-  interstitial (`TutorialOffer`) — "Show me the basics" → `/learn?from=onboarding`
-  or "Deal me in" → home. The offer is memory-only state in the create flow;
-  `created` already gates onboarding, so it can only ever appear once. No
-  persisted flag, no `PERSIST_VERSION` bump.
+- **No offer on the way in** (2026-10-07). There used to be a one-time "New to poker?"
+  interstitial after the make-your-player screen. Both are gone: a first visit is dealt
+  straight in at Friends' Garage (`onboarding/firstSeat`), and the tour is reached from the
+  landing page, Learn, and the "Learn with Webb" tile that leads a new player's lobby.
 - **The quiet return path**: one line on the home screen under the menu
   ("New to poker? Take the tour.") — no badge, no pulse, never re-offered.
 - **No-nag rules**: skippable from every page (the corner Skip), no quiz, no

@@ -201,6 +201,13 @@ that looks current:
   the row, so the pull is skipped entirely — and the first change after onboarding pushes the empty
   profile over the account. That one costs real progress, not just a wrong-looking graph.
 
+**The player a first visit makes is pristine too.** Play deals a new visitor in under the name
+`Player` and a random face (`onboarding/firstSeat`, `lib/newPlayer`), and `isPristine` does not
+read identity, so a returning player who presses "Sign in" on the landing page restores over that
+placeholder rather than merging with it. And when a placeholder does reach a merge (a guest
+played some hands, then signed in), **a chosen name beats the placeholder whichever side wins the
+Roll**, and the face goes with the name (`mergeProfiles`, tested in `syncMerge`).
+
 The check is deliberately strict, and both sides are tested: if the account's row is pristine too it
 falls through to the ordinary merge, so the name just typed in isn't overwritten by an empty row.
 
