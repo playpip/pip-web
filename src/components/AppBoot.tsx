@@ -55,6 +55,15 @@ export function AppBoot() {
     // this attribute, so it never takes it away.
     if (inApp()) document.documentElement.dataset.pipApp = ''
 
+    // No-op unless the player has an account: with no stored session this
+    // reads localStorage, finds nothing and stops. No request, no identity.
+    // It is also what picks up a Google or Apple sign-in coming back in the URL.
+    void useSync.getState().init()
+
+    // Subscribes to that session rather than going looking for one, so a
+    // player with no account still makes no request of its own.
+    useMembership.getState().start()
+
     return () => sound.onPlay(null)
   }, [])
   return null
