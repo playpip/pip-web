@@ -337,12 +337,19 @@ html[data-pip-app]:has([data-felt], [data-shell]) body {
 html[data-pip-app]:has([data-felt], [data-shell]) body {
   padding-bottom: 0;
 }
-/* A felt screen clears the home bar itself, with env(safe-area-inset-bottom)
-   on its action bar, so it only gives up the top. */
-html[data-pip-app] [data-felt],
 html[data-pip-app] [data-shell] {
   height: calc(100dvh - env(safe-area-inset-top));
   min-height: 0;
+}
+/* A felt screen fills the whole screen and pads itself, so its own room (the
+   venue backdrop) runs behind the clock too, rather than the table finish
+   showing through above it. The bottom it clears itself already, with
+   env(safe-area-inset-bottom) on its action bar. */
+html[data-pip-app]:has([data-felt]) body {
+  padding-top: 0;
+}
+html[data-pip-app] [data-felt] {
+  padding-top: env(safe-area-inset-top);
 }
 html[data-pip-app] [data-shell] > main {
   overflow-y: auto;
