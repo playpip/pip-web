@@ -30,6 +30,7 @@ cosmetics, multiplayer); see [brand.md](./brand.md).
 | [venues.md](./venues.md) | The venue ladder, adding venues, and the AI-image workflow |
 | [data-and-offline.md](./data-and-offline.md) | Persistence, profile backup/transfer (file / code / QR), and the offline PWA |
 | [sync.md](./sync.md) | The optional account: what syncs, the merge policy, and why sync is opt-in |
+| [email.md](./email.md) | The opt-in emails (Daily reminder, weekly summary): how they are decided, sent, unsubscribed, and switched on |
 | [development.md](./development.md) | Setup, scripts, testing (AVA), conventions, deploy & releases |
 
 ## 30-second mental model

@@ -21,6 +21,7 @@
 
 import { create } from 'zustand'
 import { checkoutReady } from '@/config/membership'
+import { applyPendingOptIn } from '@/lib/email/prefs'
 import {
   deviceId,
   getSupabase,
@@ -177,6 +178,8 @@ export const useSync = create<SyncState>()((set, get) => ({
     const { data } = await sb.auth.getSession()
     if (data.session?.user.email) {
       set({ ready: true, ...fromSession(data.session) })
+      // A box ticked at sign-up before a Google or Apple redirect.
+      void applyPendingOptIn()
       await get().syncNow()
     } else {
       set({ ready: true })

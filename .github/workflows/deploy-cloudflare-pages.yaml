@@ -158,6 +158,9 @@ jobs:
           # same breath as deploying the billing Edge Functions, never before.
           NEXT_PUBLIC_STRIPE_PRICE_MONTHLY: ${{ vars.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY }}
           NEXT_PUBLIC_STRIPE_PRICE_ANNUAL: ${{ vars.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL }}
+          # `on` shows the opt-in email switches (docs/email.md). Unset → no
+          # switches. Set it once send-emails is deployed and scheduled, never before.
+          NEXT_PUBLIC_EMAILS: ${{ vars.NEXT_PUBLIC_EMAILS }}
         run: pnpm build
 
       # The only place the truth about sync config exists is the emitted bundle. `pnpm build`

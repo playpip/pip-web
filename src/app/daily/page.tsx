@@ -95,7 +95,7 @@ const FAQ: { q: string; a: string[] }[] = [
   {
     q: 'How does the streak work?',
     a: [
-      'It counts the UTC days in a row you have sat down at the Daily. If you played yesterday and not yet today, the lobby tile tells you. With an account, playing on two devices counts as one streak.',
+      'It counts the UTC days in a row you have sat down at the Daily. If you played yesterday and not yet today, the lobby tile tells you. With an account, playing on two devices counts as one streak, and you can turn on an email for the evenings you have not played yet.',
     ],
   },
   {

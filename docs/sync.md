@@ -54,7 +54,8 @@ The landing page has no signup route to link to (the account is a dialog), so it
 reload does not reopen what was closed.
 
 **The copy says "nothing to confirm".** That is true because production runs with
-`mailer_autoconfirm` on and a password reset is the only email Pip ever sends. Turn autoconfirm
+`mailer_autoconfirm` on, so Supabase Auth sends nothing but a password reset when asked. (The
+opt-in emails in [email.md](./email.md) confirm nothing and are off by default.) Turn autoconfirm
 off and the landing trust card, the signup dialog and the offer all become false together.
 
 ## What is stored
@@ -76,7 +77,8 @@ reviewable.
 a client holding only the publishable key cannot remove an `auth.users` row on its own. It takes no
 arguments and deletes `auth.uid()`, which is what keeps it safe: there is no id to tamper with, so
 the only account it can reach is the caller's. **Never give it a parameter.** The cascade on
-`profiles.user_id` takes the data with the user.
+`profiles.user_id` takes the data with the user. The same cascade takes
+`email_prefs` (docs/email.md) and `memberships`.
 
 ## Versioning
 

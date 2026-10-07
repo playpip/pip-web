@@ -107,3 +107,13 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+# Opt-in email (docs/email.md). Neither can require a player's token: pg_cron
+# holds none, and nor does somebody clicking an unsubscribe link in a mail app.
+# send-emails is locked by the CRON_SECRET header instead, checked first thing;
+# unsubscribe by the random token in the link, which can only switch email off.
+[functions.send-emails]
+verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
