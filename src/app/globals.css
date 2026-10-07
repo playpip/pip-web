@@ -348,4 +348,14 @@ html[data-pip-app] [data-shell] > main {
   overflow-y: auto;
   overscroll-behavior-y: contain;
   padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  /* Content fades out as it scrolls up under the header, instead of being cut
+     off in a hard line. The mask belongs to the scroller's box, not its
+     content, so the fade stays put while the content moves through it. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 1.5rem);
+  mask-image: linear-gradient(to bottom, transparent, #000 1.5rem);
+}
+/* The home screen's frame sits close under the profile row (pt-4). At least
+   the fade's depth, so nothing is faded while you're at the top. */
+html[data-pip-app] [data-shell="tight"] > main {
+  padding-top: 1.75rem;
 }

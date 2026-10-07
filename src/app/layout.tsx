@@ -62,6 +62,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Lets the page draw behind the notch and the home bar and makes iOS report
+  // env(safe-area-inset-*), which the store app pads by (globals.css). It has
+  // to be in the tag Next renders: added to the tag from script after load, it
+  // didn't stick, the insets read zero and the app's header sat under the
+  // clock (checked in the simulator, 2026-10-07). On the website
+  // nothing pads by the top inset outside the app, and the bottom inset only
+  // feeds the action bars, which were written to clear the home bar anyway.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
