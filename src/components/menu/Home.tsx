@@ -74,7 +74,7 @@ export function Home() {
   // again next time, which is fine while they are still new.
   const [showAll, setShowAll] = useState(false)
   const gettingStartedDismissed = useProfile((s) => s.gettingStartedDismissed)
-  const focused = isNewPlayer(stats) && !showAll
+  const focused = isNewPlayer(stats)
   // The two faces on the shelf. Pearl keeps the shop; Webb keeps Learn, being
   // the one in the cast who "wrote the book", so his face is the least
   // arbitrary icon available for it.
@@ -211,17 +211,55 @@ export function Home() {
               delay={0.3}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              sound.play('tap')
-              setShowAll(true)
-            }}
-            className="mx-auto mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/[0.05] hover:text-foreground"
-          >
-            More ways to play
-            <ChevronDown className="size-4" />
-          </button>
+          {/* "More ways to play" adds the rest underneath rather than swapping
+              to the full lobby, so nothing already on screen moves or
+              animates in again. */}
+          {showAll ? (
+            <>
+              {quick && <QuickPlayCard room={quick} delay={0} />}
+              {challenge && pick?.kind !== 'challenge' && (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+                  <ChallengeCard challenge={challenge} delay={0.05} />
+                </div>
+              )}
+              <MembershipCard delay={0.05} />
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <RoomCard
+                  title="Pearl’s counter"
+                  blurb="Card backs, rings, sounds and souvenirs."
+                  verb="Browse"
+                  icon={Store}
+                  face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
+                  onClick={() => {
+                    sound.play('tap')
+                    setShopOpen(true)
+                  }}
+                  delay={0.1}
+                />
+                <RoomCard
+                  title="Drills"
+                  blurb="Short spots with a right answer."
+                  verb="Play"
+                  icon={Play}
+                  face={<Target className="size-5 text-muted-foreground md:size-6" />}
+                  href="/game/drills"
+                  delay={0.12}
+                />
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                sound.play('tap')
+                setShowAll(true)
+              }}
+              className="mx-auto mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/[0.05] hover:text-foreground"
+            >
+              More ways to play
+              <ChevronDown className="size-4" />
+            </button>
+          )}
         </div>
       ) : (
         /* the main menu — one recommendation, the spine, the detours, the rooms */
