@@ -26,7 +26,6 @@ import { useRouter } from 'next/navigation'
 import type { Recap } from '@/lib/recap'
 import { deepRead } from '@/lib/deepCoach'
 import { reportTeaser } from '@/lib/review/teaser'
-import { AccountOffer } from '@/components/settings/AccountOffer'
 import { membershipFor } from '@/config/membership'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
@@ -54,7 +53,6 @@ export function RunRecap({ recap, member }: { recap: Recap; member: boolean }) {
         </div>
       )}
       {!member && <ReportLine />}
-      <AccountOffer variant="overlay" />
     </div>
   )
 }

@@ -38,11 +38,7 @@ const OFFER = 'src/components/settings/AccountOffer.tsx'
  * arriving on top. A fourth entry here is a decision, which is the point of
  * writing them down: you have to read the promise in rule 1 to add one.
  */
-const SURFACES = [
-  'src/components/menu/Home.tsx',
-  'src/components/table/RunRecap.tsx',
-  'src/components/AppBar.tsx',
-]
+const SURFACES = ['src/components/menu/Home.tsx', 'src/components/AppBar.tsx']
 
 /** Every `.tsx` under `src/`, so a new surface is caught the day it lands. */
 const allSources = (): string[] => {
@@ -101,7 +97,7 @@ test('the account offer cannot wait, count or remember', (t) => {
 //    that would fail on the real mistake: rendering the offer from a dialog, a
 //    portal or a route transition, where a piece of furniture becomes an
 //    interstitial and the promise on the landing page becomes false.
-test('the account offer only renders on the three screens it is furniture on', (t) => {
+test('the account offer only renders on the screens it is furniture on', (t) => {
   const rendering = allSources().filter(
     (path) => path !== OFFER && /<Account(Offer|BarButton)\b/.test(code(path)),
   )
@@ -130,4 +126,24 @@ test('every permanent account surface waits for the stored session', (t) => {
     components.length,
     'every component in AccountOffer.tsx renders nothing until useSync().ready and only while signed out',
   )
+})
+
+// 5. The newcomer funnel (Will, 2026-10-07). Two places now *ask* rather than
+//    sit there: a card between hands in a newcomer's first tournaments
+//    (table/SaveNudge) and the end-of-run card (table/FinishFunnel). The asking
+//    is allowed; these keep it to its shape. The mid-run card only ever renders
+//    in the between-hands branch, so it never covers a decision, and the rule
+//    for when it shows is the pure one in lib/newPlayer, which stops after the
+//    first tournaments and on "Not now".
+test('the mid-run save card only shows between hands, and only to newcomers', (t) => {
+  const table = code('src/components/table/Table.tsx')
+  const at = table.indexOf('<SaveNudge')
+  t.true(at > 0, 'Table.tsx no longer renders the save card')
+  t.is(table.indexOf('<SaveNudge', at + 1), -1, 'the save card is rendered in a second place')
+  const before = table.slice(0, at)
+  t.true(
+    before.lastIndexOf("status === 'handover'") > before.lastIndexOf('<ActionBar'),
+    'the save card is not in the between-hands branch',
+  )
+  t.regex(code('src/components/table/SaveNudge.tsx'), /offersSaveMidRun\(/)
 })

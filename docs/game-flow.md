@@ -179,6 +179,24 @@ tournament bookkeeping (`recordVenueEntry`, `recordVenueResult`, `tournamentsEnt
 stats, tendencies and reads still accrue normally. See [venues.md](./venues.md) for the stakes
 ladder and why difficulty tracks the stake.
 
+## A newcomer's first tournament
+
+The path a first visit takes (Will, 2026-10-07): press Play, dealt in at the Garage
+as "Player", and asked at the moments there is something to keep.
+
+- **The first Garage is short.** Until a player has finished a Garage tournament it
+  deals 25 big blinds (2/4) with blinds up every 5 hands, against the usual 50 and 12
+  (`seatedVenue` in `lib/newPlayer`, applied in the play route for sit-down and resume
+  alike). About fifteen hands. Same table, opponents and prize.
+- **Between hands, a save card.** Signed out, in the first three tournaments, once the
+  player is ahead or three hands in: "Save your Roll with a free account", above Next
+  hand, never over a decision. "Not now" puts it away for the sitting
+  (`offersSaveMidRun`, `table/SaveNudge`).
+- **At the end, the funnel.** The end-of-run card asks for a name while it is still
+  the placeholder and offers the account while signed out (`table/FinishFunnel`), and
+  its main button sits you down at the lobby's Next up table (`Play The Pub`), on a win
+  or a bust.
+
 ## The Daily Deal
 
 **One seeded tournament a day — everyone in the world who plays it gets the
