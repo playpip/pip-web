@@ -3,22 +3,25 @@
 /**
  * A section that arrives as you reach it.
  *
- * `/stats` had the effect first, done with a mount animation and a hand-tuned
- * delay per section — which works for the two blocks above the fold and is a
- * lie for everything below it: by the time you have scrolled to the venues,
- * they animated a second ago, off-screen, and you meet them already at rest.
+ * **It is visible in the static HTML.** This used to be a Framer `whileInView`
+ * with `initial={{ opacity: 0 }}`, and Framer writes `initial` into the
+ * prerendered markup as an inline `opacity:0`. Nothing lifts it until React has
+ * hydrated and the observer has fired, so with slow or no JavaScript the
+ * content was never there, and a section taller than the viewport could miss
+ * its `amount` threshold and stay at zero.
  *
- * `whileInView` is the honest version of the same idea, and it is the only
- * thing in here: same rise, same easing, same duration. `once` because a
- * section that re-animates every time it passes the fold is a section you
- * cannot read while scrolling.
+ * So the server renders it at rest, and the browser decides after mount: if the
+ * element is already on screen it is left alone (no flash), and if it is below
+ * the fold it is hidden in a layout effect, before the next paint, and animated
+ * in the first time any of it scrolls into view. No React state, so no extra
+ * render. `once` because a section that re-animates every time it passes the
+ * fold is a section you cannot read while scrolling.
  *
- * **Reduced motion is honoured by Framer's own setting**, which the two screens
- * using this already wrap in `MotionConfig reducedMotion="user"` at the app
- * level — the transform is dropped and the content is simply there.
+ * Reduced motion skips the whole thing: the content is simply there.
  */
 
-import { motion } from 'framer-motion'
+import { useLayoutEffect, useRef } from 'react'
+import { animate, inView } from 'framer-motion'
 
 export function Reveal({
   children,
@@ -30,15 +33,48 @@ export function Reveal({
   className?: string
   delay?: number
 }) {
+  const ref = useReveal<HTMLDivElement>(delay)
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.4, ease: 'easeOut', delay }}
-    >
+    <div ref={ref} className={className}>
       {children}
-    </motion.div>
+    </div>
   )
+}
+
+function useReveal<T extends HTMLElement>(delay = 0) {
+  const ref = useRef<T>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    // Already on screen: it was painted from the HTML, leave it where it is.
+    if (el.getBoundingClientRect().top < window.innerHeight) return
+
+    el.style.opacity = '0'
+    el.style.transform = 'translateY(12px)'
+    // `amount: 'some'` rather than a fraction: a fraction of a very tall
+    // section can be more than a screen, and then it never arrives.
+    const stop = inView(
+      el,
+      () => {
+        // Explicit keyframes: tweening a transform string to 'none' collapses
+        // the element to a zero matrix. Cleared at the end so nothing is left
+        // holding a transform (and a stacking context) it no longer needs.
+        animate(
+          el,
+          { opacity: [0, 1], y: [12, 0] },
+          { duration: 0.4, ease: 'easeOut', delay },
+        ).then(() => {
+          el.style.transform = ''
+        })
+      },
+      { amount: 'some', margin: '0px 0px -40px 0px' },
+    )
+    return () => {
+      stop()
+      el.style.opacity = ''
+      el.style.transform = ''
+    }
+  }, [delay])
+  return ref
 }

@@ -10,7 +10,7 @@
 // black-first, one accent (pip). Dark only (see docs/design.md).
 
 import Link from 'next/link'
-import { motion, type Variants } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   ArrowRight,
   Brain,
@@ -28,13 +28,14 @@ import {
 } from 'lucide-react'
 import { FaGithub } from 'react-icons/fa'
 import { CardBack } from '@/components/CardBack'
+import { Reveal } from '@/components/Reveal'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Wordmark } from './Wordmark'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
 import { ACCOUNT_OFFER } from '@/config/account'
-import { oauthProviders } from '@/lib/sync/client'
+import { oauthProviders, syncConfigured } from '@/lib/sync/client'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
 import { guideBySlug } from '@/config/learn'
@@ -130,14 +131,13 @@ function Header() {
 
 /* ---------------------------------- hero ---------------------------------- */
 
-const rise: Variants = {
-  hidden: { opacity: 0, y: 14 },
-  show: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: 0.05 * i, duration: 0.5, ease: [0.22, 1, 0.36, 1] },
-  }),
-}
+/**
+ * The hero's stagger, in CSS (`.rise-in` in globals.css). Everything above the
+ * fold uses this rather than Framer: a Framer `initial` is baked into the static
+ * HTML as `opacity:0` and waits for hydration, which left the headline and the
+ * Play button invisible for seconds on a slow load.
+ */
+const riseDelay = (i: number) => ({ '--rise-delay': `${0.05 * i}s` }) as React.CSSProperties
 
 function Hero() {
   return (
@@ -149,46 +149,34 @@ function Hero() {
       />
       <GhostSuits />
 
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-14 px-6 pt-16 pb-20 md:px-10 md:pt-24 md:pb-28 lg:grid-cols-[1.05fr_1fr]">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 px-6 pt-14 pb-20 md:px-10 md:pt-20 md:pb-28 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
         {/* copy */}
         <div className="max-w-xl">
-          <motion.div variants={rise} initial="hidden" animate="show" custom={0}>
+          <div className="rise-in" style={riseDelay(0)}>
             <span className="inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground">
               <Spade className="size-3.5 fill-current text-pip" />
-              Single-player Texas Hold’em, redesigned
+              Free · No signup · Plays in your browser
             </span>
-          </motion.div>
+          </div>
 
-          <motion.h1
-            variants={rise}
-            initial="hidden"
-            animate="show"
-            custom={1}
-            className="mt-6 text-5xl font-semibold leading-[1.02] tracking-tight text-balance md:text-6xl lg:text-7xl"
+          <h1
+            style={riseDelay(1)}
+            className="rise-in mt-6 text-5xl font-semibold leading-[1.02] tracking-tight text-balance md:text-6xl lg:text-7xl"
           >
             Poker without
             <br />
             the casino.
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            variants={rise}
-            initial="hidden"
-            animate="show"
-            custom={2}
-            className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty"
+          <p
+            style={riseDelay(2)}
+            className="rise-in mt-6 text-lg leading-relaxed text-muted-foreground text-pretty"
           >
-            Real Hold’em against AI that plays a proper game — wrapped in a calm, modern app. No
-            fake felt, no neon, no pop-ups. Just the table, your Roll, and the next hand.
-          </motion.p>
+            Texas Hold’em against a cast of AI regulars. Press Play and you’re dealt in. Learn as
+            you go: your odds sit beside your cards, and Level 1 of Webb’s lessons is free.
+          </p>
 
-          <motion.div
-            variants={rise}
-            initial="hidden"
-            animate="show"
-            custom={3}
-            className="mt-9 flex flex-wrap items-center gap-3"
-          >
+          <div style={riseDelay(3)} className="rise-in mt-9 flex flex-wrap items-center gap-3">
             <PlayButton size="lg" />
             <a
               href="#features"
@@ -196,17 +184,12 @@ function Hero() {
             >
               See how it plays
             </a>
-          </motion.div>
+          </div>
 
-          <motion.p
-            variants={rise}
-            initial="hidden"
-            animate="show"
-            custom={4}
-            className="mt-4 text-sm text-muted-foreground"
-          >
-            Plays in your browser, nothing to download. {ACCOUNT_OFFER}
-          </motion.p>
+          <p style={riseDelay(4)} className="rise-in mt-4 text-sm text-muted-foreground">
+            Play money only. {ACCOUNT_OFFER}
+          </p>
+          <SignInLink />
         </div>
 
         {/* the table showpiece — a real hand, not a mock */}
@@ -244,48 +227,59 @@ function GhostSuits() {
  * The hero showpiece: a real recorded hand at the Garage — flop a full house,
  * value-bet three streets, win at showdown. Answers a cold visitor's #1 question
  * ("what's it actually like to play?") with the game itself, not a mock-up.
- * Muted autoplay loop; falls back to a static poster for reduced-motion users
- * (the brand is calm — never flashing for attention). 5:4 to match the capture.
+ *
+ * The capture is cropped to the table (960×880, from a 1350×1080 recording of
+ * the whole window): the uncropped frame spent most of its pixels on the app
+ * bar and empty canvas, and at hero size the cards were too small to read.
+ * WebM first, MP4 for Safari, and the poster is the final frame, so it is also
+ * the LCP image and the still a reduced-motion visitor gets.
  */
 function HeroTable() {
   const reducedMotion = usePrefersReducedMotion()
   return (
-    <motion.div
-      variants={rise}
-      initial="hidden"
-      animate="show"
-      custom={2}
-      className="relative flex items-center justify-center"
-    >
+    <div style={riseDelay(2)} className="rise-in relative flex items-center justify-center">
       {/* soft focus glow behind the frame */}
       <div
         aria-hidden
-        className="pointer-events-none absolute size-[32rem] rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_20%,transparent),transparent_70%)] blur-3xl"
+        className="pointer-events-none absolute size-[36rem] max-w-full rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_20%,transparent),transparent_70%)] blur-3xl"
       />
-      <div className="relative aspect-[5/4] w-full overflow-hidden rounded-3xl border border-foreground/10 bg-background shadow-2xl shadow-black/30 ring-1 ring-black/5 dark:shadow-black/60 dark:ring-white/5">
-        {reducedMotion ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src="/hero-poster.jpg"
-            alt="A hand at the Garage — a full house wins 136 at showdown"
-            className="size-full object-cover"
-          />
-        ) : (
-          <video
-            className="size-full object-cover"
-            poster="/hero-poster.jpg"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            aria-label="Gameplay: a full house wins at showdown at the Garage"
-          >
-            <source src="/hero.mp4" type="video/mp4" />
-          </video>
-        )}
-      </div>
-    </motion.div>
+      <figure className="relative w-full overflow-hidden rounded-3xl border border-foreground/10 bg-black shadow-2xl shadow-black/60 ring-1 ring-white/5">
+        {/* a quiet title bar, so the frame reads as the app rather than a clip */}
+        <figcaption className="flex items-center justify-between border-b border-foreground/10 px-4 py-2.5 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/80">Friends’ Garage</span>
+          <span className="tabular-nums">A real hand, recorded</span>
+        </figcaption>
+        <div className="relative aspect-[12/11] w-full">
+          {reducedMotion ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src="/hero-poster.jpg"
+              alt="A hand at the Garage: a full house wins 136 at showdown"
+              width={960}
+              height={880}
+              fetchPriority="high"
+              className="size-full object-cover"
+            />
+          ) : (
+            <video
+              className="size-full object-cover"
+              poster="/hero-poster.jpg"
+              width={960}
+              height={880}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-label="Gameplay: a full house wins at showdown at the Garage"
+            >
+              <source src="/hero.webm" type="video/webm" />
+              <source src="/hero.mp4" type="video/mp4" />
+            </video>
+          )}
+        </div>
+      </figure>
+    </div>
   )
 }
 
@@ -296,7 +290,7 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
     {
       icon: ShieldCheck,
       title: 'No real money',
-      body: 'Play-money chips only. No wallet, no losses, no “buy more.”',
+      body: 'Play-money chips only. Chips are never for sale.',
     },
     {
       // Led with the negative for months, which is us arguing against our own
@@ -306,7 +300,7 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       title: 'Free account, nothing to confirm',
       // Names Google and Apple only in a build that offers them, as the signup
       // dialog does.
-      body: `${oauthProviders().length > 0 ? 'Google, Apple, or an email and a password' : 'An email and a password'}, and your Roll follows you to every device. Or play without one. Nothing free needs an account.`,
+      body: `${oauthProviders().length > 0 ? 'Google, Apple, or an email and a password' : 'An email and a password'}. Your Roll follows you to every device. Or play without one.`,
     },
     {
       icon: Sparkles,
@@ -322,7 +316,7 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
     {
       icon: FaGithub,
       title: 'Open source',
-      body: 'Every hand, shuffle, and line of the engine is public. Read it, fork it, self-host it.',
+      body: 'The engine and the shuffle are public on GitHub.',
     },
   ]
 
@@ -331,15 +325,7 @@ function TrustStrip() {
     <section className="border-y border-foreground/5 bg-foreground/[0.015]">
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-px overflow-hidden px-6 py-2 sm:grid-cols-2 lg:grid-cols-4 md:px-10">
         {TRUST.map(({ icon: Icon, title, body }, i) => (
-          <motion.div
-            key={title}
-            variants={rise}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-80px' }}
-            custom={i}
-            className="flex items-start gap-3 px-2 py-6 sm:px-6"
-          >
+          <Reveal key={title} className="flex items-start gap-3 px-2 py-6 sm:px-6" delay={i * 0.05}>
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-foreground/[0.05] text-foreground/70">
               <Icon className="size-4.5" />
             </span>
@@ -347,7 +333,7 @@ function TrustStrip() {
               <p className="text-sm font-semibold">{title}</p>
               <p className="mt-1 text-sm leading-snug text-muted-foreground">{body}</p>
             </div>
-          </motion.div>
+          </Reveal>
         ))}
       </div>
     </section>
@@ -368,7 +354,7 @@ function Venues() {
       <SectionHeading
         eyebrow="Where you'll play"
         title="A ladder to climb. Side tables to raid."
-        body="Ten winner-take-all venues, Friends’ Garage up to The Main Event, plus side tables that bend the format. Same clean game throughout — the Garage forgives, the Main Event doesn’t."
+        body="Ten winner-take-all tournaments, from Friends’ Garage up to The Main Event. A bigger Roll opens bigger tables."
       />
 
       <div className="mt-12">
@@ -386,7 +372,7 @@ function Venues() {
             tables the tour no longer includes (docs/membership.md). */}
         <RailHeader
           title="Side tables"
-          hint="Same game, different pressure — they come with the membership, and none of them gate your climb"
+          hint="Turbo, heads-up, bounty and deep stacks · with the membership"
         />
         <VenueRail venues={SIDE_TABLES} badge={formatBadge} />
       </div>
@@ -439,14 +425,10 @@ function VenueRail({
     <div className="relative mt-4">
       <div className="flex gap-4 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {venues.map((v, i) => (
-          <motion.div
+          <Reveal
             key={v.id}
-            variants={rise}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-            custom={i}
             className="w-56 shrink-0 overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02]"
+            delay={i * 0.05}
           >
             <div className="relative aspect-[4/3]">
               <VenueArt id={v.id} accent={v.accent} className="size-full" />
@@ -462,7 +444,7 @@ function VenueRail({
                 </span>
               </div>
             </div>
-          </motion.div>
+          </Reveal>
         ))}
       </div>
       {/* fade the right edge to imply the rest of the rail */}
@@ -487,28 +469,21 @@ function Features() {
     >
       <div className="mx-auto w-full max-w-6xl px-6 py-24 md:px-10 md:py-28">
         <SectionHeading
-          eyebrow="Built to respect you"
-          title="Everything the game needs. Nothing it doesn’t."
-          body="A pure, deterministic poker engine under a quiet, tactile interface. The sharp stuff runs deep; the surface stays calm."
+          eyebrow="Features"
+          title="What you get at the table"
+          body="AI opponents with real styles, your odds on screen, and a few things to keep."
         />
 
         {/* ── AI: the star feature, given a full alternating band ───────────── */}
         <div className="mt-16 grid items-center gap-10 lg:mt-20 lg:grid-cols-2 lg:gap-16">
-          <motion.div
-            variants={rise}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-80px' }}
-          >
+          <Reveal>
             <FeatureIcon icon={Brain} />
             <h3 className="mt-5 text-3xl font-semibold tracking-tight text-balance">
               A cast you’ll get to know
             </h3>
             <p className="mt-3 text-lg leading-relaxed text-muted-foreground text-pretty">
-              Pip seats a fixed troupe of regulars, not random bots. Each weighs Monte-Carlo equity
-              against pot odds through a personality of their own — they value-bet thin, float,
-              barrel, and lay hands down. And they remember you: your reads on them build across
-              sessions, like a real home game.
+              The same regulars every time, each with their own style. They value-bet, bluff and
+              fold good hands, and the reads you build on them carry over between sessions.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               {['Value-bets thin', 'Semi-bluffs', 'Sets traps', 'Career-long reads'].map((t) => (
@@ -520,26 +495,22 @@ function Features() {
                 </span>
               ))}
             </div>
-          </motion.div>
+          </Reveal>
 
           {/* the regulars — the actual cast, faces and bios straight from the game */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {REGULARS.map((r, i) => (
-              <motion.div
+              <Reveal
                 key={r.id}
-                variants={rise}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: '-60px' }}
-                custom={i}
                 className="flex min-w-0 items-center gap-3 rounded-2xl border border-foreground/10 bg-background p-4"
+                delay={i * 0.05}
               >
                 <PlayerAvatar spec={r.avatar} size={48} className="shrink-0" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{r.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{r.bio}</p>
                 </div>
-              </motion.div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -549,7 +520,7 @@ function Features() {
           <FeatureCard
             icon={CalendarDays}
             title="The Daily Deal"
-            body="One seeded tournament a day — everyone in the world plays the identical shuffle, and because the engine is open source, that's provable. Same cards, same opponents; your play makes the difference."
+            body="One tournament a day. Everyone plays the same cards against the same opponents."
           >
             <DailyShareMock />
           </FeatureCard>
@@ -557,15 +528,15 @@ function Features() {
           <FeatureCard
             icon={Link2}
             title="Bad beats travel"
-            body="Share any hand as a link — the whole hand lives in the URL, no server, no account. Whoever opens it watches the replay, action by action, cards and all."
+            body="Share any hand as a link. Whoever opens it watches the replay, action by action."
           >
             <HandLinkMock />
           </FeatureCard>
 
           <FeatureCard
             icon={Gauge}
-            title="Calm information"
-            body="Live win-% and hand strength sit quietly at the table — there when you want them, never flashing for attention. Lifetime stats and your Roll-over-time graph are one tap away."
+            title="Your odds on screen"
+            body="Your win chance and hand strength sit beside your cards. Lifetime stats and a graph of your Roll are one tap away."
           >
             <EquityReadout />
           </FeatureCard>
@@ -573,7 +544,7 @@ function Features() {
           <FeatureCard
             icon={Palette}
             title="Make it yours"
-            body="Build an avatar, pick a card back, and spend winnings at the Chip Shop — decks, table finishes, souvenirs. Style and story, never edge: nothing for sale touches the odds."
+            body="Pick an avatar and a card back, and spend winnings at the Chip Shop on decks, table finishes and souvenirs. Nothing in it changes a hand."
           >
             <CustomizeStrip />
           </FeatureCard>
@@ -581,16 +552,14 @@ function Features() {
 
         {/* ── The quiet essentials ─────────────────────────────────────────── */}
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <MiniFeature icon={Volume2} title="Tactile, not casino">
-            Clean SFX synthesised in the browser — quiet blips, no coin-clatter or jingles.
+          <MiniFeature icon={Volume2} title="Quiet sound">
+            Soft clicks for cards and chips. No jingles.
           </MiniFeature>
-          <MiniFeature icon={WifiOff} title="Yours & offline">
-            Fully local. Install it, pull the plug, keep playing — nothing leaves your device unless
-            you ask it to.
+          <MiniFeature icon={WifiOff} title="Works offline">
+            Install it and keep playing without a connection.
           </MiniFeature>
-          <MiniFeature icon={Sparkles} title="A shelf worth filling">
-            Earn one-off award chips for heroic hands — and buy souvenir chips of every venue you
-            conquer. The gaps are the goal list.
+          <MiniFeature icon={Sparkles} title="Award chips">
+            Win a chip for a big hand, and buy a souvenir from every venue you win.
           </MiniFeature>
         </div>
       </div>
@@ -610,11 +579,7 @@ function FeatureCard({
   children: React.ReactNode
 }) {
   return (
-    <motion.div
-      variants={rise}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: '-60px' }}
+    <Reveal
       // min-w-0: grid items refuse to shrink below their content's min-content
       // width — without it the nowrap mock lines push the whole card grid past
       // the edge of a phone screen.
@@ -624,7 +589,7 @@ function FeatureCard({
       <h3 className="mt-5 text-xl font-semibold tracking-tight">{title}</h3>
       <p className="mt-2.5 text-md leading-relaxed text-muted-foreground">{body}</p>
       <div className="mt-auto pt-7">{children}</div>
-    </motion.div>
+    </Reveal>
   )
 }
 
@@ -656,9 +621,7 @@ function EquityReadout() {
           className="h-full rounded-full bg-pip"
         />
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        Ace-king, three players still in. It sits there and waits to be looked at.
-      </p>
+      <p className="mt-3 text-xs text-muted-foreground">Ace-king, three players still in.</p>
     </div>
   )
 }
@@ -709,7 +672,6 @@ function DailyShareMock() {
         </span>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        No streaks, no countdowns. Tomorrow is simply another deal.{' '}
         <Link href="/daily" className="font-medium text-foreground transition hover:text-pip">
           How the Daily works
         </Link>
@@ -739,7 +701,7 @@ function HandLinkMock() {
         </span>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Quads on the river, {token.length} characters of it, and not one of them on a server.
+        Quads on the river, in {token.length} characters. No server holds it.
       </p>
     </div>
   )
@@ -763,19 +725,13 @@ function MiniFeature({
   children: React.ReactNode
 }) {
   return (
-    <motion.div
-      variants={rise}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: '-60px' }}
-      className="rounded-3xl border border-foreground/10 bg-background p-6"
-    >
+    <Reveal className="rounded-3xl border border-foreground/10 bg-background p-6">
       <div className="flex items-center gap-2.5">
         <Icon className="size-4.5 text-foreground/60" />
         <p className="text-sm font-semibold">{title}</p>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{children}</p>
-    </motion.div>
+    </Reveal>
   )
 }
 
@@ -794,16 +750,9 @@ function Learn() {
           <SectionHeading
             eyebrow="Learn"
             title="Never played a hand? Start here."
-            body="Start with a three-minute tour of the basics, which is Level 1 of Lessons with Webb. After it he teaches on the real felt: he deals a hand, stops to ask what you would do, and you answer with the real buttons. Level 1 and every written guide are free; the levels after it come with the membership."
+            body="Level 1 is a three-minute tour of the basics. After that Webb teaches at the table: he deals a hand, asks what you would do, and you answer with the real buttons. Level 1 and every written guide are free."
           />
-          <motion.div
-            variants={rise}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-80px' }}
-            custom={2}
-            className="mt-9 flex flex-wrap items-center gap-3"
-          >
+          <Reveal className="mt-9 flex flex-wrap items-center gap-3" delay={0.1}>
             <Link
               href="/tutorial"
               onClick={() => sound.play('tap')}
@@ -819,7 +768,7 @@ function Learn() {
               Read the guides
               <ArrowRight className="size-3.5" />
             </Link>
-          </motion.div>
+          </Reveal>
         </div>
 
         <GuideShowpiece webb={webb} />
@@ -847,13 +796,7 @@ function GuideShowpiece({ webb }: { webb?: Character }) {
   if (!guide) return null
 
   return (
-    <motion.div
-      variants={rise}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: '-80px' }}
-      custom={1}
-    >
+    <Reveal delay={0.05}>
       <Link
         href={`/learn/${guide.slug}`}
         onClick={() => sound.play('tap')}
@@ -909,7 +852,7 @@ function GuideShowpiece({ webb }: { webb?: Character }) {
           </div>
         </div>
       </Link>
-    </motion.div>
+    </Reveal>
   )
 }
 
@@ -945,17 +888,11 @@ function Membership() {
         <SectionHeading
           eyebrow="Free, and the membership"
           title="The game is free. The membership adds to it."
-          body="The ladder, the Rail, the Daily and the freeroll are free forever, and none of them ever need the membership. It adds more beside them: the side tables, the games that are not Hold’em, the rest of Webb’s lessons and drills, and the tools that read your play back to you."
+          body="The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds the side tables, other games, the rest of Webb’s lessons and drills, and reports on your play."
         />
 
         <div className="mt-12 grid gap-4 md:grid-cols-2">
-          <motion.div
-            variants={rise}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-            className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-7"
-          >
+          <Reveal className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-7">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
               Free, for good
             </p>
@@ -971,15 +908,11 @@ function Membership() {
             <div className="mt-auto pt-8">
               <PlayButton size="lg" />
             </div>
-          </motion.div>
+          </Reveal>
 
-          <motion.div
-            variants={rise}
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: '-60px' }}
-            custom={1}
+          <Reveal
             className="flex min-w-0 flex-col rounded-3xl border border-pip/30 bg-background p-7"
+            delay={0.05}
           >
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-pip">
               The membership
@@ -1010,7 +943,7 @@ function Membership() {
               </Link>
               <span className="text-sm text-muted-foreground">Cancel any time.</span>
             </div>
-          </motion.div>
+          </Reveal>
         </div>
 
         <p className="mt-6 max-w-2xl text-sm text-muted-foreground text-pretty">
@@ -1031,34 +964,17 @@ function FinalCta() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(50%_80%_at_50%_100%,color-mix(in_oklch,var(--color-pip)_14%,transparent),transparent_70%)]"
       />
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 py-28 text-center md:px-10 md:py-36">
-        <motion.h2
-          variants={rise}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-6xl"
-        >
-          Pull up a chair.
-        </motion.h2>
-        <motion.p
-          variants={rise}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          custom={1}
-          className="mt-5 max-w-lg text-lg text-muted-foreground text-pretty"
-        >
-          Make a player, take a seat at the Garage, and see how far your Roll climbs. The whole
-          ladder is free, and it stays free for good.
-        </motion.p>
-        <motion.div
-          variants={rise}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          custom={2}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
-        >
+        <Reveal>
+          <h2 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-6xl">
+            Pull up a chair.
+          </h2>
+        </Reveal>
+        <Reveal delay={0.05}>
+          <p className="mt-5 max-w-lg text-lg text-muted-foreground text-pretty">
+            Press Play and you’re dealt in at Friends’ Garage. The whole ladder is free.
+          </p>
+        </Reveal>
+        <Reveal className="mt-9 flex flex-wrap items-center justify-center gap-3" delay={0.1}>
           <PlayButton size="lg" />
           {/* The quiet second door. The app has no signup route (the account
               is a dialog), so this lands on the lobby and asks it to open the
@@ -1070,7 +986,7 @@ function FinalCta() {
           >
             Create a free account
           </Link>
-        </motion.div>
+        </Reveal>
       </div>
     </section>
   )
@@ -1126,6 +1042,31 @@ function PlayButton({ size = 'lg', className }: { size?: 'sm' | 'lg'; className?
   )
 }
 
+/**
+ * The way back for a returning player on a new device. Play would deal them in
+ * as somebody new; this opens sign-in on the lobby instead, and the blank player
+ * made there is replaced by theirs (lib/sync/plan: a pristine device restores).
+ * Gone once this browser has a player, who has the AppBar's account button.
+ */
+function SignInLink() {
+  const hydrated = useHydrated()
+  const created = useProfile((s) => s.created)
+  // A build with no accounts behind it has nothing to sign in to.
+  if (!syncConfigured() || (hydrated && created)) return null
+  return (
+    <p style={riseDelay(4)} className="rise-in mt-2 text-sm text-muted-foreground">
+      Already have an account?{' '}
+      <Link
+        href="/game?account=signin"
+        onClick={() => sound.play('tap')}
+        className="font-medium text-foreground underline-offset-2 transition hover:text-pip hover:underline"
+      >
+        Sign in
+      </Link>
+    </p>
+  )
+}
+
 /* -------------------------------- shared bits ----------------------------- */
 
 function SectionHeading({
@@ -1138,18 +1079,12 @@ function SectionHeading({
   body: string
 }) {
   return (
-    <motion.div
-      variants={rise}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: '-80px' }}
-      className="max-w-2xl"
-    >
+    <Reveal className="max-w-2xl">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-pip">{eyebrow}</p>
       <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance md:text-4xl">
         {title}
       </h2>
       <p className="mt-4 text-lg leading-relaxed text-muted-foreground text-pretty">{body}</p>
-    </motion.div>
+    </Reveal>
   )
 }
