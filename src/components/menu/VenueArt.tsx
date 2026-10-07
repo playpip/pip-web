@@ -294,6 +294,11 @@ function VenueScene({ id, accent, className }: { id: string; accent: string; cla
   )
 }
 
+/** The venue's painting, or undefined where it has none (a built table). */
+export function venueImage(id: string): string | undefined {
+  return VENUE_IMAGES[id]
+}
+
 export function VenueArt({
   id,
   accent,

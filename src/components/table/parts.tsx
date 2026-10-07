@@ -239,6 +239,7 @@ export function HeroCards({
   hand,
   size,
   fanned = false,
+  tactile = false,
   discarding,
   marked,
   onToggle,
@@ -247,6 +248,12 @@ export function HeroCards({
   hand: HandState
   size: CardSize
   fanned?: boolean
+  /**
+   * The live table's: the cards lift under the pointer and give under a
+   * press, like cards in a hand. Off for the review and the lessons, where
+   * the cards are a record rather than something you are holding.
+   */
+  tactile?: boolean
   /** Five-Card Draw's discard round: the cards become buttons. */
   discarding?: boolean
   marked?: readonly number[]
@@ -281,6 +288,18 @@ export function HeroCards({
               )}
             />
           )
+          if (!discarding && tactile && !folded)
+            return (
+              <motion.div
+                key={`${card.rank}${card.suit}`}
+                className="relative"
+                whileHover={{ y: -8, zIndex: 1 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+              >
+                {dealt}
+              </motion.div>
+            )
           if (!discarding) return dealt
           return (
             <button
@@ -339,6 +358,7 @@ export function HeroPanel({
   defaultPage = 0,
   oddsLabel = 'to win',
   result = null,
+  corners,
 }: {
   hero: Player
   avatar: AvatarSpec
@@ -356,6 +376,12 @@ export function HeroPanel({
    * a freeroll, and the review.
    */
   result?: number | null
+  /**
+   * Two small controls for the panel's top corners. The live table's phone
+   * layout puts help and last hand here, because the bar has no room for them
+   * and anywhere else on the felt they look dropped (Will, 2026-10-07).
+   */
+  corners?: { left?: React.ReactNode; right?: React.ReactNode }
 }) {
   const money = useMoney()
   const label = useHandLabel(hero, hand)
@@ -456,6 +482,13 @@ export function HeroPanel({
           )}
         </AnimatePresence>
       </motion.div>
+
+      {corners && (
+        <>
+          <div className="absolute left-0.5 top-0.5 text-muted-foreground">{corners.left}</div>
+          <div className="absolute right-0.5 top-0.5 text-muted-foreground">{corners.right}</div>
+        </>
+      )}
 
       <div className="absolute bottom-1.5 flex gap-1.5">
         {([0, 1] as const).map((i) => (

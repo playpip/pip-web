@@ -104,9 +104,11 @@ test('cards go face up for a spectator and for a showdown, and nothing else', (t
   t.regex(source, /const spectating = status === 'watching'/)
   t.regex(source, /const revealAll = showdownReveal \|\| spectating/)
   // Every seat's reveal reads the combined flag, so there is one rule rather
-  // than one per render site.
+  // than one per render site. Since the table was drawn as a table (2026-10-07)
+  // phone and desktop seat their opponents through the same site; at least one
+  // has to exist, or this test is checking nothing.
   const reveals = source.match(/reveal=\{[^}]*\}/g) ?? []
-  t.true(reveals.length >= 2, `found ${reveals.length} reveal sites, expected the table's two`)
+  t.true(reveals.length >= 1, `found ${reveals.length} reveal sites, expected at least one`)
   for (const site of reveals) {
     t.true(site.includes('revealAll'), `a reveal site does not use the shared rule: ${site}`)
   }

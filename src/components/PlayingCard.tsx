@@ -52,6 +52,18 @@ export const SIZES = {
     pad: 'p-[min(0.5rem,2.5vw)] sm:p-2.5',
     r: 'rounded-xl',
   },
+  // The live table's board. The cards sit *on* the cloth now, inside the
+  // oval's rail, so on a phone they give up a little of `board`'s width to
+  // keep clear of it. Same card from `sm` up. Type caps scale with the box
+  // (`board`'s caps × 14.5/18), per the card-face rule above.
+  felt: {
+    w: 'w-[14.5vw] sm:w-20',
+    h: 'h-[20.3vw] sm:h-28',
+    rank: 'text-[min(1.875rem,7.6vw)] sm:text-4xl',
+    suit: 'text-[min(1.25rem,5.1vw)] sm:text-2xl',
+    pad: 'p-[min(0.5rem,2vw)] sm:p-2.5',
+    r: 'rounded-xl',
+  },
   // The drill board — the table's five cards inside a padded content column
   // rather than full-bleed felt, so a touch narrower than `board` or the row
   // runs into the gutter on a small phone.

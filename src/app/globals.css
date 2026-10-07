@@ -71,6 +71,23 @@
   --color-cardface-ink: #16161d;
   --color-pip: #7c8cf0;
   --color-felt: #0a0a0b;
+
+  /* The table itself (components/table/surface.tsx). A quiet graphite cloth
+     (the venue's accent is mixed into it) and a dark rail: a place to sit, not
+     a casino. A table finish from the Chip Shop replaces the cloth; the rail
+     and the chips stay. */
+  --color-table-cloth: #22242b;
+  --color-table-rail: #141418;
+  --color-table-rail-edge: #2a2a31;
+  --color-table-line: #f4efe1;
+  --color-table-shade: #050506;
+
+  /* Chips. Muted, four denominations, read as clay rather than plastic. */
+  --color-chip-ivory: #e9e3d3;
+  --color-chip-coral: #c9574f;
+  --color-chip-slate: #4a6488;
+  --color-chip-ink: #26262e;
+  --color-chip-stripe: #f6f2e8;
 }
 
 /* Dark only (Will, 2026-10-03). The `dark` class stays on <html> so the
@@ -191,6 +208,53 @@
   animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: var(--rise-delay, 0s);
 }
+
+/* --- the table: chips and the turn ring --------------------------------------
+   A chip is an ellipse seen from a low angle: a striped edge (conic stripes),
+   a plain face inset on top, and a darker lip underneath for thickness. Stacks
+   are absolutely placed chips, three pixels apart. Sized in px because it is a
+   drawing, not type. */
+.table-chip {
+  position: absolute;
+  left: 0;
+  width: 22px;
+  height: 13px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 8deg,
+    var(--chip) 0deg 30deg,
+    var(--color-chip-stripe) 30deg 45deg
+  );
+  box-shadow:
+    0 2px 0 color-mix(in oklab, var(--chip) 55%, var(--color-table-shade)),
+    0 3px 5px color-mix(in oklab, var(--color-table-shade) 45%, transparent);
+}
+.table-chip::after {
+  content: "";
+  position: absolute;
+  inset: 2.5px 4px;
+  border-radius: 50%;
+  background: var(--chip);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-chip-stripe) 35%, transparent);
+}
+
+/* The active seat's ring: a short bright arc travelling round a faint track.
+   Under reduced motion it stops and is simply a ring. */
+@keyframes seat-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.seat-turn {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 200deg,
+    color-mix(in oklab, var(--foreground) 85%, transparent) 300deg,
+    transparent 360deg
+  );
+  animation: seat-turn 1.6s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .venue-drift,
   .venue-breathe,
@@ -198,6 +262,10 @@
   .foil-sweep,
   .rise-in {
     animation: none;
+  }
+  .seat-turn {
+    animation: none;
+    background: color-mix(in oklab, var(--foreground) 70%, transparent);
   }
 }
 
