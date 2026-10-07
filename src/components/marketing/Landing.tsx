@@ -224,13 +224,13 @@ function GhostSuits() {
 }
 
 /**
- * The hero showpiece: a real recorded hand at the Garage — flop a full house,
- * value-bet three streets, win at showdown. Answers a cold visitor's #1 question
+ * The hero showpiece: a real recorded hand at the Garage — flop the nut straight,
+ * call down against a king-high straight, win at showdown. Answers a cold visitor's #1 question
  * ("what's it actually like to play?") with the game itself, not a mock-up.
  *
- * The capture is cropped to the table (960×880, from a 1350×1080 recording of
- * the whole window): the uncropped frame spent most of its pixels on the app
- * bar and empty canvas, and at hero size the cards were too small to read.
+ * The capture is cropped to the felt (1200×1100, from a 1350×1080 window
+ * recorded at 2× pixel density, app bar left out): the oval, the seats on the
+ * rail and the action bar, nothing else, so the cards stay readable at hero size.
  * WebM first, MP4 for Safari, and the poster is the final frame, so it is also
  * the LCP image and the still a reduced-motion visitor gets.
  */
@@ -254,9 +254,9 @@ function HeroTable() {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src="/hero-poster.jpg"
-              alt="A hand at the Garage: a full house wins 136 at showdown"
-              width={960}
-              height={880}
+              alt="A hand at the Garage: an ace-high straight wins 78 at showdown"
+              width={1200}
+              height={1100}
               fetchPriority="high"
               className="size-full object-cover"
             />
@@ -264,14 +264,14 @@ function HeroTable() {
             <video
               className="size-full object-cover"
               poster="/hero-poster.jpg"
-              width={960}
-              height={880}
+              width={1200}
+              height={1100}
               autoPlay
               muted
               loop
               playsInline
               preload="auto"
-              aria-label="Gameplay: a full house wins at showdown at the Garage"
+              aria-label="Gameplay: an ace-high straight wins at showdown at the Garage"
             >
               <source src="/hero.webm" type="video/webm" />
               <source src="/hero.mp4" type="video/mp4" />
