@@ -227,8 +227,12 @@ export default function DailyPage() {
           a number that punishes a day off.
         </p>
         <p>
-          <strong className={strong}>There is no countdown and no reminder.</strong> No
-          notification, no email, no badge on the tab. Miss a day and nothing happens to you.
+          <strong className={strong}>
+            There is no countdown, and no reminder you did not ask for.
+          </strong>{' '}
+          No notification and no badge on the tab. With an account you can ask for one email on the
+          evening of a day you have not played, if you played the day before. It is off until you
+          turn it on. Miss a day and nothing happens to you.
         </p>
         <p>
           <strong className={strong}>There is no leaderboard.</strong> There is no server keeping
