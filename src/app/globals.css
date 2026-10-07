@@ -206,33 +206,6 @@
        pinch-zoom; this covers the double-tap gesture). */
     touch-action: manipulation;
   }
-  /* The store app's web view brings back iOS's springy scroll, which a native
-     app has and the PWA turns off above. Not on the felt: a table screen is
-     fixed to the screen height, and a rubber-banding table reads as a page.
-     `data-pip-app` is set by AppBoot, `data-felt` by each table screen. */
-  html[data-pip-app],
-  html[data-pip-app] body {
-    overscroll-behavior: auto;
-  }
-  html[data-pip-app]:has([data-felt]),
-  html[data-pip-app]:has([data-felt]) body {
-    overscroll-behavior: none;
-  }
-  /* The shell draws the web view edge to edge so the felt runs behind the
-     notch and the home bar (FeltBackdrop is fixed to the whole screen). The
-     page pads itself clear of them instead. A felt screen pads only the top:
-     it is fixed to the screen height and already clears the home bar itself
-     with env(safe-area-inset-bottom) on its action bar. */
-  html[data-pip-app] body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  html[data-pip-app]:has([data-felt]) body {
-    padding-bottom: 0;
-  }
-  html[data-pip-app] [data-felt] {
-    height: calc(100dvh - env(safe-area-inset-top));
-  }
   /* iOS zooms toward any focused control whose text is under 16px. Keeping the
      font at least 16px stops that jump even where the viewport hint is loose. */
   input,
@@ -246,4 +219,42 @@
       scroll-behavior: auto;
     }
   }
+}
+
+/* The store app (mobile/). `data-pip-app` is set on <html> by AppBoot, only
+   inside the app. Unlayered on purpose: these must beat the Tailwind classes
+   on the same elements (h-dvh, pb-8), and utilities outrank anything in
+   @layer base.
+
+   The shell draws the web view edge to edge on iOS, so the felt runs behind
+   the notch and the home bar, and the page pads itself clear of them.
+
+   Scrolling should feel like a native app: the header stays put and only the
+   content under it scrolls and springs. So the page itself never rubber-bands
+   on a screen that has a frame (`data-shell`, PageShell) or a table
+   (`data-felt`). Both are fixed to the screen height. PageShell's <main>
+   becomes the scroller and keeps iOS's bounce inside it. A page with neither
+   (the prose pages) scrolls and bounces as a whole, like a document should. */
+html[data-pip-app] body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+html[data-pip-app]:has([data-felt], [data-shell]),
+html[data-pip-app]:has([data-felt], [data-shell]) body {
+  overscroll-behavior: none;
+}
+html[data-pip-app]:has([data-felt], [data-shell]) body {
+  padding-bottom: 0;
+}
+/* A felt screen clears the home bar itself, with env(safe-area-inset-bottom)
+   on its action bar, so it only gives up the top. */
+html[data-pip-app] [data-felt],
+html[data-pip-app] [data-shell] {
+  height: calc(100dvh - env(safe-area-inset-top));
+  min-height: 0;
+}
+html[data-pip-app] [data-shell] > main {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }

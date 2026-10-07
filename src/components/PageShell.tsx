@@ -21,7 +21,9 @@ export function PageShell({
   const spacious = appBar.leading !== 'profile'
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    // `data-shell`: in the store app, the AppBar stays put and <main> scrolls
+    // under it, like a native screen (globals.css). Nothing changes on the web.
+    <div data-shell className="flex min-h-dvh flex-col">
       <AppBar {...appBar} />
       {/* Padding lives on the outer wrapper and the max-w cap on the inner
           column — the SAME structure as AppBar — so the content column lines up
