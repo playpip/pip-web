@@ -31,7 +31,16 @@ import { membershipFor } from '@/config/membership'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
 
-export function RunRecap({ recap, member }: { recap: Recap; member: boolean }) {
+export function RunRecap({
+  recap,
+  member,
+  accountOffer = true,
+}: {
+  recap: Recap
+  member: boolean
+  /** Off at the Welcome Table, whose next screen is the account. */
+  accountOffer?: boolean
+}) {
   return (
     <div className="mx-auto mt-6 w-full max-w-sm rounded-3xl bg-white/5 p-5">
       {/* The overlay is always dark, so this block is on white alphas rather
@@ -54,7 +63,7 @@ export function RunRecap({ recap, member }: { recap: Recap; member: boolean }) {
         </div>
       )}
       {!member && <ReportLine />}
-      <AccountOffer variant="overlay" />
+      {accountOffer && <AccountOffer variant="overlay" />}
     </div>
   )
 }
