@@ -89,7 +89,8 @@ export default function PrivacyPage() {
       <Section title="Email">
         <p>
           Pip only emails you about your play if you ask it to. With an account you can turn on two
-          kinds, in Settings or with the box when you create the account. Both are off until you do.
+          kinds, in Settings → Manage account or with the box when you create the account. Both are
+          off until you do.
         </p>
         <List>
           <Item>
@@ -117,8 +118,8 @@ export default function PrivacyPage() {
         <p>
           Every email has an unsubscribe link at the foot, and your mail app’s own Unsubscribe
           button works too. Either one turns off both kinds, with no sign-in. You can also turn them
-          off in Settings, and deleting your account deletes all of this with it. Password-reset
-          email, when you ask for one, is separate and always sent.
+          off in Settings → Manage account, and deleting your account deletes all of this with it.
+          Password-reset email, when you ask for one, is separate and always sent.
         </p>
       </Section>
 

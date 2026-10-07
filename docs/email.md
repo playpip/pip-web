@@ -13,7 +13,7 @@ Password-reset email is separate: Supabase Auth sends it through Resend's SMTP, 
 The code: `supabase/migrations/20261007090000_email_prefs.sql`, `supabase/functions/send-emails`,
 `supabase/functions/unsubscribe`, the pure logic in `supabase/functions/_shared/email.ts`
 (tested by `tests/email.test.ts`), the schedule in `supabase/cron/send-emails.sql`, the switches
-in `src/lib/email/prefs.ts`, `src/store/emailPrefs.ts`, Settings → Email, the box in
+in `src/lib/email/prefs.ts`, `src/store/emailPrefs.ts`, Settings → Manage account → Email, the box in
 `AccountDialog`, and the page at `/unsubscribe`.
 
 ## The rules the build keeps

@@ -21,6 +21,7 @@ import { FaApple } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
 import { useSync } from '@/store/sync'
 import { oauthProviders, type OAuthProvider } from '@/lib/sync/client'
+import { EmailSection } from '@/components/settings/EmailSection'
 import { ALL_EMAIL, emailReady, rememberOptIn, writeEmailPrefs } from '@/lib/email/prefs'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -233,7 +234,7 @@ function AuthForm({
           />
           <span>
             Email me when my streak is about to end, and a summary on Mondays. You can turn either
-            off in Settings.
+            off in Manage account.
           </span>
         </label>
       )}
@@ -341,6 +342,8 @@ function Manage({ onDone }: { onDone: () => void }) {
       <p className="text-xs leading-relaxed text-muted-foreground/70">
         Signing out leaves your profile on this device exactly as it is.
       </p>
+
+      <EmailSection />
 
       {changing ? (
         <ChangePassword

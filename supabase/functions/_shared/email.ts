@@ -363,7 +363,7 @@ function welcomeBody(ctx: RenderContext): Body {
     lines.push('A summary every Monday: your Roll, what you played that week, and your streak.')
   }
   lines.push(
-    'At most one email a day. Turn either off in Settings, or use the link below to stop all of them.',
+    'At most one email a day. Turn either off in Settings → Manage account, or use the link below to stop all of them.',
   )
   return {
     subject: 'Email from Pip is on',
@@ -399,7 +399,7 @@ function toText(body: Body, unsubscribeUrl: string): string {
     '--',
     body.why,
     `Unsubscribe: ${unsubscribeUrl}`,
-    'Or turn it off in Settings in Pip.',
+    'Or turn it off in Pip, under Settings → Manage account.',
     '',
   ].join('\n')
 }
@@ -438,7 +438,7 @@ function toHtml(body: Body, unsubscribeUrl: string): string {
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:600;color:${FG};">${escapeHtml(body.heading)}</h1>
 ${body.lines.map(p).join('\n')}
 ${button}
-<p style="margin:0;font-size:13px;line-height:1.5;color:${MUTED};">${escapeHtml(body.why)} <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED};text-decoration:underline;">Unsubscribe</a>, or turn it off in Settings in Pip.</p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:${MUTED};">${escapeHtml(body.why)} <a href="${escapeHtml(unsubscribeUrl)}" style="color:${MUTED};text-decoration:underline;">Unsubscribe</a>, or turn it off in Pip under Settings → Manage account.</p>
 </td></tr>
 </table>
 </td></tr>
