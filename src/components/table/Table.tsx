@@ -25,7 +25,7 @@ import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { useFreerollOnOffer } from '@/lib/useSpendableRoll'
 import { ordinal } from '@/lib/recap'
-import { KITCHEN_TABLE, cashOutValue, reviewableVenue } from '@/config/venues'
+import { KITCHEN_TABLE, cashOutValue, houseStack, prizeFor, reviewableVenue } from '@/config/venues'
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
 import { opponentPositions } from '@/lib/tableSeats'
@@ -136,9 +136,9 @@ export function Table() {
   const activeId = hand.players[hand.toActIndex]?.id
   const hero = hand.players.find((p) => p.id === 'hero')
   // Up or down on the session, the same sum the stand-up dialog shows. A
-  // freeroll has none: the stack is the house's.
+  // freeroll or the Daily has none: the stack is the house's.
   const sessionResult =
-    hero && !venue.freeroll
+    hero && !houseStack(venue)
       ? cashOutValue(venue, hero.stack) - (venue.cash ? cashInvested : venue.buyIn)
       : null
   const opponents = hand.players.filter((p) => p.id !== 'hero')
@@ -545,6 +545,7 @@ export function Table() {
           stack={hero?.stack ?? 0}
           cashOut={cashOutValue(venue, hero?.stack ?? 0)}
           freeroll={venue.freeroll === true}
+          daily={venue.daily === true}
           cash={venue.cash === true}
           onConfirm={cashOutAndLeave}
           onReview={canReview ? cashOutAndReview : undefined}
@@ -635,7 +636,13 @@ export function Table() {
               <EndOverlay
                 key="bust"
                 title="Knocked out"
-                subtitle={place ? `You finished ${ordinal(place)}` : 'Out of the tournament'}
+                subtitle={
+                  place
+                    ? prizeFor(venue, place) > 0
+                      ? `You finished ${ordinal(place)} — +${money(prizeFor(venue, place))} to your Roll`
+                      : `You finished ${ordinal(place)}`
+                    : 'Out of the tournament'
+                }
                 detail={recap && <RunRecap recap={recap} />}
                 onHome={goHome}
                 onReview={canReview ? goReview : undefined}

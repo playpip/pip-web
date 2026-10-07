@@ -14,7 +14,7 @@ import { draftCast, profileFor, characterById } from '@/config/cast'
 import { styleFor, randomBankroll } from '@/config/opponents'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
-import { cashOutValue, freerollOpen, reviewableVenue, type Venue } from '@/config/venues'
+import { cashOutValue, freerollOpen, prizeFor, reviewableVenue, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
@@ -917,6 +917,9 @@ export const useGame = create<GameState>((set, get) => {
     if (!humanAlive) {
       clearTableSnapshot()
       const place = survivors.length + 1
+      // Only the Daily pays a place below first (`runnerUpPrize`).
+      const placePrize = prizeFor(venue, place)
+      if (placePrize > 0) profile.adjustRoll(placePrize)
       const bestFinishBefore = useProfile.getState().venueRecords[venue.id]?.bestFinish ?? null
       profile.recordVenueResult(venue.id, place, get().handIndex)
       recordChallengeResult(venue, false)
@@ -1123,7 +1126,7 @@ export const useGame = create<GameState>((set, get) => {
       place,
       seats: venue.seats,
       hands: get().handIndex,
-      rollDelta: (place === 1 ? venue.prize : 0) + runTally.bounty - venue.buyIn,
+      rollDelta: prizeFor(venue, place) + runTally.bounty - venue.buyIn,
       runStats,
       lifetimeBefore: subtractStats(profile.tendencies, runStats),
       lifetimeAfter: profile.tendencies,
