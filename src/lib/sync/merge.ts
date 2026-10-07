@@ -24,6 +24,7 @@ import type {
 } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
 import { emptyReviewStats } from '@/lib/review/stats'
+import { mergeTaste } from '@/lib/membership/taste'
 import { STARTING_ROLL } from '@/config/venues'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
@@ -152,6 +153,9 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // The Daily is once per UTC day and abandoning counts as played, so the
     // record that says "played today" has to win or syncing becomes a re-roll.
     daily: mergeDaily(local.daily, remote.daily),
+    // The daily free member game, for the same reason: a spent game stays
+    // spent, or signing in on a second device is a way to get another.
+    taste: mergeTaste(local.taste, remote.taste),
 
     // Anything added to ProfileState since this was written follows the chosen
     // side rather than silently vanishing on first sync.
@@ -205,6 +209,9 @@ export function isPristine(p: ProfileData): boolean {
     Object.keys(p.castRecords).length === 0 &&
     p.owned.length === 0 &&
     p.daily === null &&
+    // A spent free game is not progress, but adopting the account's row over
+    // it would hand this device a second one today.
+    (p.taste ?? null) === null &&
     // Drills are reachable without ever sitting down, so a rating is progress
     // even on a profile that has played no hands. Without this clause, signing
     // in on that device adopts the account's row and the rating is gone.
@@ -408,6 +415,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'haptics',
     'cameFromFreeroll',
     'daily',
+    'taste',
     'challengeWins',
     'challengesPlayed',
     'drills',

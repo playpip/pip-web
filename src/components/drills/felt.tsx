@@ -512,7 +512,16 @@ export function Dealing({ slots }: { slots: number }) {
  * styled as a sales button, and you had to open this kind to be here at all.
  * See docs/membership.md.
  */
-export function LockedAnswers({ blurb, onJoin }: { blurb: string; onJoin: () => void }) {
+export function LockedAnswers({
+  blurb,
+  onJoin,
+  title = 'Comes with the membership',
+}: {
+  blurb: string
+  onJoin: () => void
+  /** The first line. A lesson whose daily free game is spent says so here. */
+  title?: string
+}) {
   return (
     <button
       type="button"
@@ -521,7 +530,7 @@ export function LockedAnswers({ blurb, onJoin }: { blurb: string; onJoin: () => 
     >
       <Lock className="size-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium">Comes with the membership</span>
+        <span className="block text-sm font-medium">{title}</span>
         <span className="block truncate text-xs text-muted-foreground">{blurb}</span>
       </span>
       <span className="shrink-0 text-xs font-medium text-muted-foreground">What that is →</span>

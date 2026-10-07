@@ -13,6 +13,7 @@ import { refuseSitDown } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
 import { dailyDateKey } from '@/lib/daily'
 import { useMembership } from '@/store/entitlement'
+import { tasteOpens } from '@/lib/membership/taste'
 
 export function PlayClient() {
   const { venue: venueId } = useParams<{ venue: string }>()
@@ -76,7 +77,20 @@ export function PlayClient() {
     // member table goes to `/membership` opened on that game, the same answer
     // its tile on the shelf gives (the side tables if it maps to nothing);
     // everything else to the home screen, which is where the Roll is.
-    const refusal = refuseSitDown(venue, profile, deviceId(), member)
+    //
+    // **Today's free member game** (lib/membership/taste) opens one member
+    // table for a non-member. It is asked here, not inside `refuseSitDown`,
+    // because it is spent here: a table that seated them on it has used it.
+    // The built table is not a game anybody can try once, so it is left out.
+    // A refresh mid-tournament never reaches this line — the snapshot above
+    // resumes first — so it neither spends a second one nor turns them away.
+    const today = dailyDateKey()
+    const tasting =
+      !member &&
+      Boolean(venue.membersOnly) &&
+      venueId !== CUSTOM_VENUE_ID &&
+      tasteOpens(profile.taste, today, { kind: 'table', id: venue.id })
+    const refusal = refuseSitDown(venue, profile, deviceId(), member || tasting)
     if (refusal) {
       const feature = featureForVenue(venue)
       const back =
@@ -91,8 +105,15 @@ export function PlayClient() {
       return
     }
 
+    if (tasting && !profile.spendTaste(today, { kind: 'table', id: venue.id })) {
+      router.replace(membershipFor(featureForVenue(venue) ?? 'side-tables'))
+      return
+    }
+
     // Membership is handed to the table here rather than read inside it: the
     // game loop deliberately knows nothing about entitlement (see store/game).
+    // A free game is handed `member: false`: it is the table, not the rest of
+    // the membership (no review, no watching it out after you bust).
     useGame.getState().sitDown(venue, {
       name: profile.name,
       avatar: profile.avatar,
