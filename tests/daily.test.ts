@@ -43,6 +43,18 @@ test('share text reads calmly', (t) => {
   t.is(dailyShareText(9, null, 5, 1), 'pip daily #9 · played · 1 hand · playpip.io/daily')
 })
 
+test('the share line carries the streak from two days up', (t) => {
+  t.is(dailyShareText(142, 2, 5, 34, 1), 'pip daily #142 · 2nd of 5 · 34 hands · playpip.io/daily')
+  t.is(
+    dailyShareText(142, 2, 5, 34, 2),
+    'pip daily #142 · 2nd of 5 · 34 hands · 2-day streak · playpip.io/daily',
+  )
+  t.is(
+    dailyShareText(150, 1, 5, 40, 9),
+    'pip daily #150 · won it · 40 hands · 9-day streak · playpip.io/daily',
+  )
+})
+
 // The landing page showed this line as a picture of itself, typed out by hand.
 // When `dailyShareText` started appending `playpip.io/daily` the picture was
 // not updated, so for a month the page selling the share loop displayed the

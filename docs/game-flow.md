@@ -187,9 +187,13 @@ anyone can read `lib/daily.ts` + the engine and verify the deal. The honest
 claim (and the copy) is **"same cards, same opponents — your play makes the
 difference"**: AI responses diverge once your actions diverge, and we say so.
 
-- **Venue**: `THE_DAILY` in `config/venues.ts` (`daily: true`) — buy-in 500,
-  5 seats, standard prize math. It costs a real buy-in: a free daily with a
-  prize would be a daily top-up, which breaks the no-free-top-up rule.
+- **Venue**: `THE_DAILY` in `config/venues.ts` (`daily: true`) — **free to
+  enter** (2026-10-07): `buyIn: 0`, a fixed 500 `startingStack`, 5 seats. 1st
+  pays 2,000 and 2nd pays 500 (`runnerUpPrize`, read through `prizeFor`). The
+  stack is the house's (`houseStack`), so leaving cashes out nothing. The
+  Daily used to cost 500 and lock when you were short; it was made free
+  because it is the return ritual and a lock shut out the players it is for.
+  The prize is capped at one a day, which is what keeps it from being a farm.
 - **Seeding** (`lib/daily.ts`, unit-tested): the UTC day key hashes to a base
   seed; hand *n* is dealt from `mulberry32(handSeed(base, n))`, so a mid-run
   refresh re-deals hand *n* identically. The cast draw and AI decision stream
@@ -200,9 +204,17 @@ difference"**: AI responses diverge once your actions diverge, and we say so.
   because the shuffle is knowable and a re-deal would be an exploit. The play
   route redirects if today's daily is already recorded; a snapshot resume is
   allowed (and keeps its original day's seed via `TableSnapshot.dailyDate`).
+- **Streak**: `profile.dailyStreak` (`{current, best, lastDate}`, v23) counts
+  consecutive UTC days on which the Daily was sat down at — the same "sitting
+  down counts" rule as the lock. Pure logic in `lib/dailyStreak.ts`
+  (`recordPlay`, `liveStreak`, `streakAtRisk`, `mergeStreaks`), unit-tested.
+  The lobby tile shows the live count and, when yesterday was played and today
+  is not, says so ("Play today for N days in a row"). Sync joins runs that
+  touch across devices (docs/sync.md).
 - **Share**: once played, tapping the Daily tile on the menu copies a calm
-  one-liner (`dailyShareText`): `pip daily #142 · 2nd of 6 · 34 hands · playpip.io`.
-  No streaks, no emoji grids, no countdowns — yesterday's daily is simply gone.
+  one-liner (`dailyShareText`):
+  `pip daily #142 · 2nd of 5 · 34 hands · 3-day streak · playpip.io/daily`. The
+  streak appears from two days up. No emoji grids.
 
 ## The tutorial (`/learn`)
 

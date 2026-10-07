@@ -709,7 +709,7 @@ function DailyShareMock() {
         </span>
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        No streaks, no countdowns. Tomorrow is simply another deal.{' '}
+        Free to enter, one go a day. Play days in a row to build a streak.{' '}
         <Link href="/daily" className="font-medium text-foreground transition hover:text-pip">
           How the Daily works
         </Link>

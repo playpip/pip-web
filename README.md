@@ -46,7 +46,7 @@ play money only, no pop-ups, no fake felt.
   occasionally say something dry.
 - **The Daily Deal** — one date-seeded tournament a day: everyone in the world
   plays the identical shuffle, provably (the engine is open and deterministic).
-  Once a day, no streaks, a calm copyable result line.
+  Free to enter, once a day, with a streak for days in a row and a copyable result line.
 - **Hand permalinks** — share any hand as a URL; the whole hand is encoded in the
   link (no server, no account) and replays step-by-step for whoever opens it.
 - **The Chip Shop** — spend winnings on card backs, a four-colour deck, table

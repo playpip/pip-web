@@ -4,7 +4,18 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { BookOpen, Moon, MoonStar, Play, Store, Sun, Sunrise, Target } from 'lucide-react'
+import {
+  BookOpen,
+  CalendarCheck,
+  CalendarDays,
+  Moon,
+  MoonStar,
+  Play,
+  Store,
+  Sun,
+  Sunrise,
+  Target,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
@@ -23,6 +34,7 @@ import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
 import { SIDE_SHELF, RING_TABLES, THE_DAILY } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
+import { liveStreak, streakAtRisk } from '@/lib/dailyStreak'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
@@ -31,7 +43,6 @@ import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { greetingFor, periodFor, type DayPeriod } from '@/lib/timeOfDay'
 import { useHydrated } from '@/lib/useHydrated'
-import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { useCopied } from '@/lib/useCopied'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -177,7 +188,7 @@ export function Home() {
             **The Daily lives here and only here** (Will, 2026-09-20). It is a
             once-a-day novelty rather than a step up, so it never takes the hero
             slot — and this is where its state is worth reading anyway: played,
-            placed, or priced out. The challenger is dropped from the row only
+            placed, or waiting on today. The challenger is dropped from the row only
             on the rare turn it *is* the hero, because the same face twice down
             one screen reads as the app repeating itself. The grid keeps its
             column count either way, so the tiles never resize — a short row
@@ -355,15 +366,15 @@ function GreetingLine({ hour, name }: { hour: number; name: string }) {
 }
 
 /**
- * The Daily as a menu tile — reflects today's state. Unplayed and affordable:
- * tap to play. Played: tap copies the calm share line. Can't afford the buy-in:
- * a clear locked tile (the Daily costs a real buy-in — there's no free daily).
+ * The Daily as a menu tile — reflects today's state. Not yet played: tap to
+ * open the details, where playing is a second tap. It is free, so it never
+ * locks. Played: tap copies the share line. The streak sits at the end of the
+ * title row once there is one, and the subtitle says when today keeps it going.
  */
 function DailyTile({ delay }: { delay: number }) {
   const router = useRouter()
-  const money = useMoney()
   const daily = useProfile((s) => s.daily)
-  const spendable = useSpendableRoll()
+  const streak = useProfile((s) => s.dailyStreak)
   // Worst of the three #20 sites: 'Copied' sat in place of the finishing
   // position for the rest of the session, so a tile that had real information
   // on it lost it to a confirmation.
@@ -373,8 +384,8 @@ function DailyTile({ delay }: { delay: number }) {
   const today = dailyDateKey()
   const dayNo = dailyNumber(today)
   const playedToday = daily?.date === today
-  const affordable = spendable >= THE_DAILY.buyIn
-  const locked = !playedToday && !affordable
+  const run = streak ? liveStreak(streak, today) : 0
+  const atRisk = !playedToday && streak ? streakAtRisk(streak, today) : false
 
   const subtitle = copied
     ? 'Copied'
@@ -384,9 +395,9 @@ function DailyTile({ delay }: { delay: number }) {
           ? 'Won it today'
           : `Finished ${ordinal(daily.place)} of ${THE_DAILY.seats}`
         : 'Played today'
-      : affordable
-        ? 'Same cards for everyone'
-        : `Need ${money(THE_DAILY.buyIn)} to play`
+      : atRisk
+        ? `Play today for ${run + 1} days in a row`
+        : 'Free · same cards for everyone'
 
   // Played: tap copies the share line. Otherwise: open the details dialog (the
   // same one the venues use), where playing is a deliberate second tap.
@@ -395,13 +406,34 @@ function DailyTile({ delay }: { delay: number }) {
       if (!daily?.place) return
       sound.play('tap')
       void navigator.clipboard
-        ?.writeText(dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands))
+        ?.writeText(dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands, run))
         .then(() => copy())
       return
     }
     sound.play('tap')
     setInfoOpen(true)
   }
+
+  // A small count with a calendar mark. Pip-coloured once today is played or
+  // while the run is waiting on today; muted otherwise.
+  const aside =
+    run > 0 ? (
+      <span
+        className={cn(
+          'flex items-center gap-1 text-xs font-medium tabular-nums',
+          playedToday || atRisk ? 'text-pip' : 'text-muted-foreground',
+        )}
+        title={`${run}-day streak${streak && streak.best > run ? ` · best ${streak.best}` : ''}`}
+      >
+        {playedToday ? (
+          <CalendarCheck className="size-3.5" aria-hidden />
+        ) : (
+          <CalendarDays className="size-3.5" aria-hidden />
+        )}
+        {run}
+        <span className="sr-only">{run === 1 ? 'day in a row' : 'days in a row'}</span>
+      </span>
+    ) : undefined
 
   return (
     <>
@@ -410,14 +442,14 @@ function DailyTile({ delay }: { delay: number }) {
         accent={THE_DAILY.accent}
         title="The Daily"
         badge={`#${dayNo}`}
+        aside={aside}
         subtitle={subtitle}
         onClick={onClick}
-        locked={locked}
         delay={delay}
       />
       <VenueInfoDialog
         venue={infoOpen ? THE_DAILY : null}
-        playable={affordable}
+        playable
         onOpenChange={(o) => !o && setInfoOpen(false)}
         onPlay={(venue) => {
           sound.play('call')

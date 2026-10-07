@@ -26,13 +26,15 @@ export function CategoryCard(
   props: TileArt & {
     title: string
     badge?: string
+    /** Small status at the end of the title row (the Daily's streak). */
+    aside?: React.ReactNode
     subtitle: string
     onClick: () => void
     locked?: boolean
     delay?: number
   },
 ) {
-  const { title, badge, subtitle, onClick, locked = false, delay = 0 } = props
+  const { title, badge, aside, subtitle, onClick, locked = false, delay = 0 } = props
   // Read off `props` rather than a destructured copy, and branch on the art id
   // rather than the node: that is what lets the union above narrow. (A
   // `ReactNode` can legally be undefined, so testing `artNode` narrows
@@ -77,6 +79,7 @@ export function CategoryCard(
                 {badge}
               </span>
             )}
+            {aside && <span className="ml-auto">{aside}</span>}
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
         </div>
