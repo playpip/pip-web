@@ -366,3 +366,11 @@ html[data-pip-app] [data-shell] > main {
 html[data-pip-app] [data-shell="tight"] > main {
   padding-top: 1.75rem;
 }
+/* Dialogs centre in the area between the notch and the home bar, and cap
+   their height to it, rather than to the whole screen the web view now
+   covers. Every dialog is ui/dialog.tsx's popup, so this one rule covers
+   them all. */
+html[data-pip-app] [data-slot="dialog-content"] {
+  top: calc(50% + (env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2);
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
