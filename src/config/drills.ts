@@ -289,17 +289,20 @@ export function drillKind(id: string): DrillKind {
 
 /**
  * The paid drills a tap on `/membership?for=drills&drill=<kind>` deals one
- * read-only spot from (`drillSample` in lib/drills/sample.ts). These four are a
- * board, some cards and a question, so the shared felt draws them whole. The
- * other packs need a table scene, a seat or a betting line the felt does not
- * draw, and a spot missing those is a worse look at the thing than none, so
- * the page names them and stops there.
+ * read-only spot from (`drillSample` in lib/drills/sample.ts). Four are a
+ * board, some cards and a question, so the shared felt draws them whole; the
+ * three packs that need a seat, a stack or a betting line are drawn with their
+ * pack's own table (`TappedDrillSpot`). That is every paid kind under "Every
+ * drill"; calling the river has its own (`TappedSpot`).
  */
 export const SAMPLED_DRILLS: readonly DrillKindId[] = [
   'which-five-play',
   'count-your-outs',
   'pot-odds',
   'hand-strength',
+  OPEN_PACK_ID,
+  SHOVE_PACK_ID,
+  BET_PACK_ID,
 ]
 
 /**

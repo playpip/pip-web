@@ -52,7 +52,7 @@ const REGULARS = CAST.filter((ch) => !ch.only && ch.bands.some((b) => b === 'low
 const shovePlan = () => planPack<'shove' | 'fold'>('shove', 'fold', Math.random)
 
 /** The faces round the table, off the seed, so a spot keeps its company. */
-function facesFor(drill: Drill): Partial<Record<SeatId, SeatFace>> {
+export function shoveFaces(drill: Drill): Partial<Record<SeatId, SeatFace>> {
   const faces: Partial<Record<SeatId, SeatFace>> = {}
   const seats = (['utg', 'mp', 'co', 'btn', 'sb', 'bb'] as const).filter((s) => s !== drill.seat)
   seats.forEach((seat, i) => {
@@ -186,7 +186,7 @@ function Spot({
     () => (picked === null ? base : playShove(base, picked === 'shove' ? 'shove' : 'fold')),
     [base, picked],
   )
-  const faces = useMemo(() => facesFor(drill), [drill])
+  const faces = useMemo(() => shoveFaces(drill), [drill])
 
   const pick = useCallback(
     (choiceId: string) => {

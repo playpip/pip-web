@@ -65,7 +65,7 @@ const BET_LINES = [
 
 const betPlan = () => planPack<'bet' | 'check'>('bet', 'check', Math.random)
 
-const opponentFor = (drill: Drill): Character => OPPONENTS[drill.seed % OPPONENTS.length]
+export const betOpponentFor = (drill: Drill): Character => OPPONENTS[drill.seed % OPPONENTS.length]
 
 type Phase = 'lesson' | 'spots' | 'done'
 
@@ -183,7 +183,7 @@ function Spot({
   )
   const [picked, setPicked] = useState<string | null>(null)
   const grade = picked === null ? null : gradeDrill(drill, picked)
-  const opponent = useMemo(() => opponentFor(drill), [drill])
+  const opponent = useMemo(() => betOpponentFor(drill), [drill])
   const bet = drill.calling?.bet ?? 0
   const pot = drill.calling?.pot ?? 0
 
@@ -258,7 +258,7 @@ function Spot({
             grade && drill.calling ? (
               <Verdict character={opponent} drill={drill} />
             ) : (
-              <Opponent
+              <BetOpponent
                 character={opponent}
                 line={drill.line ?? []}
                 cardBack={cardBack}
@@ -363,7 +363,7 @@ function lineSentence(name: string, line: readonly DrillLineStep[]): string {
  * hand so far, one street a step. Your bets they called are drawn as yours;
  * their check on the river, the one you are answering, is lit.
  */
-function Opponent({
+export function BetOpponent({
   character,
   line,
   cardBack,

@@ -50,7 +50,7 @@ const OPEN_LINES = [
 const REGULARS = CAST.filter((ch) => !ch.only && ch.bands.includes('low'))
 
 /** How the table puts it to you, seat by seat. */
-const WHERE: Partial<Record<SeatId, string>> = {
+export const OPEN_WHERE: Partial<Record<SeatId, string>> = {
   utg: 'You are first to act, under the gun.',
   mp: 'It folds to you in the middle seat.',
   co: 'It folds to you in the cutoff.',
@@ -131,7 +131,7 @@ export function OpenPack({
 }
 
 /** The faces round the table for a spot, off its seed, so a spot keeps its company. */
-function facesFor(drill: Drill): Partial<Record<SeatId, SeatFace>> {
+export function openFaces(drill: Drill): Partial<Record<SeatId, SeatFace>> {
   const faces: Partial<Record<SeatId, SeatFace>> = {}
   const seats = (['utg', 'mp', 'co', 'btn', 'sb', 'bb'] as const).filter((s) => s !== drill.seat)
   seats.forEach((seat, i) => {
@@ -200,7 +200,7 @@ function Spot({
           ]),
     [base, picked, seat],
   )
-  const faces = useMemo(() => facesFor(drill), [drill])
+  const faces = useMemo(() => openFaces(drill), [drill])
 
   const pick = useCallback(
     (choiceId: string) => {
@@ -272,7 +272,7 @@ function Spot({
               <TalkLine>
                 {allowed ? (
                   <>
-                    {WHERE[seat]}{' '}
+                    {OPEN_WHERE[seat]}{' '}
                     <span className="font-medium text-foreground">Raise or fold?</span>
                   </>
                 ) : (
