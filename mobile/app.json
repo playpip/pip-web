@@ -9,7 +9,10 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "io.playpip.app",
-      "icon": "./assets/pip.icon"
+      "icon": "./assets/pip.icon",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +35,18 @@
           "resizeMode": "contain"
         }
       ]
-    ]
+    ],
+    "owner": "playpip",
+    "extra": {
+      "eas": {
+        "projectId": "68178228-67f1-47d4-91c1-077904fae862"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/68178228-67f1-47d4-91c1-077904fae862"
+    }
   }
 }
