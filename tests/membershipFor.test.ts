@@ -19,7 +19,11 @@ import {
   DEEP_STACK_TABLES,
   SIDE_SHELF,
   VENUES,
+  familyTableNames,
   featureForVenue,
+  membershipForFamily,
+  membershipForVenue,
+  tappedFamily,
   venueById,
 } from '@/config/venues'
 import { kindFloor } from '@/lib/drills/standing'
@@ -172,6 +176,41 @@ test('a table maps to the entry that names it, not just its shelf', (t) => {
   if (custom) t.is(featureForVenue(custom), 'custom-tables')
   for (const family of SIDE_SHELF.filter((f) => f.section === 'games')) {
     for (const room of family.rooms) t.is(featureForVenue(room), family.id, room.id)
+  }
+})
+
+// "Every side table" names four twists, so a tap on one names its family, from
+// the tile and from a table's own URL. A games family has its own entry and
+// sends no name.
+test('a tap on a twist names its family, and the page reads it back', (t) => {
+  const search = (href: string) => new URL(href, 'https://playpip.io').search
+  const twists = SIDE_SHELF.filter((f) => f.section === 'twists' && f.membersOnly)
+  t.true(twists.length >= 4, `only ${twists.length} paid twists`)
+  for (const family of twists) {
+    const href = membershipForFamily(family)
+    t.is(tappedFeature(search(href))?.id, 'side-tables', family.id)
+    t.is(tappedFamily(search(href))?.id, family.id, family.id)
+    t.true(familyTableNames(family).length > 0, family.id)
+    for (const room of family.rooms) {
+      const url = membershipForVenue(room)
+      t.truthy(url, room.id)
+      if (featureForVenue(room) === 'side-tables') t.is(url, href, room.id)
+    }
+  }
+  t.deepEqual(familyTableNames(SIDE_SHELF.find((f) => f.id === 'deep') ?? twists[0]), [
+    'Deep Stack',
+    'The Study',
+  ])
+  for (const family of SIDE_SHELF.filter((f) => f.section === 'games')) {
+    t.is(membershipForFamily(family), membershipFor(family.id), family.id)
+  }
+  t.is(tappedFamily('?for=side-tables&table=omaha'), null, 'a game has its own entry')
+  t.is(tappedFamily('?for=omaha&table=bounty'), null)
+  t.is(tappedFamily('?for=side-tables&table=nonsense'), null)
+  t.is(tappedFamily('?for=side-tables'), null)
+  for (const venue of VENUES) t.is(membershipForVenue(venue), null, venue.id)
+  for (const { path, code } of [...sources('src/components'), ...sources('src/app')]) {
+    t.notRegex(code, /featureForFamily\(/, `${path} builds a family's link itself`)
   }
 })
 
