@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'a-beginner-beat-the-main-event',
+    title: 'A beginner beat our hardest table by betting',
+    description:
+      'The Main Event folded 71% of checked flops to a two-thirds pot bet, where 40% already pays. A player two months into poker found it before we did. What the bots remember now.',
+    date: '2026-10-08',
+  },
+  {
     slug: 'short-deck-flush-beats-full-house',
     title: 'Why a flush beats a full house in Short Deck',
     description:
