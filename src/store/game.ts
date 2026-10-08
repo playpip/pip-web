@@ -47,6 +47,7 @@ import {
   type SeatConfig,
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity } from '@/lib/poker/ai/policy'
+import { createTableMemory, observeAction, type TableMemory } from '@/lib/poker/ai/memory'
 import { decideDiscard } from '@/lib/poker/ai/draw'
 import { estimateEquity } from '@/lib/poker/equity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
@@ -362,6 +363,12 @@ export interface TableSnapshot {
    */
   run?: RunTally
   /**
+   * What the bots have learned about everyone at the table this run
+   * (`lib/poker/ai/memory`). Optional: an older snapshot has none, and the
+   * table simply starts reading the player again.
+   */
+  reads?: TableMemory
+  /**
    * Set between the deal and the hand ending; absent between hands. Present
    * means "play this hand on", absent means "deal hand `handIndex`".
    */
@@ -468,6 +475,9 @@ const emptyRunTally = (peakAtStart: number): RunTally => ({
 
 let runTally: RunTally = emptyRunTally(0)
 
+/** What the bots have seen everyone do at this table, which they play off. */
+let tableReads: TableMemory = createTableMemory()
+
 /** Live tendency counters (mirrored into state at hand boundaries). */
 let seatStatsLive: Record<string, SeatStats> = {}
 /** Hero tendencies already pushed to the lifetime profile — the flush baseline. */
@@ -546,6 +556,7 @@ const statsFor = (id: string): SeatStats => (seatStatsLive[id] ??= emptySeatStat
 function recordStep(prev: HandState, action: Action, next: HandState) {
   const actor = prev.players[prev.toActIndex]
   if (actor) {
+    observeAction(tableReads, prev, action)
     const legal = legalActions(prev)
     const amount =
       action.type === 'call'
@@ -625,6 +636,7 @@ export const useGame = create<GameState>((set, get) => {
       cashInvested,
       dailyDate: dailyDay ?? undefined,
       run: { ...runTally },
+      reads: tableReads,
       live: {
         hand,
         events: currentEvents.slice(),
@@ -734,7 +746,7 @@ export const useGame = create<GameState>((set, get) => {
       const action: Action =
         cur.street === 'draw'
           ? { type: 'draw', discard: decideDiscard(cur.players[cur.toActIndex].hole, rng) }
-          : decideAction(cur, seatAi ?? venue.ai, rng)
+          : decideAction(cur, seatAi ?? venue.ai, rng, tableReads)
       playActionSound(action, cur)
       const next = applyAction(cur, action)
       recordStep(cur, action, next)
@@ -996,6 +1008,7 @@ export const useGame = create<GameState>((set, get) => {
       cashInvested: get().cashInvested,
       dailyDate: dailyDay ?? undefined,
       run: { ...runTally },
+      reads: tableReads,
     })
     set({
       seats: nextSeats,
@@ -1068,6 +1081,7 @@ export const useGame = create<GameState>((set, get) => {
       handIndex: get().handIndex,
       heroLow: heroLowTide,
       cashInvested: get().cashInvested,
+      reads: tableReads,
     })
     set({
       seats: rebought,
@@ -1215,6 +1229,7 @@ export const useGame = create<GameState>((set, get) => {
       heroLowTide = stack
       runTally = emptyRunTally(useProfile.getState().peakRoll)
       seatStatsLive = {}
+      tableReads = createTableMemory()
       heroTendencyFlushed = emptySeatStats()
       castFlushed = {}
       lastTalkHand = -TALK_MIN_GAP_HANDS
@@ -1325,6 +1340,7 @@ export const useGame = create<GameState>((set, get) => {
       // hand's actions so far still count and the hands before it don't count
       // twice.
       seatStatsLive = live ? { ...live.stats } : {}
+      tableReads = snapshot.reads ?? createTableMemory()
       heroTendencyFlushed = live ? { ...live.heroFlushed } : emptySeatStats()
       castFlushed = live ? { ...live.castFlushed } : {}
       currentEvents = live ? live.events.slice() : []

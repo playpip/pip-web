@@ -96,7 +96,7 @@ equity + pot odds + a personality.
 - `AiProfile { tightness, aggression, bluff, iterations, skill? }` — `skill` (default 1)
   degrades play quality with genuine mistakes: noisy self-equity reads and folding
   under pressure. Used by the Kitchen Table freeroll so it stays beatable heads-up.
-- `decideAction(state, profile, rng?): Action` — always returns a **legal** action.
+- `decideAction(state, profile, rng?, memory?): Action` — always returns a **legal** action.
   Logic: estimate equity vs live opponents — **ranging each by how much they've
   backed the hand** (`opponentSelectivity`, so it doesn't over-call into aggression)
   → compare to pot odds (tightness, plus a little more when players are still to act
@@ -117,7 +117,36 @@ equity + pot odds + a personality.
   is monotone in between — roughly real VPIP ranges. Never
   overrides checking for free — a limped big blind still sees the flop with anything.
 - `opponentSelectivity(state, opp)` is exported and shared with the store's hero
-  "win %" read, so both sides model opponent ranges identically.
+  "win %" read and the coach. **The AI no longer uses it postflop**: it reads every
+  chip in as strength, so a 3bb open plus a c-bet scored as the best of four
+  holdings on the flop, and the Main Event folded 71% of checked flops to a ⅔-pot
+  bet (any-two-cards profits above 40%). A beginner beat the top of the ladder by
+  simply betting (2026-10-08). `aiSelectivity` reads the bet sized against the pot
+  it went into this street, plus a smaller carry for earlier streets.
+- `ai/memory.ts` — **table memory.** `observeAction` tallies, per player, preflop
+  raise rate and postflop aggression, each shrunk toward a typical player's rate
+  (`PRIOR_WEIGHT` decisions). `credibility` scales `aiSelectivity` (blended by
+  `skill`, so soft tables barely adapt) and loosens the preflop junk-fold against
+  a known over-raiser: a bet from somebody who bets everything says little.
+  Measured: the Main Event folds 62% of checked flops to a stranger's ⅔-pot c-bet
+  and 27% to a known maniac's. A **minimum-defence floor** (call the top
+  `1 - alpha` of holdings on the board) was tried and dropped: it made the bots
+  pay off value bets (`exploit-sim`, 2026-10-08).
+- `ai/pushFold.ts` — **short stacks play the solved chart.** First in at 15bb or
+  less, or facing one short shove with everyone else folded, a seat plays the
+  Nash shove/call ranges the shove-or-fold drills already solve
+  (`lib/drills/shoveRange`), with probability `skill²`. Shorter tables map seats
+  by players left behind. Hold'em only.
+- **Sizing is disguised with skill** (`disguised`): from skill 0.6 up, bluffs and
+  semi-bluffs blend toward the value size, so at the top a bet's size no longer
+  says what it holds. The soft end keeps the tell.
+  `store/game.ts` feeds it every action, the player's included, and saves it in the
+  table snapshot. `decideAction`'s fourth argument; omit it and every opponent
+  reads as typical.
+- `pnpm exploit-sim` plays scripted human-shaped strategies (maniac, c-bettor,
+  station, value) against a venue's real AI, in cash (bb/100) or sit-and-go mode.
+  `pnpm sim` and `pnpm cash-sim` play the AI against itself and cannot find a hole
+  the policy shares with its own hero.
 - Difficulty scales per venue via the profile (see `config/venues.ts`).
 
 ## Variants

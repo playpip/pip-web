@@ -13,6 +13,8 @@ import type { Rng } from '../cards'
 import { legalActions, potSize, type Action, type HandState } from '../engine'
 import { estimateEquity } from '../equity'
 import { holeStrength } from '../range'
+import { pushFoldAction } from './pushFold'
+import { credibility, type TableMemory } from './memory'
 
 export interface AiProfile {
   /** Loose (0) → nitty (1). Raises the equity needed to continue. */
@@ -56,6 +58,76 @@ export function opponentSelectivity(state: HandState, opp: HandState['players'][
     opp.committedThisStreet >= state.currentBet
   if (backedItPostflop) sel += 0.1
   return Math.min(sel, 0.8)
+}
+
+/**
+ * The AI's own read of how strong an opponent's range is, in [0, 0.8], for the
+ * same `estimateEquity` input as `opponentSelectivity`.
+ *
+ * `opponentSelectivity` reads every chip a player has put in this hand as
+ * strength, and after the flop that over-reads a bet badly. A 3bb open and a
+ * two-thirds pot c-bet is 7bb, which it scores as the best of four random
+ * holdings *on this flop*: a range made of pairs and better. A real c-bet range
+ * is most of the hands that opened, and the AI was folding 71% of checked
+ * flops to it where a ⅔-pot bet needs 40% to show a profit (`pnpm
+ * exploit-sim`, 2026-10-08). That is the hole a beginner who simply keeps
+ * betting drives through, and it is what "I beat the best table by being
+ * aggressive" was.
+ *
+ * So postflop, the read comes from what the player did **this street**, sized
+ * against the pot they bet into, plus a smaller carry for what they put in on
+ * earlier streets. A c-bet reads as two candidates, a check-raise or a second
+ * barrel as three, and only a big line across several streets reaches the old
+ * numbers. Preflop is unchanged.
+ *
+ * Then it is scaled by what the table has seen this player do (`memory.ts`): a
+ * bet from somebody who bets everything says less than one from somebody who
+ * rarely does. Measured with the c-bettor of `pnpm exploit-sim` at The Main
+ * Event (`--sng --iters 300`), this change and that memory took its sit-and-go
+ * wins from 117/600 to 78/600, and 83/600 with the push/fold chart on as well
+ * (fair is 100), 2026-10-08.
+ *
+ * Kept apart from `opponentSelectivity`, which the coach and the player's own
+ * win % still read, so this changes how the bots play and nothing the player
+ * is shown.
+ */
+export function aiSelectivity(
+  state: HandState,
+  opp: HandState['players'][number],
+  memory?: TableMemory,
+  skill = 1,
+): number {
+  const preflop = state.street === 'preflop'
+  let sel: number
+  if (preflop) {
+    sel = opponentSelectivity(state, opp)
+  } else {
+    const bb = Math.max(state.bigBlind, 1)
+    const thisStreet = state.players.reduce((sum, p) => sum + p.committedThisStreet, 0)
+    const potBefore = Math.max(potSize(state) - thisStreet, bb)
+    const ratio = opp.committedThisStreet / potBefore
+    const streetSignal = ratio > 0 ? 0.1 + (0.45 * ratio) / (ratio + 1) : 0
+    const earlierBb = (opp.committedThisHand - opp.committedThisStreet) / bb
+    const carry = (0.3 * earlierBb) / (earlierBb + 15)
+    sel = streetSignal + carry
+  }
+  // A weaker player notices less of what the table is doing, so the read moves
+  // with skill: the soft end of the ladder barely adjusts to anybody.
+  const read = 1 + (credibility(memory, opp.id, preflop) - 1) * skill
+  return clamp(sel * read, 0, 0.8)
+}
+
+/**
+ * A bet sized off what it holds is a tell: a bluff at half the pot and value at
+ * three quarters can be read off the chips by anybody paying attention, and a
+ * player who learns it beats the table without looking at a card. So a skilled
+ * seat sizes its bluffs and semi-bluffs like its value bets. Below 0.6 skill the
+ * tell stays whole, a mistake the soft end of the ladder is meant to make, and
+ * at full skill it is gone.
+ */
+export function disguised(own: number, valueSize: number, skill: number): number {
+  const disguise = clamp((skill - 0.6) / 0.4, 0, 1)
+  return own + (valueSize - own) * disguise
 }
 
 /**
@@ -107,7 +179,12 @@ function sizedRaise(
  * Decide the AI's action for the player currently to act. Guaranteed to return
  * an action that is legal for the current state.
  */
-export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Math.random): Action {
+export function decideAction(
+  state: HandState,
+  profile: AiProfile,
+  rng: Rng = Math.random,
+  memory?: TableMemory,
+): Action {
   const legal = legalActions(state)
   const player = state.players[state.toActIndex]
   if (!legal || !player) throw new Error('decideAction: no player to act')
@@ -117,14 +194,22 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
     return legal.canCheck ? { type: 'check' } : { type: 'call' }
   }
 
-  // Model each opponent's range by how much they've backed the hand, not as two
-  // random cards — otherwise the AI over-values its equity into aggression and
-  // calls too light. This mirrors the hero's ambient read (store/game.ts).
+  const skill = clamp(profile.skill ?? 1, 0, 1)
+
+  // Short-stacked and first in, or facing one short shove: play the solved
+  // chart (see pushFold.ts). Weaker seats reach for it less often and play the
+  // spot by feel instead, which is the mistake a soft table should make.
+  const chartMove = pushFoldAction(state, rng)
+  if (chartMove && rng() < skill * skill) return chartMove
+
+  // Model each opponent's range by how they've backed the hand, not as two
+  // random cards, or the AI over-values its equity into aggression and calls
+  // too light. Not as the best of a handful either: see `aiSelectivity`.
   const { equity: trueEquity } = estimateEquity({
     hole: player.hole,
     community: state.community,
     opponents: opponents.length,
-    opponentSelectivity: opponents.map((p) => opponentSelectivity(state, p)),
+    opponentSelectivity: opponents.map((p) => aiSelectivity(state, p, memory, skill)),
     iterations: profile.iterations,
     rng,
     // Without this the AI would be estimating Hold'em equity for a four-card
@@ -136,7 +221,6 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   // Unskilled players misread their hand strength. The noisy estimate feeds
   // every decision below, so mistakes compound naturally: missed value bets,
   // bad calls, folded winners.
-  const skill = clamp(profile.skill ?? 1, 0, 1)
   const misread = (rng() - 0.5) * (1 - skill) * 0.6
   const equity = clamp(trueEquity + misread, 0.02, 0.98)
 
@@ -262,9 +346,10 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
         (SEMI_BLUFF.base + profile.aggression * SEMI_BLUFF.perAggression) * (1 - posPressure * 0.5)
 
     if ((wantsValue || wantsBluff || wantsSemiBluff) && (legal.canBet || legal.canRaise)) {
-      let fraction = 0.5
-      if (wantsValue) fraction = 0.55 + profile.aggression * 0.25
-      else if (wantsSemiBluff) fraction = SEMI_BLUFF.size
+      const valueSize = 0.55 + profile.aggression * 0.25
+      let fraction = disguised(0.5, valueSize, skill)
+      if (wantsValue) fraction = valueSize
+      else if (wantsSemiBluff) fraction = disguised(SEMI_BLUFF.size, valueSize, skill)
       return {
         type: legal.canBet ? 'bet' : 'raise',
         amount: sizedRaise(
@@ -283,8 +368,18 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   // --- facing a bet ------------------------------------------------------
   // Muck preflop junk to any bet rather than peel with 2-3 — no price is good
   // enough for a hand a real player never entered the pot with.
+  //
+  // Unless the raise is from somebody the table has watched raise everything.
+  // Against them the cutoff shrinks with how little their raise means, or a
+  // player who simply raises every hand takes the blinds off the top table
+  // forty times in a hundred and never has to show a card.
   if (trashPreflop) {
-    return { type: 'fold' }
+    const raiser = opponents.reduce((a, b) =>
+      b.committedThisStreet > a.committedThisStreet ? b : a,
+    )
+    const read = 1 + (credibility(memory, raiser.id, true) - 1) * skill
+    const cutoff = read < 1 ? preflopCutoff * Math.sqrt(read) : preflopCutoff
+    if (preStrength < cutoff) return { type: 'fold' }
   }
 
   // Unskilled players also just give up under pressure — the exploitable
@@ -335,7 +430,14 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
     if (legal.canRaise && roll < profile.bluff * 0.5) {
       return {
         type: 'raise',
-        amount: sizedRaise(state, 0.6, legal.minRaiseTo, legal.maxRaiseTo, rng, profile.aggression),
+        amount: sizedRaise(
+          state,
+          disguised(0.6, 0.7, skill),
+          legal.minRaiseTo,
+          legal.maxRaiseTo,
+          rng,
+          profile.aggression,
+        ),
       }
     }
     const cheap = toCall <= pot * 0.15
@@ -355,7 +457,14 @@ export function decideAction(state: HandState, profile: AiProfile, rng: Rng = Ma
   if (raiseThin && legal.canRaise && roll < profile.aggression * 0.4) {
     return {
       type: 'raise',
-      amount: sizedRaise(state, 0.5, legal.minRaiseTo, legal.maxRaiseTo, rng, profile.aggression),
+      amount: sizedRaise(
+        state,
+        disguised(0.5, 0.7, skill),
+        legal.minRaiseTo,
+        legal.maxRaiseTo,
+        rng,
+        profile.aggression,
+      ),
     }
   }
   return legal.canCall ? { type: 'call' } : { type: 'check' }

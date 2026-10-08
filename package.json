@@ -32,6 +32,7 @@
     "shove-chart": "tsx scripts/shove-chart.ts",
     "odds-band-coverage": "tsx scripts/odds-band-coverage.ts",
     "lead-band": "tsx scripts/lead-band.ts",
+    "exploit-sim": "tsx scripts/exploit-sim.ts",
     "cash-sim": "tsx scripts/cash-sim.ts"
   },
   "dependencies": {
