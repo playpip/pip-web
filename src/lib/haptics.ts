@@ -29,7 +29,7 @@
 
 'use client'
 
-import { inApp, postToApp } from './nativeApp'
+import { appSupports, postToApp } from './nativeApp'
 import type { Cue } from './sound'
 
 /**
@@ -89,7 +89,7 @@ class HapticEngine {
 
   /** Whether this device could vibrate at all, ignoring the setting. */
   supported() {
-    if (inApp()) return true
+    if (appSupports('haptic')) return true
     return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'
   }
 
@@ -134,7 +134,7 @@ class HapticEngine {
 
     // The shell maps the cue to native haptics. The patterns above are the
     // Web Vibration API's shape and mean nothing to it, so it gets the name.
-    if (inApp()) {
+    if (appSupports('haptic')) {
       postToApp({ type: 'haptic', buzz })
       return
     }

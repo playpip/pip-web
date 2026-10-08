@@ -75,6 +75,7 @@ import { detectCurrency } from '@/lib/membership/currency'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useSync } from '@/store/sync'
 import { useHydrated } from '@/lib/useHydrated'
+import { useInApp } from '@/lib/useInApp'
 import { SHOP_ITEMS } from '@/config/shop'
 import { DEEP_STACK_TABLES, SIDE_SHELF, SIDE_TABLES } from '@/config/venues'
 import { formatChips } from '@/lib/useMoney'
@@ -865,6 +866,7 @@ function Join({
   const [account, setAccount] = useState<AccountMode | null>(null)
   const [slow, setSlow] = useState(false)
   const [startNow, setStartNow] = useState(false)
+  const app = useInApp()
 
   // Read after hydration only: the static page has no query string to read.
   const joined = hydrated && new URLSearchParams(window.location.search).has('joined')
@@ -920,6 +922,33 @@ function Join({
   // Join for the frame before their row arrives. A quiet box instead.
   if (!ready || (signedIn && !checked && !member)) {
     body = <div aria-busy className="h-14 w-full animate-pulse rounded-2xl bg-foreground/[0.05]" />
+  } else if (app) {
+    // The store apps can't send anyone to Stripe: Apple and Google require
+    // their own billing for a membership bought in the app, and reject a link
+    // out to any other. Until in-app purchase exists (EXPO-PLAN.md, phase 2),
+    // the app shows where you stand and nothing to tap.
+    body = member ? (
+      <>
+        <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
+          <Star className="size-4 fill-pip text-pip" />
+          You’re a member
+        </div>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          {leaving
+            ? `Cancelled — you stay a member until ${endsOn(periodEnd)}.`
+            : `Renews on ${endsOn(periodEnd)}.`}
+        </p>
+      </>
+    ) : memberStatus === 'past_due' || memberStatus === 'unpaid' ? (
+      <p className="text-center text-sm">
+        <strong className="font-medium">Your last payment didn’t go through.</strong> The membership
+        is paused until it does.
+      </p>
+    ) : (
+      <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground">
+        Joining in the app is coming soon
+      </div>
+    )
   } else if (member) {
     body = (
       <>

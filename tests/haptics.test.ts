@@ -162,12 +162,21 @@ test.serial('a vibrate that throws does not take the hand down with it', (t) => 
 // The store app. Inside the native shell the cue goes over the bridge by name
 // and the shell plays it; `navigator.vibrate` is never touched.
 
-function app(opts: { reducedMotion?: boolean; flag?: boolean; postMessage?: boolean } = {}) {
+function app(
+  opts: {
+    reducedMotion?: boolean
+    flag?: boolean
+    postMessage?: boolean
+    supports?: string[]
+  } = {},
+) {
   const sent: unknown[] = []
   const undoNav = stub('navigator', {})
   const undoWin = stub('window', {
     matchMedia: (q: string) => ({ matches: !!opts.reducedMotion && q.includes('reduced-motion') }),
-    ...(opts.flag === false ? {} : { PipApp: { platform: 'ios', version: '1.0.0' } }),
+    ...(opts.flag === false
+      ? {}
+      : { PipApp: { platform: 'ios', version: '1.0.0', supports: opts.supports ?? ['haptic'] } }),
     ...(opts.postMessage === false
       ? {}
       : { ReactNativeWebView: { postMessage: (data: string) => sent.push(JSON.parse(data)) } }),
@@ -208,6 +217,15 @@ test.serial('in the app, reduced motion and the debounce still apply', (t) => {
   haptics.fire('call')
   busy.restore()
   t.is(busy.sent.length, 1, 'the debounce let a second cue through in the app')
+})
+
+test.serial('an app build without haptics falls back to the browser', (t) => {
+  // An old install that predates the message: the web must not send it.
+  const { sent, restore } = app({ supports: [] })
+  t.false(haptics.supported())
+  haptics.fire('win')
+  restore()
+  t.deepEqual(sent, [])
 })
 
 test.serial('half a bridge is not the app', (t) => {

@@ -29,12 +29,21 @@ type Buzz =
 type NativeMessage = { type: 'haptic'; buzz: Buzz }
 
 /**
+ * The message types this build handles. The web checks this list before it
+ * relies on one (`appSupports` in src/lib/nativeApp.ts), so a newer website
+ * falls back gracefully in an older app. Add a type here in the same change
+ * that handles it below.
+ */
+const SUPPORTS: NativeMessage['type'][] = ['haptic']
+
+/**
  * Runs before the page's own scripts, so `inApp()` is already true the first
  * time the web app asks.
  */
 export const injectedFlag = `window.PipApp = ${JSON.stringify({
   platform: Platform.OS,
   version: Constants.expoConfig?.version ?? '0.0.0',
+  supports: SUPPORTS,
 })}; true;`
 
 const { ImpactFeedbackStyle: Impact, NotificationFeedbackType: Notify } = Haptics

@@ -14,8 +14,8 @@
  *
  * Keep the message list short. Each one is a contract between two codebases
  * that ship on different schedules: the web deploys on every push, the app only
- * on a store release. So the native side must ignore a message type it doesn't
- * know, and the web side must not rely on a reply that an older app can't send.
+ * on a store release. So the native side ignores a message type it doesn't
+ * know, and the web side checks `appSupports` before relying on one.
  */
 
 import type { Buzz } from './haptics'
@@ -27,6 +27,8 @@ interface PipAppFlag {
   platform: 'ios' | 'android'
   /** The app's own version, which is not the web build's. */
   version: string
+  /** The message types this build handles. */
+  supports?: NativeMessage['type'][]
 }
 
 type BridgeWindow = Window & {
@@ -43,6 +45,16 @@ function bridge(): BridgeWindow | null {
 /** Running inside the store app rather than a browser or the PWA. */
 export function inApp(): boolean {
   return bridge() !== null
+}
+
+/**
+ * Whether this install of the app handles a message type. Check before relying
+ * on one: the website ships ahead of the app, and people keep old builds for
+ * months, so a feature that needs a newer app must fall back to the web flow
+ * when this is false.
+ */
+export function appSupports(type: NativeMessage['type']): boolean {
+  return bridge()?.PipApp?.supports?.includes(type) ?? false
 }
 
 /** Send a message to the shell. Does nothing outside the app. */
