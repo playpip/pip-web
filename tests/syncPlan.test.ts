@@ -13,6 +13,10 @@ import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/pla
 import type { ProfileData } from '@/lib/sync/merge'
 import { emptySeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
+import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
+
+/** What `randomAvatar` makes, without the clock and the RNG. */
+const randomFace = () => ({ seed: 'pip-test-1', backgroundColor: 'd1f4d0' })
 
 const VERSION = 99
 
@@ -175,6 +179,23 @@ test('signing in on a fresh device restores the account outright', (t) => {
 
   t.is(p.action, 'restore')
   t.deepEqual(p.action === 'restore' ? p.profile : null, remote)
+})
+
+test('signing in over the player a first visit made restores the account', (t) => {
+  // Play deals a new visitor in under a placeholder name and a random face
+  // (onboarding/firstSeat). Someone who already has an account and presses
+  // "Sign in" on the landing page gets that placeholder first, and it must be
+  // replaced, not merged with or argued over.
+  const placeholder = { ...pristine(), name: DEFAULT_PLAYER_NAME, avatar: randomFace() }
+  const remote = profile({ roll: 12_000, name: 'Will' })
+  const p = plan({
+    local: placeholder,
+    row: row(remote, { updatedAt: 't2', deviceId: THEIRS }),
+    bookmark: { seen: null, pushed: null },
+  })
+
+  t.is(p.action, 'restore')
+  t.is(p.action === 'restore' ? p.profile.name : null, 'Will')
 })
 
 test('a guest session is not swallowed by the account it signs into', (t) => {

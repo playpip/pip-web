@@ -322,7 +322,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
   },
   {
     id: 'blackjack',
-    title: 'Blackjack, for some reason',
+    title: 'Blackjack',
     blurb:
       'It is not poker and we are not going to pretend otherwise: there are no opponents, no position and nothing to out-play, because the dealer draws to seventeen whatever you do. Three houses, and each one tells you its edge before you sit down. A curiosity, priced honestly.',
     shipped: true,
@@ -394,6 +394,17 @@ export const MEMBERSHIP_PROMISES = [
   'The core game is free forever: the ten-venue ladder, the Rail, the Daily and the freeroll. The membership is the side tables and the games that are not Hold’em.',
   'Nothing you can buy changes a hand — not the cards, the odds, what you are shown, or a rebuy.',
 ] as const
+
+/**
+ * The daily free member game, said once (lib/membership/taste).
+ *
+ * The page, the README and the roadmap all say this, and they say it from here
+ * or are pinned to it by `tests/membership.test.ts` and `tests/roadmapDrills.test.ts`.
+ * Blackjack and the table builder are left out on purpose: neither is one game
+ * you sit down to and finish.
+ */
+export const DAILY_FREE_GAME =
+  'One member game a day is free without joining: any one poker table on the side tables shelf, Omaha and Short Deck included. It comes back at midnight UTC.'
 
 /**
  * Where the cancel button is, said plainly.

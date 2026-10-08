@@ -553,8 +553,12 @@ test('the AI still bets multiway flops instead of checking the pot down', (t) =>
   // puts that cell back to n=64, and the rates it now measures are 21% heads-up,
   // 19% against two and 27% against three, so nothing collapsed. The floor was
   // not touched: a thin sample is fixed by sampling more, never by asking less.
+  //
+  // **And 320 rather than 160 because first-in raise-or-fold (2026-10-08) took
+  // it away again**: a full-skill seat no longer limps, so fewer pots reach the
+  // flop four-handed, and only one multiway cell cleared the floor.
   const loose: AiProfile = { tightness: 0.15, aggression: 0.35, bluff: 0.06, iterations: 120 }
-  const by = measureLeadByField(loose, 160)
+  const by = measureLeadByField(loose, 320)
 
   const headsUp = by.get(1)
   t.truthy(headsUp, 'no heads-up postflop decisions were sampled at all')

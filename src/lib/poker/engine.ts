@@ -44,6 +44,15 @@ export interface Action {
   discard?: number[]
 }
 
+/** One action somebody took, as the hand's own record of it. */
+export interface ActionRecord {
+  playerId: string
+  street: Street
+  type: ActionType
+  /** The player's chips in front of them this street once it was taken. */
+  to: number
+}
+
 export interface Player {
   id: string
   name: string
@@ -98,6 +107,16 @@ export interface HandState {
    * make impossible.
    */
   variant: Variant
+  /**
+   * Every action taken this hand, in order. Posting a blind is not one.
+   *
+   * The state otherwise only says where the chips are, which is enough to run
+   * the rules and not enough to read a hand: who raised before the flop, who
+   * checked and then raised, who has bet every street. The AI reads its story
+   * of the hand off this (`lib/poker/ai/line.ts`). A live hand saved by an
+   * older build has none, so readers treat a missing log as empty.
+   */
+  actions: ActionRecord[]
 }
 
 export interface SeatConfig {
@@ -189,6 +208,7 @@ export function startHand(opts: StartHandOptions): HandState {
     pots: [],
     result: null,
     variant,
+    actions: [],
   }
 
   const dealt = players.filter((p) => p.status !== 'out').length
@@ -383,6 +403,7 @@ export function applyAction(prev: HandState, action: Action): HandState {
       }
       p.hole = [...kept, ...replacements]
       p.hasActed = true
+      record(state, p, action)
       return advanceDraw(state)
     }
     case 'bet':
@@ -410,7 +431,18 @@ export function applyAction(prev: HandState, action: Action): HandState {
     }
   }
 
+  record(state, p, action)
   return advance(state)
+}
+
+function record(state: HandState, p: Player, action: Action): void {
+  state.actions ??= []
+  state.actions.push({
+    playerId: p.id,
+    street: state.street,
+    type: action.type,
+    to: p.committedThisStreet,
+  })
 }
 
 // --- round / street progression -------------------------------------------

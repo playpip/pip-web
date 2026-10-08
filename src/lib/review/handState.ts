@@ -143,6 +143,8 @@ export function handStateAt(record: HandRecord, step: number): ReplayStep {
       pots: [],
       result: null,
       variant: 'holdem',
+      // A picture of the table for the replay, not a hand anybody plays on.
+      actions: [],
     },
     seats,
     pot,

@@ -57,3 +57,22 @@ test('the roadmap does not name a free drill as paid', (t) => {
     )
   }
 })
+
+// The daily free member game (lib/membership/taste) is part of what the
+// membership is, so the two public disclosures have to say it.
+test('the roadmap and the README both say one member game a day is free', (t) => {
+  const README = readFileSync(new URL('../README.md', import.meta.url), 'utf-8').replace(
+    /\s+/g,
+    ' ',
+  )
+  for (const [name, text] of [
+    ['ROADMAP.md', ROADMAP],
+    ['README.md', README],
+  ] as const) {
+    t.true(
+      text.includes('One member game a day is free without joining'),
+      `${name} does not mention the daily free member game`,
+    )
+    t.true(text.includes('Level 2'), `${name} does not say which lessons it covers`)
+  }
+})

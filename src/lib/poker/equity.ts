@@ -5,7 +5,7 @@
 import type { Card, Rank, Rng, Suit } from './cards'
 import { RANKS, SUITS } from './cards'
 import { DECK_RANKS, HOLE_CARDS, type Variant, determineWinners } from './handEval'
-import { holeStrength } from './range'
+import { holeStrength, omahaStrength } from './range'
 
 /** How many candidate holdings a maximally-tight opponent picks the best of. */
 const MAX_EXTRA_CANDIDATES = 5
@@ -40,10 +40,10 @@ export interface EquityOptions {
    * under the two-from-hand rule, so an equity estimate that ignored this
    * would be answering a different game's question with this game's cards.
    *
-   * **`opponentSelectivity` is ignored at Omaha**, and that is deliberate
-   * rather than missing: the ranged draw weights two-card holdings by a
-   * Hold'em notion of strength, and there is no honest way to reuse it for
-   * four. Omaha estimates are raw equity against random hands.
+   * At Omaha the ranged draw weights four-card holdings by `omahaStrength`:
+   * the best two-card pairing with the board after the flop, the shape of the
+   * four before it. It is still ignored at Omaha hi-lo and Short Deck, whose
+   * estimates are raw equity against random hands.
    */
   variant?: Variant
 }
@@ -77,16 +77,18 @@ function drawN(deck: Card[], count: number, rng: Rng): Card[] {
 
 /**
  * Draw opponent holes from strength-weighted ranges plus the rest of the board.
- * Each opponent takes the best (by `holeStrength`) of `1 + floor(sel * MAX)`
- * random candidate pairs, so tighter selectivity concentrates their range on
+ * Each opponent takes the best (by `strength`) of `1 + floor(sel * MAX)`
+ * random candidate holdings, so tighter selectivity concentrates their range on
  * stronger hands. Cards are consumed without replacement across opponents+board.
  */
 function drawRangedHoles(
   base: readonly Card[],
   opponents: number,
+  holeSize: number,
   boardNeeded: number,
   selectivity: readonly number[],
   community: readonly Card[],
+  strength: (hole: readonly Card[], community: readonly Card[]) => number,
   rng: Rng,
 ): { oppHoles: Card[][]; board: Card[] } {
   const n = base.length
@@ -101,24 +103,31 @@ function drawRangedHoles(
   for (let o = 0; o < opponents; o++) {
     const sel = Math.max(0, Math.min(1, selectivity[o] ?? 0))
     const candidates = 1 + Math.floor(sel * MAX_EXTRA_CANDIDATES)
-    let best: [number, number] | null = null
+    let best: number[] | null = null
     let bestScore = -1
     for (let c = 0; c < candidates; c++) {
-      const i = pickUnused()
-      used[i] = true // reserve so the partner card differs
-      const j = pickUnused()
-      used[i] = false // release both; only the winning pair is kept
-      const score = holeStrength([base[i], base[j]], community)
+      // Reserve each card as it is drawn so a holding never repeats one, then
+      // release them all: only the winning holding is kept.
+      const picked: number[] = []
+      for (let k = 0; k < holeSize; k++) {
+        const i = pickUnused()
+        used[i] = true
+        picked.push(i)
+      }
+      for (const i of picked) used[i] = false
+      const score = strength(
+        picked.map((i) => base[i]),
+        community,
+      )
       if (score > bestScore) {
         bestScore = score
-        best = [i, j]
+        best = picked
       }
     }
     // `best` is always set: candidates >= 1.
-    const [i, j] = best as [number, number]
-    used[i] = true
-    used[j] = true
-    oppHoles.push([base[i], base[j]])
+    const chosen = best as number[]
+    for (const i of chosen) used[i] = true
+    oppHoles.push(chosen.map((i) => base[i]))
   }
 
   const board = [...community]
@@ -148,7 +157,11 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
   const boardNeeded = 5 - community.length
   const holeSize = HOLE_CARDS[variant]
   const selectivity = opts.opponentSelectivity
-  const ranged = variant === 'holdem' && !!selectivity && selectivity.some((s) => s > 0)
+  // Ranged at Hold'em and Omaha, each with its own idea of a strong holding.
+  // Hi-lo and Short Deck stay raw: a hi-lo hand is strong two ways at once,
+  // and Short Deck reorders the categories the strength read is built on.
+  const strength = variant === 'holdem' ? holeStrength : variant === 'omaha' ? omahaStrength : null
+  const ranged = !!strength && !!selectivity && selectivity.some((s) => s > 0)
 
   let wins = 0
   let ties = 0
@@ -164,9 +177,11 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
       ;({ oppHoles, board } = drawRangedHoles(
         base,
         opponents,
+        holeSize,
         boardNeeded,
         selectivity as readonly number[],
         community,
+        strength as NonNullable<typeof strength>,
         rng,
       ))
     } else {

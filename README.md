@@ -46,7 +46,8 @@ play money only, no pop-ups, no fake felt.
   occasionally say something dry.
 - **The Daily Deal** — one date-seeded tournament a day: everyone in the world
   plays the identical shuffle, provably (the engine is open and deterministic).
-  Once a day, no streaks, a calm copyable result line.
+  Free to enter, once a day, with a copyable result line.
+- **The streak** — a flame that counts the days in a row you play a hand, at any table.
 - **Hand permalinks** — share any hand as a URL; the whole hand is encoded in the
   link (no server, no account) and replays step-by-step for whoever opens it.
 - **The Chip Shop** — spend winnings on card backs, a four-colour deck, table
@@ -95,7 +96,8 @@ There is also an optional **membership** (£5.99/mo or £49/yr) that adds more t
 play: every side table and member room, the games that aren't Hold'em, build-your-own-table,
 the rest of the drills and practice packs, Lessons with Webb from Level 2, a report on
 your own play across every hand, the session review, and spectating after you bust. It's a real fence and we'd
-rather call it one than pretend otherwise. **It is not pay-to-win** — pay-to-win
+rather call it one than pretend otherwise. One member game a day is free without joining:
+any one poker table on the side tables shelf. **It is not pay-to-win** — pay-to-win
 means buying an advantage over another player, and Pip is single-player with no
 leaderboard. Nothing you can buy changes a hand: not the cards, the odds, what
 you're shown, or a rebuy. See [ROADMAP → How Pip pays for itself](ROADMAP.md).
@@ -186,7 +188,9 @@ Each one is about a file in this repo, and links it:
 No account needed, no cookies, no personal data. Your profile lives in your browser.
 Nothing leaves your device unless you ask it to: there's an optional account purely for
 carrying your progress to another device, it's off unless you turn it on, and it stores
-your email and that same profile and nothing else.
+your email and that same profile and nothing else. With an account you can also ask for two
+emails, a Daily reminder and a weekly summary; both are off until you turn them on, and every
+one has a one-click unsubscribe ([docs/email.md](docs/email.md)).
 
 The only thing Pip records is **anonymous, cookieless usage counts** (via
 [Umami](https://umami.is)) — no fingerprinting, no ad tech, nothing tied to you. The

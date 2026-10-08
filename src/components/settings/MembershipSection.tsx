@@ -17,6 +17,7 @@ import { checkoutReady } from '@/config/membership'
 import { type BillingError, openPortal } from '@/lib/membership/billing'
 import { isTableRoute } from '@/lib/textScale'
 import { useMembership } from '@/store/entitlement'
+import { useInApp } from '@/lib/useInApp'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
 
@@ -39,6 +40,7 @@ export function MembershipSection() {
   const { member, status, periodEnd, cancelAtPeriodEnd } = useMembership()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<BillingError | null>(null)
+  const app = useInApp()
 
   if (!checkoutReady() || syncOff) return null
   const failed = status === 'past_due' || status === 'unpaid'
@@ -69,7 +71,9 @@ export function MembershipSection() {
             : 'The side tables, the other games, the drills that price a hand and the lessons past Level 1.'}
       </p>
 
-      {hasBilling ? (
+      {/* No Manage in the store apps: the portal is Stripe's, and the stores
+          reject a link out to other billing (see Join in MembershipScreen). */}
+      {hasBilling && app ? null : hasBilling ? (
         <button disabled={busy} onClick={() => void manage()} className={button}>
           {failed ? 'Update payment details' : 'Manage'}
         </button>

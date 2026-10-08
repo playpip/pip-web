@@ -14,7 +14,7 @@ import { draftCast, profileFor, characterById } from '@/config/cast'
 import { styleFor, randomBankroll } from '@/config/opponents'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
-import { cashOutValue, freerollOpen, reviewableVenue, type Venue } from '@/config/venues'
+import { cashOutValue, freerollOpen, prizeFor, reviewableVenue, type Venue } from '@/config/venues'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
@@ -47,6 +47,12 @@ import {
   type SeatConfig,
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity } from '@/lib/poker/ai/policy'
+import {
+  createTableMemory,
+  credibility,
+  observeAction,
+  type TableMemory,
+} from '@/lib/poker/ai/memory'
 import { decideDiscard } from '@/lib/poker/ai/draw'
 import { estimateEquity } from '@/lib/poker/equity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
@@ -362,6 +368,12 @@ export interface TableSnapshot {
    */
   run?: RunTally
   /**
+   * What the bots have learned about everyone at the table this run
+   * (`lib/poker/ai/memory`). Optional: an older snapshot has none, and the
+   * table simply starts reading the player again.
+   */
+  reads?: TableMemory
+  /**
    * Set between the deal and the hand ending; absent between hands. Present
    * means "play this hand on", absent means "deal hand `handIndex`".
    */
@@ -468,6 +480,9 @@ const emptyRunTally = (peakAtStart: number): RunTally => ({
 
 let runTally: RunTally = emptyRunTally(0)
 
+/** What the bots have seen everyone do at this table, which they play off. */
+let tableReads: TableMemory = createTableMemory()
+
 /** Live tendency counters (mirrored into state at hand boundaries). */
 let seatStatsLive: Record<string, SeatStats> = {}
 /** Hero tendencies already pushed to the lifetime profile — the flush baseline. */
@@ -524,7 +539,7 @@ const TALK_MIN_GAP_HANDS = 4
 let lastTalkHand = -TALK_MIN_GAP_HANDS
 
 function maybeTalk(
-  kind: 'seat' | 'win' | 'bust',
+  kind: 'seat' | 'win' | 'bust' | 'read',
   seat: SeatMeta | undefined,
   handIndex: number,
   chance: number,
@@ -537,6 +552,22 @@ function maybeTalk(
   lastTalkHand = handIndex
   return lines[Math.floor(Math.random() * lines.length)]
 }
+/**
+ * Whether the winner of this hand just showed the player that the table has
+ * them read: the player bets nearly every hand (`credibility` well under a
+ * typical player's), took it to showdown, and lost.
+ */
+function heroCalledDown(hand: HandState): boolean {
+  const hero = hand.players.find((p) => p.id === HUMAN_ID)
+  const result = hand.result
+  if (!hero || !result?.showdown || hero.status === 'folded') return false
+  if (result.potsAwarded.some((pot) => pot.winners.includes(HUMAN_ID))) return false
+  return credibility(tableReads, HUMAN_ID, false) < READ_TALK_BELOW
+}
+
+/** How little the player's bets must mean before the table says so. */
+const READ_TALK_BELOW = 0.6
+
 /** Who has voluntarily put chips in this hand already (VPIP counts once per hand). */
 let vpipThisHand = new Set<string>()
 
@@ -546,6 +577,7 @@ const statsFor = (id: string): SeatStats => (seatStatsLive[id] ??= emptySeatStat
 function recordStep(prev: HandState, action: Action, next: HandState) {
   const actor = prev.players[prev.toActIndex]
   if (actor) {
+    observeAction(tableReads, prev, action)
     const legal = legalActions(prev)
     const amount =
       action.type === 'call'
@@ -625,6 +657,7 @@ export const useGame = create<GameState>((set, get) => {
       cashInvested,
       dailyDate: dailyDay ?? undefined,
       run: { ...runTally },
+      reads: tableReads,
       live: {
         hand,
         events: currentEvents.slice(),
@@ -734,7 +767,7 @@ export const useGame = create<GameState>((set, get) => {
       const action: Action =
         cur.street === 'draw'
           ? { type: 'draw', discard: decideDiscard(cur.players[cur.toActIndex].hole, rng) }
-          : decideAction(cur, seatAi ?? venue.ai, rng)
+          : decideAction(cur, seatAi ?? venue.ai, rng, tableReads)
       playActionSound(action, cur)
       const next = applyAction(cur, action)
       recordStep(cur, action, next)
@@ -917,6 +950,9 @@ export const useGame = create<GameState>((set, get) => {
     if (!humanAlive) {
       clearTableSnapshot()
       const place = survivors.length + 1
+      // Only the Daily pays a place below first (`runnerUpPrize`).
+      const placePrize = prizeFor(venue, place)
+      if (placePrize > 0) profile.adjustRoll(placePrize)
       const bestFinishBefore = useProfile.getState().venueRecords[venue.id]?.bestFinish ?? null
       profile.recordVenueResult(venue.id, place, get().handIndex)
       recordChallengeResult(venue, false)
@@ -978,6 +1014,7 @@ export const useGame = create<GameState>((set, get) => {
     const bigPot = pot >= get().bigBlind * 20
     const talk =
       maybeTalk('bust', eliminated[0], get().handIndex, 0.8) ??
+      (heroCalledDown(hand) ? maybeTalk('read', winnerSeat, get().handIndex, 0.6) : null) ??
       (bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null)
 
     const newAwards = grantEarnedAwards(hand, venue, heroWon, false, knockedOut, eliminatedCount)
@@ -996,6 +1033,7 @@ export const useGame = create<GameState>((set, get) => {
       cashInvested: get().cashInvested,
       dailyDate: dailyDay ?? undefined,
       run: { ...runTally },
+      reads: tableReads,
     })
     set({
       seats: nextSeats,
@@ -1054,7 +1092,9 @@ export const useGame = create<GameState>((set, get) => {
     const winnerSeat =
       winnerId && winnerId !== HUMAN_ID ? get().seats.find((s) => s.id === winnerId) : undefined
     const bigPot = pot >= get().bigBlind * 20
-    const talk = bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null
+    const talk =
+      (heroCalledDown(hand) ? maybeTalk('read', winnerSeat, get().handIndex, 0.6) : null) ??
+      (bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null)
 
     heroLowTide = Math.min(heroLowTide, stackById.get(HUMAN_ID) ?? 0)
     saveTableSnapshot({
@@ -1068,6 +1108,7 @@ export const useGame = create<GameState>((set, get) => {
       handIndex: get().handIndex,
       heroLow: heroLowTide,
       cashInvested: get().cashInvested,
+      reads: tableReads,
     })
     set({
       seats: rebought,
@@ -1126,7 +1167,7 @@ export const useGame = create<GameState>((set, get) => {
       place,
       seats: venue.seats,
       hands: get().handIndex,
-      rollDelta: (place === 1 ? venue.prize : 0) + runTally.bounty - venue.buyIn,
+      rollDelta: prizeFor(venue, place) + runTally.bounty - venue.buyIn,
       runStats,
       lifetimeBefore: subtractStats(profile.tendencies, runStats),
       lifetimeAfter: profile.tendencies,
@@ -1215,6 +1256,7 @@ export const useGame = create<GameState>((set, get) => {
       heroLowTide = stack
       runTally = emptyRunTally(useProfile.getState().peakRoll)
       seatStatsLive = {}
+      tableReads = createTableMemory()
       heroTendencyFlushed = emptySeatStats()
       castFlushed = {}
       lastTalkHand = -TALK_MIN_GAP_HANDS
@@ -1222,7 +1264,7 @@ export const useGame = create<GameState>((set, get) => {
       // (abandoning counts as played; the shuffle is knowable).
       armDaily(venue.daily ? dailyDateKey() : null)
       if (venue.daily && dailyDay) {
-        useProfile.getState().recordDailyStart(dailyDay, dailyNumber(dailyDay))
+        useProfile.getState().recordDailyStart(dailyDay, dailyNumber(dailyDay), venue.dailyTier)
       }
       const aiCount = venue.seats - 1
       // A challenge table seats no draw: the one chair opposite belongs to the
@@ -1325,6 +1367,7 @@ export const useGame = create<GameState>((set, get) => {
       // hand's actions so far still count and the hands before it don't count
       // twice.
       seatStatsLive = live ? { ...live.stats } : {}
+      tableReads = snapshot.reads ?? createTableMemory()
       heroTendencyFlushed = live ? { ...live.heroFlushed } : emptySeatStats()
       castFlushed = live ? { ...live.castFlushed } : {}
       currentEvents = live ? live.events.slice() : []

@@ -30,7 +30,20 @@ and the page sends messages with `window.ReactNativeWebView.postMessage`.
 | `haptic { buzz }` | Plays the cue with `expo-haptics` |
 
 Web deploys reach the app straight away and the app only updates on a store
-release, so the shell ignores any message type it doesn't know.
+release, so the shell ignores any message type it doesn't know, and lists the
+ones it does in `window.PipApp.supports`. The web checks `appSupports(type)`
+before relying on one and falls back to the website flow when it's missing.
+A new message type goes in `SUPPORTS` in `src/bridge.ts` in the same change
+that handles it.
+
+## Icons and splash
+
+- iOS uses `assets/pip.icon`, a copy of the Icon Composer source in
+  `design/pip.icon`. Re-copy it when the design changes.
+- Android's adaptive icon and the top-level `icon.png` are cut from
+  `public/icons/icon-source-1024.png`; the splash chip is `src/app/icon.svg`.
+- Expo Go shows its own icon and splash. Seeing these needs a development
+  build.
 
 Always use `npx expo install <package>` here, not `npm install`. It picks the
 version that matches the Expo SDK.

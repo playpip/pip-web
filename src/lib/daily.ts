@@ -1,7 +1,7 @@
 // The Daily Deal — pure date → seed plumbing. One UTC day, one seed, one
 // tournament: everyone who plays today gets the identical shuffle, provably
-// (the engine is open and deterministic). No streaks, no history pressure —
-// yesterday's daily is simply gone.
+// (the engine is open and deterministic). The streak of days played lives in
+// lib/streak.
 
 import { mulberry32, type Rng } from './poker/cards'
 
@@ -69,7 +69,8 @@ export function dailyAiRng(base: number, handIndex: number, from = 0): CountedRn
 }
 
 /**
- * The copyable result — calm, no emoji grid, no streak brag.
+ * The copyable result: deal number, finish, hands, and the streak once it is
+ * two days or more (a run of one is just today).
  *
  * The address is `/daily` rather than the bare domain: the line names a deal
  * number, and until that page existed the only thing it could point at was a
@@ -81,9 +82,13 @@ export function dailyShareText(
   place: number | null,
   seats: number,
   hands: number,
+  streak = 0,
+  tier?: string,
 ): string {
   const finish = place === 1 ? 'won it' : place ? `${ordinal(place)} of ${seats}` : 'played'
-  return `pip daily #${dayNo} · ${finish} · ${hands} ${hands === 1 ? 'hand' : 'hands'} · playpip.io/daily`
+  const run = streak >= 2 ? ` · ${streak}-day streak` : ''
+  const at = tier ? ` · ${tier}` : ''
+  return `pip daily #${dayNo}${at} · ${finish} · ${hands} ${hands === 1 ? 'hand' : 'hands'}${run} · playpip.io/daily`
 }
 
 export function ordinal(n: number): string {

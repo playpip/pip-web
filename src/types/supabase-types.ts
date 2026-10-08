@@ -4,20 +4,49 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.15'
+    PostgrestVersion: '14.5'
   }
   public: {
     Tables: {
-      // Hand-written, unlike everything else in this file, and it stays that
-      // way until `supabase db push` has run against the linked project:
-      // `pnpm supabase:generate-types` reads the live schema, so a table that
-      // exists only as a migration file cannot be generated from anything.
-      // It mirrors supabase/migrations/20260817090000_memberships.sql exactly.
-      // Regenerate over the top once the migration is applied.
-      //
-      // Insert and Update are typed for completeness. Nothing in this app may
-      // use them: the row is written by the Stripe webhook with the service
-      // role, and RLS grants the client select and nothing else.
+      email_prefs: {
+        Row: {
+          created_at: string
+          daily_reminder: boolean
+          digest_snapshot: Json | null
+          last_sent_digest: string | null
+          last_sent_reminder: string | null
+          last_sent_welcome: string | null
+          unsubscribe_token: string
+          updated_at: string
+          user_id: string
+          weekly_digest: boolean
+        }
+        Insert: {
+          created_at?: string
+          daily_reminder?: boolean
+          digest_snapshot?: Json | null
+          last_sent_digest?: string | null
+          last_sent_reminder?: string | null
+          last_sent_welcome?: string | null
+          unsubscribe_token?: string
+          updated_at?: string
+          user_id: string
+          weekly_digest?: boolean
+        }
+        Update: {
+          created_at?: string
+          daily_reminder?: boolean
+          digest_snapshot?: Json | null
+          last_sent_digest?: string | null
+          last_sent_reminder?: string | null
+          last_sent_welcome?: string | null
+          unsubscribe_token?: string
+          updated_at?: string
+          user_id?: string
+          weekly_digest?: boolean
+        }
+        Relationships: []
+      }
       memberships: {
         Row: {
           cancel_at_period_end: boolean
@@ -80,10 +109,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      delete_own_account: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      delete_own_account: { Args: never; Returns: undefined }
+      user_count: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

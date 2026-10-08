@@ -45,9 +45,11 @@ import { VenueArt } from '@/components/menu/VenueArt'
 import { TappedFor } from '@/components/membership/TappedFor'
 import { MEMBER_BACKS, MEMBER_SHOP_BACKS } from '@/config/cardBacks'
 import { DRILL_KINDS } from '@/config/drills'
+import { LESSONS } from '@/config/lessons'
 import {
   CURRENCIES,
   type CurrencyCode,
+  DAILY_FREE_GAME,
   HOW_TO_CANCEL,
   type LocalPrice,
   MEMBERSHIP_FEATURES,
@@ -73,6 +75,7 @@ import { detectCurrency } from '@/lib/membership/currency'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useSync } from '@/store/sync'
 import { useHydrated } from '@/lib/useHydrated'
+import { useInApp } from '@/lib/useInApp'
 import { SHOP_ITEMS } from '@/config/shop'
 import { DEEP_STACK_TABLES, SIDE_SHELF, SIDE_TABLES } from '@/config/venues'
 import { formatChips } from '@/lib/useMoney'
@@ -90,6 +93,9 @@ const STATS = [
   },
   { value: SHOP_ITEMS.filter((i) => i.membersOnly).length, label: 'for the members’ shelf' },
 ]
+
+/** The hero's one number, counted from the course rather than typed. */
+const HERO = { lessons: LESSONS.filter((l) => l.membersOnly).length }
 
 // --- how each feature looks -----------------------------------------------------
 
@@ -226,7 +232,7 @@ export function MembershipScreen() {
             id="plans"
             eyebrow="Price"
             title="One membership, two ways to pay"
-            lede="The same membership either way. Pick how often you would rather be billed."
+            lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table or a lesson first."
           >
             <Plans price={price} currency={currency} onCurrency={setCurrency} />
           </Section>
@@ -269,11 +275,11 @@ function Hero({ price }: { price: LocalPrice }) {
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-4 pb-10 pt-12 text-center md:pb-16 md:pt-20">
         <CardFan />
 
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.25 }}
-          className="flex flex-col items-center"
+        {/* CSS rather than Framer, so the headline is in the static HTML at
+            full opacity and does not wait for hydration (globals.css). */}
+        <div
+          className="rise-in flex flex-col items-center"
+          style={{ '--rise-delay': '0.25s' } as React.CSSProperties}
         >
           <span className="mt-8 inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             <Star className="size-3 fill-pip text-pip" />
@@ -284,10 +290,10 @@ function Hero({ price }: { price: LocalPrice }) {
             <span className="block text-muted-foreground">And see it working.</span>
           </h1>
           <p className="mt-5 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
-            Lessons at the table with Webb, a report on what is costing you chips, every session
-            back on the felt, and drills that price the spots beginners get wrong. Plus the side
-            tables, four more kinds of poker and the members’ shelf. The core game stays free, for
-            good.
+            {HERO.lessons} lessons with Webb, played on the felt. A report that reads every hand you
+            have played and names what is costing you chips, in big blinds, with the hands it
+            happened in. Every session back on the table, hand by hand. Plus the side tables, the
+            games that are not Hold’em and the members’ shelf. The core game stays free, for good.
           </p>
           <p className="mt-5 text-sm tabular-nums text-muted-foreground">
             <span className="font-semibold text-foreground">{price.monthly}</span> a month{' '}
@@ -300,7 +306,13 @@ function Hero({ price }: { price: LocalPrice }) {
             </PillLink>
             <PillLink href="#free">What stays free</PillLink>
           </div>
-        </motion.div>
+          <p className="mt-4 max-w-md text-balance text-sm text-muted-foreground">
+            One member game a day is free without joining.{' '}
+            <a href="#plans" className="underline underline-offset-2 hover:text-foreground">
+              How it works
+            </a>
+          </p>
+        </div>
       </div>
     </section>
   )
@@ -783,6 +795,7 @@ function Plans({
               'A fixed price in your currency, never converted at checkout, so no exchange fee is hidden in it.',
               'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
               'You need a free Pip account to join. You never need one to play.',
+              DAILY_FREE_GAME,
             ].map((line) => (
               <li key={line} className="flex gap-2.5">
                 <Check className="mt-0.5 size-4 shrink-0 text-pip" />
@@ -853,6 +866,7 @@ function Join({
   const [account, setAccount] = useState<AccountMode | null>(null)
   const [slow, setSlow] = useState(false)
   const [startNow, setStartNow] = useState(false)
+  const app = useInApp()
 
   // Read after hydration only: the static page has no query string to read.
   const joined = hydrated && new URLSearchParams(window.location.search).has('joined')
@@ -908,6 +922,33 @@ function Join({
   // Join for the frame before their row arrives. A quiet box instead.
   if (!ready || (signedIn && !checked && !member)) {
     body = <div aria-busy className="h-14 w-full animate-pulse rounded-2xl bg-foreground/[0.05]" />
+  } else if (app) {
+    // The store apps can't send anyone to Stripe: Apple and Google require
+    // their own billing for a membership bought in the app, and reject a link
+    // out to any other. Until in-app purchase exists (EXPO-PLAN.md, phase 2),
+    // the app shows where you stand and nothing to tap.
+    body = member ? (
+      <>
+        <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
+          <Star className="size-4 fill-pip text-pip" />
+          You’re a member
+        </div>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          {leaving
+            ? `Cancelled — you stay a member until ${endsOn(periodEnd)}.`
+            : `Renews on ${endsOn(periodEnd)}.`}
+        </p>
+      </>
+    ) : memberStatus === 'past_due' || memberStatus === 'unpaid' ? (
+      <p className="text-center text-sm">
+        <strong className="font-medium">Your last payment didn’t go through.</strong> The membership
+        is paused until it does.
+      </p>
+    ) : (
+      <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground">
+        Joining in the app is coming soon
+      </div>
+    )
   } else if (member) {
     body = (
       <>
@@ -1143,6 +1184,13 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
               built the till, on purpose. When that changes, this answer changes with it.
             </p>
           )}
+        </Question>
+        <Question q="Can I try it before I pay?">
+          <p>{DAILY_FREE_GAME}</p>
+          <p>
+            The card on the shelf says <em>Free today</em> while it is there. It is the same table
+            or lesson a member gets.
+          </p>
         </Question>
         <Question q="How do I cancel?">
           <p>{HOW_TO_CANCEL}</p>

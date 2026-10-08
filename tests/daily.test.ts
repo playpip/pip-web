@@ -43,6 +43,18 @@ test('share text reads calmly', (t) => {
   t.is(dailyShareText(9, null, 5, 1), 'pip daily #9 · played · 1 hand · playpip.io/daily')
 })
 
+test('the share line carries the streak from two days up', (t) => {
+  t.is(dailyShareText(142, 2, 5, 34, 1), 'pip daily #142 · 2nd of 5 · 34 hands · playpip.io/daily')
+  t.is(
+    dailyShareText(142, 2, 5, 34, 2),
+    'pip daily #142 · 2nd of 5 · 34 hands · 2-day streak · playpip.io/daily',
+  )
+  t.is(
+    dailyShareText(150, 1, 5, 40, 9),
+    'pip daily #150 · won it · 40 hands · 9-day streak · playpip.io/daily',
+  )
+})
+
 // The landing page showed this line as a picture of itself, typed out by hand.
 // When `dailyShareText` started appending `playpip.io/daily` the picture was
 // not updated, so for a month the page selling the share loop displayed the
@@ -143,4 +155,43 @@ test('the AI stream is not the deck stream, so opponents do not mirror the cards
   const deckRng = mulberry32(handSeed(base, 5))
   const aiRng = dailyAiRng(base, 5)
   t.not(deckRng(), aiRng())
+})
+
+// --- tiers -------------------------------------------------------------------
+
+test('the Daily gets harder and pays more the higher your rank', async (t) => {
+  const { dailyFor, THE_DAILY } = await import('@/config/venues')
+  const { RANKS } = await import('@/config/ranks')
+  const tiers = RANKS.map((r) => dailyFor(r.min))
+  t.deepEqual(
+    tiers.map((v) => v.dailyTier),
+    RANKS.map((r) => r.name),
+  )
+  for (let i = 1; i < tiers.length; i++) {
+    t.true(
+      (tiers[i].ai.skill ?? 0) > (tiers[i - 1].ai.skill ?? 0),
+      `${tiers[i].dailyTier} plays harder`,
+    )
+    t.true(tiers[i].prize > tiers[i - 1].prize, `${tiers[i].dailyTier} pays more`)
+  }
+  for (const v of tiers) {
+    t.is(v.id, THE_DAILY.id)
+    t.is(v.buyIn, 0)
+    t.is(v.startingStack, THE_DAILY.startingStack, 'same stack and blinds at every tier')
+    t.is(v.runnerUpPrize, v.prize / 4)
+  }
+})
+
+test('a new player is at the easiest tier', async (t) => {
+  const { dailyFor, STARTING_ROLL } = await import('@/config/venues')
+  t.is(dailyFor(STARTING_ROLL).dailyTier, 'Amateur')
+})
+
+test('the share line names the tier when there is one', async (t) => {
+  const { dailyShareText } = await import('@/lib/daily')
+  t.is(
+    dailyShareText(142, 2, 5, 34, 0, 'Shark'),
+    'pip daily #142 · Shark · 2nd of 5 · 34 hands · playpip.io/daily',
+  )
+  t.is(dailyShareText(142, 2, 5, 34), 'pip daily #142 · 2nd of 5 · 34 hands · playpip.io/daily')
 })

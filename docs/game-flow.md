@@ -179,6 +179,27 @@ tournament bookkeeping (`recordVenueEntry`, `recordVenueResult`, `tournamentsEnt
 stats, tendencies and reads still accrue normally. See [venues.md](./venues.md) for the stakes
 ladder and why difficulty tracks the stake.
 
+## The welcome flow
+
+A new player's way in (Will, 2026-10-07), `/welcome`, four steps with a progress bar
+(`components/onboarding/WelcomeFlow`):
+
+1. **Make your player**: a face and a name. "Already have an account? Sign in" restores one.
+2. **Do you know how to play?** "Yes, deal me in" goes to the Welcome Table; "No, teach me
+   first" goes to Webb's tour, whose "Take a seat" goes to the same table (`firstSeatHref`).
+3. **The Welcome Table**: heads-up against one soft regular, 8 big blinds, blinds up every 3
+   hands, on the house's chips (`WELCOME_TABLE` in `config/venues`). Played once. Its end card
+   has one button, Continue.
+4. **Save your player**: the account, as a whole screen ("Not now" moves on), then **the
+   membership**: what is free, what it adds, and the account again if still not made, above
+   "Go to the lobby".
+
+Anything that needs a player and has none (`/game`, `/play/*`, the lobby's sub-pages) goes to
+`/welcome`; a scanned transfer QR is the one exception. In the lobby, a **Getting started**
+checklist (`menu/GettingStarted`) ticks off player, first game, account, today's Daily and a
+Friends' Garage win, until done or put away (`gettingStartedDismissed`, profile v25; players
+from before v25 have it put away).
+
 ## The Daily Deal
 
 **One seeded tournament a day — everyone in the world who plays it gets the
@@ -187,9 +208,18 @@ anyone can read `lib/daily.ts` + the engine and verify the deal. The honest
 claim (and the copy) is **"same cards, same opponents — your play makes the
 difference"**: AI responses diverge once your actions diverge, and we say so.
 
-- **Venue**: `THE_DAILY` in `config/venues.ts` (`daily: true`) — buy-in 500,
-  5 seats, standard prize math. It costs a real buy-in: a free daily with a
-  prize would be a daily top-up, which breaks the no-free-top-up rule.
+**Tiers** (Will, 2026-10-07): the regulars' skill and the prizes are set by the
+player's rank (`dailyFor(peakRoll)` in `config/venues.ts`, one tier per rank,
+Amateur to Legend). Everyone at a tier plays the identical Daily; the tier is
+stored on the day's record and printed in the share line.
+
+- **Venue**: `THE_DAILY` in `config/venues.ts` (`daily: true`) — **free to
+  enter** (2026-10-07): `buyIn: 0`, a fixed 500 `startingStack`, 5 seats. 1st
+  pays 2,000 and 2nd pays 500 (`runnerUpPrize`, read through `prizeFor`). The
+  stack is the house's (`houseStack`), so leaving cashes out nothing. The
+  Daily used to cost 500 and lock when you were short; it was made free
+  because it is the return ritual and a lock shut out the players it is for.
+  The prize is capped at one a day, which is what keeps it from being a farm.
 - **Seeding** (`lib/daily.ts`, unit-tested): the UTC day key hashes to a base
   seed; hand *n* is dealt from `mulberry32(handSeed(base, n))`, so a mid-run
   refresh re-deals hand *n* identically. The cast draw and AI decision stream
@@ -200,9 +230,18 @@ difference"**: AI responses diverge once your actions diverge, and we say so.
   because the shuffle is knowable and a re-deal would be an exploit. The play
   route redirects if today's daily is already recorded; a snapshot resume is
   allowed (and keeps its original day's seed via `TableSnapshot.dailyDate`).
+- **Streak**: `profile.streak` (`{current, best, lastDate}`, v23) counts
+  consecutive UTC days with a hand finished at any table (`mergeStats` in
+  `store/profile`), plus sitting down at the Daily. Pure logic in
+  `lib/streak.ts` (`recordPlay`, `liveStreak`, `streakAtRisk`, `mergeStreaks`),
+  unit-tested. The flame in the app bar (`StreakBadge`) shows the live count,
+  and the lobby shows "Play a hand today to keep your N-day streak" under the
+  Roll when yesterday was played and today is not. Sync joins runs that
+  touch across devices (docs/sync.md).
 - **Share**: once played, tapping the Daily tile on the menu copies a calm
-  one-liner (`dailyShareText`): `pip daily #142 · 2nd of 6 · 34 hands · playpip.io`.
-  No streaks, no emoji grids, no countdowns — yesterday's daily is simply gone.
+  one-liner (`dailyShareText`):
+  `pip daily #142 · 2nd of 5 · 34 hands · 3-day streak · playpip.io/daily`. The
+  streak appears from two days up. No emoji grids.
 
 ## The tutorial (`/learn`)
 
@@ -212,11 +251,10 @@ course**: one idea per page, built entirely from product primitives
 presentation layer (`components/learn/`); no engine, no stores mutated, no
 profile required — the route is standalone and shareable.
 
-- **The offer**: after `createProfile` succeeds, `/game` shows a one-time
-  interstitial (`TutorialOffer`) — "Show me the basics" → `/learn?from=onboarding`
-  or "Deal me in" → home. The offer is memory-only state in the create flow;
-  `created` already gates onboarding, so it can only ever appear once. No
-  persisted flag, no `PERSIST_VERSION` bump.
+- **No offer on the way in** (2026-10-07). There used to be a one-time "New to poker?"
+  interstitial after the make-your-player screen. Both are gone: a first visit is dealt
+  straight in at Friends' Garage (`onboarding/firstSeat`), and the tour is reached from the
+  landing page, Learn, and the "Learn with Webb" tile that leads a new player's lobby.
 - **The quiet return path**: one line on the home screen under the menu
   ("New to poker? Take the tour.") — no badge, no pulse, never re-offered.
 - **No-nag rules**: skippable from every page (the corner Skip), no quiz, no

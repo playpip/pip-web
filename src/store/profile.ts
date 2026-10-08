@@ -19,6 +19,10 @@ import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
 import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
 import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
+import { type PlayStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/streak'
+import { dailyDateKey } from '@/lib/daily'
+import { spendTaste, type TasteRecord, type TasteTarget } from '@/lib/membership/taste'
+import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -130,6 +134,8 @@ export interface DailyRecord {
   place: number | null
   /** Hands the run lasted. */
   hands: number
+  /** The tier it was played at (config/venues `dailyFor`); absent before tiers. */
+  tier?: string
 }
 
 export interface ProfileState {
@@ -154,6 +160,8 @@ export interface ProfileState {
   awards: Record<string, number>
   /** Comeback flag: the current run started with a Kitchen Table win. */
   cameFromFreeroll: boolean
+  /** The lobby's "Getting started" checklist has been put away (menu/GettingStarted). */
+  gettingStartedDismissed: boolean
   /** Career history per cast character: reads that persist across sessions. */
   castRecords: Record<string, CastRecord>
   /** Rare one-line character flavour at the table (see docs/cast.md). */
@@ -164,6 +172,8 @@ export interface ProfileState {
   haptics: boolean
   /** The most recent Daily Deal played (only today's gates anything). */
   daily: DailyRecord | null
+  /** Consecutive UTC days with a hand played at any table, and the longest run (lib/streak). */
+  streak: PlayStreak
   /** Chip Shop purchases (item ids). Style, never edge — see docs/shop.md. */
   owned: string[]
   /** Equipped deck face: 'classic' or an owned face id (e.g. 'face-fourcolor'). */
@@ -244,6 +254,16 @@ export interface ProfileState {
    * a finite number is a trip back to the shelf, not a free bankroll.
    */
   blackjack: BlackjackSession | null
+  /**
+   * The day's free member game, once spent: which UTC day, and on what.
+   *
+   * **Not an entitlement, and it does not need to be one.** It is
+   * client-written, so a player who edits it gets their free game back, which
+   * is a free game they could have had tomorrow. What it can never do is make
+   * somebody a member: it is only ever read through `lib/membership/taste`, and the
+   * membership itself still comes only from `useEntitlement()`.
+   */
+  taste: TasteRecord | null
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -254,6 +274,7 @@ export interface ProfileState {
   /** Record newly earned award chips (already-owned ids are left untouched). */
   grantAwards: (ids: string[]) => void
   setCameFromFreeroll: (value: boolean) => void
+  dismissGettingStarted: () => void
   /** Remember the table they just built. */
   setCustomTable: (spec: CustomTableSpec) => void
   setBlackjack: (session: BlackjackSession | null) => void
@@ -290,7 +311,7 @@ export interface ProfileState {
   setDealerButton: (id: string) => void
   setSoundPack: (id: string) => void
   /** Sitting down at today's Daily — marks it played immediately. */
-  recordDailyStart: (date: string, dayNo: number) => void
+  recordDailyStart: (date: string, dayNo: number, tier?: string) => void
   /** Final placing for the daily started on `date` (ignored if dates mismatch). */
   recordDailyResult: (date: string, place: number, hands: number) => void
   mergeStats: (partial: Partial<LifetimeStats>) => void
@@ -312,6 +333,11 @@ export interface ProfileState {
    * many. Zero, and no write, when there is nothing to take.
    */
   reclaimEscrow: (deviceId: string) => number
+  /**
+   * Spend today's free member game on this table or lesson. Returns whether it
+   * opened: true if it was unspent (or already spent on this lesson today).
+   */
+  spendTaste: (today: string, target: TasteTarget) => boolean
   /** Fold one reviewed hand into the career table of priced decisions. */
   recordReviewHand: (hand: ReviewHand) => void
   reset: () => void
@@ -320,7 +346,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 22
+export const PERSIST_VERSION = 25
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -348,11 +374,13 @@ export const useProfile = create<ProfileState>()(
       cardBack: DEFAULT_CARD_BACK.id,
       awards: {},
       cameFromFreeroll: false,
+      gettingStartedDismissed: false,
       castRecords: {},
       tableTalk: true,
       handCoaching: true,
       haptics: false,
       daily: null,
+      streak: emptyStreak(),
       owned: [],
       deckFace: 'classic',
       tableFinish: null,
@@ -366,18 +394,19 @@ export const useProfile = create<ProfileState>()(
       customTable: null,
       reviewStats: emptyReviewStats(),
       blackjack: null,
+      taste: null,
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
         track('profile-created')
         set((s) => ({
           created: true,
-          name: name.trim() || 'Player',
+          name: name.trim() || DEFAULT_PLAYER_NAME,
           avatar,
           rollHistory: [{ t: Date.now(), roll: s.roll }],
         }))
       },
-      setName: (name) => set({ name: name.trim() || 'Player' }),
+      setName: (name) => set({ name: name.trim() || DEFAULT_PLAYER_NAME }),
       setAvatar: (avatar) => set({ avatar }),
       setCardBack: (cardBack) => set({ cardBack }),
       adjustRoll: (delta) =>
@@ -400,6 +429,7 @@ export const useProfile = create<ProfileState>()(
           return { awards }
         }),
       setCameFromFreeroll: (value) => set({ cameFromFreeroll: value }),
+      dismissGettingStarted: () => set({ gettingStartedDismissed: true }),
       setCustomTable: (spec) => set({ customTable: spec }),
       setBlackjack: (session) => set({ blackjack: session }),
       mergeCastStats: (deltas) =>
@@ -482,11 +512,21 @@ export const useProfile = create<ProfileState>()(
       // lib/sound is a live AudioContext, and a store that reached into one
       // would make every test that touches a profile need a Web Audio stub.
       setSoundPack: (id) => set({ soundPack: id }),
-      recordDailyStart: (date, dayNo) => set({ daily: { date, dayNo, place: null, hands: 0 } }),
+      recordDailyStart: (date, dayNo, tier) =>
+        set((s) => ({
+          daily: { date, dayNo, place: null, hands: 0, ...(tier ? { tier } : {}) },
+          streak: recordPlay(s.streak ?? emptyStreak(), date),
+        })),
       recordDailyResult: (date, place, hands) =>
         set((s) => (s.daily?.date === date ? { daily: { ...s.daily, place, hands } } : s)),
+      // A finished hand at any table is a day played, for the streak.
       mergeStats: (partial) =>
-        set((s) => ({ stats: { ...s.stats, ...mergeStatValues(s.stats, partial) } })),
+        set((s) => ({
+          stats: { ...s.stats, ...mergeStatValues(s.stats, partial) },
+          ...(partial.handsPlayed
+            ? { streak: recordPlay(s.streak ?? emptyStreak(), dailyDateKey()) }
+            : {}),
+        })),
       mergeTendencies: (delta) => set((s) => ({ tendencies: addTendencies(s.tendencies, delta) })),
       recordRollPoint: () =>
         set((s) => ({
@@ -538,6 +578,12 @@ export const useProfile = create<ProfileState>()(
         })
         return escrow.chips
       },
+      spendTaste: (today, target) => {
+        const next = spendTaste(get().taste, today, target)
+        if (!next) return false
+        if (next !== get().taste) set({ taste: next })
+        return true
+      },
       recordReviewHand: (hand) => set((s) => ({ reviewStats: foldHand(s.reviewStats, hand) })),
       reset: () =>
         set({
@@ -553,11 +599,13 @@ export const useProfile = create<ProfileState>()(
           cardBack: DEFAULT_CARD_BACK.id,
           awards: {},
           cameFromFreeroll: false,
+          gettingStartedDismissed: false,
           castRecords: {},
           tableTalk: true,
           handCoaching: true,
           haptics: false,
           daily: null,
+          streak: emptyStreak(),
           owned: [],
           deckFace: 'classic',
           tableFinish: null,
@@ -571,6 +619,7 @@ export const useProfile = create<ProfileState>()(
           customTable: null,
           reviewStats: emptyReviewStats(),
           blackjack: null,
+          taste: null,
         }),
     }),
     {
@@ -724,6 +773,16 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
       rec.history = seedRatingHistory(rec.answered ?? 0, rec.rating ?? STARTING_RATING)
     }
   }
+  // v22 → v23: the streak. Seeded from the one Daily record the old
+  // profile kept, so yesterday's player carries on to two today (see
+  // `streakFromDaily`). Unconditional for the reason v21 gives.
+  if (fromVersion < 23) s.streak = streakFromDaily(s.daily)
+  // v23 → v24: the daily free member game (lib/membership/taste). Null for
+  // everybody: nobody has spent one yet, so everybody has today's.
+  if (fromVersion < 24) s.taste = null
+  // v24 → v25: the "Getting started" checklist is for players who came in
+  // through the welcome flow. Anybody already playing has it put away.
+  if (fromVersion < 25) s.gettingStartedDismissed = true
   return s
 }
 

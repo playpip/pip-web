@@ -8,7 +8,7 @@ and dates aren't listed on purpose. If something here matters to you,
 
 - Single-player Texas Hold'em against a cast of AI regulars
 - The ten-venue ladder, plus side tables (turbo, deep, heads-up, bounty) with the membership
-- The Daily Deal — one date-seeded tournament a day, identical for everyone
+- The Daily Deal — one free date-seeded tournament a day, identical for everyone; a play streak
 - Hand permalinks — share any hand as a URL that replays step by step
 - The Chip Shop — earned cosmetics (style, never edge) + collectible award chips
 - The Kitchen Table freeroll — win your way back when you're broke
@@ -40,8 +40,8 @@ Roughly in order of interest, honestly uncertain:
   biggest lift on this list and a genuine goal for Pip, so it sits further out — but it's
   on the map, and the open, deterministic engine is built to support it.
 - **A reason to come back** — Pip has no way to pull you back once you close the tab.
-  Exploring options that keep "no account needed" true (a returning ritual around
-  the Daily, an *optional* reminder). Retention is the honest weak spot.
+  A free Daily, a streak for days played and an opt-in reminder email are the first answer.
+  Still to explore: push reminders in the iOS app. Retention is the honest weak spot.
 - **More table life** — more table-talk and deeper career reads. Three new regulars and
   the play report have landed; the talk is still thinner than it should be.
 - **Depth in the AI** — it plays real poker (equity, pot odds, position, bluffs) but a
@@ -76,6 +76,12 @@ Webb from Level 2 up; four member rooms with three regulars of their own; build-
 a report that reads your play across every hand you have ever played; watching a
 tournament out after you bust; the session review; and four member card backs. **Not
 built**: multiplayer, which is the big one and is honestly some way off.
+
+**One member game a day is free without joining** (2026-10-07): any one poker table on the
+side tables shelf, Omaha and Short Deck included. Lessons are not in it.
+It comes back at midnight UTC. It is a whole game, never part of one, and it is the same
+table a member gets. A non-member whose report has something to say also sees its
+top finding on the card at the end of a run, with a link to the rest.
 
 The drills that shipped free stay free and unmetered, which is the paragraph above applied
 to the thing most likely to test it. Two of the ten are free, and the free pair is the pair

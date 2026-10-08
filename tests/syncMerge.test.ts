@@ -15,6 +15,7 @@ import { emptySeatStats } from '../src/lib/reads'
 import { emptyReviewStats } from '../src/lib/review/stats'
 import { STARTING_ROLL } from '../src/config/venues'
 import { currentChallenge } from '../src/lib/challenge'
+import { DEFAULT_PLAYER_NAME } from '../src/lib/newPlayer'
 
 function profile(over: Partial<ProfileData> = {}): ProfileData {
   return {
@@ -388,6 +389,25 @@ test('merge › a created profile on either side wins', (t) => {
 
 // --- the Daily, where merging wrong would hand out a re-roll ---------------
 
+test('merge › the Daily streak joins runs played on different devices', (t) => {
+  const laptop = profile({ streak: { current: 3, best: 3, lastDate: '2026-07-30' } })
+  const phone = profile({ streak: { current: 1, best: 5, lastDate: '2026-07-31' } })
+  for (const pick of ['local', 'remote'] as const) {
+    t.deepEqual(mergeProfiles(laptop, phone, pick).streak, {
+      current: 4,
+      best: 5,
+      lastDate: '2026-07-31',
+    })
+  }
+})
+
+test('merge › a row written before v23 still yields a streak', (t) => {
+  // The row is migrated before it merges, but a missing field must not throw.
+  const old = profile({ daily: { date: '2026-07-30', dayNo: 10, place: 1, hands: 20 } })
+  const now = profile({ streak: { current: 1, best: 1, lastDate: '2026-07-31' } })
+  t.is(mergeProfiles(old, now, 'local').streak.current, 2)
+})
+
 test('merge › the Daily keeps the later day', (t) => {
   const older = profile({ daily: { date: '2026-07-30', dayNo: 10, place: 1, hands: 20 } })
   const newer = profile({ daily: { date: '2026-07-31', dayNo: 11, place: null, hands: 4 } })
@@ -400,6 +420,24 @@ test('merge › same day: played beats abandoned, so syncing is not a re-roll', 
 
   t.is(mergeProfiles(abandoned, finished, 'local').daily?.place, 2)
   t.is(mergeProfiles(finished, abandoned, 'local').daily?.place, 2)
+})
+
+// --- the daily free member game, the same shape of re-roll ------------------
+
+test('merge › a free game spent on either device stays spent, whichever side wins', (t) => {
+  const spent = profile({ taste: { date: '2026-10-07', kind: 'table', id: 'omaha-low' } })
+  const unspent = profile({ taste: null })
+  for (const side of ['local', 'remote'] as const) {
+    t.is(mergeProfiles(spent, unspent, side).taste?.id, 'omaha-low')
+    t.is(mergeProfiles(unspent, spent, side).taste?.id, 'omaha-low')
+  }
+  // A profile from before v23 has no field at all.
+  const older = profile({})
+  t.is(mergeProfiles(older, spent, 'local').taste?.date, '2026-10-07')
+})
+
+test('pristine › a device that only spent today’s free game still merges', (t) => {
+  t.false(isPristine(pristine({ taste: { date: '2026-10-07', kind: 'table', id: 'omaha-low' } })))
 })
 
 // --- when to bother the player --------------------------------------------
@@ -525,6 +563,43 @@ test('pristine › two fresh devices still merge, so the name just typed survive
   t.is(mergeProfiles(local, remote, 'local').name, 'Will')
 })
 
+// --- the player a first visit makes -----------------------------------------
+//
+// Play deals a new visitor straight in under a placeholder name and a random
+// face (onboarding/firstSeat), so "Player" on one side of a merge is usually
+// somebody who has not chosen a name yet, not a name anybody chose.
+
+test('first visit › the placeholder player is pristine', (t) => {
+  const placeholder = pristine({
+    name: DEFAULT_PLAYER_NAME,
+    avatar: { seed: 'pip-random', backgroundColor: 'ffd5dc' },
+  })
+  t.true(isPristine(placeholder), 'a sign-in on top of it is a restore, not a merge')
+})
+
+test('first visit › a chosen name beats the placeholder, whichever side wins', (t) => {
+  const chosen = { seed: 'will', backgroundColor: 'b6e3f4' }
+  const given = { seed: 'pip-random', backgroundColor: 'ffd5dc' }
+  // A guest session that won the Roll, on a device that never chose a name.
+  const guest = profile({ name: DEFAULT_PLAYER_NAME, avatar: given, roll: 900 })
+  const mine = profile({ name: 'Will', avatar: chosen, roll: 4_000 })
+
+  for (const [local, remote, side] of [
+    [guest, mine, 'local'],
+    [mine, guest, 'remote'],
+  ] as const) {
+    const merged = mergeProfiles(local, remote, side)
+    t.is(merged.name, 'Will', `the name survives the ${side} side winning`)
+    t.deepEqual(merged.avatar, chosen, 'and the face goes with it')
+    t.is(merged.roll, 900, 'while the Roll still follows the side that was picked')
+  }
+})
+
+test('first visit › two chosen names still follow the side that was picked', (t) => {
+  const merged = mergeProfiles(profile({ name: 'Will' }), profile({ name: 'Ava' }), 'remote')
+  t.is(merged.name, 'Ava')
+})
+
 // --- the safety property that matters most --------------------------------
 
 test('merge › a player never loses an award or a purchase, whichever side wins', (t) => {
@@ -537,4 +612,12 @@ test('merge › a player never loses an award or a purchase, whichever side wins
     t.deepEqual([...merged.owned].sort(), ['x', 'y'], `purchases survive on ${side}`)
     t.is(merged.peakRoll, 9_000, `peak Roll survives on ${side}`)
   }
+})
+
+test('merge › the getting-started checklist put away on either device stays away', (t) => {
+  const away = profile({ gettingStartedDismissed: true })
+  const open = profile({ gettingStartedDismissed: false })
+  t.true(mergeProfiles(away, open, 'remote').gettingStartedDismissed)
+  t.true(mergeProfiles(open, away, 'local').gettingStartedDismissed)
+  t.false(mergeProfiles(open, open, 'local').gettingStartedDismissed)
 })

@@ -54,11 +54,14 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
    ⚠️ **This argument has to be made again the day multiplayer ships**, because then there
    is somebody to win against and "no leaderboard" stops being the answer. Whoever specs
    multiplayer owns re-opening it — see `cto/drafts/build-multiplayer.md`.
-2. **Clean over decorated.** Flat, black-first, one accent at a time. No skeuomorphic felt.
+2. **Clean over decorated.** Flat, black-first, one accent at a time. The table is drawn as
+   a table (a quiet cloth, a dark rail), but never as a casino: no baize texture, no
+   leather, no neon, no gold.
 3. **Calm information.** Helpful stats (win %, hand strength) are ambient, never nagging.
 4. **Premium restraint.** Subtle motion and sound; generous space; nothing gratuitous.
 5. **Play first, then a free account worth having.** No login, no barrier, nothing to verify
-   before you play: type a name and you are dealt in. The free account is the second half of
+   before you play: press Play and you are dealt in, under a placeholder name and a random
+   face you can change from the lobby (2026-10-07; it used to be "type a name"). The free account is the second half of
    that sentence, not a footnote. An email and a password, nothing to confirm, and your Roll
    follows you to every device. Offer it plainly and often; lead with the offer, never with
    "no account needed". **Prominent is not pushy, and the line is mechanical:** permanent

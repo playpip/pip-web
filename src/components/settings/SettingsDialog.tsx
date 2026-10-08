@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { useTextScale } from '@/components/text-scale-provider'
 import { isTableRoute, TABLE_MAX_TEXT_SCALE, TEXT_SCALES, textScaleLabel } from '@/lib/textScale'
+import { ToggleRow } from '@/components/settings/ToggleRow'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
@@ -67,45 +68,6 @@ export function SettingsDialog({
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-/** A labelled on/off switch — the shared shape for every toggle in Settings. */
-function ToggleRow({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string
-  hint: string
-  checked: boolean
-  onChange: () => void
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div>
-        <p className="text-sm font-medium">{label}</p>
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      </div>
-      <button
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={onChange}
-        className={cn(
-          'relative h-6 w-10 shrink-0 rounded-full transition',
-          checked ? 'bg-primary' : 'bg-foreground/15',
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-0.5 size-5 rounded-full bg-background shadow transition-all',
-            checked ? 'left-[18px]' : 'left-0.5',
-          )}
-        />
-      </button>
-    </div>
   )
 }
 

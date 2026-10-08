@@ -6,13 +6,15 @@ import { Table } from '@/components/table/Table'
 import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
-import { featureForVenue, venueById } from '@/config/venues'
+import { THE_DAILY, dailyFor, featureForVenue, venueById } from '@/config/venues'
 import { membershipFor } from '@/config/membership'
 import { CUSTOM_VENUE_ID, customVenue, refuseCustomTable } from '@/config/customTable'
 import { refuseSitDown } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
 import { dailyDateKey } from '@/lib/daily'
 import { useMembership } from '@/store/entitlement'
+import { tasteLeft } from '@/lib/membership/taste'
+import { playedWelcome } from '@/components/onboarding/firstSeat'
 
 export function PlayClient() {
   const { venue: venueId } = useParams<{ venue: string }>()
@@ -40,7 +42,12 @@ export function PlayClient() {
     if (started.current === venueId) return
     started.current = venueId
 
+    // No player yet: the welcome flow makes one first (onboarding/firstSeat).
     const profile = useProfile.getState()
+    if (!profile.created || !profile.avatar) {
+      router.replace('/welcome')
+      return
+    }
     // `/play/custom` is one generated route standing in for every table a
     // player can build, so the real venue is resolved here from the spec on
     // their profile. The spec is client-written and re-checked on the way in:
@@ -50,9 +57,12 @@ export function PlayClient() {
         ? profile.customTable && !refuseCustomTable(profile.customTable)
           ? customVenue(profile.customTable)
           : undefined
-        : venueById(venueId)
+        : venueId === THE_DAILY.id
+          ? // The Daily at this player's tier (config/venues `dailyFor`).
+            dailyFor(profile.peakRoll)
+          : venueById(venueId)
 
-    if (!venue || !profile.created || !profile.avatar) {
+    if (!venue || !profile.avatar) {
       router.replace(venueId === CUSTOM_VENUE_ID ? '/game/custom' : '/')
       return
     }
@@ -70,13 +80,32 @@ export function PlayClient() {
       return
     }
 
+    // The Welcome Table is played once, as the first game.
+    if (venue.welcome && playedWelcome(profile.venueRecords)) {
+      router.replace('/game')
+      return
+    }
+
     // The same question the card on the lobby answered, asked of the same
     // function, so a table the app offered is a table the route seats you at
     // (lib/sitDown). A challenge goes back to the Rail it was offered on; a
     // member table goes to `/membership` opened on that game, the same answer
     // its tile on the shelf gives (the side tables if it maps to nothing);
     // everything else to the home screen, which is where the Roll is.
-    const refusal = refuseSitDown(venue, profile, deviceId(), member)
+    //
+    // **Today's free member game** (lib/membership/taste) opens one member
+    // table for a non-member. It is asked here, not inside `refuseSitDown`,
+    // because it is spent here: a table that seated them on it has used it.
+    // The built table is not a game anybody can try once, so it is left out.
+    // A refresh mid-tournament never reaches this line — the snapshot above
+    // resumes first — so it neither spends a second one nor turns them away.
+    const today = dailyDateKey()
+    const tasting =
+      !member &&
+      Boolean(venue.membersOnly) &&
+      venueId !== CUSTOM_VENUE_ID &&
+      tasteLeft(profile.taste, today)
+    const refusal = refuseSitDown(venue, profile, deviceId(), member || tasting)
     if (refusal) {
       const feature = featureForVenue(venue)
       const back =
@@ -91,8 +120,15 @@ export function PlayClient() {
       return
     }
 
+    if (tasting && !profile.spendTaste(today, { kind: 'table', id: venue.id })) {
+      router.replace(membershipFor(featureForVenue(venue) ?? 'side-tables'))
+      return
+    }
+
     // Membership is handed to the table here rather than read inside it: the
     // game loop deliberately knows nothing about entitlement (see store/game).
+    // A free game is handed `member: false`: it is the table, not the rest of
+    // the membership (no review, no watching it out after you bust).
     useGame.getState().sitDown(venue, {
       name: profile.name,
       avatar: profile.avatar,

@@ -70,7 +70,26 @@
   --color-cardface: #fafafa;
   --color-cardface-ink: #16161d;
   --color-pip: #7c8cf0;
+  /* The streak's flame (components/StreakBadge), lit once today has a hand. */
+  --color-streak: #ff8a3d;
   --color-felt: #0a0a0b;
+
+  /* The table itself (components/table/surface.tsx). A quiet graphite cloth
+     (the venue's accent is mixed into it) and a dark rail: a place to sit, not
+     a casino. A table finish from the Chip Shop replaces the cloth; the rail
+     and the chips stay. */
+  --color-table-cloth: #22242b;
+  --color-table-rail: #141418;
+  --color-table-rail-edge: #2a2a31;
+  --color-table-line: #f4efe1;
+  --color-table-shade: #050506;
+
+  /* Chips. Muted, four denominations, read as clay rather than plastic. */
+  --color-chip-ivory: #e9e3d3;
+  --color-chip-coral: #c9574f;
+  --color-chip-slate: #4a6488;
+  --color-chip-ink: #26262e;
+  --color-chip-stripe: #f6f2e8;
 }
 
 /* Dark only (Will, 2026-10-03). The `dark` class stays on <html> so the
@@ -171,12 +190,84 @@
 .foil-sweep {
   animation: foil-sweep 7s ease-in-out infinite;
 }
+/* --- the hero rise ----------------------------------------------------------
+   Above-the-fold copy on the marketing pages. CSS, not Framer: a Framer
+   `initial` is written into the static HTML as `opacity:0` and only lifted once
+   React hydrates, so on a slow script the headline and the Play button were
+   invisible for seconds. This runs on first paint with no JS at all. Stagger
+   with `--rise-delay`. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise-in {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--rise-delay, 0s);
+}
+
+/* --- the table: chips and the turn ring --------------------------------------
+   A chip is an ellipse seen from a low angle: a striped edge (conic stripes),
+   a plain face inset on top, and a darker lip underneath for thickness. Stacks
+   are absolutely placed chips, three pixels apart. Sized in px because it is a
+   drawing, not type. */
+.table-chip {
+  position: absolute;
+  left: 0;
+  width: 22px;
+  height: 13px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    from 8deg,
+    var(--chip) 0deg 30deg,
+    var(--color-chip-stripe) 30deg 45deg
+  );
+  box-shadow:
+    0 2px 0 color-mix(in oklab, var(--chip) 55%, var(--color-table-shade)),
+    0 3px 5px color-mix(in oklab, var(--color-table-shade) 45%, transparent);
+}
+.table-chip::after {
+  content: "";
+  position: absolute;
+  inset: 2.5px 4px;
+  border-radius: 50%;
+  background: var(--chip);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-chip-stripe) 35%, transparent);
+}
+
+/* The active seat's ring: a short bright arc travelling round a faint track.
+   Under reduced motion it stops and is simply a ring. */
+@keyframes seat-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.seat-turn {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 200deg,
+    color-mix(in oklab, var(--foreground) 85%, transparent) 300deg,
+    transparent 360deg
+  );
+  animation: seat-turn 1.6s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .venue-drift,
   .venue-breathe,
   .venue-flicker,
-  .foil-sweep {
+  .foil-sweep,
+  .rise-in {
     animation: none;
+  }
+  .seat-turn {
+    animation: none;
+    background: color-mix(in oklab, var(--foreground) 70%, transparent);
   }
 }
 
@@ -221,34 +312,59 @@
   }
 }
 
-/* The store app (mobile/). `data-pip-app` is set on <html> by AppBoot, only
-   inside the app. Unlayered on purpose: these must beat the Tailwind classes
-   on the same elements (h-dvh, pb-8), and utilities outrank anything in
-   @layer base.
+/* Safe areas: the notch and the home bar. viewport-fit=cover (layout.tsx)
+   lets the page draw behind them, in the store app (whose web view runs edge
+   to edge) and in the installed PWA (black-translucent status bar). The page
+   pads itself clear instead. In a browser tab, and on anything without a
+   notch, every inset is zero and none of this does anything.
 
-   The shell draws the web view edge to edge on iOS, so the felt runs behind
-   the notch and the home bar, and the page pads itself clear of them.
+   Unlayered on purpose: these must beat the Tailwind classes on the same
+   elements (h-dvh, pb-8), and utilities outrank anything in @layer base.
+
+   By default the body pads top and bottom. A screen whose own background
+   should run behind the clock pads itself instead: the felt screens
+   (`data-felt`, which also keep their own bottom inset on the action bar) and
+   the website pages' sticky headers (`data-safe-top`), so the header's
+   background sits behind the clock and its content stays clear of it while
+   the page scrolls. */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+body:has([data-felt], [data-safe-top]) {
+  padding-top: 0;
+}
+/* These paint their own background to the bottom of the screen, so a body
+   pad there would show the table finish in a strip below them. */
+body:has([data-felt], [data-safe-top]) {
+  padding-bottom: 0;
+}
+[data-felt],
+[data-safe-top] {
+  padding-top: env(safe-area-inset-top);
+}
+/* Dialogs centre in, and cap their height to, the area between the notch and
+   the home bar. Every dialog is ui/dialog.tsx's popup. */
+[data-slot="dialog-content"] {
+  top: calc(50% + (env(safe-area-inset-top) - env(safe-area-inset-bottom)) / 2);
+  max-height: calc(100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+/* The store app only (mobile/). `data-pip-app` is set on <html> by AppBoot.
 
    Scrolling should feel like a native app: the header stays put and only the
    content under it scrolls and springs. So the page itself never rubber-bands
    on a screen that has a frame (`data-shell`, PageShell) or a table
    (`data-felt`). Both are fixed to the screen height. PageShell's <main>
    becomes the scroller and keeps iOS's bounce inside it. A page with neither
-   (the prose pages) scrolls and bounces as a whole, like a document should. */
-html[data-pip-app] body {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-}
+   (the website pages) scrolls and bounces as a whole, like a document. */
 html[data-pip-app]:has([data-felt], [data-shell]),
 html[data-pip-app]:has([data-felt], [data-shell]) body {
   overscroll-behavior: none;
 }
-html[data-pip-app]:has([data-felt], [data-shell]) body {
+html[data-pip-app] body:has([data-shell]) {
   padding-bottom: 0;
 }
-/* A felt screen clears the home bar itself, with env(safe-area-inset-bottom)
-   on its action bar, so it only gives up the top. */
-html[data-pip-app] [data-felt],
 html[data-pip-app] [data-shell] {
   height: calc(100dvh - env(safe-area-inset-top));
   min-height: 0;
@@ -257,4 +373,14 @@ html[data-pip-app] [data-shell] > main {
   overflow-y: auto;
   overscroll-behavior-y: contain;
   padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  /* Content fades out as it scrolls up under the header, instead of being cut
+     off in a hard line. The mask belongs to the scroller's box, not its
+     content, so the fade stays put while the content moves through it. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 1.5rem);
+  mask-image: linear-gradient(to bottom, transparent, #000 1.5rem);
+}
+/* The home screen's frame sits close under the profile row (pt-4). At least
+   the fade's depth, so nothing is faded while you're at the top. */
+html[data-pip-app] [data-shell="tight"] > main {
+  padding-top: 1.75rem;
 }

@@ -21,6 +21,8 @@ import { FaApple } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
 import { useSync } from '@/store/sync'
 import { oauthProviders, type OAuthProvider } from '@/lib/sync/client'
+import { EmailSection } from '@/components/settings/EmailSection'
+import { ALL_EMAIL, emailReady, rememberOptIn, writeEmailPrefs } from '@/lib/email/prefs'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -58,9 +60,10 @@ const COPY: Record<AccountMode, { title: string; description: string }> = {
   },
   signup: {
     // "Nothing to confirm" is true because production runs with
-    // mailer_autoconfirm on: the only email Pip ever sends is a password reset.
-    // If that ever changes, this line and the landing page's trust card go with
-    // it.
+    // mailer_autoconfirm on: Supabase Auth sends no confirmation, only a
+    // password reset when asked. If that ever changes, this line and the
+    // landing page's trust card go with it. (The opt-in emails in docs/email.md
+    // confirm nothing either; they are off unless the box below is ticked.)
     title: 'Create a free account',
     description:
       'An email and a password, and nothing to confirm. Your Roll follows you to every device you sign in on.',
@@ -143,8 +146,12 @@ function AuthForm({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [sent, setSent] = useState(false)
+  // Unticked by default, and nothing else in the form leans on it: consent to
+  // email has to be its own act (GDPR), not a side effect of making an account.
+  const [optIn, setOptIn] = useState(false)
   const { busy, error, signIn, signUp, signInWith, sendReset, clearError } = useSync()
   const providers = mode === 'reset' ? [] : oauthProviders()
+  const offerEmail = mode === 'signup' && emailReady()
 
   const go = (next: AccountMode) => {
     sound.play('tap')
@@ -163,6 +170,9 @@ function AuthForm({
       mode === 'signin'
         ? await signIn(email.trim(), password)
         : await signUp(email.trim(), password)
+    // The account exists before its email switches can: the row is the
+    // player's own, so it is written as them, once they are signed in.
+    if (ok && offerEmail && optIn) await writeEmailPrefs(ALL_EMAIL)
     // Closing on success is the whole confirmation: the Settings row behind
     // this now says "signed in as …", so a success screen would be a click for
     // nothing.
@@ -176,6 +186,8 @@ function AuthForm({
           key={p}
           onClick={() => {
             sound.play('tap')
+            // Google and Apple leave the page; the tick has to survive the trip.
+            if (offerEmail) rememberOptIn(optIn)
             void signInWith(p)
           }}
           disabled={busy}
@@ -210,6 +222,21 @@ function AuthForm({
           aria-label="Password"
           className={field}
         />
+      )}
+
+      {offerEmail && (
+        <label className="flex cursor-pointer items-start gap-2.5 py-1 text-xs leading-relaxed text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={optIn}
+            onChange={(e) => setOptIn(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 accent-primary"
+          />
+          <span>
+            Email me when my streak is about to end, and a summary on Mondays. You can turn either
+            off in Manage account.
+          </span>
+        </label>
       )}
 
       <button
@@ -315,6 +342,8 @@ function Manage({ onDone }: { onDone: () => void }) {
       <p className="text-xs leading-relaxed text-muted-foreground/70">
         Signing out leaves your profile on this device exactly as it is.
       </p>
+
+      <EmailSection />
 
       {changing ? (
         <ChangePassword

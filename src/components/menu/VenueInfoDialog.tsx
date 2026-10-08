@@ -62,7 +62,7 @@ function formatNote(venue: Venue): string | null {
   if (venue.cash)
     return `Cash game — no prize and no clock. Sit down with a stack, play as many hands as you fancy, and stand up whenever with whatever's in front of you. Bust and you can rebuy or walk; the table doesn't mind either way.`
   if (venue.daily)
-    return `The Daily — one seeded deal a day, and everyone who plays gets the identical shuffle. Same cards, same opponents; your play makes the difference. You get one shot: sitting down spends today's, and leaving early still counts as played.`
+    return `One tournament a day, free to enter, with the same cards for everyone. You play at the ${venue.dailyTier ?? 'Amateur'} tier: the higher your rank, the harder the regulars play and the more it pays. You get one go: sitting down uses today's, and leaving early still counts.`
   // Before the format switch, because the game being dealt outranks the speed
   // it is dealt at. The Big Pot is registered as a `deep` table, so without
   // this the one venue in the app that does not deal Hold'em described its
@@ -92,6 +92,7 @@ export function VenueInfoDialog({
   playable,
   canAfford,
   lockedNote,
+  freeNote,
   family,
   onOpenChange,
   onPlay,
@@ -129,6 +130,12 @@ export function VenueInfoDialog({
    * table you cannot sit at should not offer you five prices for it.
    */
   lockedNote?: string
+  /**
+   * Said above the play button when sitting down here spends today's free
+   * member game (lib/membership/taste), so the tap that spends it is a tap
+   * somebody was told about.
+   */
+  freeNote?: string
   /**
    * The side-tables card this dialog was opened from, when it was one.
    *
@@ -252,6 +259,11 @@ export function VenueInfoDialog({
             cover art inside the rounded corners) so it cannot be the scroller
             here, and the cover has to stay whole while the text below it grows. */}
         <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-4">
+          {freeNote && (
+            <p className="rounded-xl bg-primary/10 px-3 py-2 text-sm font-medium text-foreground">
+              {freeNote}
+            </p>
+          )}
           {stakes && picking ? (
             <StakePicker stakes={stakes} canAfford={canAfford} onPlay={onPlay} />
           ) : (
@@ -302,7 +314,7 @@ export function VenueInfoDialog({
                     <>
                       <InfoRow
                         label="Buy-in"
-                        value={venue.freeroll ? 'Free' : money(venue.buyIn)}
+                        value={venue.freeroll || venue.buyIn === 0 ? 'Free' : money(venue.buyIn)}
                       />
                       <InfoRow
                         label="Starting stack"
@@ -318,6 +330,9 @@ export function VenueInfoDialog({
                         }
                       />
                       {!venue.cash && <InfoRow label="Winner takes" value={money(venue.prize)} />}
+                      {venue.runnerUpPrize !== undefined && (
+                        <InfoRow label="Second takes" value={money(venue.runnerUpPrize)} />
+                      )}
                       {venue.bounty !== undefined && (
                         <InfoRow label="Knockout bounty" value={`+${money(venue.bounty)} each`} />
                       )}
@@ -349,7 +364,7 @@ export function VenueInfoDialog({
                   onClick={() => onPlay(venue)}
                   className="w-full rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
                 >
-                  {venue.freeroll
+                  {venue.freeroll || venue.buyIn === 0
                     ? 'Play — free'
                     : venue.cash || challenger
                       ? `Sit down — ${money(venue.buyIn)}`

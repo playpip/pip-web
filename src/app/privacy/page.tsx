@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy" updated="September 2026">
+    <LegalPage title="Privacy" updated="October 2026">
       <Section title="The short version">
         <p>
           Pip is built to need as little of your data as possible — which turns out to be almost
@@ -41,10 +41,11 @@ export default function PrivacyPage() {
           <strong className="font-medium text-foreground">your email address</strong>, so you can
           sign back in, and{' '}
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
-          was already on your device. Nothing else, unless you take a membership (below). No hand
-          histories beyond what your profile already holds, no IP-based profiling, no marketing
-          email, ever. The data sits with <A href="https://supabase.com">Supabase</A> on our behalf,
-          and password-reset email goes out through <A href="https://resend.com">Resend</A>.
+          was already on your device. Nothing else, unless you take a membership or turn on email
+          (both below). No hand histories beyond what your profile already holds, no IP-based
+          profiling, and no email you did not ask for. The data sits with{' '}
+          <A href="https://supabase.com">Supabase</A> on our behalf, and email goes out through{' '}
+          <A href="https://resend.com">Resend</A>.
         </p>
         <p>
           If you sign in with Google or Apple instead of a password, they send us your email address
@@ -82,6 +83,43 @@ export default function PrivacyPage() {
           the address on the account and we’ll delete it for you within 7 working days, whether or
           not you can still get into the app. Once it’s gone we keep nothing: no archive, no copy
           set aside, nothing to come back later and find.
+        </p>
+      </Section>
+
+      <Section title="Email">
+        <p>
+          Pip only emails you about your play if you ask it to. With an account you can turn on two
+          kinds, in Settings → Manage account or with the box when you create the account. Both are
+          off until you do.
+        </p>
+        <List>
+          <Item>
+            <strong className="font-medium text-foreground">A Daily reminder.</strong> At 18:00 UTC,
+            on a day you have not played the Daily, if you played it the day before.
+          </Item>
+          <Item>
+            <strong className="font-medium text-foreground">A weekly summary.</strong> On Mondays:
+            your Roll, the hands and tournaments you played since the last one, and your streak.
+          </Item>
+          <Item>
+            <strong className="font-medium text-foreground">
+              One email when you turn them on.
+            </strong>{' '}
+            It says what you will get. Never more than one email a day in all.
+          </Item>
+        </List>
+        <p>
+          They are made from your email address and the profile your account already syncs: your
+          Roll, your lifetime hand and tournament counts, the date you last played and your streak.
+          To say what changed in a week we keep those few numbers as they were at the last summary.
+          We also keep which emails you turned on, when each was last sent, and a random code for
+          the unsubscribe link. We do not track whether you open an email or click anything in it.
+        </p>
+        <p>
+          Every email has an unsubscribe link at the foot, and your mail app’s own Unsubscribe
+          button works too. Either one turns off both kinds, with no sign-in. You can also turn them
+          off in Settings → Manage account, and deleting your account deletes all of this with it.
+          Password-reset email, when you ask for one, is separate and always sent.
         </p>
       </Section>
 

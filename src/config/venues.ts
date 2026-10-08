@@ -4,6 +4,7 @@
 // winner takes the prize. Bust and you're out.
 
 import { type MembersOnly, featureForFamily } from '@/config/membership'
+import { rankFor, rankIndex } from '@/config/ranks'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import type { Variant } from '@/lib/poker/handEval'
 
@@ -54,8 +55,10 @@ export interface Venue extends MembersOnly {
   bigBlind: number
   /** Total seats including the human. */
   seats: number
-  /** Winner-take-all prize added to your Roll for taking the table down. */
+  /** Prize added to your Roll for taking the table down. */
   prize: number
+  /** Paid for finishing second. Absent everywhere but the Daily: winner takes all. */
+  runnerUpPrize?: number
   ai: AiProfile
   /** Accent used on the menu card. */
   accent: string
@@ -73,6 +76,10 @@ export interface Venue extends MembersOnly {
   bounty?: number
   /** The Daily Deal: one seeded tournament a day, same shuffle for everyone. */
   daily?: boolean
+  /** The Welcome Table: a new player's first game, played once (onboarding). */
+  welcome?: boolean
+  /** The Daily's tier, named after the rank that plays it (`dailyFor`). */
+  dailyTier?: string
   /**
    * Cash / ring table: fixed blinds, no prize, no elimination. Opponents rebuy
    * to the table stack so the table stays full, and you stand up with your
@@ -929,21 +936,112 @@ export const KITCHEN_TABLE: Venue = {
 // The Daily Deal — one tournament a day, dealt from a date-derived seed, so
 // everyone in the world who sits down today plays the identical shuffle. The
 // open, deterministic engine makes that provably true (see docs/game-flow.md).
-// It costs a real buy-in — there is no free top-up — and it can be played once:
-// abandoning counts as played (the shuffle is knowable, so re-deals would be
-// an exploit). Same cards, same opponents — your play makes the difference.
+//
+// **Free to enter** (2026-10-07). It used to cost 500 from the Roll and locked
+// when you were short, which shut out exactly the players a daily habit is for.
+// Now nobody pays and everybody gets the same table stack, so the chips in
+// front of you are the house's: leaving cashes out nothing. Only a finish pays.
+// It can be played once: abandoning counts as played (the shuffle is knowable,
+// so re-deals would be an exploit).
 export const THE_DAILY: Venue = {
   id: 'daily',
   name: 'The Daily',
   tagline: 'One deal a day. Same cards for everyone.',
-  buyIn: 500,
+  buyIn: 0,
+  startingStack: 500,
   smallBlind: 5,
   bigBlind: 10,
   seats: 5,
-  prize: 2_500,
+  // The same net as the old 500-in, 2,500-out, so the free entry did not also
+  // become a bigger payday. Second gets a small prize so a near-miss still lands.
+  prize: 2_000,
+  runnerUpPrize: 500,
   daily: true,
   accent: '#7C8CF0', // the pip periwinkle — it's the house special
   ai: { tightness: 0.3, aggression: 0.45, bluff: 0.08, iterations: 500, skill: 0.45 },
+}
+
+// The Welcome Table — a new player's first game (Will, 2026-10-07). Heads-up
+// against one soft regular, 8 big blinds, blinds up every 3 hands, so it is
+// over in a few minutes win or lose. Free, on the house's chips, played once:
+// the welcome flow sends you here after making your player, and a win pays a
+// small prize onto the starting Roll.
+export const WELCOME_TABLE: Venue = {
+  id: 'welcome',
+  name: 'The Welcome Table',
+  tagline: 'Your first game. Heads-up and quick.',
+  buyIn: 0,
+  startingStack: 80,
+  smallBlind: 5,
+  bigBlind: 10,
+  seats: 2,
+  handsPerLevel: 3,
+  prize: 100,
+  welcome: true,
+  accent: '#7C8CF0',
+  // As soft as the Kitchen Table's regular: a first game a newcomer can win.
+  ai: { tightness: 0.55, aggression: 0.15, bluff: 0.03, iterations: 80, skill: 0.3 },
+}
+
+// The Daily's tiers (Will, 2026-10-07): the better you are, the harder it gets.
+// One tier per rank, chosen by your peak Roll. Everyone at a tier plays the
+// identical Daily (same shuffle, same four regulars, same skill), so a result
+// line still means the same thing to anybody at your tier. The regulars play
+// about as hard as the ladder table for that rank, and a harder tier pays more.
+// Free to enter at every tier; only a finish pays.
+const DAILY_TIERS: readonly Pick<Venue, 'ai' | 'prize' | 'runnerUpPrize'>[] = [
+  // Amateur: the Pub's regulars.
+  {
+    ai: { tightness: 0.22, aggression: 0.32, bluff: 0.06, iterations: 400, skill: 0.36 },
+    prize: 500,
+    runnerUpPrize: 125,
+  },
+  // Regular: the Downtown Casino's.
+  {
+    ai: { tightness: 0.38, aggression: 0.5, bluff: 0.11, iterations: 750, skill: 0.54 },
+    prize: 2_000,
+    runnerUpPrize: 500,
+  },
+  // Shark: the Penthouse's.
+  {
+    ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_100, skill: 0.74 },
+    prize: 10_000,
+    runnerUpPrize: 2_500,
+  },
+  // Pro: Vegas's.
+  {
+    ai: { tightness: 0.58, aggression: 0.72, bluff: 0.18, iterations: 1_650, skill: 0.95 },
+    prize: 75_000,
+    runnerUpPrize: 18_750,
+  },
+  // Legend: the Main Event's.
+  {
+    ai: { tightness: 0.6, aggression: 0.75, bluff: 0.2, iterations: 1_800, skill: 1 },
+    prize: 400_000,
+    runnerUpPrize: 100_000,
+  },
+]
+
+/** Today's Daily as this player plays it: the tier their peak Roll's rank puts them at. */
+export function dailyFor(peakRoll: number): Venue {
+  const index = rankIndex(peakRoll)
+  const tier = DAILY_TIERS[Math.min(index, DAILY_TIERS.length - 1)]
+  return { ...THE_DAILY, ...tier, dailyTier: rankFor(peakRoll).name }
+}
+
+/**
+ * Whether the table stack belongs to the house rather than the Roll: nothing
+ * was bought in, so leaving cashes out nothing and there is no session P/L.
+ */
+export function houseStack(venue: Venue): boolean {
+  return venue.freeroll === true || venue.daily === true || venue.welcome === true
+}
+
+/** What finishing in `place` pays onto the Roll (bounties aside). */
+export function prizeFor(venue: Venue, place: number): number {
+  if (place === 1) return venue.prize
+  if (place === 2) return venue.runnerUpPrize ?? 0
+  return 0
 }
 
 /** The freeroll opens only while the player can't afford the ladder's bottom rung. */
@@ -1162,6 +1260,7 @@ export const ALL_VENUES: readonly Venue[] = [
   BIG_POT,
   KITCHEN_TABLE,
   THE_DAILY,
+  WELCOME_TABLE,
   CUSTOM_TABLE_ROUTE,
 ]
 
@@ -1220,9 +1319,10 @@ function tableStack(venue: Venue): number {
  *
  * A freeroll pays back nothing: those are the house's chips and only the prize
  * cashes, which is what stops the Kitchen Table being farmed for its stack.
+ * The Daily is free to enter for the same reason and pays back nothing either.
  */
 export function cashOutValue(venue: Venue, stack: number): number {
-  if (venue.freeroll) return 0
+  if (houseStack(venue)) return 0
   const stackSize = tableStack(venue)
   if (stackSize <= 0 || stackSize === venue.buyIn) return stack
   return Math.round(stack * (venue.buyIn / stackSize))

@@ -50,26 +50,20 @@ export function AppBoot() {
     })
 
     // In the store app, a marker for CSS (globals.css): springy scroll, and
-    // the page padding itself past the notch and home bar. The shell draws
-    // the web view edge to edge so the felt runs behind them, which needs
-    // `viewport-fit=cover` for the safe-area insets to be reported. Both are
-    // set here, after hydration: React never renders the attribute, so never
-    // takes it away, and the website's viewport is left as it is.
-    if (inApp()) {
-      document.documentElement.dataset.pipApp = ''
-      const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]')
-      if (viewport && !viewport.content.includes('viewport-fit')) {
-        viewport.content += ', viewport-fit=cover'
-      }
-    }
+    // the page padding itself past the notch and home bar, which the shell
+    // draws the web view behind. Set after hydration: React never renders
+    // this attribute, so it never takes it away.
+    if (inApp()) document.documentElement.dataset.pipApp = ''
 
     // No-op unless the player has an account: with no stored session this
     // reads localStorage, finds nothing and stops. No request, no identity.
+    // It is also what picks up a Google or Apple sign-in coming back in the URL.
     void useSync.getState().init()
 
     // Subscribes to that session rather than going looking for one, so a
     // player with no account still makes no request of its own.
     useMembership.getState().start()
+
     return () => sound.onPlay(null)
   }, [])
   return null

@@ -19,6 +19,8 @@ import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
 import { featureForFamily, membershipFor } from '@/config/membership'
+import { TASTE_COPY } from '@/lib/membership/taste'
+import { useTaste } from '@/lib/useTaste'
 
 /**
  * The side tables: one card per thing that is different, with the prices behind
@@ -45,10 +47,20 @@ export function SideTables() {
   const member = useEntitlement()
   const money = useMoney()
   const spendable = useSpendableRoll()
+  const taste = useTaste()
   const [openFamily, setOpenFamily] = useState<TableFamily | null>(null)
 
+  // **One member game a day is free** (docs/membership.md). While today's is
+  // unspent a locked family opens like a member's would, says "Free today",
+  // and the route spends it at sit-down (PlayClient). Once spent the card is
+  // the plain lock again, saying so.
+  const tasting = (family: TableFamily) => memberLocked(family, member) && taste.left
+  const shut = (family: TableFamily) => memberLocked(family, member) && !taste.left
+  const shutNote = taste.ready && taste.record ? TASTE_COPY.used : MEMBERS_ONLY_NOTE
+
   const tile = (family: TableFamily, index: number): TileVM => {
-    const locked = memberLocked(family, member)
+    const locked = shut(family)
+    const free = tasting(family)
     const cheapest = family.rooms[0]
     const dearest = family.rooms[family.rooms.length - 1]
     const affordable = spendable >= cheapest.buyIn
@@ -61,16 +73,13 @@ export function SideTables() {
       // The price of the cheapest way in, and the spread when there is one.
       // A range is the honest summary of a card that hides five prices; a
       // single number would be one of them pretending to be the card.
-      line:
+      line: `${free ? `${TASTE_COPY.tile} · ` : ''}${
         family.rooms.length > 1
           ? `${family.rooms.length} tables · ${money(cheapest.buyIn)} – ${money(dearest.buyIn)}`
-          : `Buy-in ${money(cheapest.buyIn)}${cheapest.prize > 0 ? ` · win ${money(cheapest.prize)}` : ''}`,
+          : `Buy-in ${money(cheapest.buyIn)}${cheapest.prize > 0 ? ` · win ${money(cheapest.prize)}` : ''}`
+      }`,
       playable: !locked && affordable,
-      lockedReason: locked
-        ? MEMBERS_ONLY_NOTE
-        : affordable
-          ? undefined
-          : `Need ${money(cheapest.buyIn)}`,
+      lockedReason: locked ? shutNote : affordable ? undefined : `Need ${money(cheapest.buyIn)}`,
       premium: Boolean(family.membersOnly),
       onOpen: () => {
         sound.play('tap')
@@ -125,8 +134,9 @@ export function SideTables() {
         family={openFamily}
         venue={openFamily?.rooms[0] ?? null}
         canAfford={(v) => spendable >= v.buyIn}
-        playable={openFamily ? !memberLocked(openFamily, member) : false}
-        lockedNote={openFamily && memberLocked(openFamily, member) ? MEMBERS_ONLY_NOTE : undefined}
+        playable={openFamily ? !shut(openFamily) : false}
+        lockedNote={openFamily && shut(openFamily) ? shutNote : undefined}
+        freeNote={openFamily && tasting(openFamily) ? TASTE_COPY.note : undefined}
         onOpenChange={(o) => !o && setOpenFamily(null)}
         onPlay={(venue: Venue) => {
           sound.play('call')

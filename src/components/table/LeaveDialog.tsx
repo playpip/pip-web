@@ -29,6 +29,7 @@ export function LeaveDialog({
   stack,
   cashOut,
   freeroll = false,
+  daily = false,
   cash = false,
   onConfirm,
   onReview,
@@ -39,12 +40,16 @@ export function LeaveDialog({
   stack: number
   cashOut: number
   freeroll?: boolean
+  /** The Daily: free to enter, so like a freeroll there is nothing to cash out. */
+  daily?: boolean
   cash?: boolean
   onConfirm: () => void
   /** Leave, and open the session review. Absent where there is no review. */
   onReview?: () => void
 }) {
   const money = useMoney()
+  // Both deal the house's chips: no P/L to show, nothing to cash out.
+  const free = freeroll || daily
   const converted = cashOut !== stack
   const pnl = cashOut - buyIn
   const up = pnl >= 0
@@ -55,17 +60,19 @@ export function LeaveDialog({
         <DialogHeader>
           <DialogTitle>{cash ? 'Stand up?' : 'Leave the table?'}</DialogTitle>
           <DialogDescription>
-            {freeroll
-              ? 'It’s a freeroll — the chips stay at the table. Leave now and you walk away with nothing; only winning pays.'
-              : cash
-                ? 'Cash out and stand up — every chip in front of you is yours to keep.'
-                : converted
-                  ? 'You’ll cash out your chips at the rate you bought in, and forfeit a shot at the prize.'
-                  : 'You’ll cash out your chips and forfeit a shot at the prize.'}
+            {daily
+              ? 'The Daily is free to enter, so the chips stay at the table. Leaving now still uses up today’s Daily.'
+              : freeroll
+                ? 'It’s a freeroll — the chips stay at the table. Leave now and you walk away with nothing; only winning pays.'
+                : cash
+                  ? 'Cash out and stand up — every chip in front of you is yours to keep.'
+                  : converted
+                    ? 'You’ll cash out your chips at the rate you bought in, and forfeit a shot at the prize.'
+                    : 'You’ll cash out your chips and forfeit a shot at the prize.'}
           </DialogDescription>
         </DialogHeader>
 
-        {!freeroll && (
+        {!free && (
           <div className="pt-1">
             <Row label={cash ? 'Bought in' : 'Bought in for'} value={money(buyIn)} />
             <Row label={cash ? 'Standing up with' : 'Your stack'} value={money(stack)} />
@@ -97,7 +104,7 @@ export function LeaveDialog({
             onClick={onConfirm}
             className="flex-1 rounded-2xl bg-primary py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
           >
-            {freeroll ? 'Leave' : cash ? 'Stand up' : 'Cash out'}
+            {free ? 'Leave' : cash ? 'Stand up' : 'Cash out'}
           </button>
         </div>
 
@@ -112,7 +119,11 @@ export function LeaveDialog({
             onClick={onReview}
             className="mt-1 self-center text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
           >
-            {cash ? 'Stand up and review the session' : 'Cash out and review the session'}
+            {cash
+              ? 'Stand up and review the session'
+              : free
+                ? 'Leave and review the session'
+                : 'Cash out and review the session'}
           </button>
         )}
       </DialogContent>

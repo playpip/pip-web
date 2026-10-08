@@ -24,7 +24,10 @@ import type {
 } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
 import { emptyReviewStats } from '@/lib/review/stats'
+import { mergeStreaks, streakFromDaily } from '@/lib/streak'
+import { mergeTaste } from '@/lib/membership/taste'
 import { STARTING_ROLL } from '@/config/venues'
+import { hasPlaceholderName } from '@/lib/newPlayer'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
 export type ProfileData = Omit<
@@ -52,6 +55,13 @@ const ROLL_HISTORY_CAP = 300
 export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Side): ProfileData {
   const winner = side === 'local' ? local : remote
   const loser = side === 'local' ? remote : local
+  // Who the player is. A new visitor is dealt in under a placeholder name and a
+  // random face (lib/newPlayer), so the side that wins the Roll can be the side
+  // that never chose either. A name somebody typed beats one they were given,
+  // whichever side it is on, and the face goes with the name: a random avatar
+  // on someone's chosen name is still not theirs.
+  const identity =
+    hasPlaceholderName(winner.name) && !hasPlaceholderName(loser.name) ? loser : winner
 
   return {
     // Chosen side. `roll` is the currency: adding invents chips, max() rewards
@@ -122,8 +132,8 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
 
     // Cosmetics and ephemera — last write wins, and the chosen side is the last
     // write by definition.
-    name: winner.name,
-    avatar: winner.avatar,
+    name: identity.name,
+    avatar: identity.avatar ?? winner.avatar,
     cardBack: winner.cardBack,
     deckFace: winner.deckFace,
     tableFinish: winner.tableFinish,
@@ -139,6 +149,10 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     handCoaching: winner.handCoaching,
     haptics: winner.haptics,
     cameFromFreeroll: winner.cameFromFreeroll,
+    // Put away on either device is put away.
+    gettingStartedDismissed: Boolean(
+      local.gettingStartedDismissed || remote.gettingStartedDismissed,
+    ),
     // The table they last built. One slot, so there is nothing to merge: the
     // chosen side's is the one they most recently sat at. `?? null` because a
     // profile written before v18 has no such field and `pickUnhandled` would
@@ -152,6 +166,15 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // The Daily is once per UTC day and abandoning counts as played, so the
     // record that says "played today" has to win or syncing becomes a re-roll.
     daily: mergeDaily(local.daily, remote.daily),
+    // A streak is days played, and either device playing a day means it was
+    // played. Runs that touch join up; the longer best survives (lib/streak).
+    streak: mergeStreaks(
+      local.streak ?? streakFromDaily(local.daily),
+      remote.streak ?? streakFromDaily(remote.daily),
+    ),
+    // The daily free member game, for the same reason: a spent game stays
+    // spent, or signing in on a second device is a way to get another.
+    taste: mergeTaste(local.taste, remote.taste),
 
     // Anything added to ProfileState since this was written follows the chosen
     // side rather than silently vanishing on first sync.
@@ -178,7 +201,9 @@ export function hasDivergence(local: ProfileData, remote: ProfileData): boolean 
  *
  * A profile fresh out of onboarding is not progress. It is the shape of a
  * player — a name, an avatar, the starting Roll — with nothing behind it, and
- * signing in on it is a restore rather than a merge.
+ * signing in on it is a restore rather than a merge. That includes the one a
+ * first visit makes on its own (onboarding/firstSeat): identity is not read
+ * here, so a placeholder name and a random face are as pristine as chosen ones.
  *
  * Merging there is actively wrong, not merely unnecessary. `createProfile`
  * seeds `rollHistory` with an origin point stamped `Date.now()`, which is later
@@ -205,6 +230,9 @@ export function isPristine(p: ProfileData): boolean {
     Object.keys(p.castRecords).length === 0 &&
     p.owned.length === 0 &&
     p.daily === null &&
+    // A spent free game is not progress, but adopting the account's row over
+    // it would hand this device a second one today.
+    (p.taste ?? null) === null &&
     // Drills are reachable without ever sitting down, so a rating is progress
     // even on a profile that has played no hands. Without this clause, signing
     // in on that device adopts the account's row and the rating is gone.
@@ -407,7 +435,10 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'handCoaching',
     'haptics',
     'cameFromFreeroll',
+    'gettingStartedDismissed',
     'daily',
+    'streak',
+    'taste',
     'challengeWins',
     'challengesPlayed',
     'drills',

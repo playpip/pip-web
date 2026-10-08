@@ -253,6 +253,7 @@ const VENUE_IMAGES: Record<string, string> = {
   vault: '/venues/vault.jpg',
   bigpot: '/venues/bigpot.jpg',
   kitchen: '/venues/kitchen.jpg',
+  welcome: '/venues/garage.jpg',
   // One painting, five registrations. Deep Stack is five real venues wearing a
   // single card (config/venues.ts) and this map is keyed by id, so the four
   // stakes the shelf never shows would otherwise lose their cover the moment
@@ -292,6 +293,11 @@ function VenueScene({ id, accent, className }: { id: string; accent: string; cla
       {scene(accent)}
     </svg>
   )
+}
+
+/** The venue's painting, or undefined where it has none (a built table). */
+export function venueImage(id: string): string | undefined {
+  return VENUE_IMAGES[id]
 }
 
 export function VenueArt({

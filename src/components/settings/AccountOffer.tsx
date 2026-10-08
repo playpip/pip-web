@@ -26,15 +26,14 @@ import { sound } from '@/lib/sound'
 import { useInApp } from '@/lib/useInApp'
 
 /** The strongest fact we have about signing up, and nothing else said it. */
-export const SIGNUP_FACT = 'An email and a password. There is no confirmation email to go and find.'
+export const SIGNUP_FACT = 'An email and a password. No confirmation email.'
 
 /**
  * The same fact once Google or Apple are on offer. The signup dialog stopped
  * saying "an email and a password" was the only way in when they shipped; this
  * card sits one tap before that dialog and has to agree with it.
  */
-export const SIGNUP_FACT_OAUTH =
-  'Google, Apple, or an email and a password. There is no confirmation email to go and find.'
+export const SIGNUP_FACT_OAUTH = 'Google, Apple, or an email and a password. No confirmation email.'
 
 export const signupFact = () => (oauthProviders().length > 0 ? SIGNUP_FACT_OAUTH : SIGNUP_FACT)
 
@@ -50,18 +49,21 @@ export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overl
   // and render nothing at all in a build with no project behind it.
   if (!ready || status !== 'signed-out') return null
 
-  // The landing page's "Create a free account" links to /game?account=new. This
-  // is that link's destination, not a pop-up: the player pressed a button that
-  // said exactly this. Read at render rather than in an effect — `hydrated` is
-  // false on the server and on the hydrating pass, so it only runs in the
-  // browser, and one dismissal spends it for good.
-  const invited =
-    variant === 'lobby' &&
-    hydrated &&
-    !inviteSpent &&
-    new URLSearchParams(window.location.search).get('account') === 'new'
+  // The landing page's "Create a free account" links to /game?account=new and
+  // its "Sign in" to /game?account=signin. This is those links' destination,
+  // not a pop-up: the player pressed a button that said exactly this. Read at
+  // render rather than in an effect — `hydrated` is false on the server and on
+  // the hydrating pass, so it only runs in the browser, and one dismissal
+  // spends it for good.
+  const asked =
+    variant === 'lobby' && hydrated && !inviteSpent
+      ? new URLSearchParams(window.location.search).get('account')
+      : null
+  const invitedMode: AccountMode | null =
+    asked === 'new' ? 'signup' : asked === 'signin' ? 'signin' : null
+  const invited = invitedMode !== null
 
-  const mode = dialog ?? (invited ? 'signup' : null)
+  const mode = dialog ?? invitedMode
 
   const open = (next: AccountMode) => {
     sound.play('tap')
@@ -91,8 +93,8 @@ export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overl
     >
       <p className={dark ? 'text-xs leading-relaxed text-white/70' : 'text-sm leading-relaxed'}>
         {dark
-          ? `That run lives in ${where} and nowhere else. A free account keeps it, on every device you play on.`
-          : `Your Roll lives in ${where} and nowhere else. A free account keeps a copy, on every device you play on.`}
+          ? `This run is saved in ${where} only. A free account keeps it on every device.`
+          : `Your Roll is saved in ${where} only. A free account keeps it on every device.`}
       </p>
       <p
         className={

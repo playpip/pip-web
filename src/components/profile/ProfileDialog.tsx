@@ -13,6 +13,7 @@ import { AccountRow } from './AccountRow'
 import { AvatarEditor } from './AvatarEditor'
 import { ChipsDialog } from './ChipsDialog'
 import { AWARDS } from '@/lib/awards'
+import { hasPlaceholderName } from '@/lib/newPlayer'
 import { useProfile } from '@/store/profile'
 import { sound } from '@/lib/sound'
 import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
@@ -45,7 +46,9 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   const [spec, setSpec] = useState<AvatarSpec>(
     () => savedAvatar ?? { seed: freshSeed(), backgroundColor: AVATAR_BG_SWATCHES[1] },
   )
-  const [name, setLocalName] = useState(savedName)
+  // The placeholder a first visit is given (lib/newPlayer) starts the field
+  // empty, so choosing a name is typing one rather than deleting ours first.
+  const [name, setLocalName] = useState(() => (hasPlaceholderName(savedName) ? '' : savedName))
   const [chipsOpen, setChipsOpen] = useState(false)
   const earnedCount = AWARDS.filter((a) => awards[a.id] !== undefined).length
 

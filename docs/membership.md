@@ -44,9 +44,12 @@ of the seven play, how many cards win it, what the pot is charging — is the me
    member does reach a rank sooner for having more tables to win at — that is pace through
    single-player content. ⚠️ **This argument has to be made again the day multiplayer
    ships.** See `docs/brand.md` principle 1 and `cto/drafts/build-multiplayer.md`.
-4. **Nothing is metered.** A thing is the membership's or it is free, and there is no third
-   shape: no sampling, no "three a week", no trial that ends mid-session. What we sell is
-   another whole kind, never a slice of a free one.
+4. **Nothing free is metered, and nothing paid is sliced.** A thing is the membership's or it
+   is free. The one third shape is **one whole member game a day** for a non-member (below):
+   a whole table, never part of one, never a trial that ends mid-session,
+   and never a meter on anything free. *Relaxed by Will on 2026-10-07*: it used to say
+   "no sampling" outright, and in the first week on sale eleven tabs saw `/membership` and
+   none opened checkout, because nothing paid could be tried before paying.
 
 ### A built table can be made harder, and only harder (2026-09-22)
 
@@ -95,6 +98,29 @@ sentence would be false if it stayed. It has been narrowed rather than quietly e
 ⚠️ **This is the one time.** After the first payment clears, rule 1 is absolute again and
 narrowing it further is not a thing this document can authorise — that would need a player
 to be told before it happened, not after.
+
+## One free member game a day (2026-10-07)
+
+A non-member gets **one member game per UTC day**: a seat at any one poker table on the side
+tables shelf (Omaha, Short Deck, Hi-Lo, Draw, and the twists). Blackjack and the table builder
+are left out: neither is one game you sit down to and finish. **Lessons are left out too**
+(Will, 2026-10-07): eight lessons at one a day is the whole course given away in a week. The sentence the page, README and roadmap say is `DAILY_FREE_GAME`
+(`config/membership.ts`).
+
+- **The rules are pure**, in `lib/membership/taste.ts` (`tests/taste.test.ts`). The record is
+  `profile.taste` — `{ date, kind, id }`, persisted (v23), and merged on sync so a spent game
+  stays spent (`mergeTaste`: the later day wins; on the same day the local record stands).
+- **It is spent where it is used.** A table spends it at sit-down in `PlayClient`, after
+  `refuseSitDown` is asked with `member || tasting` — never on a page view.
+- **A refresh is not a second one, and does not kick anybody out.** At a table, the snapshot
+  resume in `PlayClient` runs before any gate, so a tournament in progress comes back without
+  asking. The gap is the Daily's: a refresh between sitting down and the first deal loses that game.
+- **It is not membership.** The table is handed `member: false`, so no session review and no
+  watching it out. The record is client-written, so editing it gets you a free game you could
+  have had tomorrow; it can never make anybody a member.
+- **What the cards say.** While unspent, the side-tables card reads *Free today* and opens
+  like a member's, and the dialog says it is today's one. Once spent, the normal lock, with *Your free
+  game today is used. Join for every table.* Copy lives in `TASTE_COPY`.
 
 ## Where the answer comes from
 
@@ -224,11 +250,19 @@ page that answers their question is the least we owe them for asking. If this ev
 into something that appears without being asked for, it has stopped being this and the rule
 above is what it has broken.
 
-**Nothing about buying appears in the game loop.** `tests/membershipSurfaces.test.ts` fails
-the build if anything under `src/components/table/` or `src/store/game.ts` links to
-`/membership`, imports `config/membership`, or calls `useEntitlement`. A player mid-hand is
-the one place a line about money would be exactly the thing we promise never happens. That
-is why the table is told what it is at sit-down instead of asking.
+**Nothing about buying appears in the game loop, bar one line once the run is over.**
+`tests/membershipSurfaces.test.ts` fails the build if anything under `src/components/table/`
+or `src/store/game.ts` links to `/membership`, imports `config/membership`, or calls
+`useEntitlement`. A player mid-hand is the one place a line about money would be exactly the
+thing we promise never happens. That is why the table is told what it is at sit-down instead
+of asking.
+
+The exception, relaxed by Will on 2026-10-07, is **the end-of-run card** (`RunRecap.tsx`):
+for a non-member whose report has a finding, it shows that finding's title and sample and a
+link, *See your full report*, to `/membership?for=coaching`. The line is the report's own top
+leak (`lib/review/teaser.ts` over `deepRead`), never written for the card, and absent when the
+report has nothing to say. The test names `RunRecap.tsx` as the only file allowed, and checks
+it still takes `member` from the table rather than asking.
 
 ## The cosmetics denominator
 
@@ -271,7 +305,9 @@ Worth listing, because each was considered:
   import, no membership import, no branch. `tests/deepCoach.test.ts` enforces that directly —
   the free module may import no paid one, and a paid module may take a type from it and
   nothing else. See [review.md](./review.md).
-- **The end-of-run card.** It reads one run and stores nothing.
+- **The end-of-run card.** It reads one run and stores nothing. Since 2026-10-07 it can also
+  carry one line of a non-member's report (see the game-loop exception above); the card
+  itself is still free and the line is a pointer, not the report.
 - **The odds calculator.** It generates nothing, grades nobody and remembers nothing.
 - **The whole free ladder, the Rail, the Daily and the freeroll.** Rule 1.
 - **Every `/learn` guide.**
@@ -282,12 +318,14 @@ Worth listing, because each was considered:
 |---|---|
 | `tests/entitlement.test.ts` | The client writing the entitlement table; a paid drill shipping without saying it is paid |
 | `tests/membership.test.ts` | The page advertising a feature that does not exist; the price disagreeing with itself |
-| `tests/membershipSurfaces.test.ts` | Anything about buying reaching the game loop; a dead `/membership` link |
+| `tests/membershipSurfaces.test.ts` | Anything about buying reaching the game loop beyond the end-of-run report line; a dead `/membership` link |
+| `tests/taste.test.ts` | A second free member game in one UTC day; a refresh spending one; a sync handing one back |
+| `tests/reportTeaser.test.ts` | The end-of-run line saying something the report does not, or naming the wrong unit |
 | `tests/sitDown.test.ts` | A free table moving behind the membership; a member room paying better than a free one |
 | `tests/customTable.test.ts` | A built table being easier than the ladder at the same price; an invited guest not turning up |
 | `tests/spectate.test.ts` | The spectator view answering while a hand is live |
 | `tests/challenge.test.ts` | Member content enlarging a free player's denominator |
-| `tests/roadmapDrills.test.ts` | The public roadmap going stale about which drills are paid |
+| `tests/roadmapDrills.test.ts` | The public roadmap going stale about which drills are paid, or dropping the daily free game |
 | `tests/review.test.ts` | A free table being kept for review; the grading reaching for a card the player could not see |
 
 ## Counting the funnel

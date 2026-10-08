@@ -54,7 +54,8 @@ The landing page has no signup route to link to (the account is a dialog), so it
 reload does not reopen what was closed.
 
 **The copy says "nothing to confirm".** That is true because production runs with
-`mailer_autoconfirm` on and a password reset is the only email Pip ever sends. Turn autoconfirm
+`mailer_autoconfirm` on, so Supabase Auth sends nothing but a password reset when asked. (The
+opt-in emails in [email.md](./email.md) confirm nothing and are off by default.) Turn autoconfirm
 off and the landing trust card, the signup dialog and the offer all become false together.
 
 ## What is stored
@@ -76,7 +77,8 @@ reviewable.
 a client holding only the publishable key cannot remove an `auth.users` row on its own. It takes no
 arguments and deletes `auth.uid()`, which is what keeps it safe: there is no id to tamper with, so
 the only account it can reach is the caller's. **Never give it a parameter.** The cascade on
-`profiles.user_id` takes the data with the user.
+`profiles.user_id` takes the data with the user. The same cascade takes
+`email_prefs` (docs/email.md) and `memberships`.
 
 ## Versioning
 
@@ -104,6 +106,7 @@ Field by field:
 | `created` | either side saying yes wins |
 | cosmetics (`name`, `avatar`, `cardBack`, `deckFace`, `tableFinish`, `tableTalk`) | chosen side |
 | `daily` | later day; same day, a played run beats an abandoned one |
+| `streak` | runs that touch or overlap join into one; otherwise the later run. `best` is the max |
 | **`roll`, `rollHistory`, `stats`, `tendencies`** | **the side the player picks** |
 
 **Why the drill rating is neither maxed nor averaged.** It is the one kept number that is
@@ -200,6 +203,13 @@ that looks current:
 - **Storage half-cleared.** Drop `pip.profile` and keep `pip.sync` and the bookmark still matches
   the row, so the pull is skipped entirely — and the first change after onboarding pushes the empty
   profile over the account. That one costs real progress, not just a wrong-looking graph.
+
+**The player a first visit makes is pristine too.** Play deals a new visitor in under the name
+`Player` and a random face (`onboarding/firstSeat`, `lib/newPlayer`), and `isPristine` does not
+read identity, so a returning player who presses "Sign in" on the landing page restores over that
+placeholder rather than merging with it. And when a placeholder does reach a merge (a guest
+played some hands, then signed in), **a chosen name beats the placeholder whichever side wins the
+Roll**, and the face goes with the name (`mergeProfiles`, tested in `syncMerge`).
 
 The check is deliberately strict, and both sides are tested: if the account's row is pristine too it
 falls through to the ordinary merge, so the name just typed in isn't overwritten by an empty row.

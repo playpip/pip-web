@@ -4,13 +4,16 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { BookOpen, Moon, MoonStar, Play, Store, Sun, Sunrise, Target } from 'lucide-react'
+import { BookOpen, Moon, MoonStar, Pencil, Play, Store, Sun, Sunrise, Target } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
 import { PageShell } from '@/components/PageShell'
 import { AccountOffer } from '@/components/settings/AccountOffer'
+import { GettingStarted } from '@/components/menu/GettingStarted'
 import { MembershipCard } from './MembershipCard'
+import { ProfileDialog } from '@/components/profile/ProfileDialog'
+import { hasPlaceholderName } from '@/lib/newPlayer'
 import { useProfile } from '@/store/profile'
 import type { RollPoint } from '@/store/profile'
 import { ShopDialog } from './ShopDialog'
@@ -21,8 +24,10 @@ import { NextUpCard } from './NextUpCard'
 import { QuickPlayCard } from './QuickPlayCard'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import { SIDE_SHELF, RING_TABLES, THE_DAILY } from '@/config/venues'
+import { SIDE_SHELF, RING_TABLES, THE_DAILY, dailyFor } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
+import { liveStreak } from '@/lib/streak'
+import { StreakBadge } from '@/components/StreakBadge'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
 import { deviceId } from '@/lib/sync/client'
@@ -31,7 +36,6 @@ import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { greetingFor, periodFor, type DayPeriod } from '@/lib/timeOfDay'
 import { useHydrated } from '@/lib/useHydrated'
-import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { useCopied } from '@/lib/useCopied'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
@@ -50,6 +54,9 @@ export function Home() {
     useProfile()
   const money = useMoney()
   const [shopOpen, setShopOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const gettingStartedDismissed = useProfile((s) => s.gettingStartedDismissed)
+
   // The two faces on the shelf. Pearl keeps the shop; Webb keeps Learn, being
   // the one in the cast who "wrote the book", so his face is the least
   // arbitrary icon available for it.
@@ -118,13 +125,36 @@ export function Home() {
             )}
           </div>
         )}
+        <StreakBadge />
+        {/* A first visit deals you in as "Player" with a random face
+            (onboarding/firstSeat). This is where you change that: furniture
+            under the Roll, gone once you have a name. */}
+        {hasPlaceholderName(name) && (
+          <button
+            type="button"
+            onClick={() => {
+              sound.play('tap')
+              setProfileOpen(true)
+            }}
+            className="mt-4 inline-flex min-h-11 items-center gap-2.5 rounded-full border border-foreground/10 bg-foreground/[0.03] py-1.5 pr-4 pl-1.5 text-sm transition hover:border-foreground/25 hover:bg-foreground/[0.06]"
+          >
+            {avatar && <PlayerAvatar spec={avatar} size={28} />}
+            <span className="text-muted-foreground">Playing as {name}.</span>
+            <span className="inline-flex items-center gap-1 font-medium">
+              <Pencil className="size-3.5" />
+              Choose a name
+            </span>
+          </button>
+        )}
         {/* The freeroll used to be a button here, shown only when broke. It is
             now the first thing `nextUp` offers, so a player out of chips gets
             it as the hero rather than as a second, differently-shaped way in. */}
         {/* Under the Roll, because the Roll is the thing an account keeps.
             Signed out only, and it renders nothing until the stored session has
             been checked. */}
-        <AccountOffer />
+        {/* A newcomer's checklist carries the account offer as one of its
+            steps; once it is put away the plain offer takes its place. */}
+        {gettingStartedDismissed ? <AccountOffer /> : <GettingStarted />}
       </motion.div>
 
       {/* the main menu — one recommendation, the spine, the detours, the rooms */}
@@ -177,7 +207,7 @@ export function Home() {
             **The Daily lives here and only here** (Will, 2026-09-20). It is a
             once-a-day novelty rather than a step up, so it never takes the hero
             slot — and this is where its state is worth reading anyway: played,
-            placed, or priced out. The challenger is dropped from the row only
+            placed, or waiting on today. The challenger is dropped from the row only
             on the rare turn it *is* the hero, because the same face twice down
             one screen reads as the app repeating itself. The grid keeps its
             column count either way, so the tiles never resize — a short row
@@ -218,7 +248,7 @@ export function Home() {
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           <RoomCard
             title="Pearl’s counter"
-            blurb="Card backs, rings, buttons, sounds, souvenirs — style, never edge."
+            blurb="Card backs, rings, sounds and souvenirs."
             verb="Browse"
             icon={Store}
             face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
@@ -252,6 +282,7 @@ export function Home() {
       </div>
 
       <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </PageShell>
   )
 }
@@ -355,15 +386,15 @@ function GreetingLine({ hour, name }: { hour: number; name: string }) {
 }
 
 /**
- * The Daily as a menu tile — reflects today's state. Unplayed and affordable:
- * tap to play. Played: tap copies the calm share line. Can't afford the buy-in:
- * a clear locked tile (the Daily costs a real buy-in — there's no free daily).
+ * The Daily as a menu tile — reflects today's state. Not yet played: tap to
+ * open the details, where playing is a second tap. It is free, so it never
+ * locks. Played: tap copies the share line.
  */
 function DailyTile({ delay }: { delay: number }) {
   const router = useRouter()
-  const money = useMoney()
   const daily = useProfile((s) => s.daily)
-  const spendable = useSpendableRoll()
+  const streak = useProfile((s) => s.streak)
+  const peakRoll = useProfile((s) => s.peakRoll)
   // Worst of the three #20 sites: 'Copied' sat in place of the finishing
   // position for the rest of the session, so a tile that had real information
   // on it lost it to a confirmation.
@@ -373,8 +404,7 @@ function DailyTile({ delay }: { delay: number }) {
   const today = dailyDateKey()
   const dayNo = dailyNumber(today)
   const playedToday = daily?.date === today
-  const affordable = spendable >= THE_DAILY.buyIn
-  const locked = !playedToday && !affordable
+  const run = streak ? liveStreak(streak, today) : 0
 
   const subtitle = copied
     ? 'Copied'
@@ -384,9 +414,7 @@ function DailyTile({ delay }: { delay: number }) {
           ? 'Won it today'
           : `Finished ${ordinal(daily.place)} of ${THE_DAILY.seats}`
         : 'Played today'
-      : affordable
-        ? 'Same cards for everyone'
-        : `Need ${money(THE_DAILY.buyIn)} to play`
+      : 'Free · same cards for everyone'
 
   // Played: tap copies the share line. Otherwise: open the details dialog (the
   // same one the venues use), where playing is a deliberate second tap.
@@ -395,7 +423,9 @@ function DailyTile({ delay }: { delay: number }) {
       if (!daily?.place) return
       sound.play('tap')
       void navigator.clipboard
-        ?.writeText(dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands))
+        ?.writeText(
+          dailyShareText(daily.dayNo, daily.place, THE_DAILY.seats, daily.hands, run, daily.tier),
+        )
         .then(() => copy())
       return
     }
@@ -412,12 +442,11 @@ function DailyTile({ delay }: { delay: number }) {
         badge={`#${dayNo}`}
         subtitle={subtitle}
         onClick={onClick}
-        locked={locked}
         delay={delay}
       />
       <VenueInfoDialog
-        venue={infoOpen ? THE_DAILY : null}
-        playable={affordable}
+        venue={infoOpen ? dailyFor(peakRoll) : null}
+        playable
         onOpenChange={(o) => !o && setInfoOpen(false)}
         onPlay={(venue) => {
           sound.play('call')

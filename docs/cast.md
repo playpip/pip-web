@@ -79,6 +79,20 @@ big pot** (≥20 big blinds), **busting out**. Rationing is the design:
 The writing bar is the feature: lines are dry, specific and short. If a line
 wouldn't read well spoken by a bartender, cut it.
 
+A fourth moment, **the read** (`lines.read`, optional): the table has learned the
+player bets nearly every hand (`credibility` under 0.6 in `lib/poker/ai/memory`),
+they took a hand to showdown, and this character beat them. It outranks the
+big-pot line, under the same rationing.
+
+## Habits
+
+A few characters play a **habit** their bio already describes (`habit` on the
+character, `Habit` in `lib/poker/ai/policy`): Mo barrels the turn, Rosa calls
+down, Dmitri traps, Vivienne bets the pots she closes. It is personality, not
+skill, so it holds at every table they sit at, and it is the thing a regular
+would learn about them and use. Give a character a habit only when the bio says
+it.
+
 ## The challenge line
 
 A fourth line, `lines.challenge`, is the invitation a character waits with on the
@@ -120,6 +134,7 @@ invitations nobody can ever accept.
 |-----------------|------|
 | Add/rewrite a character, bio, lines | `src/config/cast.ts` (+ `tests/cast.test.ts` and `tests/challenge.test.ts` coverage holds) |
 | Where a character plays | `bands` / `only` on the character |
+| A character's habit | `habit` on the character; sizes in `HABIT` (`config/aiGates.ts`) |
 | Talk frequency / moments | `maybeTalk` + call sites in `src/store/game.ts` |
 | The talk line's look | the table-talk block in `components/table/Table.tsx` |
 | Career record shape | `store/profile.ts` (bump `PERSIST_VERSION`, add migration) |

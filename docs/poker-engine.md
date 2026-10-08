@@ -63,7 +63,8 @@ Key types:
 - `PlayerStatus = active | folded | allin | out`
 - `Action { type: fold|check|call|bet|raise, amount? }` — for bet/raise, `amount` is
   the **total to commit this street** (the "raise to" amount), not the delta.
-- `Player`, `HandState`, `SeatConfig`.
+- `Player`, `HandState`, `SeatConfig`. `HandState.actions` logs every action taken
+  this hand (`ActionRecord`); blinds are not actions.
 
 Key functions:
 - `startHand(opts): HandState` — deals hole cards (two, or four when
@@ -96,7 +97,7 @@ equity + pot odds + a personality.
 - `AiProfile { tightness, aggression, bluff, iterations, skill? }` — `skill` (default 1)
   degrades play quality with genuine mistakes: noisy self-equity reads and folding
   under pressure. Used by the Kitchen Table freeroll so it stays beatable heads-up.
-- `decideAction(state, profile, rng?): Action` — always returns a **legal** action.
+- `decideAction(state, profile, rng?, memory?): Action` — always returns a **legal** action.
   Logic: estimate equity vs live opponents — **ranging each by how much they've
   backed the hand** (`opponentSelectivity`, so it doesn't over-call into aggression)
   → compare to pot odds (tightness, plus a little more when players are still to act
@@ -116,8 +117,58 @@ equity + pot odds + a personality.
   `tests/ai.test.ts`: the Garage plays ~35% of hands, the Main Event ~19%, and the fall
   is monotone in between — roughly real VPIP ranges. Never
   overrides checking for free — a limped big blind still sees the flop with anything.
-- `opponentSelectivity(state, opp)` is exported and shared with the store's hero
-  "win %" read, so both sides model opponent ranges identically.
+- `opponentSelectivity(state, opp)` is the range read behind the player's **win %**
+  and the coach. Postflop, an opponent who has put nothing in this street is read
+  off their earlier streets only; once they bet, every chip in counts. Measured
+  against the bots' actual cards (`pnpm win-read`, 2026-10-08) that is within about
+  three points either way, where counting preflop chips on an unbet flop had the
+  win % twelve points low.
+- `aiSelectivity(state, opp, memory?, skill?)` is the **bots'** read. It counts
+  every chip as strength no longer: a 3bb open plus a c-bet scored as the best of
+  four holdings on the flop, and the Main Event folded 71% of checked flops to a
+  ⅔-pot bet (any two cards profit above 40%). A beginner beat the top of the
+  ladder by simply betting. Postflop it reads the bet sized against this street's
+  pot, plus a carry for earlier streets, plus a bump for a check-raise. It is
+  deliberately a little generous to a bettor (five to eight points against the bots'
+  own honest bets) because people bluff more than the bots do.
+- `ai/memory.ts` — **table memory.** `observeAction` tallies, per player, preflop
+  raise rate, postflop aggression and fold-to-bet, each shrunk toward a typical
+  player's rate (`PRIOR_WEIGHT` decisions). `credibility` scales `aiSelectivity`
+  and loosens the preflop junk-fold against a known over-raiser; `foldiness`
+  scales bluffs and how thin a value bet goes. Both are blended by `skill`, so soft
+  tables barely adapt. `store/game.ts` feeds it every action, the player's
+  included, and saves it in the table snapshot; it is `decideAction`'s fourth
+  argument, and without it every opponent reads as typical. Measured: the Main
+  Event folds 62% of checked flops to a stranger's c-bet and 27% to a known
+  maniac's. A **minimum-defence floor** (call the top `1 - alpha` of holdings on
+  the board) was tried and dropped: it made the bots pay off value bets.
+- `ai/line.ts` — **the story of the hand**, read off the engine's `actions` log:
+  the preflop raiser, an unbet street, a check-raise, a seat that has led every
+  street. `decideAction` uses it (frequencies in `LINE`, `config/aiGates.ts`, all
+  scaled by `skill`) to c-bet as the preflop raiser, to check a monster to the
+  raiser behind it and raise later, and to finish a bluff on the river after
+  leading every street before it.
+- **First in, a skilled seat raises or folds** (Hold'em): it opens a share of all
+  starting hands by players left behind (`OPENING`, `preflopPercentile`), so the
+  button steals and under the gun stays tight. Scaled steeply with tightness so
+  the ladder still enters fewer pots at every rung; the Main Event opens 8% under
+  the gun and 21% on the button.
+- `ai/pushFold.ts` — **short stacks play the solved chart.** First in at 15bb or
+  less, or facing one short shove with everyone else folded, a seat plays the
+  Nash shove/call ranges the shove-or-fold drills already solve
+  (`lib/drills/shoveRange`), with probability `skill²`. Shorter tables map seats
+  by players left behind. Hold'em only.
+- **Sizing is disguised with skill** (`disguised`): from skill 0.6 up, bluffs and
+  semi-bluffs blend toward the value size, so at the top a bet's size no longer
+  says what it holds. The soft end keeps the tell.
+- **Habits** (`AiProfile.habit`, set per character in `config/cast.ts`, sizes in
+  `HABIT`): `barreler`, `caller`, `trapper`, `positional`. Personality, not skill,
+  so they hold at every table the character sits at.
+- Tools: `pnpm exploit-sim` plays scripted human-shaped strategies against a
+  venue's real AI, in cash (bb/100) or sit-and-go mode; `pnpm ai-stats` prints
+  the tracker stats (VPIP, PFR, c-bet, fold to c-bet...) beside a regular's; `pnpm
+  win-read` measures how accurate the win % is. `pnpm sim` and `pnpm cash-sim` play
+  the AI against itself and cannot find a hole the policy shares with its own hero.
 - Difficulty scales per venue via the profile (see `config/venues.ts`).
 
 ## Variants
