@@ -108,3 +108,66 @@ export function holeStrength(hole: readonly Card[], community: readonly Card[]):
   if (community.length === 0) return preflopStrength(hole[0], hole[1])
   return madeStrength([...hole, ...community])
 }
+
+/**
+ * Relative strength of a four-card Omaha holding given the board, in [0, 1],
+ * for the same job as `holeStrength`: ranking candidate holdings on one board.
+ *
+ * After the flop it is the best of the six two-card pairings, because Omaha
+ * plays exactly two from the hand. (`madeStrength` reads the whole board, so a
+ * board flush counts for every holding alike; it only has to order them.)
+ * Before it, the shape of the four: the best two pairings averaged, since a
+ * hand that is good two ways (double-suited, connected, paired) is what makes
+ * an Omaha starting hand, plus a little for every pairing being live.
+ */
+export function omahaStrength(hole: readonly Card[], community: readonly Card[]): number {
+  if (hole.length < 4) return holeStrength(hole, community)
+  const pairs: number[] = []
+  for (let i = 0; i < hole.length; i++) {
+    for (let j = i + 1; j < hole.length; j++) {
+      const two = [hole[i], hole[j]]
+      pairs.push(
+        community.length === 0
+          ? preflopStrength(two[0], two[1])
+          : madeStrength([...two, ...community]),
+      )
+    }
+  }
+  pairs.sort((a, b) => b - a)
+  if (community.length > 0) return pairs[0]
+  const mean = pairs.reduce((a, b) => a + b, 0) / pairs.length
+  return Math.min(1, ((pairs[0] + pairs[1]) / 2) * 0.8 + mean * 0.2)
+}
+
+let preflopTable: Float64Array | null = null
+
+/**
+ * Where a two-card holding ranks among all 1,326 starting hands by
+ * `holeStrength`, in [0, 1]: 0.85 means it beats 85% of them. Ties count half.
+ * Built once, on first use.
+ */
+export function preflopPercentile(hole: readonly Card[]): number {
+  if (!preflopTable) {
+    const deck: Card[] = []
+    for (const rank of Object.keys(RANK_VALUE) as Rank[]) {
+      for (const suit of ['c', 'd', 'h', 's'] as Suit[]) deck.push({ rank, suit })
+    }
+    const all: number[] = []
+    for (let i = 0; i < deck.length; i++) {
+      for (let j = i + 1; j < deck.length; j++) all.push(preflopStrength(deck[i], deck[j]))
+    }
+    preflopTable = Float64Array.from(all.sort((a, b) => a - b))
+  }
+  const table = preflopTable
+  const mine = preflopStrength(hole[0], hole[1])
+  let lo = 0
+  let hi = table.length
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (table[mid] < mine) lo = mid + 1
+    else hi = mid
+  }
+  let ties = 0
+  while (lo + ties < table.length && table[lo + ties] === mine) ties++
+  return (lo + ties / 2) / table.length
+}

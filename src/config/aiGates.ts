@@ -79,3 +79,69 @@ export const PREFLOP_RAISE_STRENGTH = 0.62
 
 /** The widening band a loose or aggressive seat also comes in with. */
 export const PREFLOP_RAISE_THIN_STRENGTH = 0.55
+
+/**
+ * What the AI does with the story of the hand (`lib/poker/ai/line.ts`). Every
+ * frequency here is multiplied by `skill`, so the soft end of the ladder plays
+ * each street on its own, as it always has, and the top plays the hand.
+ *
+ * Tuned against `pnpm ai-stats`, whose reference column is a solid regular.
+ */
+export const LINE = {
+  /**
+   * Extra chance the preflop raiser bets a flop it would otherwise check, heads
+   * up (halved multiway). Moves The Main Event's c-bet from 52% toward the
+   * 55-70% a regular bets.
+   */
+  cbet: 0.2,
+  /** Its size, before `disguised` blends it toward value at the top. */
+  cbetSize: 0.4,
+  /**
+   * Chance a monster checks to the preflop raiser behind it on the flop or
+   * turn, to raise when they bet. Equity has to clear `trapGate` times a fair
+   * share of the pot, which heads-up is 0.875.
+   */
+  trap: 0.2,
+  trapGate: 1.75,
+  /**
+   * River bluff frequency, as a multiple of the profile's `bluff`, for a seat
+   * that has led every street before it: the bet that finishes the story.
+   */
+  storyBluff: 1.5,
+  /** How much a check-raise adds to the read of the raiser's range. */
+  checkRaiseRead: 0.15,
+} as const
+
+/** How strongly each character habit shows (see `Habit` in ai/policy). */
+export const HABIT = {
+  /** Chance the barreler bets a checked turn, whatever it holds. */
+  barreler: 0.5,
+  /** The caller's continue threshold, as a share of everybody else's. */
+  caller: 0.75,
+  /** Chance the trapper checks a big hand to the raiser, and the gate for it. */
+  trapper: 0.6,
+  trapperGate: 1.5,
+  /** Chance the positional player bets a checked pot it is last to act in. */
+  positional: 0.3,
+} as const
+
+/**
+ * First-in opening (see `decideAction`): the share of all starting hands a
+ * seat opens, by how many players are still to act behind it. The base is a
+ * solid regular's six-handed ranges, under the gun at 15% out to the button
+ * at 42%, scaled by `loosest - perTightness * tightness` and never past them.
+ *
+ * The scale is steep on purpose. The ladder enters fewer pots at every rung
+ * (`tests/ai.test.ts`), the top rungs sit 0.02 to 0.05 of tightness apart, and
+ * a higher rung reaches for these ranges more often because it has more
+ * skill. A scale that left them near a regular's made the Penthouse play more
+ * hands than the Casino. So the top of the ladder stays the nits it was
+ * designed as, just ones that raise or fold: The Main Event (0.6) opens about
+ * half the reference, 8% under the gun and 21% on the button.
+ */
+export const OPENING = {
+  /** Index = players behind: 1 is the small blind, 5 is under the gun. */
+  shareByBehind: [0.42, 0.38, 0.42, 0.26, 0.19, 0.15],
+  loosest: 1.5,
+  perTightness: 1.65,
+} as const

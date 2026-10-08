@@ -4,6 +4,9 @@
 // the action is. Pure and deterministic given an RNG.
 
 import {
+  HABIT,
+  LINE,
+  OPENING,
   POSTFLOP_GATE,
   PREFLOP_RAISE_STRENGTH,
   PREFLOP_RAISE_THIN_STRENGTH,
@@ -12,9 +15,23 @@ import {
 import type { Rng } from '../cards'
 import { legalActions, potSize, type Action, type HandState } from '../engine'
 import { estimateEquity } from '../equity'
-import { holeStrength } from '../range'
+import { holeStrength, preflopPercentile } from '../range'
+import { barrelledEveryStreet, checkRaised, lineOf, preflopAggressor, streetIsUnbet } from './line'
+import { credibility, foldiness, type TableMemory } from './memory'
 import { pushFoldAction } from './pushFold'
-import { credibility, type TableMemory } from './memory'
+
+/**
+ * A habit a character plays with, on top of their numbers: the thing a regular
+ * at their table would learn about them and use. Personality, not skill, so it
+ * holds at every rung. Set on characters in `config/cast.ts`.
+ *
+ * - `barreler` takes a checked turn whatever it holds, having called the flop
+ *   or bet it.
+ * - `caller` gives a bet less credit than anybody, and calls down.
+ * - `trapper` checks big hands to the raiser far more often, to raise later.
+ * - `positional` bets checked pots it is last to act in.
+ */
+export type Habit = 'barreler' | 'caller' | 'trapper' | 'positional'
 
 export interface AiProfile {
   /** Loose (0) → nitty (1). Raises the equity needed to continue. */
@@ -31,6 +48,8 @@ export interface AiProfile {
    * exploitable mistakes rather than a personality shift. Defaults to 1.
    */
   skill?: number
+  /** A character's habit, if they have one. See `Habit`. */
+  habit?: Habit
 }
 
 const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n))
@@ -45,11 +64,22 @@ function liveOpponents(state: HandState, selfId: string): HandState['players'] {
  * piled chips in — especially betting later streets — is far likelier to hold a
  * real hand than two random cards, so equity should not treat them as random.
  * Derived from chips committed this hand (in big blinds) plus a bump for backing
- * it postflop. Feeds `estimateEquity`'s `opponentSelectivity`. Shared with the
- * hero's ambient read (store/game.ts) so both sides model ranges the same way.
+ * it postflop. Feeds `estimateEquity`'s `opponentSelectivity`. This is the read
+ * the player's win % and the coach use.
+ *
+ * **Postflop, an opponent who has put nothing in this street is read off their
+ * earlier streets only** (`earlierStreetsRead`). Counting every chip of a
+ * preflop raise as strength on a flop nobody has bet made the player's win %
+ * twelve points too low there, against the bots' actual cards; read this way
+ * it is three points low. Once they bet, the chips-in read stands: against the
+ * bots, whose bets are honest, it is within a point (`pnpm win-read`,
+ * 2026-10-08).
  */
 export function opponentSelectivity(state: HandState, opp: HandState['players'][number]): number {
   const bb = Math.max(state.bigBlind, 1)
+  if (state.street !== 'preflop' && opp.committedThisStreet === 0) {
+    return earlierStreetsRead(state, opp)
+  }
   const bbIn = opp.committedThisHand / bb
   let sel = bbIn / (bbIn + 5) // saturating: 1bb→0.17, 5bb→0.5, 15bb→0.75
   const backedItPostflop =
@@ -58,6 +88,17 @@ export function opponentSelectivity(state: HandState, opp: HandState['players'][
     opp.committedThisStreet >= state.currentBet
   if (backedItPostflop) sel += 0.1
   return Math.min(sel, 0.8)
+}
+
+/**
+ * What an opponent's earlier streets say about their range, postflop: the
+ * chips they put in before this street, saturating slowly, because a preflop
+ * raise is a range of most of the hands that opened rather than a made hand on
+ * this board.
+ */
+function earlierStreetsRead(state: HandState, opp: HandState['players'][number]): number {
+  const earlierBb = (opp.committedThisHand - opp.committedThisStreet) / Math.max(state.bigBlind, 1)
+  return (0.3 * earlierBb) / (earlierBb + 15)
 }
 
 /**
@@ -107,9 +148,9 @@ export function aiSelectivity(
     const potBefore = Math.max(potSize(state) - thisStreet, bb)
     const ratio = opp.committedThisStreet / potBefore
     const streetSignal = ratio > 0 ? 0.1 + (0.45 * ratio) / (ratio + 1) : 0
-    const earlierBb = (opp.committedThisHand - opp.committedThisStreet) / bb
-    const carry = (0.3 * earlierBb) / (earlierBb + 15)
-    sel = streetSignal + carry
+    sel = streetSignal + earlierStreetsRead(state, opp)
+    // Checking and then raising is the strongest line there is.
+    if (checkRaised(state, opp.id)) sel += LINE.checkRaiseRead
   }
   // A weaker player notices less of what the table is doing, so the read moves
   // with skill: the soft end of the ladder barely adjusts to anybody.
@@ -295,11 +336,35 @@ export function decideAction(
 
   // --- unbet pot: check or lead out --------------------------------------
   if (toCall === 0) {
+    // The story of the hand, which the top of the ladder plays and the bottom
+    // does not (every frequency below is scaled by skill). See `LINE`.
+    const raiser = preflop ? null : preflopAggressor(state)
+    const raiserBehind = opponents.find((o) => o.id === raiser && !o.hasActed)
+    // A monster checks to the raiser still to act, to raise when they bet. Only
+    // on the flop and turn: on the river there is no bet left to come.
+    const trapper = profile.habit === 'trapper'
+    if (
+      raiserBehind &&
+      state.street !== 'river' &&
+      equity > fairShare * (trapper ? HABIT.trapperGate : LINE.trapGate) &&
+      rng() < (trapper ? HABIT.trapper : LINE.trap * skill)
+    ) {
+      return { type: 'check' }
+    }
+
+    // Against players who fold to bets more than most, bluffs are worth more;
+    // against callers, less, and a thinner hand is worth a value bet.
+    const folds =
+      1 +
+      (opponents.reduce((sum, o) => sum + foldiness(memory, o.id), 0) / opponents.length - 1) *
+        skill
+    const leadGate = POSTFLOP_GATE.lead * (folds < 1 ? 1 - (1 - folds) * 0.15 : 1)
+
     // Same story here: preflop this branch is the big blind with the pot limped
     // to it, and equity-vs-the-field says check with any holding at all.
     const strongEnoughToLead = preflop
       ? misjudged >= PREFLOP_RAISE_STRENGTH
-      : equity > fairShare * POSTFLOP_GATE.lead
+      : equity > fairShare * leadGate
     const wantsValue = strongEnoughToLead && roll < 0.35 + profile.aggression * 0.55
     // The bluff ceiling scales with the field for the same reason, and it is the
     // half that was quietly wrong in the other direction: four-handed, "under
@@ -308,7 +373,7 @@ export function decideAction(
     const wantsBluff =
       equity < fairShare * POSTFLOP_GATE.bluffCeiling &&
       !trashPreflop &&
-      roll < profile.bluff * (1 - posPressure * 0.5)
+      roll < profile.bluff * folds * (1 - posPressure * 0.5)
 
     // Between those two gates sits every holding too good to bluff and not good
     // enough for value, and until this branch existed the AI could not bet one
@@ -341,15 +406,40 @@ export function decideAction(
     const wantsSemiBluff =
       semiBluffStreet &&
       equity >= fairShare * POSTFLOP_GATE.bluffCeiling &&
-      equity <= fairShare * POSTFLOP_GATE.lead &&
+      equity <= fairShare * leadGate &&
       roll <
         (SEMI_BLUFF.base + profile.aggression * SEMI_BLUFF.perAggression) * (1 - posPressure * 0.5)
 
-    if ((wantsValue || wantsBluff || wantsSemiBluff) && (legal.canBet || legal.canRaise)) {
+    // The preflop raiser bets most flops: it has the stronger range, and the
+    // caller missed two times in three. Halved multiway, damped out of position.
+    const wantsCbet =
+      state.street === 'flop' &&
+      raiser === player.id &&
+      streetIsUnbet(state) &&
+      rng() <
+        LINE.cbet * skill * folds * (opponents.length === 1 ? 1 : 0.5) * (1 - posPressure * 0.5)
+
+    // Having led every street, a missed hand finishes the story on the river.
+    const wantsStoryBluff =
+      state.street === 'river' &&
+      barrelledEveryStreet(state, player.id) &&
+      equity < fairShare * POSTFLOP_GATE.bluffCeiling &&
+      rng() < profile.bluff * LINE.storyBluff * skill * folds
+
+    // Habits: the barreler takes every checked turn, the positional player
+    // every checked pot it closes.
+    const wantsHabitBet =
+      (profile.habit === 'barreler' && state.street === 'turn' && rng() < HABIT.barreler) ||
+      (profile.habit === 'positional' && !preflop && posPressure === 0 && rng() < HABIT.positional)
+
+    const anyBet =
+      wantsValue || wantsBluff || wantsSemiBluff || wantsCbet || wantsStoryBluff || wantsHabitBet
+    if (anyBet && (legal.canBet || legal.canRaise)) {
       const valueSize = 0.55 + profile.aggression * 0.25
       let fraction = disguised(0.5, valueSize, skill)
       if (wantsValue) fraction = valueSize
       else if (wantsSemiBluff) fraction = disguised(SEMI_BLUFF.size, valueSize, skill)
+      else if (wantsCbet && !wantsBluff) fraction = disguised(LINE.cbetSize, valueSize, skill)
       return {
         type: legal.canBet ? 'bet' : 'raise',
         amount: sizedRaise(
@@ -380,6 +470,32 @@ export function decideAction(
     const read = 1 + (credibility(memory, raiser.id, true) - 1) * skill
     const cutoff = read < 1 ? preflopCutoff * Math.sqrt(read) : preflopCutoff
     if (preStrength < cutoff) return { type: 'fold' }
+  }
+
+  // First in, a skilled seat raises or folds: it does not limp, and it opens
+  // wider the fewer players are left behind it to wake up with a hand. The
+  // button and the small blind steal; under the gun opens what it always did.
+  // Skill is the chance it plays the spot this way, so the soft end still
+  // limps along.
+  // Hold'em only: the ranges are shares of the 1,326 two-card hands.
+  const firstIn =
+    preflop &&
+    state.variant === 'holdem' &&
+    state.currentBet === state.bigBlind &&
+    player.committedThisStreet < state.bigBlind &&
+    !lineOf(state).some((a) => a.street === 'preflop' && a.type !== 'fold')
+  if (firstIn && legal.canRaise && rng() < skill) {
+    const behind = opponents.filter((p) => p.status === 'active' && !p.hasActed).length
+    const share =
+      OPENING.shareByBehind[Math.min(behind, OPENING.shareByBehind.length - 1)] *
+      Math.min(1, OPENING.loosest - OPENING.perTightness * profile.tightness)
+    if (preflopPercentile(player.hole) >= 1 - share) {
+      return {
+        type: 'raise',
+        amount: sizedRaise(state, 0.7, legal.minRaiseTo, legal.maxRaiseTo, rng, profile.aggression),
+      }
+    }
+    return { type: 'fold' }
   }
 
   // Unskilled players also just give up under pressure — the exploitable
@@ -423,7 +539,9 @@ export function decideAction(
   // available, which folded aces under the gun. Shrink them with the field so
   // "tight" and "out of position" mean the same thing at every table size.
   const fieldScale = 2 / (opponents.length + 1) // heads-up 1, six-handed 1/3
-  const continueThreshold = potOdds * oddsFactor + (tightnessTax + posPressure * 0.06) * fieldScale
+  const stationFactor = profile.habit === 'caller' && !preflop ? HABIT.caller : 1
+  const continueThreshold =
+    (potOdds * oddsFactor + (tightnessTax + posPressure * 0.06) * fieldScale) * stationFactor
 
   if (equity < continueThreshold) {
     // Usually fold; occasionally bluff-raise, or peel one cheaply when close.

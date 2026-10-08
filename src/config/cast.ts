@@ -10,7 +10,7 @@
 // below is where it happens.
 
 import type { AvatarSpec } from '@/lib/avatar'
-import type { AiProfile } from '@/lib/poker/ai/policy'
+import type { AiProfile, Habit } from '@/lib/poker/ai/policy'
 import { VENUES, type Venue } from './venues'
 
 /** Where on the ladder a character plays, by buy-in. */
@@ -36,6 +36,12 @@ export interface CharacterLines {
    * one file that is pure voice.
    */
   challenge?: string
+  /**
+   * The table has noticed the player bets nearly every hand, and this
+   * character just won a showdown off them. Optional, like `challenge`: only
+   * some characters have something to say about it.
+   */
+  read?: readonly string[]
 }
 
 export interface Character {
@@ -50,6 +56,12 @@ export interface Character {
   only?: readonly string[]
   /** Personality nudges over the venue's AiProfile. Never touches skill. */
   delta?: Partial<Pick<AiProfile, 'tightness' | 'aggression' | 'bluff'>>
+  /**
+   * The habit their bio already describes, played at every table they sit at
+   * (see `Habit` in lib/poker/ai/policy). The thing a regular would learn about
+   * them and use against them.
+   */
+  habit?: Habit
   /** Rare table talk — one quiet line, heavily rationed (see store/game). */
   lines: CharacterLines
 }
@@ -76,6 +88,7 @@ export const CAST: readonly Character[] = [
       ],
       bust: ['“Well, that’s the bus fare gone,” says Doris.', 'Doris heads home to feed the cat.'],
       challenge: 'Doris has poured two cups. One of them is yours.',
+      read: ['“You do like a bet, love,” says Doris.'],
     },
   },
   {
@@ -99,6 +112,7 @@ export const CAST: readonly Character[] = [
         '“One bad card,” says Frank. It was several.',
       ],
       challenge: '“Heads-up, no funny business,” says Frank. Frank is the funny business.',
+      read: ['“You bluff more than I do,” says Frank, who would know.'],
     },
   },
   {
@@ -119,6 +133,7 @@ export const CAST: readonly Character[] = [
       ],
       bust: ['Marge taps the table and heads home.', 'Marge leaves exactly as calmly as she came.'],
       challenge: 'Marge has been waiting all evening. She would like it to be for you.',
+      read: ['Marge waited. You bet anyway. She had it.'],
     },
   },
   {
@@ -139,6 +154,7 @@ export const CAST: readonly Character[] = [
       ],
       bust: ['Benny goes home to rewatch episode four.', '“Cooler,” says Benny, uncertainly.'],
       challenge: 'Benny has a theory about you. He would like to test it heads-up.',
+      read: ['“There’s a video about players like you,” says Benny.'],
     },
   },
   {
@@ -156,6 +172,7 @@ export const CAST: readonly Character[] = [
         'Priya leaves without a word. Somehow politely.',
       ],
       challenge: 'Priya points at the empty chair. That is the whole invitation.',
+      read: ['“Too often,” says Priya.'],
     },
   },
   {
@@ -250,6 +267,7 @@ export const CAST: readonly Character[] = [
     avatar: av('vivienne', 'c0aede'),
     bands: ['mid'],
     delta: { tightness: 0.12, aggression: 0.1 },
+    habit: 'positional',
     lines: {
       seat: [
         'Vivienne takes the seat on the button’s left. Deliberately.',
@@ -264,6 +282,7 @@ export const CAST: readonly Character[] = [
         '“Well played,” says Vivienne, meaning partly it.',
       ],
       challenge: '“Heads-up you have position half the time,” says Vivienne. “I like those odds.”',
+      read: ['Vivienne makes a small note about how often you bet.'],
     },
   },
   {
@@ -309,6 +328,7 @@ export const CAST: readonly Character[] = [
     avatar: av('mo', 'd1f4d0'),
     bands: ['mid'],
     delta: { bluff: 0.12 },
+    habit: 'barreler',
     lines: {
       seat: ['Mo boards last, as always.', 'Mo licks a thumb and checks the wind. Indoors.'],
       win: ['“The river provides,” says Mo.', 'Mo hauls the pot in hand over hand.'],
@@ -317,6 +337,7 @@ export const CAST: readonly Character[] = [
         '“Wrong river,” says Mo, philosophically.',
       ],
       challenge: '“One hand,” says Mo. “The river owes me and you are standing near it.”',
+      read: ['“Every street, eh?” says Mo. “Takes one to know one.”'],
     },
   },
   {
@@ -346,6 +367,7 @@ export const CAST: readonly Character[] = [
     avatar: av('dmitri', 'f4e7b6'),
     bands: ['mid'],
     delta: { tightness: 0.18 },
+    habit: 'trapper',
     lines: {
       seat: [
         'Dmitri cleans his glasses. Twice.',
@@ -360,6 +382,7 @@ export const CAST: readonly Character[] = [
         '“Fascinating,” says Dmitri, meaning painful.',
       ],
       challenge: 'Dmitri has worked out how this ends. He would like to check his working.',
+      read: ['Dmitri has been counting your bets. He would like you to know.'],
     },
   },
   {
@@ -369,6 +392,7 @@ export const CAST: readonly Character[] = [
     avatar: av('rosa', 'ffd5dc'),
     bands: ['mid'],
     delta: { tightness: -0.15, aggression: -0.15 },
+    habit: 'caller',
     lines: {
       seat: [
         'Rosa sits down like she never left.',
@@ -380,6 +404,7 @@ export const CAST: readonly Character[] = [
         'Rosa leaves the tower standing. A monument.',
       ],
       challenge: 'Rosa does not think you have it. She never does.',
+      read: ['Rosa stopped believing your bets a while ago.'],
     },
   },
 
@@ -444,6 +469,7 @@ export const CAST: readonly Character[] = [
       ],
       bust: ['“Variance,” says Webb, almost fondly.', 'Webb closes the book on tonight.'],
       challenge: 'Webb has left a chapter unfinished. He thinks you are in it.',
+      read: ['“Chapter nine,” says Webb. “Betting every street. Worth a read.”'],
     },
   },
   {
@@ -464,6 +490,7 @@ export const CAST: readonly Character[] = [
         'Kenji leaves the towers perfectly level. Respect.',
       ],
       challenge: 'Kenji has stacked chips for two. One stack is yours.',
+      read: ['Kenji has seen enough of your bets to stop folding to them.'],
     },
   },
   {
@@ -507,6 +534,7 @@ export const CAST: readonly Character[] = [
         'Big Sal leaves laughing at a joke nobody told.',
       ],
       challenge: 'Big Sal has a feeling about this one. He usually does.',
+      read: ['Sal felt that one coming.'],
     },
   },
 
@@ -792,6 +820,7 @@ export function profileFor(venue: Venue, ch: Character): AiProfile {
     tightness: clamp01(base.tightness + (ch.delta?.tightness ?? 0)),
     aggression: clamp01(base.aggression + (ch.delta?.aggression ?? 0)),
     bluff: clamp01(base.bluff + (ch.delta?.bluff ?? 0)),
+    habit: ch.habit,
   }
 }
 

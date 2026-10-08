@@ -47,7 +47,12 @@ import {
   type SeatConfig,
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity } from '@/lib/poker/ai/policy'
-import { createTableMemory, observeAction, type TableMemory } from '@/lib/poker/ai/memory'
+import {
+  createTableMemory,
+  credibility,
+  observeAction,
+  type TableMemory,
+} from '@/lib/poker/ai/memory'
 import { decideDiscard } from '@/lib/poker/ai/draw'
 import { estimateEquity } from '@/lib/poker/equity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
@@ -534,7 +539,7 @@ const TALK_MIN_GAP_HANDS = 4
 let lastTalkHand = -TALK_MIN_GAP_HANDS
 
 function maybeTalk(
-  kind: 'seat' | 'win' | 'bust',
+  kind: 'seat' | 'win' | 'bust' | 'read',
   seat: SeatMeta | undefined,
   handIndex: number,
   chance: number,
@@ -547,6 +552,22 @@ function maybeTalk(
   lastTalkHand = handIndex
   return lines[Math.floor(Math.random() * lines.length)]
 }
+/**
+ * Whether the winner of this hand just showed the player that the table has
+ * them read: the player bets nearly every hand (`credibility` well under a
+ * typical player's), took it to showdown, and lost.
+ */
+function heroCalledDown(hand: HandState): boolean {
+  const hero = hand.players.find((p) => p.id === HUMAN_ID)
+  const result = hand.result
+  if (!hero || !result?.showdown || hero.status === 'folded') return false
+  if (result.potsAwarded.some((pot) => pot.winners.includes(HUMAN_ID))) return false
+  return credibility(tableReads, HUMAN_ID, false) < READ_TALK_BELOW
+}
+
+/** How little the player's bets must mean before the table says so. */
+const READ_TALK_BELOW = 0.6
+
 /** Who has voluntarily put chips in this hand already (VPIP counts once per hand). */
 let vpipThisHand = new Set<string>()
 
@@ -990,6 +1011,7 @@ export const useGame = create<GameState>((set, get) => {
     const bigPot = pot >= get().bigBlind * 20
     const talk =
       maybeTalk('bust', eliminated[0], get().handIndex, 0.8) ??
+      (heroCalledDown(hand) ? maybeTalk('read', winnerSeat, get().handIndex, 0.6) : null) ??
       (bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null)
 
     const newAwards = grantEarnedAwards(hand, venue, heroWon, false, knockedOut, eliminatedCount)
@@ -1067,7 +1089,9 @@ export const useGame = create<GameState>((set, get) => {
     const winnerSeat =
       winnerId && winnerId !== HUMAN_ID ? get().seats.find((s) => s.id === winnerId) : undefined
     const bigPot = pot >= get().bigBlind * 20
-    const talk = bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null
+    const talk =
+      (heroCalledDown(hand) ? maybeTalk('read', winnerSeat, get().handIndex, 0.6) : null) ??
+      (bigPot ? maybeTalk('win', winnerSeat, get().handIndex, 0.5) : null)
 
     heroLowTide = Math.min(heroLowTide, stackById.get(HUMAN_ID) ?? 0)
     saveTableSnapshot({

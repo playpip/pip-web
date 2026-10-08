@@ -33,6 +33,8 @@
     "odds-band-coverage": "tsx scripts/odds-band-coverage.ts",
     "lead-band": "tsx scripts/lead-band.ts",
     "exploit-sim": "tsx scripts/exploit-sim.ts",
+    "ai-stats": "tsx scripts/ai-stats.ts",
+    "win-read": "tsx scripts/win-read.ts",
     "cash-sim": "tsx scripts/cash-sim.ts"
   },
   "dependencies": {

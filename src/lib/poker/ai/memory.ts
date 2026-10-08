@@ -9,10 +9,15 @@
 // calling them down.
 //
 // So the table keeps a running tally per player — how often they raise
-// preflop, and how often they bet or raise after the flop — and `decideAction`
-// turns it into **credibility**: how much a bet from this player says about
-// their hand, relative to a typical player. A maniac's bet says little, so the
-// AI's range for them stays wide and it calls and defends lighter.
+// preflop, how often they bet or raise after the flop, how often they fold
+// when bet into — and `decideAction` turns it into two adjustments:
+//
+// - **credibility**: how much a bet from this player says about their hand,
+//   relative to a typical player. A maniac's bet says little, so the AI's range
+//   for them stays wide and it calls lighter.
+// - **foldiness**: how often bets get through. Against somebody who folds a
+//   lot the AI bluffs more; against a calling station it bluffs less and bets
+//   thinner for value.
 //
 // Each tally is shrunk toward a typical player's rate with a prior worth
 // `PRIOR_WEIGHT` decisions, so one hand never swings it and a few orbits do.
@@ -27,6 +32,8 @@ export const TYPICAL = {
   preflopRaise: 0.18,
   /** Bets and raises per postflop decision. */
   postflopAggression: 0.32,
+  /** Folds per time facing a bet. */
+  foldToBet: 0.45,
 } as const
 
 /** How many decisions' worth of "typical" every read starts with. */
@@ -40,6 +47,7 @@ interface Tally {
 export interface PlayerReads {
   preflopRaise: Tally
   postflopAggression: Tally
+  foldToBet: Tally
 }
 
 export interface TableMemory {
@@ -54,7 +62,10 @@ function readsFor(memory: TableMemory, id: string): PlayerReads {
   memory.players[id] ??= {
     preflopRaise: { hits: 0, chances: 0 },
     postflopAggression: { hits: 0, chances: 0 },
+    foldToBet: { hits: 0, chances: 0 },
   }
+  // A memory saved before the fold tally existed has players without one.
+  memory.players[id].foldToBet ??= { hits: 0, chances: 0 }
   return memory.players[id]
 }
 
@@ -80,6 +91,11 @@ export function observeAction(memory: TableMemory, state: HandState, action: Act
     reads.postflopAggression.chances++
     if (aggressive) reads.postflopAggression.hits++
   }
+
+  if (facingBet) {
+    reads.foldToBet.chances++
+    if (action.type === 'fold') reads.foldToBet.hits++
+  }
 }
 
 function shrunk(t: Tally, typical: number): number {
@@ -93,6 +109,7 @@ export function ratesFor(memory: TableMemory | undefined, id: string) {
   return {
     preflopRaise: shrunk(r.preflopRaise, TYPICAL.preflopRaise),
     postflopAggression: shrunk(r.postflopAggression, TYPICAL.postflopAggression),
+    foldToBet: r.foldToBet ? shrunk(r.foldToBet, TYPICAL.foldToBet) : TYPICAL.foldToBet,
   }
 }
 
@@ -111,4 +128,12 @@ export function credibility(memory: TableMemory | undefined, id: string, preflop
     ? TYPICAL.preflopRaise / rates.preflopRaise
     : TYPICAL.postflopAggression / rates.postflopAggression
   return clamp(ratio, 0.2, 1.3)
+}
+
+/**
+ * How much more (above 1) or less (below 1) often than a typical player this
+ * opponent folds when bet into.
+ */
+export function foldiness(memory: TableMemory | undefined, id: string): number {
+  return clamp(ratesFor(memory, id).foldToBet / TYPICAL.foldToBet, 0.3, 1.6)
 }
