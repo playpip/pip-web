@@ -11,6 +11,7 @@ import {
   type CourseLevel,
   canTakeLesson,
   lessonById,
+  membershipForLesson,
 } from '@/config/lessons'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
@@ -232,7 +233,13 @@ function Item({ item }: { item: Exclude<CourseItem, { kind: 'planned' }> }) {
   return (
     <Link
       href={
-        gated ? (row.drill ? membershipForDrill(row.drill.id) : membershipFor('lessons')) : row.href
+        gated
+          ? row.drill
+            ? membershipForDrill(row.drill.id)
+            : item.kind === 'lesson'
+              ? membershipForLesson(item.id)
+              : membershipFor('lessons')
+          : row.href
       }
       onClick={() => sound.play('tap')}
       aria-label={gated ? `${row.title} — what the membership is` : undefined}

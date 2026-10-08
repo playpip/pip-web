@@ -22,6 +22,7 @@ import {
   featureForVenue,
   venueById,
 } from '@/config/venues'
+import { LESSONS, lessonQuestions, membershipForLesson, tappedLesson } from '@/config/lessons'
 import { kindFloor } from '@/lib/drills/standing'
 import { nextDrill } from '@/lib/drills'
 import { drillSample } from '@/lib/drills/sample'
@@ -122,6 +123,33 @@ test('a tap on a paid drill names its kind, and the page reads it back', (t) => 
       /featureForDrill/,
       `${path} builds a drill's link itself; use membershipForDrill()`,
     )
+  }
+})
+
+// "Lessons with Webb" covers eight lessons, so a tap on one names which, the
+// same as a drill. The two places a lesson is locked must send the name; the
+// welcome flow's link is not a tap on a lesson and keeps the plain feature.
+test('a tap on a paid lesson names it, and the page reads it back', (t) => {
+  const search = (href: string) => new URL(href, 'https://playpip.io').search
+  const paid = LESSONS.filter((lesson) => lesson.membersOnly)
+  t.true(paid.length >= 8, `only ${paid.length} paid lessons`)
+  for (const lesson of paid) {
+    const href = membershipForLesson(lesson.id)
+    t.is(tappedFeature(search(href))?.id, 'lessons', lesson.id)
+    t.is(tappedLesson(search(href))?.id, lesson.id, lesson.id)
+    t.true(lessonQuestions(lesson) > 0, `${lesson.id} asks nothing, so the page would say 0 times`)
+    if (lesson.practice) t.notThrows(() => drillKind(lesson.practice as string), lesson.id)
+  }
+  t.is(tappedLesson('?for=drills&lesson=position'), null)
+  t.is(tappedLesson('?for=lessons&lesson=nonsense'), null)
+  t.is(tappedLesson('?for=lessons'), null)
+  for (const path of [
+    'src/components/learn/CourseShelf.tsx',
+    'src/components/lessons/LessonScreen.tsx',
+  ]) {
+    const code = sources(path.slice(0, path.lastIndexOf('/'))).find((f) => f.path === path)?.code
+    t.truthy(code, path)
+    t.regex(code ?? '', /membershipForLesson\(/, `${path} sends a lesson tap without its name`)
   }
 })
 

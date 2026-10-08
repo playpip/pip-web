@@ -1,5 +1,5 @@
 import { BET_PACK_ID, OPEN_PACK_ID, RIVER_PACK_ID, SHOVE_PACK_ID } from '@/config/drills'
-import { type MembersOnly, included } from '@/config/membership'
+import { type MembersOnly, included, membershipFor } from '@/config/membership'
 import { SET_OR_BETTER_ON_THE_FLOP } from '@/config/startingHands'
 import type { Beat } from '@/lib/lessons/beats'
 import { OPEN_TO, type SceneAction, foldsTo } from '@/lib/lessons/scene'
@@ -994,6 +994,32 @@ export function lessonById(id: string): Lesson {
  */
 export function canTakeLesson(lesson: Lesson, member: boolean): boolean {
   return included(lesson, member)
+}
+
+/**
+ * Where a tap on a locked lesson goes: `/membership`, opened on "Lessons with
+ * Webb" and naming the lesson, the way a drill's tap names its kind
+ * (`membershipForDrill`). The feature's blurb covers eight lessons; this says
+ * which one was tapped (`tappedLesson`).
+ */
+export function membershipForLesson(id: LessonId): string {
+  return `${membershipFor('lessons')}&lesson=${encodeURIComponent(id)}`
+}
+
+/**
+ * The paid lesson a `/membership?for=lessons&lesson=<id>` names, or null for
+ * anything else: a free lesson, another feature, or a typed URL.
+ */
+export function tappedLesson(search: string): Lesson | null {
+  const params = new URLSearchParams(search)
+  if (params.get('for') !== 'lessons') return null
+  const lesson = LESSONS.find((entry) => entry.id === params.get('lesson'))
+  return lesson?.membersOnly ? lesson : null
+}
+
+/** How many times a lesson stops to ask you something: its beats with a question. */
+export function lessonQuestions(lesson: Lesson): number {
+  return lesson.beats.filter((beat) => beat.ask).length
 }
 
 // --- the course -------------------------------------------------------------
