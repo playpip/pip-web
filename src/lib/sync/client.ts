@@ -57,6 +57,16 @@ export function oauthProviders(): OAuthProvider[] {
   return inApp() ? offered.filter((p) => appSupports(`signIn:${p}`)) : offered
 }
 
+/**
+ * The providers on offer, as words: "Google, Apple", or just "Apple" in an app
+ * build without Google. Named from `oauthProviders()`, so the copy can never
+ * offer a button the dialog doesn't show.
+ */
+export function providerNames(): string | null {
+  const names = oauthProviders().map((p) => (p === 'google' ? 'Google' : 'Apple'))
+  return names.length > 0 ? names.join(', ') : null
+}
+
 let client: SupabaseClient<Database> | null = null
 let loading: Promise<SupabaseClient<Database> | null> | null = null
 

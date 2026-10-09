@@ -79,6 +79,7 @@ const PAGES = [
   { route: '/membership', file: 'membership.html' },
   { route: '/privacy', file: 'privacy.html' },
   { route: '/terms', file: 'terms.html' },
+  { route: '/support', file: 'support.html' },
 ]
 
 const turndown = new TurndownService({

@@ -20,7 +20,7 @@ import {
 import { FaApple } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
 import { useSync } from '@/store/sync'
-import { oauthProviders, type OAuthProvider } from '@/lib/sync/client'
+import { oauthProviders, type OAuthProvider, providerNames } from '@/lib/sync/client'
 import { EmailSection } from '@/components/settings/EmailSection'
 import { ALL_EMAIL, emailReady, rememberOptIn, writeEmailPrefs } from '@/lib/email/prefs'
 import { sound } from '@/lib/sound'
@@ -111,9 +111,10 @@ export function AccountDialog({
   const copy = COPY[current]
   // With Google or Apple on offer, "an email and a password" is no longer the
   // only way in, so the signup line stops saying it is.
+  const names = providerNames()
   const description =
-    current === 'signup' && oauthProviders().length > 0
-      ? 'Use Google, Apple or an email and a password. Nothing to confirm. Your Roll follows you to every device you sign in on.'
+    current === 'signup' && names
+      ? `Use ${names} or an email and a password. Nothing to confirm. Your Roll follows you to every device you sign in on.`
       : copy.description
 
   return (

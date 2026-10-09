@@ -73,8 +73,11 @@ the app leaves it out of `supports` and the website hides it.
   over-the-air update.
 
 **In-app purchases**
-1. App Store Connect → the app → Subscriptions: one subscription group, two auto-renewable
-   subscriptions (monthly and yearly). Price them to match the website, £5.99 and £49.
+1. App Store Connect → the app → Subscriptions: one subscription group ("Pip Membership"),
+   two auto-renewable subscriptions with product IDs `io.playpip.app.member.monthly` (1 month)
+   and `io.playpip.app.member.yearly` (1 year). Price them to match the website, £5.99 and
+   £49. Each needs a display name, description and review screenshot, and goes in with the
+   first build that sells them.
 2. RevenueCat: a project with the iOS app (bundle ID, App Store Connect in-app purchase key),
    an entitlement called **`member`** with both products attached, and a current offering
    with a **monthly** and an **annual** package.

@@ -1,0 +1,130 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.0.0",
+    "copyright": "2026 Ava Technologies Global Ltd",
+    "categories": [
+      [
+        "GAMES",
+        "GAMES_CARD",
+        "GAMES_BOARD"
+      ],
+      "EDUCATION"
+    ],
+    "advisory": {
+      "alcoholTobaccoOrDrugUseOrReferences": "INFREQUENT_OR_MILD",
+      "contests": "NONE",
+      "gamblingSimulated": "FREQUENT_OR_INTENSE",
+      "gunsOrOtherWeapons": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "gambling": false,
+      "unrestrictedWebAccess": false,
+      "lootBox": false,
+      "advertising": false,
+      "userGeneratedContent": false,
+      "messagingAndChat": false,
+      "parentalControls": false,
+      "ageAssurance": false,
+      "healthOrWellnessTopics": false,
+      "kidsAgeBand": null,
+      "ageRatingOverride": "NONE",
+      "koreaAgeRatingOverride": "NONE"
+    },
+    "info": {
+      "en-GB": {
+        "title": "Pip: Poker Trainer",
+        "subtitle": "Calm Texas Hold'em practice",
+        "description": "Pip is Texas Hold'em, redesigned. A quiet table, a cast of regulars who each play their own way, and an honest read on how you play.\n\nPlay money only. There is no real money anywhere in Pip: nothing to deposit, nothing to win, nothing to cash out. Chips are never for sale. No ads, and no pop-ups.\n\nTHE GAME IS FREE\n• Climb a ladder of ten venues, from Friends' Garage to The Main Event.\n• Cash games at the Rail. Sit down, stand up whenever.\n• The Daily: the same cards for everyone, once a day.\n• Challenge tables against the regulars, one at a time.\n• A short, honest read on every hand as you finish it.\n• Two starter drills: What have you got? and Which hand wins?\n• Level 1 of Lessons with Webb, and every written guide.\n• Broke? Win your way back at the Kitchen Table.\n\nA free account keeps your Roll on every device, and you never need one to play.\n\nTHE MEMBERSHIP\nFor players who want to get better. It adds:\n• Lessons with Webb, Levels 2 to 5. Interactive lessons on the real felt: Webb deals, stops to ask, and explains. Starting hands, position, outs, pot odds, stack sizes, ranges and bluffing.\n• Eight more drills, including Pot odds, Count your outs, Open or fold and Shove or fold.\n• Session review. Every hand of your last session back on the felt, with each call and fold graded.\n• Your report. Where your chips go, built from every hand you have played.\n• The side tables: Omaha, Short Deck, Hi-Lo and Five-Card Draw, plus fast, heads-up, bounty and deep Hold'em.\n• Build your own table.\n\nNothing you can buy changes a hand: not the cards, not the odds, not what you are shown.\n\nThe membership is monthly or yearly and renews automatically until you cancel. Payment is charged to your Apple Account. Cancel any time in your App Store account settings, at least 24 hours before the end of the current period.\n\nOPEN SOURCE\nPip's code is public. Anyone can read how a hand is dealt and shuffled: github.com/playpip/pip-web\n\nPip is a game played with pretend chips. It is not gambling, offers no real-money gambling and no prizes, and doing well at it does not mean you would do well gambling for real money.\n\nTerms of use: https://playpip.io/terms\nPrivacy: https://playpip.io/privacy",
+        "keywords": [
+          "holdem",
+          "card game",
+          "cards",
+          "odds",
+          "pot odds",
+          "drills",
+          "lessons",
+          "strategy",
+          "coach",
+          "learn",
+          "omaha",
+          "short deck",
+          "tournament"
+        ],
+        "promoText": "A quiet poker table, a cast of regulars and an honest read on every hand. Play money only, no ads, and the whole ladder is free.",
+        "releaseNotes": "Pip's first release on the App Store.",
+        "marketingUrl": "https://playpip.io",
+        "supportUrl": "https://playpip.io/support",
+        "privacyPolicyUrl": "https://playpip.io/privacy",
+        "screenshots": {
+          "APP_IPHONE_67": [
+            "store/screenshots/01-home.png",
+            "store/screenshots/02-table.png",
+            "store/screenshots/03-lesson.png",
+            "store/screenshots/04-drill.png",
+            "store/screenshots/05-review.png",
+            "store/screenshots/06-report.png",
+            "store/screenshots/07-stats.png"
+          ]
+        }
+      },
+      "en-US": {
+        "title": "Pip: Poker Trainer",
+        "subtitle": "Calm Texas Hold'em practice",
+        "description": "Pip is Texas Hold'em, redesigned. A quiet table, a cast of regulars who each play their own way, and an honest read on how you play.\n\nPlay money only. There is no real money anywhere in Pip: nothing to deposit, nothing to win, nothing to cash out. Chips are never for sale. No ads, and no pop-ups.\n\nTHE GAME IS FREE\n• Climb a ladder of ten venues, from Friends' Garage to The Main Event.\n• Cash games at the Rail. Sit down, stand up whenever.\n• The Daily: the same cards for everyone, once a day.\n• Challenge tables against the regulars, one at a time.\n• A short, honest read on every hand as you finish it.\n• Two starter drills: What have you got? and Which hand wins?\n• Level 1 of Lessons with Webb, and every written guide.\n• Broke? Win your way back at the Kitchen Table.\n\nA free account keeps your Roll on every device, and you never need one to play.\n\nTHE MEMBERSHIP\nFor players who want to get better. It adds:\n• Lessons with Webb, Levels 2 to 5. Interactive lessons on the real felt: Webb deals, stops to ask, and explains. Starting hands, position, outs, pot odds, stack sizes, ranges and bluffing.\n• Eight more drills, including Pot odds, Count your outs, Open or fold and Shove or fold.\n• Session review. Every hand of your last session back on the felt, with each call and fold graded.\n• Your report. Where your chips go, built from every hand you have played.\n• The side tables: Omaha, Short Deck, Hi-Lo and Five-Card Draw, plus fast, heads-up, bounty and deep Hold'em.\n• Build your own table.\n\nNothing you can buy changes a hand: not the cards, not the odds, not what you are shown.\n\nThe membership is monthly or yearly and renews automatically until you cancel. Payment is charged to your Apple Account. Cancel any time in your App Store account settings, at least 24 hours before the end of the current period.\n\nOPEN SOURCE\nPip's code is public. Anyone can read how a hand is dealt and shuffled: github.com/playpip/pip-web\n\nPip is a game played with pretend chips. It is not gambling, offers no real-money gambling and no prizes, and doing well at it does not mean you would do well gambling for real money.\n\nTerms of use: https://playpip.io/terms\nPrivacy: https://playpip.io/privacy",
+        "keywords": [
+          "holdem",
+          "card game",
+          "cards",
+          "odds",
+          "pot odds",
+          "drills",
+          "lessons",
+          "strategy",
+          "coach",
+          "learn",
+          "omaha",
+          "short deck",
+          "tournament"
+        ],
+        "promoText": "A quiet poker table, a cast of regulars and an honest read on every hand. Play money only, no ads, and the whole ladder is free.",
+        "releaseNotes": "Pip's first release on the App Store.",
+        "marketingUrl": "https://playpip.io",
+        "supportUrl": "https://playpip.io/support",
+        "privacyPolicyUrl": "https://playpip.io/privacy",
+        "screenshots": {
+          "APP_IPHONE_67": [
+            "store/screenshots/01-home.png",
+            "store/screenshots/02-table.png",
+            "store/screenshots/03-lesson.png",
+            "store/screenshots/04-drill.png",
+            "store/screenshots/05-review.png",
+            "store/screenshots/06-report.png",
+            "store/screenshots/07-stats.png"
+          ]
+        }
+      }
+    },
+    "release": {
+      "automaticRelease": false,
+      "phasedRelease": true
+    },
+    "review": {
+      "firstName": "Will",
+      "lastName": "Lamerton",
+      "email": "REPLACE_WITH_CONTACT_EMAIL@playpip.io",
+      "phone": "+44 REPLACE_WITH_PHONE",
+      "demoUsername": "REPLACE_WITH_DEMO_EMAIL",
+      "demoPassword": "REPLACE_WITH_DEMO_PASSWORD",
+      "demoRequired": true,
+      "notes": "Pip is a single-player Texas Hold'em game played with play money only. There is no real-money gambling of any kind: nothing can be deposited, won, cashed out or bought with chips, and chips are never sold. All opponents are computer players. There is no chat and no multiplayer.\n\nThe app is a native shell around Pip's own web app at playpip.io. Natively it provides haptics shaped to every sound, Sign in with Apple, In-App Purchase with Restore Purchases, and its own screen when there is no connection. Links to other sites open in Safari, outside the app.\n\nHOW TO REACH THINGS\n• The app opens on the lobby. No sign-in is needed to play.\n• Table: tap \"Next up\" (The Card Room or Friends' Garage) to sit down at a tournament.\n• Lessons: lobby > \"Learn with Webb\" > any lesson in Levels 2 to 5.\n• Drills: lobby > \"Drills\".\n• Report and session review: tap your avatar (top left) > \"Stats\" > \"Read the full report\" or \"Review your last session\". Session review fills after you play a few hands.\n• Side tables: lobby > \"Side Tables\".\n• Sign in: Settings (gear icon, top right) > \"Your account\" > \"Sign in\", with the demo account below.\n• Account deletion: Settings > \"Your account\" > \"Manage account\" > \"Delete my account and synced data\".\n\nTHE MEMBERSHIP\nThe core game (the ladder, cash games, the Daily) is free. The membership is an auto-renewing subscription, monthly or yearly, sold in the app through In-App Purchase. Products: io.playpip.app.member.monthly and io.playpip.app.member.yearly. Membership page: lobby > any members-only item, or Settings > Membership > \"What the membership is\". Restore Purchases is on the same page. The demo account below is already a member, so every paid feature is unlocked when signed in. To see the free experience, use the app without signing in.\n\nDEMO ACCOUNT\nEmail and password are in the Sign-In Information fields. This account has an active membership. To test buying, sign in with any other account and use a sandbox Apple ID."
+    }
+  }
+}

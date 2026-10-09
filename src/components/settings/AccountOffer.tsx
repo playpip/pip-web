@@ -20,7 +20,7 @@ import { useState } from 'react'
 import { UserPlus } from 'lucide-react'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { useSync } from '@/store/sync'
-import { oauthProviders } from '@/lib/sync/client'
+import { providerNames } from '@/lib/sync/client'
 import { useHydrated } from '@/lib/useHydrated'
 import { sound } from '@/lib/sound'
 import { useInApp } from '@/lib/useInApp'
@@ -33,9 +33,10 @@ export const SIGNUP_FACT = 'An email and a password. No confirmation email.'
  * saying "an email and a password" was the only way in when they shipped; this
  * card sits one tap before that dialog and has to agree with it.
  */
-export const SIGNUP_FACT_OAUTH = 'Google, Apple, or an email and a password. No confirmation email.'
-
-export const signupFact = () => (oauthProviders().length > 0 ? SIGNUP_FACT_OAUTH : SIGNUP_FACT)
+export const signupFact = () => {
+  const names = providerNames()
+  return names ? `${names}, or an email and a password. No confirmation email.` : SIGNUP_FACT
+}
 
 export function AccountOffer({ variant = 'lobby' }: { variant?: 'lobby' | 'overlay' }) {
   const status = useSync((s) => s.status)

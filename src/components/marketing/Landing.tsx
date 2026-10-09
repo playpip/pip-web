@@ -35,7 +35,7 @@ import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
 import { ACCOUNT_OFFER } from '@/config/account'
-import { oauthProviders, syncConfigured } from '@/lib/sync/client'
+import { providerNames, syncConfigured } from '@/lib/sync/client'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
 import { guideBySlug } from '@/config/learn'
@@ -303,7 +303,7 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       title: 'Free account, nothing to confirm',
       // Names Google and Apple only in a build that offers them, as the signup
       // dialog does.
-      body: `${oauthProviders().length > 0 ? 'Google, Apple, or an email and a password' : 'An email and a password'}. Your Roll follows you to every device. Or play without one.`,
+      body: `${providerNames() ? `${providerNames()}, or an email and a password` : 'An email and a password'}. Your Roll follows you to every device. Or play without one.`,
     },
     {
       icon: Sparkles,

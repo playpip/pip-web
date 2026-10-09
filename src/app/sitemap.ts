@@ -25,6 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/membership',
     '/privacy',
     '/terms',
+    '/support',
   ].map((path) => ({ url: `${BASE}${path}` }))
   const posts: MetadataRoute.Sitemap = BLOG_POSTS.map((post) => ({
     url: `${BASE}/blog/${post.slug}`,
