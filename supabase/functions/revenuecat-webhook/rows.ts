@@ -6,7 +6,7 @@
 /** The entitlement's identifier in RevenueCat, as in mobile/src/purchases.ts. */
 export const ENTITLEMENT = 'member'
 
-/** The statuses that make somebody a member — src/lib/membership/entitlement.ts. */
+/** The statuses that make somebody a member, as in src/lib/membership/entitlement.ts. */
 export const ENTITLING: readonly string[] = ['active', 'trialing']
 
 /** The parts of a RevenueCat event this function reads. */
