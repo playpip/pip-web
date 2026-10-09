@@ -37,6 +37,7 @@ import { dropUnbackedTable } from '@/store/game'
 import { track, trackOnce } from '@/lib/analytics'
 import type { Json } from '@/types/supabase-types'
 import type { Session } from '@supabase/supabase-js'
+import { askApp, inApp } from '@/lib/nativeApp'
 
 /** Where this device got to last time, so divergence is detectable. */
 const BOOKMARK_KEY = 'pip.sync'
@@ -80,6 +81,12 @@ function localData(): ProfileData {
   }
   return out as ProfileData
 }
+
+/** The shell's answer to a sign-in request (mobile/src/signIn.ts). */
+type NativeSignIn =
+  | { ok: true; accessToken: string; refreshToken: string }
+  | { ok: false; cancelled: true }
+  | { ok: false; error: string }
 
 export interface Conflict {
   local: SideSummary
@@ -270,6 +277,31 @@ export const useSync = create<SyncState>()((set, get) => ({
     if (!sb) return
     set({ busy: true, error: null })
     track(`sync-oauth-${provider}`)
+
+    // In the store app the system sheet signs in and hands back a session
+    // (mobile/src/signIn.ts). From setSession on it is the same as any other
+    // sign-in: onAuthStateChange, then a sync.
+    if (inApp()) {
+      const result = await askApp<NativeSignIn>({ type: 'signIn', provider })
+      if (!result.ok) {
+        set({ busy: false, error: 'cancelled' in result ? null : friendly(result.error) })
+        return
+      }
+      const { data, error } = await sb.auth.setSession({
+        access_token: result.accessToken,
+        refresh_token: result.refreshToken,
+      })
+      if (error || !data.session) {
+        set({ busy: false, error: friendly(error?.message ?? 'No session came back.') })
+        return
+      }
+      set({ busy: false, status: 'signed-in', email: data.session.user.email ?? null })
+      // No reload happens here, so the opt-in ticked before signing in is
+      // applied now rather than by the load that a web redirect would cause.
+      await applyPendingOptIn()
+      await get().syncNow()
+      return
+    }
     // Back to the page the player started from, minus any fragment. The URL has
     // to be on the project's redirect allow-list (docs/sync.md); one that isn't
     // lands on the Site URL instead, which still signs them in.

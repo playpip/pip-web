@@ -76,6 +76,15 @@ import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useSync } from '@/store/sync'
 import { useHydrated } from '@/lib/useHydrated'
 import { useInApp } from '@/lib/useInApp'
+import { appPlatform, appSupports } from '@/lib/nativeApp'
+import {
+  buyInStore,
+  MANAGE_IN_STORE,
+  restoreFromStore,
+  type StoreResult,
+  useMembershipSource,
+  useStorePrices,
+} from '@/lib/membership/store'
 import { SHOP_ITEMS } from '@/config/shop'
 import { DEEP_STACK_TABLES, SIDE_SHELF, SIDE_TABLES } from '@/config/venues'
 import { formatChips } from '@/lib/useMoney'
@@ -700,6 +709,9 @@ function Plans({
   const [plan, setPlan] = useState<Plan>('annual')
   const ready = checkoutReady()
   const PLANS = plansIn(price)
+  // In the store app it is paid and cancelled through the store, so the notes
+  // about Stripe's checkout and cancelling from Settings don't apply.
+  const app = useInApp()
 
   const pick = (next: Plan) => {
     if (next === plan) return
@@ -790,13 +802,21 @@ function Plans({
           )}
 
           <ul className="mt-5 grid gap-x-6 gap-y-2.5 border-t border-foreground/[0.07] pt-5 text-sm text-muted-foreground sm:grid-cols-2">
-            {[
-              'Tax is inside the price: the number here is the number that leaves your bank.',
-              'A fixed price in your currency, never converted at checkout, so no exchange fee is hidden in it.',
-              'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
-              'You need a free Pip account to join. You never need one to play.',
-              DAILY_FREE_GAME,
-            ].map((line) => (
+            {(app
+              ? [
+                  'Paid through the store, in your own currency, with tax included.',
+                  'Renews until you stop it. Cancel any time in your store’s subscription settings.',
+                  'You need a free Pip account to join. You never need one to play.',
+                  DAILY_FREE_GAME,
+                ]
+              : [
+                  'Tax is inside the price: the number here is the number that leaves your bank.',
+                  'A fixed price in your currency, never converted at checkout, so no exchange fee is hidden in it.',
+                  'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
+                  'You need a free Pip account to join. You never need one to play.',
+                  DAILY_FREE_GAME,
+                ]
+            ).map((line) => (
               <li key={line} className="flex gap-2.5">
                 <Check className="mt-0.5 size-4 shrink-0 text-pip" />
                 <span>{line}</span>
@@ -867,6 +887,7 @@ function Join({
   const [slow, setSlow] = useState(false)
   const [startNow, setStartNow] = useState(false)
   const app = useInApp()
+  const source = useMembershipSource()
 
   // Read after hydration only: the static page has no query string to read.
   const joined = hydrated && new URLSearchParams(window.location.search).has('joined')
@@ -922,33 +943,47 @@ function Join({
   // Join for the frame before their row arrives. A quiet box instead.
   if (!ready || (signedIn && !checked && !member)) {
     body = <div aria-busy className="h-14 w-full animate-pulse rounded-2xl bg-foreground/[0.05]" />
-  } else if (app) {
-    // The store apps can't send anyone to Stripe: Apple and Google require
-    // their own billing for a membership bought in the app, and reject a link
-    // out to any other. Until in-app purchase exists (EXPO-PLAN.md, phase 2),
-    // the app shows where you stand and nothing to tap.
-    body = member ? (
+  } else if (app && (member || memberStatus === 'past_due' || memberStatus === 'unpaid')) {
+    // In the store app nothing leads to Stripe: Apple and Google reject a link
+    // out to other billing. A membership bought in the app is managed in the
+    // store; one bought on the web is shown, and managed on the web.
+    const manage = source ? MANAGE_IN_STORE[source] : undefined
+    body = (
       <>
-        <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
-          <Star className="size-4 fill-pip text-pip" />
-          You’re a member
-        </div>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
-          {leaving
-            ? `Cancelled — you stay a member until ${endsOn(periodEnd)}.`
-            : `Renews on ${endsOn(periodEnd)}.`}
-        </p>
+        {member ? (
+          <>
+            <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
+              <Star className="size-4 fill-pip text-pip" />
+              You’re a member
+            </div>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              {leaving
+                ? `Cancelled — you stay a member until ${endsOn(periodEnd)}.`
+                : `Renews on ${endsOn(periodEnd)}.`}
+            </p>
+          </>
+        ) : (
+          <p className="text-center text-sm">
+            <strong className="font-medium">Your last payment didn’t go through.</strong> The
+            membership is paused until it does.
+          </p>
+        )}
+        {manage && (
+          <a href={manage.href} className={cn(quietButton, 'mt-3')}>
+            {manage.label}
+          </a>
+        )}
       </>
-    ) : memberStatus === 'past_due' || memberStatus === 'unpaid' ? (
-      <p className="text-center text-sm">
-        <strong className="font-medium">Your last payment didn’t go through.</strong> The membership
-        is paused until it does.
-      </p>
-    ) : (
+    )
+  } else if (app && !appSupports('purchase')) {
+    // An app build without the store set up, or an older one.
+    body = (
       <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground">
         Joining in the app is coming soon
       </div>
     )
+  } else if (app && signedIn) {
+    body = <StoreJoin plan={plan} planName={planName} />
   } else if (member) {
     body = (
       <>
@@ -1088,6 +1123,73 @@ function Join({
   )
 }
 
+/**
+ * Joining in the store app: the store's own price and sheet, then the same
+ * wait for the row a returning Stripe checkout does. Apple asks for the plan,
+ * its length, its price, how it renews and links to the terms and the privacy
+ * policy on this screen, so all of it is here.
+ */
+function StoreJoin({ plan, planName }: { plan: Plan; planName: string }) {
+  const prices = useStorePrices(true)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  const store = appPlatform() === 'android' ? 'Google Play' : 'the App Store'
+  const price = prices?.[plan]
+
+  const act = async (action: () => Promise<StoreResult>, pending: string) => {
+    sound.play('tap')
+    setBusy(true)
+    setNote(null)
+    const result = await action()
+    setBusy(false)
+    if (result.ok && !result.member) setNote(pending)
+    if (!result.ok && 'error' in result) setNote(result.error)
+  }
+
+  return (
+    <>
+      <button
+        disabled={busy || !price}
+        onClick={() =>
+          void act(
+            () => buyInStore(plan),
+            `${store === 'Google Play' ? 'Google Play' : 'The App Store'} has your payment. It can take a minute to show here.`,
+          )
+        }
+        className={joinButton}
+      >
+        {busy
+          ? 'Waiting for the store…'
+          : price
+            ? `Join ${planName.toLowerCase()} · ${price}`
+            : 'Loading the store’s prices…'}
+        {!busy && price && <ChevronRight className="size-4" />}
+      </button>
+      {note && <p className="mt-3 text-center text-sm text-muted-foreground">{note}</p>}
+      <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">
+        {plan === 'annual' ? 'Billed yearly' : 'Billed monthly'} through {store}. It renews
+        automatically until you cancel in your{' '}
+        {store === 'Google Play' ? 'Google Play' : 'App Store'} settings, at least a day before the
+        period ends.{' '}
+        <Link href="/terms" className="underline underline-offset-2">
+          Terms
+        </Link>{' '}
+        ·{' '}
+        <Link href="/privacy" className="underline underline-offset-2">
+          Privacy
+        </Link>
+      </p>
+      <button
+        disabled={busy}
+        onClick={() => void act(restoreFromStore, 'Nothing to restore on this account.')}
+        className={cn(quietButton, 'mt-3')}
+      >
+        Restore purchases
+      </button>
+    </>
+  )
+}
+
 // --- free versus member ---------------------------------------------------------
 
 function FreeVersusMember({ price }: { price: LocalPrice }) {
@@ -1167,11 +1269,17 @@ function Promises() {
  */
 function Questions({ coming }: { coming: MembershipFeature[] }) {
   const ready = checkoutReady()
+  const app = useInApp()
   return (
     <Reveal>
       <div className="max-w-4xl divide-y divide-foreground/[0.07] overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
         <Question q="Can I join yet?" open>
-          {ready ? (
+          {app ? (
+            <p>
+              Yes. Pick monthly or yearly above and pay through the store. You will need a free Pip
+              account first, and the button makes one if you have not.
+            </p>
+          ) : ready ? (
             <p>
               Yes. Pick monthly or yearly above and you go to Stripe’s checkout page to pay. You
               will need a free Pip account first, and the button makes one if you have not.
@@ -1193,7 +1301,11 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
           </p>
         </Question>
         <Question q="How do I cancel?">
-          <p>{HOW_TO_CANCEL}</p>
+          <p>
+            {app
+              ? 'In your store’s subscription settings: on an iPhone, Settings, your name, Subscriptions. The membership is listed there.'
+              : HOW_TO_CANCEL}
+          </p>
           <p>
             Cancelling stops the renewal and leaves you a member until the period you have already
             paid for runs out. A yearly membership cancelled in month two runs to the end of the

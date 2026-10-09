@@ -52,6 +52,7 @@ export type Database = {
           cancel_at_period_end: boolean
           current_period_end: string | null
           price_id: string | null
+          source: string
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -62,6 +63,7 @@ export type Database = {
           cancel_at_period_end?: boolean
           current_period_end?: string | null
           price_id?: string | null
+          source?: string
           status: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -72,6 +74,7 @@ export type Database = {
           cancel_at_period_end?: boolean
           current_period_end?: string | null
           price_id?: string | null
+          source?: string
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null

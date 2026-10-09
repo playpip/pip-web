@@ -25,6 +25,11 @@ export interface MembershipRow {
   /** ISO timestamp, or null before the first invoice settles. */
   current_period_end: string | null
   cancel_at_period_end: boolean
+  /**
+   * Where it was bought: 'stripe' on the web, 'app_store' or 'play_store' in
+   * the app. Absent on a database from before the column, and on old caches.
+   */
+  source?: string
 }
 
 /**
@@ -47,6 +52,8 @@ export interface Entitlement {
   periodEnd: number | null
   /** Set when they have cancelled and are playing out the period they paid for. */
   cancelAtPeriodEnd: boolean
+  /** Where it was bought, so the app can send a member to the right place to manage it. */
+  source: string | null
 }
 
 /** Nobody: signed out, no row, or a row that does not entitle. */
@@ -55,6 +62,7 @@ export const NOT_A_MEMBER: Entitlement = {
   status: null,
   periodEnd: null,
   cancelAtPeriodEnd: false,
+  source: null,
 }
 
 /**
@@ -90,6 +98,7 @@ export function readEntitlement(
     status: row.status,
     periodEnd: dated ? periodEnd : null,
     cancelAtPeriodEnd: row.cancel_at_period_end,
+    source: row.source ?? null,
   }
 }
 
@@ -118,6 +127,7 @@ export function parseCache(raw: string | null, userId: string): MembershipRow | 
       current_period_end:
         typeof row.current_period_end === 'string' ? row.current_period_end : null,
       cancel_at_period_end: row.cancel_at_period_end === true,
+      ...(typeof row.source === 'string' ? { source: row.source } : {}),
     }
   } catch {
     return null

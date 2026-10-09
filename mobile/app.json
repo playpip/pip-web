@@ -12,7 +12,8 @@
       "icon": "./assets/pip.icon",
       "config": {
         "usesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +35,8 @@
           "backgroundColor": "#0a0a0b",
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "owner": "playpip",
     "extra": {

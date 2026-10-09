@@ -2,11 +2,14 @@
 // web app, and the message types here must match its `NativeMessage`.
 //
 // The web deploys on every push and the app only ships on a store release, so
-// a message type this build doesn't know is ignored, never an error.
+// a message type this build doesn't know is ignored, never an error, and the
+// web checks `supports` before relying on one.
 
 import Constants from 'expo-constants'
 import * as Haptics from 'expo-haptics'
 import { Platform } from 'react-native'
+import { products, purchase, purchasesConfigured, restore, type Plan } from './purchases'
+import { appleAvailable, googleConfigured, type Provider, signIn } from './signIn'
 
 // Every sound cue plus the two tournament endings. Matches `Buzz` in the web
 // app's src/lib/haptics.ts.
@@ -26,15 +29,28 @@ type Buzz =
   | 'finish'
   | 'bust'
 
-type NativeMessage = { type: 'haptic'; buzz: Buzz }
+type NativeMessage =
+  | { type: 'haptic'; buzz: Buzz }
+  | { type: 'signIn'; id: string; provider: Provider }
+  | { type: 'products'; id: string }
+  | { type: 'purchase'; id: string; plan: Plan; userId: string }
+  | { type: 'restore'; id: string; userId: string }
+
+/** Answers a request the page made, by its id. App.tsx delivers it. */
+export type Reply = (id: string, payload: unknown) => void
 
 /**
- * The message types this build handles. The web checks this list before it
- * relies on one (`appSupports` in src/lib/nativeApp.ts), so a newer website
- * falls back gracefully in an older app. Add a type here in the same change
- * that handles it below.
+ * What this build can do. The web checks this list before it relies on one
+ * (`appSupports` in src/lib/nativeApp.ts), so a newer website falls back
+ * gracefully in an older app. Google and purchases are only listed once their
+ * IDs are configured for the build (app.config.ts, eas.json `env`).
  */
-const SUPPORTS: NativeMessage['type'][] = ['haptic']
+const SUPPORTS = [
+  'haptic',
+  ...(appleAvailable ? ['signIn:apple'] : []),
+  ...(googleConfigured ? ['signIn:google'] : []),
+  ...(purchasesConfigured ? ['purchase'] : []),
+]
 
 /**
  * Runs before the page's own scripts, so `inApp()` is already true the first
@@ -90,7 +106,16 @@ const PLAY: Record<Buzz, () => Promise<void>> = {
   bust: impact(Impact.Medium),
 }
 
-export function handleMessage(data: string) {
+/** Any failure becomes a reply the page can show, never an unanswered request. */
+async function answer(id: string, reply: Reply, work: () => Promise<unknown>) {
+  try {
+    reply(id, await work())
+  } catch (err) {
+    reply(id, { ok: false, error: err instanceof Error ? err.message : String(err) })
+  }
+}
+
+export function handleMessage(data: string, reply: Reply) {
   let message: NativeMessage
   try {
     message = JSON.parse(data)
@@ -102,6 +127,18 @@ export function handleMessage(data: string) {
       // The web side has already checked the setting, reduced motion and the
       // debounce. This only plays what it was sent.
       PLAY[message.buzz]?.().catch(() => {})
+      return
+    case 'signIn':
+      void answer(message.id, reply, () => signIn(message.provider))
+      return
+    case 'products':
+      void answer(message.id, reply, products)
+      return
+    case 'purchase':
+      void answer(message.id, reply, () => purchase(message.plan, message.userId))
+      return
+    case 'restore':
+      void answer(message.id, reply, () => restore(message.userId))
       return
   }
 }

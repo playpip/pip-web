@@ -57,9 +57,19 @@ async function sync(subscriptionId: string): Promise<void> {
   // a late event about an old dead one must not overwrite it.
   const { data: existing } = await admin
     .from('memberships')
-    .select('stripe_subscription_id, status')
+    .select('stripe_subscription_id, status, source')
     .eq('user_id', userId)
     .maybeSingle()
+  // A live membership bought in the app (revenuecat-webhook) is never
+  // overwritten by a Stripe subscription that isn't live.
+  if (
+    existing &&
+    existing.source !== 'stripe' &&
+    ENTITLING.includes(existing.status) &&
+    !LIVE.includes(sub.status)
+  ) {
+    return
+  }
   if (
     existing?.stripe_subscription_id &&
     existing.stripe_subscription_id !== sub.id &&
@@ -98,6 +108,7 @@ async function sync(subscriptionId: string): Promise<void> {
       current_period_end: periodEnd(sub),
       cancel_at_period_end: sub.cancel_at_period_end || sub.cancel_at !== null,
       price_id: sub.items.data[0]?.price.id ?? null,
+      source: 'stripe',
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },

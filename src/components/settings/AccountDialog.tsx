@@ -25,6 +25,7 @@ import { EmailSection } from '@/components/settings/EmailSection'
 import { ALL_EMAIL, emailReady, rememberOptIn, writeEmailPrefs } from '@/lib/email/prefs'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+import { MANAGE_IN_STORE, useMembershipSource } from '@/lib/membership/store'
 
 export type AccountMode = 'signin' | 'signup' | 'reset' | 'manage'
 
@@ -188,7 +189,11 @@ function AuthForm({
             sound.play('tap')
             // Google and Apple leave the page; the tick has to survive the trip.
             if (offerEmail) rememberOptIn(optIn)
-            void signInWith(p)
+            // On the web this leaves the page. In the store app it signs in
+            // where it is, so close on success like the email form does.
+            void signInWith(p).then(() => {
+              if (useSync.getState().status === 'signed-in') onDone()
+            })
           }}
           disabled={busy}
           className={cn(wideSecondaryButton, 'flex items-center justify-center gap-2')}
@@ -303,6 +308,8 @@ function Manage({ onDone }: { onDone: () => void }) {
     deleteAccount,
     clearError,
   } = useSync()
+  const source = useMembershipSource()
+  const storeManage = source ? MANAGE_IN_STORE[source] : undefined
 
   return (
     <>
@@ -381,6 +388,18 @@ function Manage({ onDone }: { onDone: () => void }) {
             This deletes your account and the synced copy of your profile. The profile on this
             device stays exactly as it is. It cannot be undone.
           </p>
+          {/* A web membership is cancelled by delete-account. A store one can't
+              be: only the player can cancel it, in the store (Apple 5.1.1(v)). */}
+          {storeManage && (
+            <p className="text-xs leading-relaxed">
+              Your membership was bought through the store, so deleting the account doesn’t stop it
+              renewing.{' '}
+              <a href={storeManage.href} className="font-medium underline underline-offset-2">
+                Cancel it there
+              </a>{' '}
+              first.
+            </p>
+          )}
           <div className="flex gap-2">
             <button
               onClick={() => {

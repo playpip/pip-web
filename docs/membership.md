@@ -139,8 +139,37 @@ and the Terms section is four numbers that agree until one of them is edited.
 an own-row-only policy, so a `member: true` in the profile blob would be settable by editing
 localStorage — not a weak lock, no lock. `supabase/migrations/…_memberships.sql` grants
 `select` on your own row and **nothing else**; the Stripe webhook writes it with the service
-role. `tests/entitlement.test.ts` fails the build if a mutation against that table ever
+role (and `revenuecat-webhook` for the stores). `tests/entitlement.test.ts` fails the build if a mutation against that table ever
 appears in the client, or if the migration grows an insert/update/delete policy.
+
+## Bought in the app (2026-10-09)
+
+The iOS and Android apps (`mobile/`, EXPO-PLAN.md) can't send anyone to Stripe: Apple and
+Google require their own billing for a membership bought in the app, and reject a link out
+to any other. So there are two ways in, and **one row**.
+
+| | Web | App |
+|---|---|---|
+| Pays through | Stripe Checkout | The App Store / Google Play, via RevenueCat |
+| Written by | `stripe-webhook` | `revenuecat-webhook` |
+| `memberships.source` | `stripe` | `app_store` / `play_store` |
+| Managed and cancelled in | The Stripe portal (Settings → Manage) | The store's subscription settings |
+
+- **The client didn't change its idea of a member.** `useEntitlement()` reads the same row
+  either way. `source` only decides where Manage points, and the entitlement store reads
+  around it on a database from before the column (`42703`), so a missing migration can't
+  cost anyone their membership.
+- **The RevenueCat app user id is the Supabase user id.** Buying in the app needs a signed-in
+  player, same as the web.
+- **Neither webhook overwrites a live membership from the other side** with one that isn't
+  live.
+- **In the app**, nothing leads to Stripe: the membership page shows the store's price, a
+  Join button, Restore purchases and the renewal terms Apple asks for; Settings → Manage
+  opens the store; a web member sees their status and no Manage. An app build without the
+  store set up shows "Joining in the app is coming soon" (`appSupports('purchase')`).
+- **Deleting the account doesn't cancel a store membership** (only the player can), so the
+  delete confirmation says so and links to the store.
+- Refunds for store memberships happen in the store, never in Stripe.
 
 ## Lessons with Webb (2026-09-23)
 

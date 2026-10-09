@@ -25,6 +25,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 // client with it means table and column names are checked against the real
 // database at build time rather than at 2am.
 import type { Database } from '@/types/supabase-types'
+import { appSupports, inApp } from '@/lib/nativeApp'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -49,7 +50,11 @@ const KNOWN_PROVIDERS: readonly OAuthProvider[] = ['google', 'apple']
 export function oauthProviders(): OAuthProvider[] {
   if (!syncConfigured()) return []
   const raw = (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? '').toLowerCase().split(',')
-  return KNOWN_PROVIDERS.filter((p) => raw.map((r) => r.trim()).includes(p))
+  const offered = KNOWN_PROVIDERS.filter((p) => raw.map((r) => r.trim()).includes(p))
+  // In the store app the web redirect can't work (Google refuses embedded web
+  // views), so a provider is offered only if this build signs in with it
+  // natively. An older app, or one without Google set up, just doesn't show it.
+  return inApp() ? offered.filter((p) => appSupports(`signIn:${p}`)) : offered
 }
 
 let client: SupabaseClient<Database> | null = null

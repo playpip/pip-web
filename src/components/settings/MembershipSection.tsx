@@ -17,6 +17,7 @@ import { checkoutReady } from '@/config/membership'
 import { type BillingError, openPortal } from '@/lib/membership/billing'
 import { isTableRoute } from '@/lib/textScale'
 import { useMembership } from '@/store/entitlement'
+import { MANAGE_IN_STORE, useMembershipSource } from '@/lib/membership/store'
 import { useInApp } from '@/lib/useInApp'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
@@ -41,6 +42,8 @@ export function MembershipSection() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<BillingError | null>(null)
   const app = useInApp()
+  const source = useMembershipSource()
+  const storeManage = source ? MANAGE_IN_STORE[source] : undefined
 
   if (!checkoutReady() || syncOff) return null
   const failed = status === 'past_due' || status === 'unpaid'
@@ -71,9 +74,16 @@ export function MembershipSection() {
             : 'The side tables, the other games, the drills that price a hand and the lessons past Level 1.'}
       </p>
 
-      {/* No Manage in the store apps: the portal is Stripe's, and the stores
-          reject a link out to other billing (see Join in MembershipScreen). */}
-      {hasBilling && app ? null : hasBilling ? (
+      {/* In the store app, a membership bought there is managed in the store.
+          One bought on the web gets no button: the portal is Stripe's, and the
+          stores reject a link out to other billing. */}
+      {hasBilling && app ? (
+        storeManage && (
+          <a href={storeManage.href} className={button}>
+            {storeManage.label}
+          </a>
+        )
+      ) : hasBilling ? (
         <button disabled={busy} onClick={() => void manage()} className={button}>
           {failed ? 'Update payment details' : 'Manage'}
         </button>

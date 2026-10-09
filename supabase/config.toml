@@ -108,6 +108,11 @@ verify_jwt = true
 [functions.stripe-webhook]
 verify_jwt = false
 
+# The App Store / Google Play twin (via RevenueCat). Authorised by the header
+# RevenueCat sends, not a Supabase token; see the function.
+[functions.revenuecat-webhook]
+verify_jwt = false
+
 # Opt-in email (docs/email.md). Neither can require a player's token: pg_cron
 # holds none, and nor does somebody clicking an unsubscribe link in a mail app.
 # send-emails is locked by the CRON_SECRET header instead, checked first thing;

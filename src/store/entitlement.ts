@@ -147,11 +147,15 @@ export const useMembership = create<MembershipState>()((set) => ({
     const cached = readCache(userId)
     if (cached) set({ ...readEntitlement(cached, { now: Date.now(), trusted: false }) })
 
-    const { data: row, error } = await sb
-      .from('memberships')
-      .select(COLUMNS)
-      .eq('user_id', userId)
-      .maybeSingle()
+    // `source` is asked for too, but a database from before that column's
+    // migration answers "undefined column" (42703) for the whole query. That
+    // must not cost anyone their membership, so the read is retried without it.
+    const read = (columns: string) =>
+      sb.from('memberships').select(columns).eq('user_id', userId).maybeSingle()
+    let result = await read(`${COLUMNS}, source`)
+    if (result.error?.code === '42703') result = await read(COLUMNS)
+    const { error } = result
+    const row = result.data as unknown as MembershipRow | null
 
     // Any error at all leaves the cached answer standing, which for everybody
     // who has never paid is "not a member". That covers the offline case, an
