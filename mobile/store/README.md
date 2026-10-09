@@ -28,10 +28,7 @@ In `store.config.json` → `apple.review`:
 
 Also decide:
 
-- **Name.** The config has `Pip: Poker Trainer`. "Pip" on its own is almost certainly taken
-  on the App Store. Other options: `Pip: Texas Hold'em Trainer` (26), `Pip Poker` (9),
-  `Pip – Hold'em, Redesigned` (25). If you change the name, keep "poker" or "hold'em" in it,
-  because the name carries the most search weight.
+- **Name.** `Pip: Poker`, in both locales.
 - **Subtitle.** The config has `Calm Texas Hold'em practice` (27). Alternatives:
   `Texas Hold'em, play money` (25), `Learn poker on a quiet table` (28).
 - **Copyright.** Set to `2026 Ava Technologies Global Ltd`, because that is the `SELLER` in
