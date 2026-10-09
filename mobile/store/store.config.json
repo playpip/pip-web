@@ -119,10 +119,10 @@
     "review": {
       "firstName": "Will",
       "lastName": "Lamerton",
-      "email": "REPLACE_WITH_CONTACT_EMAIL@playpip.io",
-      "phone": "+44 REPLACE_WITH_PHONE",
-      "demoUsername": "REPLACE_WITH_DEMO_EMAIL",
-      "demoPassword": "REPLACE_WITH_DEMO_PASSWORD",
+      "email": "set in store/review.local.json",
+      "phone": "set in store/review.local.json",
+      "demoUsername": "set in store/review.local.json",
+      "demoPassword": "set in store/review.local.json",
       "demoRequired": true,
       "notes": "Pip is a single-player Texas Hold'em game played with play money only. There is no real-money gambling of any kind: nothing can be deposited, won, cashed out or bought with chips, and chips are never sold. All opponents are computer players. There is no chat and no multiplayer.\n\nThe app is a native shell around Pip's own web app at playpip.io. Natively it provides haptics shaped to every sound, Sign in with Apple, In-App Purchase with Restore Purchases, and its own screen when there is no connection. Links to other sites open in Safari, outside the app.\n\nHOW TO REACH THINGS\n• The app opens on the lobby. No sign-in is needed to play.\n• Table: tap \"Next up\" (The Card Room or Friends' Garage) to sit down at a tournament.\n• Lessons: lobby > \"Learn with Webb\" > any lesson in Levels 2 to 5.\n• Drills: lobby > \"Drills\".\n• Report and session review: tap your avatar (top left) > \"Stats\" > \"Read the full report\" or \"Review your last session\". Session review fills after you play a few hands.\n• Side tables: lobby > \"Side Tables\".\n• Sign in: Settings (gear icon, top right) > \"Your account\" > \"Sign in\", with the demo account below.\n• Account deletion: Settings > \"Your account\" > \"Manage account\" > \"Delete my account and synced data\".\n\nTHE MEMBERSHIP\nThe core game (the ladder, cash games, the Daily) is free. The membership is an auto-renewing subscription, monthly or yearly, sold in the app through In-App Purchase. Products: io.playpip.app.member.monthly and io.playpip.app.member.yearly. Membership page: lobby > any members-only item, or Settings > Membership > \"What the membership is\". Restore Purchases is on the same page. The demo account below is already a member, so every paid feature is unlocked when signed in. To see the free experience, use the app without signing in.\n\nDEMO ACCOUNT\nEmail and password are in the Sign-In Information fields. This account has an active membership. To test buying, sign in with any other account and use a sandbox Apple ID."
     }

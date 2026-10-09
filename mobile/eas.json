@@ -31,7 +31,7 @@
   "submit": {
     "production": {
       "ios": {
-        "metadataPath": "./store/store.config.json"
+        "metadataPath": "./store/store.config.js"
       }
     }
   }
