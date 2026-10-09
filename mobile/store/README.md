@@ -7,11 +7,14 @@ Everything for the App Store Connect listing. Phase 3 of `EXPO-PLAN.md`.
 | File | What it is |
 |------|------------|
 | `store.config.json` | EAS Metadata: name, subtitle, description, keywords, promo text, URLs, categories, age rating answers, copyright, review contact and notes. en-GB and en-US carry the same text. |
-| `screenshots/01-home.png` … `07-stats.png` | Seven 1320×2868 PNGs for the 6.9" iPhone slot, no alpha. Already listed in `store.config.json` under `APP_IPHONE_67`. |
+| `screenshots/01-home.png` … `07-stats.png` | Seven 1320×2868 PNGs for the 6.9" iPhone slot, no alpha. Listed in `store.config.json` under `APP_IPHONE_67`. |
+| `promo/` | Promotional art: two header images and two search-results images (below). |
+| `screenshots-6.3/` | The same seven at 1206×2622 for the 6.3" slot, rendered at that size rather than scaled down. Listed under `APP_IPHONE_61`. |
 
 The screenshots are the live site at playpip.io in a 440×956 iPhone viewport at 3×, with the
-app flag set (so the copy says "this app"), and a seeded profile (Robin, 18,450 chips, walnut
-table). Screens 03–06 are member features. They were captured with a stand-in signed-in member,
+app flag set (so the copy says "this app"), and a seeded profile (Robin, 18,450 chips, the
+green Baize finish, mint avatar background, so the felt, backdrop and Roll sparkline all read
+green). Screens 03–06 are member features. They were captured with a stand-in signed-in member,
 faked in the browser only, so nothing was written to Supabase.
 
 ## Before you submit: fill these in
@@ -44,14 +47,29 @@ Also decide:
 3. From `mobile/`: `npx eas-cli@latest metadata:push`. This pushes the text, age rating,
    categories, review info and screenshots. Screenshot paths in the config are relative to
    `mobile/`.
-4. If the push won't take the screenshots, drag the seven PNGs in order into the 6.9" iPhone
-   slot in App Store Connect. App Store Connect scales them down for the smaller iPhone sizes.
-   No iPad set is needed, because `supportsTablet` is false.
+4. **Which folder goes where:** `screenshots/` goes in the **6.9" Display** slot (required).
+   `screenshots-6.3/` goes in the **6.3" Display** slot (optional; without it App Store Connect
+   scales the 6.9" set down). If the push won't take them, drag each folder's seven PNGs in
+   order into its slot by hand. No iPad set is needed, because `supportsTablet` is false.
 5. Check in App Store Connect that the age rating comes out at 18+ (17+ under the older
    scheme) and that the categories read Games › Card (and Board), secondary Education.
 
 `release` is manual release plus phased rollout. Change `automaticRelease` to `true` if you
 want it live the moment it is approved.
+
+## Promotional art
+
+These go in App Store Connect's promotional artwork / featuring section (the app's page under
+App Store › Promotional Artwork, or the "Nominate" featuring form). They aren't part of
+`eas metadata:push`, so upload them by hand. All are opaque PNGs, composed at their own size,
+with the content kept inside roughly the central 80% so Apple's crops and overlays miss it.
+
+| File | Slot | What's on it |
+|------|------|--------------|
+| `promo/header-3840x1646.png` | Header / hero artwork, 3840×1646 (wide) | Chip, `pip` wordmark, "Hold'em, redesigned.", "Play money. No ads. No pop-ups.", and three screens: home, table, the Webb lesson |
+| `promo/header-5244x2950.png` | Header / hero artwork, 5244×2950 (16:9) | The same, with the three screens slightly overlapped to fit the narrower frame |
+| `promo/search-1920x1280.png` | Search results artwork, 1920×1280 | Chip, wordmark and the same line, set large for small display, with one screen (the table) |
+| `promo/search-3840x2560.png` | Search results artwork, 3840×2560 (2×) | The same at double size |
 
 ## App Privacy ("nutrition label")
 
