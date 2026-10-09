@@ -3,7 +3,7 @@
 // sits with equal stacks and plays until one player is left standing — the
 // winner takes the prize. Bust and you're out.
 
-import { type MembersOnly, featureForFamily } from '@/config/membership'
+import { type MembersOnly, featureForFamily, membershipFor } from '@/config/membership'
 import { rankFor, rankIndex } from '@/config/ranks'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import type { Variant } from '@/lib/poker/handEval'
@@ -1220,6 +1220,45 @@ export function featureForVenue(venue: Venue): string | null {
   if (DEEP_STACK_TABLES.some((room) => room.id === venue.id)) return 'rooms'
   const family = SIDE_SHELF.find((f) => f.rooms.some((room) => room.id === venue.id))
   return family ? featureForFamily(family) : null
+}
+
+/**
+ * Where a tap on a locked family goes: `/membership`, opened on its feature.
+ * The twists share "Every side table", whose blurb names all four, so the tap
+ * also says which family it was (`&table=`, `tappedFamily`), the way a drill's
+ * tap names its kind.
+ */
+export function membershipForFamily(family: TableFamily): string {
+  const feature = featureForFamily(family)
+  const href = membershipFor(feature)
+  return feature === 'side-tables' ? `${href}&table=${encodeURIComponent(family.id)}` : href
+}
+
+/**
+ * The same for one gated table reached by its URL, through its family when
+ * it is a twist. Null for a free table.
+ */
+export function membershipForVenue(venue: Venue): string | null {
+  const feature = featureForVenue(venue)
+  if (feature !== 'side-tables') return feature ? membershipFor(feature) : null
+  const family = SIDE_SHELF.find((f) => f.rooms.some((room) => room.id === venue.id))
+  return family ? membershipForFamily(family) : membershipFor(feature)
+}
+
+/**
+ * The paid twist a `/membership?for=side-tables&table=<id>` names, or null for
+ * anything else: a game with its own entry, another feature, or a typed URL.
+ */
+export function tappedFamily(search: string): TableFamily | null {
+  const params = new URLSearchParams(search)
+  if (params.get('for') !== 'side-tables') return null
+  const family = SIDE_SHELF.find((f) => f.id === params.get('table'))
+  return family?.membersOnly && featureForFamily(family) === 'side-tables' ? family : null
+}
+
+/** A family's tables by name, once each: Deep's five Deep Stack prices are one name. */
+export function familyTableNames(family: TableFamily): readonly string[] {
+  return [...new Set(family.rooms.map((room) => room.name))]
 }
 
 /** The families in one half of the shelf, in order. */

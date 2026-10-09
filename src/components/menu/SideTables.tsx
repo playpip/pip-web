@@ -13,12 +13,12 @@ import { BlackjackCard } from './BlackjackCard'
 import { MEMBERS_ONLY_NOTE, memberLocked } from './VenueBrowser'
 import { useRequireProfile } from './useRequireProfile'
 import { Splash } from '@/components/Splash'
-import { familiesIn, type TableFamily, type Venue } from '@/config/venues'
+import { familiesIn, membershipForFamily, type TableFamily, type Venue } from '@/config/venues'
 import { useEntitlement } from '@/store/entitlement'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
-import { featureForFamily, membershipFor } from '@/config/membership'
+import { membershipFor } from '@/config/membership'
 import { TASTE_COPY } from '@/lib/membership/taste'
 import { useTaste } from '@/lib/useTaste'
 
@@ -91,7 +91,7 @@ export function SideTables() {
         // out — nothing here appears uninvited, over what you were doing, or
         // twice. See docs/membership.md.
         if (locked) {
-          router.push(membershipFor(featureForFamily(family)))
+          router.push(membershipForFamily(family))
           return
         }
         setOpenFamily(family)

@@ -26,10 +26,15 @@
 // of them, so the tap also names its kind (`&drill=`, `tappedDrill`) and this
 // says which one it was, with one spot from it where the shared felt can draw
 // one (`TappedDrillSpot`, `SAMPLED_DRILLS`).
+//
+// A tap on a twist (Fast, Heads-Up, Bounty, Deep) lands on "Every side table",
+// whose blurb names all four, so it names its family too (`&table=`,
+// `tappedFamily`): the family's own note from the shelf, and its tables.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
 import { type LocalPrice, tappedFeature } from '@/config/membership'
+import { familyTableNames, tappedFamily } from '@/config/venues'
 import { waitingSessionLine } from '@/lib/review/highlights'
 import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
@@ -51,6 +56,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
   if (!feature || new URLSearchParams(search).has('joined')) return null
   const waiting = feature.id === 'review' ? waitingSessionLine(loadReview()) : null
   const drill = tappedDrill(search)
+  const family = tappedFamily(search)
 
   return (
     <section
@@ -72,6 +78,13 @@ export function TappedFor({ price }: { price: LocalPrice }) {
           </p>
         )}
         {drill && SAMPLED_DRILLS.includes(drill.id) && <TappedDrillSpot kind={drill} />}
+        {family && (
+          <p className="mt-3 leading-relaxed text-muted-foreground">
+            You tapped <span className="font-medium text-foreground">{family.name}</span>.{' '}
+            {family.note} The tables:{' '}
+            {new Intl.ListFormat('en-GB').format(familyTableNames(family))}.
+          </p>
+        )}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a

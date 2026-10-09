@@ -6,7 +6,7 @@ import { Table } from '@/components/table/Table'
 import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
-import { THE_DAILY, dailyFor, featureForVenue, venueById } from '@/config/venues'
+import { THE_DAILY, dailyFor, membershipForVenue, venueById } from '@/config/venues'
 import { membershipFor } from '@/config/membership'
 import { CUSTOM_VENUE_ID, customVenue, refuseCustomTable } from '@/config/customTable'
 import { refuseSitDown } from '@/lib/sitDown'
@@ -107,21 +107,18 @@ export function PlayClient() {
       tasteLeft(profile.taste, today)
     const refusal = refuseSitDown(venue, profile, deviceId(), member || tasting)
     if (refusal) {
-      const feature = featureForVenue(venue)
       const back =
         refusal === 'not-your-challenge'
           ? '/game'
           : refusal === 'members-only'
-            ? feature
-              ? membershipFor(feature)
-              : '/game/side'
+            ? (membershipForVenue(venue) ?? '/game/side')
             : '/'
       router.replace(back)
       return
     }
 
     if (tasting && !profile.spendTaste(today, { kind: 'table', id: venue.id })) {
-      router.replace(membershipFor(featureForVenue(venue) ?? 'side-tables'))
+      router.replace(membershipForVenue(venue) ?? membershipFor('side-tables'))
       return
     }
 
