@@ -365,9 +365,9 @@ over them counts tabs rather than clicks:
 | Event | Sent when | Where |
 |---|---|---|
 | `membership-viewed` | `/membership` renders | `MembershipScreen` |
-| `checkout-opened` | the `checkout` function hands back a Stripe URL, just before the redirect | `lib/membership/billing.ts` |
-| `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL | `Join` in `MembershipScreen` |
-| `membership-active` | `awaitMembership()` sees the row the webhook wrote | `Join` in `MembershipScreen` |
+| `checkout-opened` | the `checkout` function hands back a Stripe URL, just before the redirect; in the store app, just before the store's sheet opens | `lib/membership/billing.ts`, `lib/membership/store.ts` |
+| `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL; in the store app, the store reports the payment | `Join` in `MembershipScreen`, `lib/membership/store.ts` |
+| `membership-active` | `awaitMembership()` sees the row a webhook wrote | `Join` in `MembershipScreen`, `lib/membership/store.ts` |
 
 Two more sit beside the four, for the account step a signed-out tab meets before checkout:
 `membership-viewed-signed-out` (the page settled on signed out, not on the way back from Stripe)

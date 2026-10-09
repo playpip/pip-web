@@ -10,6 +10,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { trackOnce } from '@/lib/analytics'
 import { askApp } from '@/lib/nativeApp'
 import { getSupabase } from '@/lib/sync/client'
 import { useMembership } from '@/store/entitlement'
@@ -59,9 +60,16 @@ function settle(answer: Answer): StoreResult | null {
 export async function buyInStore(plan: StorePlan): Promise<StoreResult> {
   const id = await userId()
   if (!id) return { ok: false, error: 'Sign in first, so the membership is yours.' }
+  // The same funnel steps as a Stripe checkout (docs/membership.md), so a sale
+  // in the app is not invisible to it: the store's sheet opening, the store
+  // taking the payment, and the row arriving.
+  trackOnce('checkout-opened')
   const failed = settle(await askApp<Answer>({ type: 'purchase', plan, userId: id }))
   if (failed) return failed
-  return { ok: true, member: await awaitMembership() }
+  trackOnce('checkout-completed')
+  const member = await awaitMembership()
+  if (member) trackOnce('membership-active')
+  return { ok: true, member }
 }
 
 /** Apple requires a Restore Purchases button. */
@@ -71,7 +79,11 @@ export async function restoreFromStore(): Promise<StoreResult> {
   const answer = await askApp<Answer>({ type: 'restore', userId: id })
   const failed = settle(answer)
   if (failed) return failed
-  return { ok: true, member: answer.ok && answer.member ? await awaitMembership() : false }
+  if (!(answer.ok && answer.member)) return { ok: true, member: false }
+  if (await awaitMembership()) return { ok: true, member: true }
+  // The store found one, but the row has not arrived yet. Saying there was
+  // nothing to restore would be wrong.
+  return { ok: false, error: 'The store found your membership. It can take a minute to show here.' }
 }
 
 /** The store's prices, in the player's currency. Null until they arrive. */
