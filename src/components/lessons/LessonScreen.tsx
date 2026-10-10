@@ -10,7 +10,7 @@ import { ActionBar, Answer, Dealing, LockedAnswers, NextButton } from '@/compone
 import { drillHref } from '@/components/drills/exit'
 import { characterById } from '@/config/cast'
 import { BET_PACK_ID, OPEN_PACK_ID, RIVER_PACK_ID, SHOVE_PACK_ID, drillKind } from '@/config/drills'
-import { type Lesson, canTakeLesson } from '@/config/lessons'
+import { type Lesson, canTakeLesson, membershipForLesson } from '@/config/lessons'
 import { type SeatId, seatById } from '@/config/positions'
 import {
   type Beat,
@@ -26,7 +26,6 @@ import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { type SeatFace, SceneTable } from './SceneTable'
-import { membershipFor } from '@/config/membership'
 
 /**
  * A lesson with Webb, played on the table.
@@ -245,7 +244,7 @@ function Beats({ lesson, allowed }: { lesson: Lesson; allowed: boolean }) {
         {!allowed ? (
           <LockedAnswers
             blurb={lesson.blurb}
-            onJoin={() => router.push(membershipFor('lessons'))}
+            onJoin={() => router.push(membershipForLesson(lesson.id))}
           />
         ) : waiting && question ? (
           <div

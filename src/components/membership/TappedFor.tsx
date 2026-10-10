@@ -27,6 +27,9 @@
 // of them, so the tap also names its kind (`&drill=`, `tappedDrill`) and this
 // says which one it was, with one spot from it where the shared felt can draw
 // one (`TappedDrillSpot`, `SAMPLED_DRILLS`).
+//
+// A tap on a locked lesson names the lesson the same way (`&lesson=`,
+// `TappedLesson`), loaded only then, so nobody else's page carries the course.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
@@ -47,6 +50,10 @@ const TappedDrillSpot = dynamic(() => import('./TappedDrillSpot').then((m) => m.
   ssr: false,
 })
 
+const TappedLesson = dynamic(() => import('./TappedLesson').then((m) => m.TappedLesson), {
+  ssr: false,
+})
+
 export function TappedFor({ price }: { price: LocalPrice }) {
   const hydrated = useHydrated()
   const search = hydrated ? window.location.search : ''
@@ -56,6 +63,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
   if (!feature || new URLSearchParams(search).has('joined')) return null
   const waiting = feature.id === 'review' ? waitingSessionLine(loadReview()) : null
   const drill = tappedDrill(search)
+  const lesson = feature.id === 'lessons' && new URLSearchParams(search).has('lesson')
 
   return (
     <section
@@ -78,6 +86,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
           </p>
         )}
         {drill && SAMPLED_DRILLS.includes(drill.id) && <TappedDrillSpot kind={drill} />}
+        {lesson && <TappedLesson search={search} />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a
