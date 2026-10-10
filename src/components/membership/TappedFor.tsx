@@ -20,7 +20,8 @@
 // sent anywhere.
 //
 // A tap on Calling the river also deals one spot from it (`TappedSpot`), loaded
-// only then, so nobody else's page carries the drill generator.
+// only then, so nobody else's page carries the drill generator. A tap on The
+// Big Pot deals one Omaha showdown (`TappedOmaha`) the same way.
 //
 // A tap on any other paid drill lands on "Every drill", whose blurb lists nine
 // of them, so the tap also names its kind (`&drill=`, `tappedDrill`) and this
@@ -35,6 +36,10 @@ import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
 
 const TappedSpot = dynamic(() => import('./TappedSpot').then((m) => m.TappedSpot), {
+  ssr: false,
+})
+
+const TappedOmaha = dynamic(() => import('./TappedOmaha').then((m) => m.TappedOmaha), {
   ssr: false,
 })
 
@@ -65,6 +70,7 @@ export function TappedFor({ price }: { price: LocalPrice }) {
         <p className="mt-2 leading-relaxed text-muted-foreground">{feature.blurb}</p>
         {waiting && <p className="mt-3 font-medium tabular-nums text-foreground">{waiting}</p>}
         {feature.id === 'river' && <TappedSpot />}
+        {feature.id === 'omaha' && <TappedOmaha />}
         {drill && (
           <p className="mt-3 leading-relaxed text-muted-foreground">
             You tapped <span className="font-medium text-foreground">{drill.title}</span>.{' '}
