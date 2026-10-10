@@ -970,7 +970,10 @@ export const useGame = create<GameState>((set, get) => {
         status: 'busted',
         place,
         aiThinkingId: null,
-        message: null,
+        // Kept rather than cleared: the end card can be set aside to see the
+        // hand that ended it, and this is the line that says who won it with
+        // what (pip-web#198).
+        message: describeResult(hand),
         recap: makeRecap(venue, place, bestFinishBefore),
       })
       return
@@ -994,7 +997,7 @@ export const useGame = create<GameState>((set, get) => {
         status: 'won',
         place: 1,
         aiThinkingId: null,
-        message: null,
+        message: describeResult(hand),
         newAwards,
         lastBounty: bountyWon,
         recap: makeRecap(venue, 1, bestFinishBefore),
@@ -1076,7 +1079,7 @@ export const useGame = create<GameState>((set, get) => {
         status: 'busted',
         place: null,
         aiThinkingId: null,
-        message: null,
+        message: describeResult(hand),
         newAwards,
         lastBounty: 0,
         talk: null,

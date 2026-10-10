@@ -83,6 +83,10 @@ export function Table() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [viewId, setViewId] = useState<string | null>(null)
+  // The end card set aside to look at the hand that ended the run
+  // (pip-web#198). Held as the hand it was set aside on, not a flag, so a rebuy
+  // that busts again brings the card back without an effect to reset it.
+  const [peekedAt, setPeekedAt] = useState<number | null>(null)
   const hasHistory = useGame((s) => s.lastHand !== null)
   const spectatorEquity = useGame((s) => s.spectatorEquity)
   const handIndex = useGame((s) => s.handIndex)
@@ -165,6 +169,11 @@ export function Table() {
   // exist next to "nothing you can buy changes a hand" (pip-web#120).
   const spectating = status === 'watching'
   const revealAll = showdownReveal || spectating
+  const peeking = (status === 'busted' || status === 'won') && peekedAt === handIndex
+  const peek = () => {
+    sound.play('tap')
+    setPeekedAt(handIndex)
+  }
 
   // Winners of the just-finished hand — for the pot → winner chip animation.
   const potWinners =
@@ -404,7 +413,19 @@ export function Table() {
 
   const drawing = hand.street === 'draw' && hand.players[hand.toActIndex]?.id === 'hero'
 
-  const actionArea = spectating ? (
+  const actionArea = peeking ? (
+    // The final hand, face up where it was dealt, with the line that says who
+    // took it. The way back is to the end card, which holds every way out.
+    <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3">
+      <span className="text-sm text-muted-foreground">{message ?? 'The last hand.'}</span>
+      <button
+        onClick={() => setPeekedAt(null)}
+        className="shrink-0 text-sm font-medium underline underline-offset-4 transition hover:text-foreground"
+      >
+        Back
+      </button>
+    </div>
+  ) : spectating ? (
     // No buttons: there is nobody to press them. What sits here instead is the
     // one line that says why the table is still dealing, and the way out.
     <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3">
@@ -706,6 +727,7 @@ export function Table() {
               </Banner>
             )}
             {status === 'busted' &&
+              !peeking &&
               (venue.cash ? (
                 // Cash tables: busting isn't the end. Rebuy from your Roll and sit
                 // straight back down, drop to the freeroll if you can't afford it,
@@ -714,6 +736,7 @@ export function Table() {
                   key="bust-cash"
                   title="Out of chips"
                   subtitle="The table’s still running — buy back in, or call it a session."
+                  onPeek={peek}
                   onHome={goHome}
                   onReview={canReview ? goReview : undefined}
                   primaryLabel={
@@ -754,6 +777,7 @@ export function Table() {
                       <RunRecap recap={recap} member={member} accountOffer={!venue.welcome} />
                     )
                   }
+                  onPeek={peek}
                   onHome={venue.welcome ? undefined : goHome}
                   onReview={canReview ? goReview : undefined}
                   secondaryLabel={canWatch ? 'Watch it out' : undefined}
@@ -789,7 +813,7 @@ export function Table() {
                   }
                 />
               ))}
-            {status === 'won' && (
+            {status === 'won' && !peeking && (
               <EndOverlay
                 key="won"
                 title="Champion"
@@ -814,6 +838,7 @@ export function Table() {
                     )}
                   </>
                 }
+                onPeek={peek}
                 onHome={venue.welcome ? undefined : goHome}
                 onReview={canReview ? goReview : undefined}
                 primaryLabel={endPrimary?.label}
@@ -858,6 +883,7 @@ function EndOverlay({
   title,
   subtitle,
   detail,
+  onPeek,
   onHome,
   celebrate = false,
   primaryLabel,
@@ -869,6 +895,12 @@ function EndOverlay({
   title: string
   subtitle: string
   detail?: React.ReactNode
+  /**
+   * Set the card aside to see the hand that ended the run: who showed what,
+   * and the board (pip-web#198). Under the subtitle, because it answers the
+   * question the subtitle raises.
+   */
+  onPeek?: () => void
   /** "Back to venues". Absent on the Welcome Table, which only carries on. */
   onHome?: () => void
   celebrate?: boolean
@@ -921,6 +953,14 @@ function EndOverlay({
             {title}
           </h2>
           <p className="mt-3 text-white/60">{subtitle}</p>
+          {onPeek && (
+            <button
+              onClick={onPeek}
+              className="mt-2 text-sm text-white/60 underline underline-offset-4 transition hover:text-white"
+            >
+              See the last hand
+            </button>
+          )}
           {detail}
           {onReview && (
             <button
