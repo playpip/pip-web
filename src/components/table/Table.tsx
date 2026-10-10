@@ -956,7 +956,7 @@ function EndOverlay({
           {onPeek && (
             <button
               onClick={onPeek}
-              className="mt-2 text-sm text-white/60 underline underline-offset-4 transition hover:text-white"
+              className="mx-auto mt-2 block text-sm text-white/60 underline underline-offset-4 transition hover:text-white"
             >
               See the last hand
             </button>
