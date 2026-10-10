@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LegalPage, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
+import { membershipFor } from '@/config/membership'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'omaha-exactly-two')!
 
@@ -113,7 +114,7 @@ export default function OmahaExactlyTwoPost() {
       <Section title="Where it is">
         <p>
           Pot-Limit Omaha is The Big Pot, one of the side tables in the{' '}
-          <Link href="/membership" className={linkClass}>
+          <Link href={`${membershipFor('omaha')}&from=blog`} className={linkClass}>
             membership
           </Link>
           . The ladder, the Rail, the Daily and the freeroll stay free. The rule was always free to

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { LegalPage, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
+import { membershipFor } from '@/config/membership'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'short-deck-flush-beats-full-house')!
 
@@ -113,7 +114,7 @@ export default function ShortDeckFlushPost() {
       <Section title="Where it is">
         <p>
           Short Deck is one of the side tables in the{' '}
-          <Link href="/membership" className={linkClass}>
+          <Link href={`${membershipFor('shortdeck')}&from=blog`} className={linkClass}>
             membership
           </Link>
           , at three stakes. The ladder, the Rail, the Daily and the freeroll stay free. So did the
