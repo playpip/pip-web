@@ -102,6 +102,20 @@ let socket: WebSocket | null = null
 let pingTimer: ReturnType<typeof setInterval> | null = null
 let retryTimer: ReturnType<typeof setTimeout> | null = null
 let attempts = 0
+/** When this socket last heard anything from the server. */
+let lastHeard = 0
+/**
+ * How often the socket is checked. A socket can die without closing (a phone
+ * locking, a network that drops packets rather than refusing them), and a
+ * browser may take minutes to notice. Until it does, nothing arrives: not the
+ * bots' moves, not anybody's. So it is asked to answer every few seconds, and
+ * one that has gone quiet is replaced rather than waited on.
+ */
+const PING_MS = 8_000
+/** Silent for this long while pinging: the socket is dead. */
+const STALE_MS = 20_000
+/** Back on screen: a socket that cannot answer in this long is replaced. */
+const WAKE_CHECK_MS = 3_000
 /** The server said no for a reason a retry will not change. */
 const FINAL_CLOSE = new Set([4000, 4001, 4004, 1000])
 
@@ -150,6 +164,37 @@ export const useRoom = create<RoomStore>((set, get) => {
     })
   }
 
+  /** Drop a socket that has gone quiet and dial again now, not after a backoff. */
+  function redial() {
+    const code = get().code
+    if (!code || get().connection === 'gone') return
+    teardown()
+    attempts = 0
+    set({ connection: 'reconnecting' })
+    void open(code)
+  }
+
+  /** Ask the server to answer; if it has not shortly, the socket is dead. */
+  function check() {
+    if (!get().code || get().connection === 'gone') return
+    if (socket?.readyState !== WebSocket.OPEN) return
+    const asked = Date.now()
+    send({ t: 'ping' })
+    setTimeout(() => {
+      if (lastHeard < asked && socket?.readyState === WebSocket.OPEN) redial()
+    }, WAKE_CHECK_MS)
+  }
+
+  // Coming back to the app (unlocking the phone, switching back to the tab)
+  // and coming back online are when a dead socket is likeliest: checked then,
+  // rather than at the next ping.
+  if (typeof window !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') check()
+    })
+    window.addEventListener('online', check)
+  }
+
   async function open(code: string) {
     const token = await sessionToken()
     if (get().code !== code) return
@@ -163,6 +208,7 @@ export const useRoom = create<RoomStore>((set, get) => {
     let seated = false
     ws.onopen = () => {
       attempts = 0
+      lastHeard = Date.now()
       const { name, avatar, avatarRing } = useProfile.getState()
       ws.send(
         JSON.stringify({
@@ -174,9 +220,13 @@ export const useRoom = create<RoomStore>((set, get) => {
         } satisfies ClientMessage),
       )
       set({ connection: 'open' })
-      pingTimer = setInterval(() => send({ t: 'ping' }), 25_000)
+      pingTimer = setInterval(() => {
+        if (Date.now() - lastHeard > STALE_MS) redial()
+        else send({ t: 'ping' })
+      }, PING_MS)
     }
     ws.onmessage = (e) => {
+      lastHeard = Date.now()
       let msg: ServerMessage
       try {
         msg = JSON.parse(String(e.data)) as ServerMessage

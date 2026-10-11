@@ -55,6 +55,13 @@ the player taps to turn one on). The shell supports it with:
   for it.
 - `media` in `SUPPORTS`. The web hides the camera and mic controls without it.
 
+- iOS: `modules/pip-speaker`, a local Expo module. Once the camera or mic is
+  on, WebKit puts the app's audio in call mode and iOS sends it to the
+  earpiece; the module moves it back to the loudspeaker on every route change
+  (headphones and Bluetooth are left alone). Autolinked from `modules/`, and
+  started from `App.tsx`. It isn't in Expo Go, so check it in a development
+  build.
+
 These are native settings, so they need a new store build (EAS build and
 submit), not an over-the-air update. Until people update, their app doesn't
 list `media` and the web keeps the controls hidden.

@@ -75,6 +75,8 @@ export class PokerRoom extends DurableObject<Env> {
   private ice: { servers: RTCIceServerLike[]; until: number } | null = null
   /** Reports already taken in this room, so a tap twice files once. */
   private reported = new Set<string>()
+  /** Ticks in a row that threw, so a broken table stops retrying. */
+  private failures = 0
 
   private async load(): Promise<RoomState | null> {
     if (this.room === undefined) {
@@ -378,7 +380,26 @@ export class PokerRoom extends DurableObject<Env> {
   async alarm(): Promise<void> {
     const room = await this.load()
     if (!room) return
-    const next = tick(room, Date.now(), cryptoRng)
+    const now = Date.now()
+    // A table only ever waits on its own clock, so an alarm that arrives well
+    // after it was due is time every player spent looking at a still table.
+    // Logged so the Workers dashboard shows how often, and by how much.
+    if (room.dueAt !== null && now - room.dueAt > 1000) {
+      console.warn('alarm late', { code: room.code, kind: room.dueKind, lateMs: now - room.dueAt })
+    }
+    let next: RoomState
+    try {
+      next = tick(room, now, cryptoRng)
+    } catch (e) {
+      // Never throw out of here: Cloudflare retries a failed alarm after 2 s,
+      // then 4, 8, 16..., which is the table frozen for half a minute. Try
+      // again in a second instead, a few times, then leave it to the logs.
+      this.failures++
+      console.error('tick failed', { code: room.code, kind: room.dueKind, error: String(e) })
+      if (this.failures < 5) await this.ctx.storage.setAlarm(now + 1000)
+      return
+    }
+    this.failures = 0
     if (next === room) {
       // Woke early: put the alarm back for when it is actually due.
       if (room.dueAt !== null) await this.ctx.storage.setAlarm(room.dueAt)

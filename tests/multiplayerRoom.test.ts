@@ -165,6 +165,35 @@ test('an alarm that fires early does nothing', (t) => {
   t.is(tick(s, TURN_MS - 1, mulberry32(7)), s)
 })
 
+test('a bot that cannot decide checks or folds instead of stalling the table', (t) => {
+  const rng = mulberry32(3)
+  let s = must(addBots(room(), 'user-0', 3, rng))
+  // An AI profile that throws the moment the policy reads it.
+  const broken = new Proxy({} as NonNullable<RoomState['players'][number]['ai']>, {
+    get: () => {
+      throw new Error('broken profile')
+    },
+  })
+  s = { ...s, players: s.players.map((p) => (p.bot ? { ...p, ai: broken } : p)) }
+  s = must(start(s, 'user-0', 0, rng))
+  let moved = 0
+  for (let i = 0; i < 50 && s.phase === 'playing'; i++) {
+    const hand = s.hand!
+    const toAct = hand.result ? null : hand.players[hand.toActIndex]
+    const bot = s.players.find((p) => p.id === toAct?.id)?.bot
+    const actions = hand.actions.length
+    const next = tick(s, s.dueAt!, rng)
+    t.not(next, s)
+    if (bot && next.hand === s.hand) t.fail('the bot did not move')
+    if (bot && next.hand!.actions.length > actions) {
+      t.true(['check', 'fold'].includes(next.hand!.actions[actions].type))
+      moved++
+    }
+    s = next
+  }
+  t.true(moved > 0)
+})
+
 test('a player who drops out gets the short clock, and the long one back on return', (t) => {
   let s = must(join(room(), person(1), 0))
   s = must(start(s, 'user-0', 0, mulberry32(8)))

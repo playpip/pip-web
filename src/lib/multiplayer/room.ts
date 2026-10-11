@@ -741,8 +741,17 @@ export function tick(state: RoomState, now: number, rng: Rng): RoomState {
       const toAct = hand.players[hand.toActIndex]
       const bot = state.players.find((p) => p.id === toAct?.id)
       if (!bot?.bot) return reschedule(state, now)
-      const action = decideAction(hand, bot.ai ?? roomVenue(state.venueId)!.ai, rng, state.memory)
-      const applied = apply(state, action) ?? apply(state, timeoutAction(hand))
+      // A bot that cannot decide checks or folds rather than taking the alarm
+      // down with it: an alarm that throws is retried with a growing backoff,
+      // and the whole table waits on it.
+      let applied: RoomState | null = null
+      try {
+        const action = decideAction(hand, bot.ai ?? roomVenue(state.venueId)!.ai, rng, state.memory)
+        applied = apply(state, action)
+      } catch {
+        applied = null
+      }
+      applied ??= apply(state, timeoutAction(hand))
       return applied ? after(applied, now) : reschedule(state, now)
     }
     case 'turn': {

@@ -4,6 +4,7 @@
 // the app with no store release. Set EXPO_PUBLIC_SITE_URL to point it at a dev
 // server on your network instead (e.g. http://192.168.1.20:3000).
 
+import { requireOptionalNativeModule } from 'expo'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useRef } from 'react'
 import { BackHandler, Linking, Platform, StyleSheet, View } from 'react-native'
@@ -27,6 +28,11 @@ const START_URL = `${SITE_URL}/game`
 // data-pip-app). Android keeps native safe-area padding for now: its web view
 // doesn't reliably report the insets to CSS.
 const Frame = Platform.OS === 'ios' ? View : SafeAreaView
+
+// iOS: keeps the table's sound on the loudspeaker while the camera or mic is
+// on, rather than the earpiece (modules/pip-speaker). Absent in Expo Go and on
+// Android, where there is nothing to do.
+requireOptionalNativeModule<{ start: () => void }>('PipSpeaker')?.start()
 
 const isOwnSite = (url: string) => url.startsWith(SITE_URL) || url === 'about:blank'
 
