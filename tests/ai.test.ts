@@ -52,6 +52,21 @@ test('AI-vs-AI hands always terminate and conserve chips', (t) => {
   }
 })
 
+test('a full ring of eight terminates and conserves chips too', (t) => {
+  // The largest table a player can build (config/customTable CUSTOM_SEATS).
+  // Nothing in the engine or the policy is sized to six; this says so.
+  for (let seed = 0; seed < 20; seed++) {
+    const seats = makeSeats(8)
+    const before = seats.reduce((sum, s) => sum + s.stack, 0)
+    const final = playOut(seats, mulberry32(seed + 900))
+    t.true(isHandComplete(final))
+    t.is(
+      final.players.reduce((sum, p) => sum + p.stack, 0),
+      before,
+    )
+  }
+})
+
 test('AI never folds when it can check for free', (t) => {
   for (let seed = 0; seed < 25; seed++) {
     const rng = mulberry32(seed * 31 + 1)

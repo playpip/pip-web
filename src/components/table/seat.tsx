@@ -34,6 +34,8 @@ export function FeltSeat({
   action,
   back,
   compact,
+  crowded = false,
+  actionBeside = false,
   side,
   onSelect,
   face,
@@ -49,6 +51,19 @@ export function FeltSeat({
   action?: SeatAction
   back: CardBackDesign
   compact: boolean
+  /**
+   * A phone table with six or seven opponents (lib/tableSeats
+   * `FELT_COMPACT_FULL`): a smaller face and a narrower plate, so seven fit
+   * round the rail without touching. Only means anything with `compact`.
+   */
+  crowded?: boolean
+  /**
+   * Put the action pill beside the face, toward the middle of the table,
+   * instead of over it. For the two lowest seats of a crowded phone table,
+   * where over the face is the nameplate of the seat above and under the plate
+   * is the board.
+   */
+  actionBeside?: boolean
   /** Which half of the table the seat is on: its cards tuck toward the middle. */
   side: 'left' | 'right' | 'top'
   onSelect: () => void
@@ -71,7 +86,7 @@ export function FeltSeat({
   const out = player.status === 'out'
   const cards = held ?? player.hole.length
   const holding = !folded && !out && cards > 0
-  const size = compact ? 46 : 64
+  const size = compact ? (crowded ? 40 : 46) : 64
   const towardMiddle = side === 'right' ? 'left' : 'right'
 
   return (
@@ -166,7 +181,18 @@ export function FeltSeat({
           'pointer-events-none absolute',
           side === 'top' && !compact
             ? 'right-full top-1/2 mr-2 -translate-y-1/2'
-            : 'bottom-full left-1/2 mb-1.5 -translate-x-1/2',
+            : actionBeside
+              ? towardMiddle === 'right'
+                ? 'left-full top-1/2 ml-1 -translate-y-1/2'
+                : 'right-full top-1/2 mr-1 -translate-y-1/2'
+              : crowded && side !== 'top'
+                ? // Over the face but leaning outward: on a full ring the seat
+                  // above is always toward the middle, and a centred "ALL IN"
+                  // reached its nameplate on a 360px phone.
+                  side === 'left'
+                  ? 'bottom-full right-1/4 mb-1.5'
+                  : 'bottom-full left-1/4 mb-1.5'
+                : 'bottom-full left-1/2 mb-1.5 -translate-x-1/2',
         )}
       >
         <AnimatePresence mode="popLayout">
@@ -224,7 +250,11 @@ export function FeltSeat({
       <div
         className={cn(
           'absolute left-1/2 top-full -mt-2 flex -translate-x-1/2 flex-col items-center rounded-xl bg-table-shade/75 shadow-lg shadow-table-shade/40 ring-1 ring-foreground/10',
-          compact ? 'min-w-[3.75rem] px-2 py-0.5' : 'min-w-[5.5rem] px-3 py-1',
+          compact
+            ? crowded
+              ? 'min-w-[3.25rem] px-1.5 py-0.5'
+              : 'min-w-[3.75rem] px-2 py-0.5'
+            : 'min-w-[5.5rem] px-3 py-1',
           (folded || out) && 'opacity-60',
         )}
       >

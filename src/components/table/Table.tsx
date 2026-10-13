@@ -38,7 +38,7 @@ import {
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
 import { tableFinishById } from '@/config/shop'
-import { FELT_COMPACT, FELT_WIDE, feltSeatPositions, towards } from '@/lib/tableSeats'
+import { FELT_COMPACT_FULL, feltFor, feltSeatPositions, towards } from '@/lib/tableSeats'
 
 type Point = { left: string; top: string }
 
@@ -248,7 +248,7 @@ export function Table() {
   // Where everything sits on the cloth (lib/tableSeats → the live table's
   // geometry). Every point is a percentage of the stage, so the bets, the pot
   // and the chips in flight can slide between them with nothing measured.
-  const g = isMobile ? FELT_COMPACT : FELT_WIDE
+  const g = feltFor(isMobile, opponents.length)
   const positions = feltSeatPositions(opponents.length, g)
   const seatAt = new Map<string, Point>(opponents.map((p, i) => [p.id, positions[i]]))
   const seatPoint = (id: string): Point => (id === 'hero' ? g.hero : (seatAt.get(id) ?? g.pot))
@@ -280,6 +280,8 @@ export function Table() {
           action={seatActions[p.id]}
           back={cardBack}
           compact={isMobile}
+          crowded={g === FELT_COMPACT_FULL}
+          actionBeside={g === FELT_COMPACT_FULL && (i === 0 || i === opponents.length - 1)}
           side={x < 42 ? 'left' : x > 58 ? 'right' : 'top'}
           onSelect={() => selectSeat(p.id)}
         />

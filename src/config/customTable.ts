@@ -32,8 +32,15 @@ import { VENUES, type Venue } from '@/config/venues'
 // bounty tables rather than invented: every seat's buy-in, less what the
 // knockouts pay out. See `tests/customTable.test.ts`.
 
-/** Seats a custom table may have, including you. */
-export const CUSTOM_SEATS = [2, 3, 4, 5, 6] as const
+/**
+ * Seats a custom table may have, including you.
+ *
+ * Eight is the felt's limit, not the engine's: seven opponents is as many as the
+ * phone layout spreads around the rail without two nameplates touching
+ * (lib/tableSeats `FELT_COMPACT_FULL`). Short-handed is still the ladder's default;
+ * a full ring is something a player builds on purpose.
+ */
+export const CUSTOM_SEATS = [2, 3, 4, 5, 6, 7, 8] as const
 /**
  * Buy-ins a custom table may be built at.
  *

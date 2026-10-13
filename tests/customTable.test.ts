@@ -18,6 +18,7 @@ import {
   standardFor,
 } from '@/config/customTable'
 import { draftCast, homeRungFor, profileFor } from '@/config/cast'
+import { mulberry32 } from '@/lib/poker/cards'
 import { ALL_VENUES, VENUES, venueById } from '@/config/venues'
 import { PERSIST_VERSION } from '@/store/profile'
 
@@ -267,4 +268,23 @@ test('the built table survives a sync merge', (t) => {
   // the version never goes backwards past it.
   t.regex(profile, /fromVersion < 18\) s\.customTable = null/, 'no migration for the built table')
   t.true(PERSIST_VERSION >= 18, 'the persisted profile was rolled back past the built table')
+})
+
+test('a full ring seats seven different regulars at every buy-in', (t) => {
+  // The high band has six regulars of its own, so a seventh chair at the top
+  // of the ladder is topped up from the wider cast. Never a venue's pinned
+  // character, and never the same face twice.
+  const seats = Math.max(...CUSTOM_SEATS)
+  for (const buyIn of CUSTOM_BUY_INS) {
+    const built = customVenue(spec({ buyIn, seats }))
+    for (let seed = 1; seed <= 5; seed++) {
+      const drawn = draftCast(built, built.seats - 1, mulberry32(seed))
+      t.is(drawn.length, seats - 1, `${buyIn}: drew ${drawn.length}`)
+      t.is(new Set(drawn.map((ch) => ch.id)).size, seats - 1, `${buyIn}: a face drawn twice`)
+      t.true(
+        drawn.every((ch) => !ch.only),
+        `${buyIn}: a pinned character left their table`,
+      )
+    }
+  }
 })

@@ -114,6 +114,37 @@ export const FELT_COMPACT: FeltGeometry = {
   hero: { left: '50%', top: '108%' },
 }
 
+/**
+ * A phone table with six or seven opponents. `FELT_COMPACT`'s arc puts them
+ * shoulder to shoulder across the top: on a 375px screen the four highest
+ * plates touched. So the arc opens wider and runs further down the rail, the
+ * seats draw smaller (`FeltSeat` `crowded`), and the board and pot drop to
+ * leave the lowest two room above the cards. Everything else is the compact
+ * felt unchanged, and five opponents or fewer never see this.
+ */
+export const FELT_COMPACT_FULL: FeltGeometry = {
+  ...FELT_COMPACT,
+  seatRx: 41,
+  seatRy: 46,
+  maxSpan: 155,
+  spanPerSeat: 26,
+  // Further in than the compact felt's 0.38: the seats are closer together,
+  // and a bet that stopped short landed on the next seat down's action pill.
+  betReach: 0.45,
+  focus: { left: '50%', top: '70%' },
+  board: { left: '50%', top: '72%' },
+  pot: { left: '50%', top: '86.5%' },
+  // Beside the pot rather than under it: under it is the table talk line, and
+  // on a short phone there is no room below that before your cards.
+  heroBet: { left: '22%', top: '86.5%' },
+}
+
+/** The live table's felt for this many opponents. Up to five, exactly as before. */
+export function feltFor(compact: boolean, opponents: number): FeltGeometry {
+  if (!compact) return FELT_WIDE
+  return opponents >= 6 ? FELT_COMPACT_FULL : FELT_COMPACT
+}
+
 const pct = (n: number) => `${Math.round(n * 100) / 100}%`
 
 /** Opponents on the far rail, spread evenly across an arc centred on the top. */
