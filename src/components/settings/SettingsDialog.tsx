@@ -48,6 +48,7 @@ export function SettingsDialog({
           <HapticsSection />
           <TableTalkSection />
           <HandCoachingSection />
+          <OddsSection />
           <MembershipSection />
           <TransferSection />
           <ResetSection />
@@ -242,6 +243,31 @@ function HandCoachingSection() {
       onChange={() => {
         sound.play('tap')
         setHandCoaching(!handCoaching)
+      }}
+    />
+  )
+}
+
+/**
+ * The win % beside your cards at a single-player table (HeroPanel). On by
+ * default, because brand.md puts it among the calm, ambient stats; off is for
+ * a player who wants to practise reading a hand without it.
+ *
+ * Display only. Free for everybody, like every setting: nothing you can buy
+ * changes the information on screen. The hand review keeps its numbers either
+ * way, because that is where you go to look.
+ */
+function OddsSection() {
+  const showOdds = useProfile((s) => s.showOdds)
+  const setShowOdds = useProfile((s) => s.setShowOdds)
+  return (
+    <ToggleRow
+      label="Win odds"
+      hint="Your chance to win, beside your cards. Off to play on your own read."
+      checked={showOdds}
+      onChange={() => {
+        sound.play('tap')
+        setShowOdds(!showOdds)
       }}
     />
   )

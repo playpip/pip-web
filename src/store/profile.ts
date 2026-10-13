@@ -168,6 +168,11 @@ export interface ProfileState {
   tableTalk: boolean
   /** One honest read on the hand you just played (see lib/coach). On by default. */
   handCoaching: boolean
+  /**
+   * Your win % at the table (components/table/parts HeroPanel). On by default;
+   * off is for practising without the number.
+   */
+  showOdds: boolean
   /** Short vibration on the physical moments (see lib/haptics). Off by default. */
   haptics: boolean
   /** The most recent Daily Deal played (only today's gates anything). */
@@ -302,6 +307,7 @@ export interface ProfileState {
   ) => void
   setTableTalk: (value: boolean) => void
   setHandCoaching: (value: boolean) => void
+  setShowOdds: (value: boolean) => void
   setHaptics: (value: boolean) => void
   /** Buy a Chip Shop item: deducts the price, records ownership. No-op if owned or short. */
   buyItem: (id: string, price: number) => void
@@ -346,7 +352,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 25
+export const PERSIST_VERSION = 26
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -378,6 +384,7 @@ export const useProfile = create<ProfileState>()(
       castRecords: {},
       tableTalk: true,
       handCoaching: true,
+      showOdds: true,
       haptics: false,
       daily: null,
       streak: emptyStreak(),
@@ -496,6 +503,7 @@ export const useProfile = create<ProfileState>()(
         }),
       setTableTalk: (value) => set({ tableTalk: value }),
       setHandCoaching: (value) => set({ handCoaching: value }),
+      setShowOdds: (value) => set({ showOdds: value }),
       setHaptics: (value) => set({ haptics: value }),
       buyItem: (id, price) =>
         set((s) => {
@@ -603,6 +611,7 @@ export const useProfile = create<ProfileState>()(
           castRecords: {},
           tableTalk: true,
           handCoaching: true,
+          showOdds: true,
           haptics: false,
           daily: null,
           streak: emptyStreak(),
@@ -783,6 +792,9 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // v24 → v25: the "Getting started" checklist is for players who came in
   // through the welcome flow. Anybody already playing has it put away.
   if (fromVersion < 25) s.gettingStartedDismissed = true
+  // v25 → v26: the win % became something you can switch off. Everybody keeps
+  // seeing it until they do.
+  if (fromVersion < 26) s.showOdds = true
   return s
 }
 

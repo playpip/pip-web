@@ -71,6 +71,7 @@ export function Table() {
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const roll = useProfile((s) => s.roll)
   const venueRecords = useProfile((s) => s.venueRecords)
+  const showOdds = useProfile((s) => s.showOdds)
   // The freeroll offer opens a table, so it is decided on the spendable Roll by
   // the same function the route uses (lib/sitDown). The rebuy below is not: it
   // spends `roll` at a table already open here and reclaims nothing.
@@ -477,6 +478,7 @@ export function Table() {
                       avatar={heroMeta.avatar}
                       hand={hand}
                       equity={heroEquity}
+                      hideOdds={!showOdds}
                       isButton={hero.id === buttonPlayerId}
                       isActive={activeId === hero.id}
                       result={sessionResult}
@@ -505,6 +507,7 @@ export function Table() {
                     avatar={heroMeta.avatar}
                     hand={hand}
                     equity={heroEquity}
+                    hideOdds={!showOdds}
                     isButton={hero.id === buttonPlayerId}
                     isActive={activeId === hero.id}
                     result={sessionResult}
@@ -529,6 +532,7 @@ export function Table() {
                     avatar={heroMeta.avatar}
                     hand={hand}
                     equity={heroEquity}
+                    hideOdds={!showOdds}
                     isButton={hero.id === buttonPlayerId}
                     isActive={activeId === hero.id}
                     result={sessionResult}

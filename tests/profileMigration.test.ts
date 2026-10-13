@@ -264,6 +264,7 @@ test('an ancient profile survives the whole chain', (t) => {
   t.deepEqual(p.challengeWins, [])
   t.is(p.challengesPlayed, 0)
   t.true(p.handCoaching)
+  t.true(p.showOdds)
   t.false(p.haptics)
   t.deepEqual(p.drills, {})
   t.is(p.reviewStats.hands, 0)
@@ -328,4 +329,15 @@ test('v24 → v25 puts the getting-started checklist away for an existing player
   const v24 = { created: true, name: 'Ada', roll: 900 } as Record<string, unknown>
   const after = migrateProfile(v24, 24) as unknown as { gettingStartedDismissed: boolean }
   t.true(after.gettingStartedDismissed)
+})
+
+test('v25 → v26 keeps the win odds on for an existing player', (t) => {
+  const v25 = { created: true, name: 'Ada', roll: 900 } as Record<string, unknown>
+  const after = migrateProfile(v25, 25) as unknown as { showOdds: boolean }
+  t.true(after.showOdds)
+})
+
+test('a player who switched the win odds off keeps them off', (t) => {
+  const current = { ...v11(), showOdds: false }
+  t.false(migrateProfile(current, PERSIST_VERSION).showOdds)
 })

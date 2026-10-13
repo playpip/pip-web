@@ -41,6 +41,7 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     castRecords: {},
     tableTalk: true,
     handCoaching: true,
+    showOdds: true,
     haptics: false,
     daily: null,
     owned: [],
@@ -379,6 +380,15 @@ test('merge › two devices agree on who is waiting after a sync', (t) => {
     })?.character.id
 
   t.is(seat(onPhone), seat(onLaptop))
+})
+
+test('merge › the win odds setting follows the chosen side', (t) => {
+  // A preference, not progress: the side the player picked says it, in either
+  // direction, the same as table talk and the second opinion.
+  const local = profile({ showOdds: false })
+  const remote = profile({ showOdds: true })
+  t.false(mergeProfiles(local, remote, 'local').showOdds)
+  t.true(mergeProfiles(local, remote, 'remote').showOdds)
 })
 
 test('merge › a created profile on either side wins', (t) => {

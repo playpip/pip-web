@@ -147,6 +147,7 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     soundPack: winner.soundPack ?? loser.soundPack,
     tableTalk: winner.tableTalk,
     handCoaching: winner.handCoaching,
+    showOdds: winner.showOdds,
     haptics: winner.haptics,
     cameFromFreeroll: winner.cameFromFreeroll,
     // Put away on either device is put away.
@@ -433,6 +434,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'soundPack',
     'tableTalk',
     'handCoaching',
+    'showOdds',
     'haptics',
     'cameFromFreeroll',
     'gettingStartedDismissed',

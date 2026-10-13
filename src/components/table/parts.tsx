@@ -362,6 +362,7 @@ export function HeroPanel({
   isActive,
   defaultPage = 0,
   oddsLabel = 'to win',
+  hideOdds = false,
   result = null,
   corners,
   face,
@@ -376,6 +377,12 @@ export function HeroPanel({
   defaultPage?: 0 | 1
   /** Review only: the words under the number. Carries the "≈", if there is one. */
   oddsLabel?: string
+  /**
+   * The player switched the win % off in Settings. The odds page keeps the
+   * hand's name and the session, and drops the number and its label: an em
+   * dash in its place would read as "still working it out".
+   */
+  hideOdds?: boolean
   /**
    * Chips up or down on the session, worked out the way the stand-up dialog
    * does (`cashOutValue` less what went in). Null where there is none to show:
@@ -446,7 +453,7 @@ export function HeroPanel({
               )}
               {/* The other page's number, kept quiet, so a glance doesn't need
                   a swipe. */}
-              {equity !== null && (
+              {equity !== null && !hideOdds && (
                 <span className="whitespace-nowrap text-3xs tabular-nums text-muted-foreground">
                   {formatWinPct(equity)} {oddsLabel}
                 </span>
@@ -467,12 +474,16 @@ export function HeroPanel({
                   two-digit percentage squeezed both against the edges. The
                   qualifier lives in the label underneath instead, where there
                   is room for it. */}
-              <span className="whitespace-nowrap text-2xl font-semibold tabular-nums">
-                {formatWinPct(equity)}
-              </span>
-              <span className="whitespace-nowrap px-1 text-3xs uppercase tracking-wider text-muted-foreground">
-                {oddsLabel}
-              </span>
+              {!hideOdds && (
+                <>
+                  <span className="whitespace-nowrap text-2xl font-semibold tabular-nums">
+                    {formatWinPct(equity)}
+                  </span>
+                  <span className="whitespace-nowrap px-1 text-3xs uppercase tracking-wider text-muted-foreground">
+                    {oddsLabel}
+                  </span>
+                </>
+              )}
               {/* **The session, not the stack.** The bare stack sat under
                   "win" and read as "win 5,779" to a player who was down 221
                   on the 6,000 they sat with (Will, 2026-10-03). */}
