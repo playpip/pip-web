@@ -57,6 +57,7 @@ import { decideDiscard } from '@/lib/poker/ai/draw'
 import { estimateEquity } from '@/lib/poker/equity'
 import { heroEquity } from '@/lib/poker/heroEquity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
+import { cryptoRng } from '@/lib/cryptoRng'
 import {
   dailyAiRng as dailyAiRngFor,
   dailyDateKey,
@@ -689,7 +690,9 @@ export const useGame = create<GameState>((set, get) => {
       buttonIndex,
       smallBlind: blinds.smallBlind,
       bigBlind: blinds.bigBlind,
-      rng: dailyBase !== null ? mulberry32(handSeed(dailyBase, handIndex)) : undefined,
+      // The Daily deals from its published seed; every other table from the
+      // platform's CSPRNG, so a live deck cannot be predicted from earlier ones.
+      rng: dailyBase !== null ? mulberry32(handSeed(dailyBase, handIndex)) : cryptoRng,
       // Four cards and pot-limit at an Omaha table. Absent everywhere else, so
       // every existing table deals exactly what it always did.
       variant: venue!.variant,

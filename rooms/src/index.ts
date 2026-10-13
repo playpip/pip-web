@@ -9,12 +9,13 @@
 // site's (ALLOWED_ORIGINS), so a page somewhere else cannot drive a table with
 // a visitor's session.
 
+import { cryptoInt } from '@/lib/cryptoRng'
 import { normaliseRoomCode, newRoomCode } from '@/lib/multiplayer/code'
 import { parseClientMessage } from '@/lib/multiplayer/protocol'
 import { type RoomSettings, roomVenue } from '@/lib/multiplayer/room'
 import { identify, isMember } from './auth'
 import { blocksOf } from './safety'
-import { corsHeaders, cryptoInt, json, originAllowed, type Env } from './env'
+import { corsHeaders, json, originAllowed, type Env } from './env'
 import type { InitBody } from './room'
 
 export { PokerRoom } from './room'

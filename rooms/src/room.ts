@@ -43,7 +43,8 @@ import {
 import { viewFor } from '@/lib/multiplayer/view'
 import { identify } from './auth'
 import { saveBlock, saveReport } from './safety'
-import { cryptoRng, json, type Env } from './env'
+import { cryptoRng } from '@/lib/cryptoRng'
+import { json, type Env } from './env'
 
 interface Attachment {
   userId: string | null

@@ -20,7 +20,12 @@ table that asks for it. See [Variants](#variants) — the difference is a single
   `T` = Ten (matches pokersolver notation; the UI displays it as "10").
 
 > Determinism is the whole game: pass a seeded `Rng` and shuffles/equity are
-> reproducible, which is what makes the engine testable. Production passes `Math.random`.
+> reproducible, which is what makes the engine testable. The engine never picks its own
+> randomness for a live deal: the game store passes `cryptoRng` (`src/lib/cryptoRng.ts`,
+> the platform's CSPRNG — the multiplayer rooms use the same one) at every table except
+> the Daily Deal, which deals from its published `mulberry32` seed on purpose. A
+> `startHand` call with neither `rng` nor `deck` still falls back to `Math.random`, for
+> tests and scripts. Equity sampling keeps `Math.random`: it estimates, it never deals.
 
 ### `handEval.ts`
 Thin typed wrapper over **pokersolver** (a CommonJS module; see

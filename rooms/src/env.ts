@@ -18,15 +18,6 @@ export interface Env {
   TURN_KEY_API_TOKEN?: string
 }
 
-/** A random number in [0, 1) from the platform's CSPRNG. Every shuffle uses this. */
-export function cryptoRng(): number {
-  return crypto.getRandomValues(new Uint32Array(1))[0] / 4_294_967_296
-}
-
-export function cryptoInt(n: number): number {
-  return Math.floor(cryptoRng() * n)
-}
-
 export function originAllowed(request: Request, env: Env): boolean {
   const origin = request.headers.get('Origin')
   if (!origin) return false

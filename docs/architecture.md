@@ -131,7 +131,8 @@ choreography (timers, sounds, transitions) on top.
   flow, side pots, blinds) and unit-test them hard; we delegate 5-from-7 hand ranking
   to `pokersolver` to de-risk. Winner logic and pot math are ours and tested.
 - **Deterministic RNG.** `mulberry32(seed)` makes shuffles and equity reproducible,
-  which is what makes the engine testable. Production uses `Math.random`.
+  which is what makes the engine testable. Live decks come from `cryptoRng` (the
+  platform's CSPRNG); the Daily Deal deals from its published seed.
 - **Local-only persistence.** Only `profile` is persisted (localStorage, versioned
   with a migration hook) — a clean seam to swap for a backend later. Durability is
   hardened with `navigator.storage.persist()` + PWA install; the profile is portable

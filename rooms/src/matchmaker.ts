@@ -7,6 +7,7 @@
 // the room seats only the accounts it was opened for.
 
 import { DurableObject } from 'cloudflare:workers'
+import { cryptoInt } from '@/lib/cryptoRng'
 import { newRoomCode } from '@/lib/multiplayer/code'
 import {
   dequeue,
@@ -23,7 +24,7 @@ import {
 } from '@/lib/multiplayer/protocol'
 import { roomVenue } from '@/lib/multiplayer/room'
 import { identify, isMember } from './auth'
-import { cryptoInt, type Env } from './env'
+import type { Env } from './env'
 import type { InitBody } from './room'
 
 interface Attachment {
