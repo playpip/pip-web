@@ -6,7 +6,7 @@ import { Table } from '@/components/table/Table'
 import { Splash } from '@/components/Splash'
 import { useProfile } from '@/store/profile'
 import { useGame, loadTableSnapshot } from '@/store/game'
-import { THE_DAILY, dailyFor, membershipForVenue, venueById } from '@/config/venues'
+import { THE_DAILY, dailyFor, membershipForVenue, venueById, withSeats } from '@/config/venues'
 import { membershipFor } from '@/config/membership'
 import { CUSTOM_VENUE_ID, customVenue, refuseCustomTable } from '@/config/customTable'
 import { refuseSitDown } from '@/lib/sitDown'
@@ -70,7 +70,9 @@ export function PlayClient() {
     // An interrupted table (hard refresh) resumes — the buy-in was already paid.
     const snapshot = loadTableSnapshot()
     if (snapshot && snapshot.venueId === venueId) {
-      useGame.getState().resumeTable(venue, snapshot, member)
+      // A Rail table resumes at the size it was sat down at, which the
+      // snapshot's seats already are; the venue is told so it agrees.
+      useGame.getState().resumeTable(withSeats(venue, snapshot.seats.length), snapshot, member)
       return
     }
 
@@ -126,7 +128,11 @@ export function PlayClient() {
     // game loop deliberately knows nothing about entitlement (see store/game).
     // A free game is handed `member: false`: it is the table, not the rest of
     // the membership (no review, no watching it out after you bust).
-    useGame.getState().sitDown(venue, {
+    // A Rail room at the size picked in its dialog (`?seats=`, config/venues
+    // `playPath`). `withSeats` ignores it anywhere else, and anything not on
+    // offer, so a hand-typed `?seats=40` sits down at the room's own size.
+    const seats = Number(new URLSearchParams(window.location.search).get('seats')) || null
+    useGame.getState().sitDown(withSeats(venue, seats), {
       name: profile.name,
       avatar: profile.avatar,
       member,

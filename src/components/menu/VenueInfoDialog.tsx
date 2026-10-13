@@ -14,7 +14,14 @@ import { ChallengerFace } from '@/components/menu/ChallengerFace'
 import { ChevronLeft, Lock, XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import type { Character } from '@/config/cast'
-import { VENUES, venueTag, type TableFamily, type Venue } from '@/config/venues'
+import {
+  RAIL_SEATS,
+  VENUES,
+  venueTag,
+  withSeats,
+  type TableFamily,
+  type Venue,
+} from '@/config/venues'
 import { useState } from 'react'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
@@ -163,6 +170,9 @@ export function VenueInfoDialog({
   // this component stays mounted between openings and would otherwise reopen
   // straight into the picker.
   const [picking, setPicking] = useState(false)
+  // How many sit down, at a Rail table (config/venues `RAIL_SEATS`). Null is
+  // the room's own number. Reset on close for the same reason as `picking`.
+  const [seats, setSeats] = useState<number | null>(null)
   if (!venue) return <Dialog open={false} onOpenChange={onOpenChange} />
 
   // A family with one room is not a choice, so it renders as the plain table it
@@ -183,7 +193,10 @@ export function VenueInfoDialog({
   const pace = venue.handsPerLevel ?? HANDS_PER_LEVEL
 
   const close = (open: boolean) => {
-    if (!open) setPicking(false)
+    if (!open) {
+      setPicking(false)
+      setSeats(null)
+    }
     onOpenChange(open)
   }
 
@@ -320,7 +333,15 @@ export function VenueInfoDialog({
                         label="Starting stack"
                         value={money(venue.startingStack ?? venue.buyIn)}
                       />
-                      <InfoRow label="Seats" value={`${venue.seats} players`} />
+                      {venue.cash ? (
+                        <SeatPicker
+                          value={seats ?? venue.seats}
+                          usual={venue.seats}
+                          onPick={setSeats}
+                        />
+                      ) : (
+                        <InfoRow label="Seats" value={`${venue.seats} players`} />
+                      )}
                       <InfoRow
                         label="Blinds"
                         value={
@@ -361,7 +382,7 @@ export function VenueInfoDialog({
                 </button>
               ) : playable && (canAfford?.(venue) ?? true) ? (
                 <button
-                  onClick={() => onPlay(venue)}
+                  onClick={() => onPlay(withSeats(venue, seats))}
                   className="w-full rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
                 >
                   {venue.freeroll || venue.buyIn === 0
@@ -529,6 +550,50 @@ function StakePicker({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/**
+ * How many sit down at a Rail table, you included. The room's own number is
+ * picked to start with and named underneath, so leaving it alone is the
+ * ordinary choice and changing it is a deliberate one.
+ */
+function SeatPicker({
+  value,
+  usual,
+  onPick,
+}: {
+  value: number
+  usual: number
+  onPick: (seats: number) => void
+}) {
+  return (
+    <div className="border-b border-foreground/[0.06] py-1.5">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm text-muted-foreground">Seats</span>
+        <span className="text-sm font-medium tabular-nums">
+          {value} players{value === usual ? '' : ` · usually ${usual}`}
+        </span>
+      </div>
+      <div className="mt-1.5 flex gap-1 rounded-xl bg-foreground/[0.06] p-1">
+        {RAIL_SEATS.map((n) => (
+          <button
+            key={n}
+            onClick={() => onPick(n)}
+            aria-pressed={n === value}
+            aria-label={`${n} players`}
+            className={cn(
+              'flex-1 rounded-lg py-1 text-sm tabular-nums transition active:scale-[0.97]',
+              n === value
+                ? 'bg-foreground/15 font-semibold'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

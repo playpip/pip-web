@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight, Lock } from 'lucide-react'
 import { Splash } from '@/components/Splash'
-import { RING_TABLES, type Venue } from '@/config/venues'
+import { RING_TABLES, type Venue, playPath } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
@@ -60,7 +60,7 @@ export function RailBrowser() {
         onOpenChange={(o) => !o && setInfoRoom(null)}
         onPlay={(room) => {
           sound.play('call')
-          router.push(`/play/${room.id}`)
+          router.push(playPath(room))
         }}
       />
     </SectionScreen>

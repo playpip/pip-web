@@ -500,6 +500,28 @@ export const RING_TABLES: readonly Venue[] = [
   },
 ] as const
 
+/**
+ * How many may sit at a Rail table, including you. Each room has its own
+ * default (`seats`); the player can pick another when they sit down.
+ *
+ * Cash is the one place the count is free to move: there is no prize to pay
+ * in proportion, a busted regular rebuys in the same chair, and the room's
+ * difficulty is its stake, which the count does not touch. Eight is the felt's
+ * limit, the same as a built table's (config/customTable `CUSTOM_SEATS`).
+ */
+export const RAIL_SEATS = [2, 3, 4, 5, 6, 7, 8] as const
+
+/**
+ * A Rail room at a different table size. Anything that is not a cash table, or
+ * a count that is not on offer, comes back unchanged: the Daily, the ladder and
+ * every prize table keep the seat count their prize was priced on.
+ */
+export function withSeats(venue: Venue, seats: number | null | undefined): Venue {
+  if (!venue.cash || seats == null) return venue
+  if (!RAIL_SEATS.includes(seats as (typeof RAIL_SEATS)[number])) return venue
+  return seats === venue.seats ? venue : { ...venue, seats }
+}
+
 // Challenge tables: where a cast member's standing challenge is played out.
 // One per band, heads-up, and the character is NOT part of the config: the
 // venue supplies the stakes and the difficulty, `lib/challenge` supplies who is
@@ -1305,6 +1327,18 @@ export const ALL_VENUES: readonly Venue[] = [
 
 export function venueById(id: string): Venue | undefined {
   return ALL_VENUES.find((v) => v.id === id)
+}
+
+/**
+ * Where to sit down at this venue. A Rail room at a size other than its own
+ * carries the size in the query (`?seats=8`), the one choice the route cannot
+ * read off the venue id; `PlayClient` reads it back through `withSeats`.
+ */
+export function playPath(venue: Venue): string {
+  const base = venueById(venue.id)
+  return venue.cash && base && venue.seats !== base.seats
+    ? `/play/${venue.id}?seats=${venue.seats}`
+    : `/play/${venue.id}`
 }
 
 /** Can the player afford this venue's buy-in? */

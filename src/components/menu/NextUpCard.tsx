@@ -6,7 +6,7 @@ import { ChallengerFace } from './ChallengerFace'
 import { VenueArt } from './VenueArt'
 import { VenueInfoDialog } from './VenueInfoDialog'
 import { WideTableCard } from './wideTableCard'
-import { VENUES } from '@/config/venues'
+import { VENUES, playPath } from '@/config/venues'
 import type { NextUp } from '@/lib/nextUp'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -72,7 +72,7 @@ export function NextUpCard({ pick, delay = 0 }: { pick: NextUp; delay?: number }
         onOpenChange={(o) => !o && setInfoOpen(false)}
         onPlay={(v) => {
           sound.play('call')
-          router.push(`/play/${v.id}`)
+          router.push(playPath(v))
         }}
       />
     </>

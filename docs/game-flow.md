@@ -179,6 +179,15 @@ tournament bookkeeping (`recordVenueEntry`, `recordVenueResult`, `tournamentsEnt
 stats, tendencies and reads still accrue normally. See [venues.md](./venues.md) for the stakes
 ladder and why difficulty tracks the stake.
 
+**You pick the table size.** Each room has its own number of seats, and its dialog
+(`VenueInfoDialog`) offers 2 to 8 (`RAIL_SEATS`). A size other than the room's own rides in
+the route as `?seats=` (`playPath`) and `PlayClient` applies it with `withSeats`, which does
+nothing to a table that is not cash, so no prize table can be re-sized. Nothing else moves:
+the stake still sets the opposition, a busted regular rebuys in the same chair so the table
+stays at the size you picked, and a refresh resumes the seats the snapshot already holds. At
+the two dearest rooms an eight-seat table has one more chair than the high band has
+regulars, so `draftCast` tops it up from the rest of the cast, at the room's own profile.
+
 ## The welcome flow
 
 A new player's way in (Will, 2026-10-07), `/welcome`, four steps with a progress bar

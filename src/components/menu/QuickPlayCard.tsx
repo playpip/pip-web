@@ -8,6 +8,7 @@ import { WideTableCard } from './wideTableCard'
 import type { Venue } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
+import { playPath } from '@/config/venues'
 
 /**
  * **Short on time?** — the second question the lobby answers, beside the first.
@@ -55,7 +56,7 @@ export function QuickPlayCard({ room, delay = 0 }: { room: Venue; delay?: number
         onOpenChange={(o) => !o && setInfoOpen(false)}
         onPlay={(v) => {
           sound.play('call')
-          router.push(`/play/${v.id}`)
+          router.push(playPath(v))
         }}
       />
     </>
