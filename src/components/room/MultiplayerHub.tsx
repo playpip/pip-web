@@ -25,7 +25,7 @@ import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { membershipFor } from '@/config/membership'
 import { VENUES, type Venue } from '@/config/venues'
-import { DEFAULT_SETTINGS, MAX_ROOM_SEATS, type RoomSettings } from '@/lib/multiplayer/room'
+import { DEFAULT_ROOM_SEATS, DEFAULT_SETTINGS, type RoomSettings } from '@/lib/multiplayer/room'
 import { CODE_ALPHABET, CODE_LENGTH, normaliseRoomCode } from '@/lib/multiplayer/code'
 import { createRoom, devMember, devSignedIn, roomsConfigured } from '@/lib/multiplayer/client'
 import { sound } from '@/lib/sound'
@@ -67,7 +67,7 @@ export function MultiplayerHub() {
   const [stakeId, setStakeId] = useState<string>(() => affordable[0]?.id ?? VENUES[0].id)
   const [settings, setSettings] = useState<RoomSettings>({
     ...DEFAULT_SETTINGS,
-    seats: MAX_ROOM_SEATS,
+    seats: DEFAULT_ROOM_SEATS,
   })
   const [creating, setCreating] = useState(false)
   const [opening, setOpening] = useState(false)

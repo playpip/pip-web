@@ -29,9 +29,9 @@ import { heroEquity } from '@/lib/poker/heroEquity'
 import type { RoomView } from '@/lib/multiplayer/view'
 import { ordinal } from '@/lib/recap'
 import { sound } from '@/lib/sound'
-import { FELT_COMPACT, FELT_WIDE, feltSeatPositions, towards } from '@/lib/tableSeats'
+import { feltFor, feltSeatPositions, TALL_PHONE, towards } from '@/lib/tableSeats'
 import { useCopied } from '@/lib/useCopied'
-import { useIsMobile } from '@/lib/useMediaQuery'
+import { useIsMobile, useMediaQuery } from '@/lib/useMediaQuery'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 import { useMedia } from '@/store/media'
@@ -72,6 +72,7 @@ export function RoomTable({
   const local = useMedia((s) => s.local)
   const localVoice = useMedia((s) => s.localVoice)
   const isMobile = useIsMobile()
+  const tallPhone = useMediaQuery(TALL_PHONE)
   const cardBack = cardBackById(useProfile((s) => s.cardBack))
   const finish = tableFinishById(useProfile((s) => s.tableFinish))
   const ring = avatarRingById(useProfile((s) => s.avatarRing))
@@ -102,7 +103,8 @@ export function RoomTable({
   const opponents =
     at === -1 ? hand.players : [...hand.players.slice(at + 1), ...hand.players.slice(0, at)]
 
-  const g = isMobile ? FELT_COMPACT : FELT_WIDE
+  const g = feltFor(isMobile, opponents.length, tallPhone)
+  const crowded = isMobile && opponents.length >= 6
   const positions = feltSeatPositions(opponents.length, g)
   const seatAt = new Map<string, Point>(opponents.map((p, i) => [p.id, positions[i]]))
   const seatPoint = (id: string): Point => (id === view.you ? g.hero : (seatAt.get(id) ?? g.pot))
@@ -176,6 +178,8 @@ export function RoomTable({
           action={seatActions[p.id]}
           back={cardBack}
           compact={isMobile}
+          crowded={crowded}
+          actionBeside={crowded && (i === 0 || i === opponents.length - 1)}
           side={x < 42 ? 'left' : x > 58 ? 'right' : 'top'}
           onSelect={() => {
             sound.play('tap')
@@ -187,7 +191,7 @@ export function RoomTable({
           // A stranger filling a quick-match seat is a computer, and says so.
           // (The cast in a private room are characters the host chose.)
           tag={seat.bot && !seat.characterId ? 'AI' : undefined}
-          face={face(p.id, isMobile ? 46 : 64, dim)}
+          face={face(p.id, isMobile ? (crowded ? 40 : 46) : 64, dim)}
         />
         {away && (
           <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-full bg-table-shade/85 px-2 py-0.5 text-3xs font-medium text-muted-foreground">

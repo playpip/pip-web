@@ -19,9 +19,9 @@ import { venueById } from '@/config/venues'
 import { inviteLink } from '@/lib/multiplayer/client'
 import type { RoomView, SeatView } from '@/lib/multiplayer/view'
 import { sound } from '@/lib/sound'
-import { FELT_COMPACT, FELT_WIDE, feltSeatPositions } from '@/lib/tableSeats'
+import { feltFor, feltSeatPositions, TALL_PHONE } from '@/lib/tableSeats'
 import { useCopied } from '@/lib/useCopied'
-import { useIsMobile } from '@/lib/useMediaQuery'
+import { useIsMobile, useMediaQuery } from '@/lib/useMediaQuery'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 import { useMedia } from '@/store/media'
@@ -50,6 +50,7 @@ export function RoomLobby({
 }) {
   const money = useMoney()
   const isMobile = useIsMobile()
+  const tallPhone = useMediaQuery(TALL_PHONE)
   const start = useRoom((s) => s.start)
   const addBots = useRoom((s) => s.addBots)
   const removeBot = useRoom((s) => s.removeBot)
@@ -71,15 +72,16 @@ export function RoomLobby({
 
   const venue = venueById(view.venueId)
   const accent = venue?.accent ?? '#7C8CF0'
-  const g = isMobile ? FELT_COMPACT : FELT_WIDE
   const me = view.players.find((p) => p.id === view.you)
   const others = view.players.filter((p) => p.id !== view.you)
   const chairs = view.maxSeats - 1
+  const g = feltFor(isMobile, chairs, tallPhone)
   const positions = feltSeatPositions(chairs, g)
   const host = view.players.find((p) => p.host)
   const canDeal = view.isHost && view.players.length >= 2
   const full = view.players.length >= view.maxSeats
-  const size = isMobile ? 46 : 64
+  // A full ring's chairs draw smaller on a phone, as its seats do (`FeltSeat` `crowded`).
+  const size = isMobile ? (chairs >= 6 ? 40 : 46) : 64
 
   // What you have muted or hidden is left out here, for you only.
   const videoOf = (id: string) =>

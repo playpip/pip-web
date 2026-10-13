@@ -157,12 +157,17 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
     bigger face, a nameplate on the cloth, their cards tucked face down behind them,
     the last action as a pill (derived from consecutive hand states in
     `useSeatActions`; presentation only), and a travelling turn ring on whoever is to
-    act. Folded seats dim. Showdown cards turn over where the backs were. A phone
-    table with six or seven opponents (a built table of seven or eight) uses
-    `FELT_COMPACT_FULL` instead (`feltFor`): a wider, deeper arc, a smaller face and
-    plate (`FeltSeat` `crowded`), and the board, pot and your bet set lower. Five
-    opponents or fewer never see it. Checked by eye from 360 to 412 wide; at 320 by
-    568 even a six-seat table's plates touch.
+    act. Folded seats dim. Showdown cards turn over where the backs were. A table
+    with six or seven opponents (a built table or a room of seven or eight) gets a
+    full-ring felt from `feltFor`: the seats spaced evenly along the rail as drawn
+    (`railAspect`) rather than by equal angles, which bunched them across the top
+    of a tall phone and down the sides of a desktop. On a phone it is a wider arc, a
+    smaller face and plate (`FeltSeat` `crowded`), and the board, pot and your bet
+    set lower: `FELT_COMPACT_FULL` on a screen at least twice as tall as it is wide
+    (`TALL_PHONE`), `FELT_COMPACT_FULL_SHORT` on a shorter one, where the stage is
+    nearly square and the arc has no room to give. Five opponents or fewer never see
+    either. Checked by eye from 360 to 412 wide; at 320 by 568 even a six-seat
+    table's plates touch.
   - **Board**: five outlined places on the cloth, not five card backs. Cards drop and
     flip over (`BoardCard`), the flop staggered.
   - **Chips**: `ChipStack` draws a bet as a small stack (counted in small blinds, four

@@ -33,8 +33,14 @@ import { type AiProfile, decideAction } from '@/lib/poker/ai/policy'
 import { createTableMemory, observeAction, type TableMemory } from '@/lib/poker/ai/memory'
 import { BOT_ALONE_MS, botThinkMs, fillPlayers } from './players'
 
-/** The most seats a private room has. Quick match uses the venue's own count. */
-export const MAX_ROOM_SEATS = 6
+/**
+ * The seats a private room's host may set. Eight, a full ring, is the felt's
+ * limit (lib/tableSeats `FELT_COMPACT_FULL`). Quick match uses the venue's own count.
+ */
+export const ROOM_SEATS = [2, 3, 4, 5, 6, 7, 8] as const
+export const MAX_ROOM_SEATS = 8
+/** A new private room's seats until the host says otherwise: short-handed, as before. */
+export const DEFAULT_ROOM_SEATS = 6
 
 /** How long a connected player has to act. */
 export const TURN_MS = 30_000
@@ -212,13 +218,13 @@ export function createRoom(opts: {
     smallBlind: venue.smallBlind,
     bigBlind: venue.bigBlind,
     handsPerLevel: venue.handsPerLevel,
-    maxSeats: opts.kind === 'quick' ? venue.seats : MAX_ROOM_SEATS,
+    maxSeats: opts.kind === 'quick' ? venue.seats : DEFAULT_ROOM_SEATS,
     reserved: opts.reserved ?? [],
     banned: [],
     blocks: opts.host && opts.hostBlocks?.length ? { [opts.host.userId]: opts.hostBlocks } : {},
     settings: {
       ...DEFAULT_SETTINGS,
-      seats: opts.kind === 'quick' ? venue.seats : MAX_ROOM_SEATS,
+      seats: opts.kind === 'quick' ? venue.seats : DEFAULT_ROOM_SEATS,
     },
     phase: 'lobby',
     players: [],

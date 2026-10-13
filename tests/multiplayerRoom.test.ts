@@ -120,6 +120,25 @@ test('the host fills empty chairs with the cast, never past the table and never 
   t.is(s.players.length, 5)
 })
 
+test('a room opens short-handed and the host can make it a full ring of eight', (t) => {
+  let s = room()
+  t.is(s.maxSeats, 6)
+  s = must(configure(s, 'user-0', { seats: 8 }))
+  s = must(addBots(must(join(s, person(1), 0)), 'user-0', 10, mulberry32(4)))
+  t.is(s.players.length, 8)
+  const bots = s.players.filter((p) => p.bot)
+  t.is(new Set(bots.map((b) => b.characterId)).size, 6, 'six different regulars')
+  const rng = mulberry32(5)
+  s = must(start(s, 'user-0', 0, rng))
+  t.is(s.hand!.players.length, 8)
+  s = playOut(s, rng)
+  t.is(s.phase, 'finished')
+  t.is(
+    s.players.reduce((sum, p) => sum + p.stack, 0),
+    8 * pub.buyIn,
+  )
+})
+
 test('a move from anybody but the player to act is refused', (t) => {
   let s = must(join(room(), person(1), 0))
   s = must(start(s, 'user-0', 0, mulberry32(4)))
@@ -305,9 +324,9 @@ test('the host sets the table before the deal, within range, and nobody else can
   t.is(s.settings.depth, 2)
   const guest = configure(s, 'user-1', { seats: 3 })
   t.is(!guest.ok && guest.error, 'not-host')
-  // Never smaller than the people already sitting, never past six.
+  // Never smaller than the people already sitting, never past eight.
   t.is((configure(s, 'user-0', { seats: 1 }) as { error?: string }).error, 'bad-settings')
-  t.is((configure(s, 'user-0', { seats: 7 }) as { error?: string }).error, 'bad-settings')
+  t.is((configure(s, 'user-0', { seats: 9 }) as { error?: string }).error, 'bad-settings')
   s = must(start(s, 'user-0', 0, mulberry32(30)))
   t.is((configure(s, 'user-0', { depth: 3 }) as { error?: string }).error, 'started')
 })

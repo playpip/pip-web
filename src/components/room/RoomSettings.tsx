@@ -9,7 +9,12 @@
 
 import { motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { BlindSpeed, LeavingRule, RoomSettings } from '@/lib/multiplayer/room'
+import {
+  type BlindSpeed,
+  type LeavingRule,
+  ROOM_SEATS,
+  type RoomSettings,
+} from '@/lib/multiplayer/room'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
@@ -79,7 +84,7 @@ export function SettingsList({
       <Row label="Seats">
         <Choice
           value={settings.seats}
-          options={[2, 3, 4, 5, 6].map((n) => [n, String(n)] as const)}
+          options={ROOM_SEATS.map((n) => [n, String(n)] as const)}
           onPick={(seats) => set({ seats })}
           editable={editable}
         />

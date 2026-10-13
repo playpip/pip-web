@@ -24,7 +24,7 @@ import { useProfile } from '@/store/profile'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
-import { useIsMobile } from '@/lib/useMediaQuery'
+import { useIsMobile, useMediaQuery } from '@/lib/useMediaQuery'
 import { useFreerollOnOffer } from '@/lib/useSpendableRoll'
 import { ordinal } from '@/lib/recap'
 import {
@@ -38,7 +38,7 @@ import {
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
 import { tableFinishById } from '@/config/shop'
-import { FELT_COMPACT_FULL, feltFor, feltSeatPositions, towards } from '@/lib/tableSeats'
+import { feltFor, feltSeatPositions, TALL_PHONE, towards } from '@/lib/tableSeats'
 
 type Point = { left: string; top: string }
 
@@ -85,6 +85,7 @@ export function Table() {
   const adjustRoll = useProfile((s) => s.adjustRoll)
   const money = useMoney()
   const isMobile = useIsMobile()
+  const tallPhone = useMediaQuery(TALL_PHONE)
   const [helpOpen, setHelpOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [leaveOpen, setLeaveOpen] = useState(false)
@@ -248,7 +249,8 @@ export function Table() {
   // Where everything sits on the cloth (lib/tableSeats → the live table's
   // geometry). Every point is a percentage of the stage, so the bets, the pot
   // and the chips in flight can slide between them with nothing measured.
-  const g = feltFor(isMobile, opponents.length)
+  const g = feltFor(isMobile, opponents.length, tallPhone)
+  const crowded = isMobile && opponents.length >= 6
   const positions = feltSeatPositions(opponents.length, g)
   const seatAt = new Map<string, Point>(opponents.map((p, i) => [p.id, positions[i]]))
   const seatPoint = (id: string): Point => (id === 'hero' ? g.hero : (seatAt.get(id) ?? g.pot))
@@ -280,8 +282,8 @@ export function Table() {
           action={seatActions[p.id]}
           back={cardBack}
           compact={isMobile}
-          crowded={g === FELT_COMPACT_FULL}
-          actionBeside={g === FELT_COMPACT_FULL && (i === 0 || i === opponents.length - 1)}
+          crowded={crowded}
+          actionBeside={crowded && (i === 0 || i === opponents.length - 1)}
           side={x < 42 ? 'left' : x > 58 ? 'right' : 'top'}
           onSelect={() => selectSeat(p.id)}
         />
