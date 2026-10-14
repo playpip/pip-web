@@ -29,7 +29,7 @@ import { heroEquity } from '@/lib/poker/heroEquity'
 import type { RoomView } from '@/lib/multiplayer/view'
 import { ordinal } from '@/lib/recap'
 import { sound } from '@/lib/sound'
-import { feltFor, feltSeatPositions, TALL_PHONE, towards } from '@/lib/tableSeats'
+import { aroundFrom, feltFor, feltSeatPositions, TALL_PHONE, towards } from '@/lib/tableSeats'
 import { useCopied } from '@/lib/useCopied'
 import { useIsMobile, useMediaQuery } from '@/lib/useMediaQuery'
 import { useMoney } from '@/lib/useMoney'
@@ -99,9 +99,7 @@ export function RoomTable({
 
   // You at the near rail, everybody else round the table in seat order from
   // your left. Out of the hand (busted), you watch with every seat on the arc.
-  const at = hand.players.findIndex((p) => p.id === view.you)
-  const opponents =
-    at === -1 ? hand.players : [...hand.players.slice(at + 1), ...hand.players.slice(0, at)]
+  const opponents = aroundFrom(hand.players, view.you)
 
   const g = feltFor(isMobile, opponents.length, tallPhone)
   const crowded = isMobile && opponents.length >= 6

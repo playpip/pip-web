@@ -47,7 +47,7 @@ import { commentaryAt } from '@/lib/review/commentary'
 import { encodeHand } from '@/lib/handLink'
 import { useCopied } from '@/lib/useCopied'
 import type { ReviewSession } from '@/lib/review/session'
-import { opponentPositions } from '@/lib/tableSeats'
+import { aroundFrom, opponentPositions } from '@/lib/tableSeats'
 import { cardBackById } from '@/config/cardBacks'
 import { useProfile } from '@/store/profile'
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
@@ -228,7 +228,7 @@ export function ReviewTable({
   const { hand } = frame
   const hero = hand.players.find((p) => p.id === HERO_ID)
   const heroSeat = frame.seats.find((s) => s.id === HERO_ID)
-  const opponents = hand.players.filter((p) => p.id !== HERO_ID)
+  const opponents = aroundFrom(hand.players, HERO_ID)
   const positions = opponentPositions(opponents.length)
   const share = (id: string) => odds?.share[id]
 

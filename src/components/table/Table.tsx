@@ -38,7 +38,7 @@ import {
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
 import { tableFinishById } from '@/config/shop'
-import { feltFor, feltSeatPositions, TALL_PHONE, towards } from '@/lib/tableSeats'
+import { aroundFrom, feltFor, feltSeatPositions, TALL_PHONE, towards } from '@/lib/tableSeats'
 
 type Point = { left: string; top: string }
 
@@ -162,7 +162,7 @@ export function Table() {
     hero && !houseStack(venue)
       ? cashOutValue(venue, hero.stack) - (venue.cash ? cashInvested : venue.buyIn)
       : null
-  const opponents = hand.players.filter((p) => p.id !== 'hero')
+  const opponents = aroundFrom(hand.players, 'hero')
   const heroMeta = hero ? metaById.get(hero.id) : undefined
   // Offered only when there is something left to watch: at a heads-up table
   // busting and the table being down to one are the same moment, and a button

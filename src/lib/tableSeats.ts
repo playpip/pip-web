@@ -31,6 +31,16 @@ export function opponentPositions(n: number): SeatPoint[] {
 }
 
 /**
+ * Everybody but you, in seat order from your left: the order they act in,
+ * clockwise from the near rail, which is how the arc lays them out left to
+ * right. Not in the hand (busted, watching a room), and every seat is on it.
+ */
+export function aroundFrom<P extends { id: string }>(players: P[], you: string | null): P[] {
+  const at = players.findIndex((p) => p.id === you)
+  return at === -1 ? players : [...players.slice(at + 1), ...players.slice(0, at)]
+}
+
+/**
  * The live table's geometry: an oval of cloth, the seats on its rail.
  *
  * **Separate from `opponentPositions` on purpose.** The review and the lessons

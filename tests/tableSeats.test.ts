@@ -1,6 +1,7 @@
 import test from 'ava'
 import { CUSTOM_SEATS } from '@/config/customTable'
 import {
+  aroundFrom,
   FELT_COMPACT,
   FELT_COMPACT_FULL,
   FELT_COMPACT_FULL_SHORT,
@@ -66,4 +67,31 @@ test('a full ring stays on the stage and mirrors itself', (t) => {
       t.true(Math.abs(num(a.top) - num(b.top)) < 0.05)
     }
   }
+})
+
+// The engine acts in seat order and the arc lays opponents out left to right,
+// so the arc has to start at the seat after yours. Taking you out of the list
+// and keeping the rest in place only does that when you sit first: from the
+// middle (where a single-player table seats you) the action ran up the left,
+// jumped to you, jumped to the top and finished on the right.
+test('opponents go round the arc from your left, the order they act in', (t) => {
+  const seats = ['a', 'b', 'hero', 'c', 'd', 'e'].map((id) => ({ id }))
+  t.deepEqual(
+    aroundFrom(seats, 'hero').map((p) => p.id),
+    ['c', 'd', 'e', 'a', 'b'],
+  )
+  t.deepEqual(
+    aroundFrom(seats, 'a').map((p) => p.id),
+    ['b', 'hero', 'c', 'd', 'e'],
+  )
+  t.deepEqual(
+    aroundFrom(seats, 'e').map((p) => p.id),
+    ['a', 'b', 'hero', 'c', 'd'],
+  )
+})
+
+test('somebody not in the hand watches every seat on the arc, in seat order', (t) => {
+  const seats = ['a', 'b', 'c'].map((id) => ({ id }))
+  t.deepEqual(aroundFrom(seats, 'hero'), seats)
+  t.deepEqual(aroundFrom(seats, null), seats)
 })
