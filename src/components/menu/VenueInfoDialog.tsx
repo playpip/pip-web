@@ -11,6 +11,7 @@ import { ExpandableNote } from '@/components/menu/ExpandableNote'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { ChallengerFace } from '@/components/menu/ChallengerFace'
+import { Segmented } from '@/components/ui/segmented'
 import { ChevronLeft, Lock, XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import type { Character } from '@/config/cast'
@@ -569,30 +570,19 @@ function SeatPicker({
   onPick: (seats: number) => void
 }) {
   return (
-    <div className="border-b border-foreground/[0.06] py-1.5">
+    <div className="border-b border-foreground/[0.06] pb-3 pt-1.5">
       <div className="flex items-baseline justify-between">
         <span className="text-sm text-muted-foreground">Seats</span>
         <span className="text-sm font-medium tabular-nums">
           {value} players{value === usual ? '' : ` · usually ${usual}`}
         </span>
       </div>
-      <div className="mt-1.5 flex gap-1 rounded-xl bg-foreground/[0.06] p-1">
-        {RAIL_SEATS.map((n) => (
-          <button
-            key={n}
-            onClick={() => onPick(n)}
-            aria-pressed={n === value}
-            aria-label={`${n} players`}
-            className={cn(
-              'flex-1 rounded-lg py-1 text-sm tabular-nums transition active:scale-[0.97]',
-              n === value
-                ? 'bg-foreground/15 font-semibold'
-                : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {n}
-          </button>
-        ))}
+      <div className="mt-2">
+        <Segmented
+          options={RAIL_SEATS.map((n) => ({ value: n, label: String(n) }))}
+          value={value}
+          onPick={onPick}
+        />
       </div>
     </div>
   )
