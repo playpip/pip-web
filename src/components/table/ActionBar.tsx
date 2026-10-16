@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { legalActions, potSize, type Action, type HandState } from '@/lib/poker/engine'
@@ -8,6 +8,21 @@ import { useGame } from '@/store/game'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
+import {
+  BUTTON_KEYS,
+  SIZER_PRESET_KEYS,
+  sizerIntentFor,
+  tableKeyFor,
+  type KeyTarget,
+} from '@/lib/tableKeys'
+import {
+  KeyBadge,
+  TableKeysDialog,
+  TableKeysHint,
+  useKeysKnown,
+  useTableKeyboard,
+  useTableKeys,
+} from './keys'
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
@@ -33,34 +48,80 @@ export function ActionBar({
   const money = useMoney()
   const [sizerOpen, setSizerOpen] = useState(false)
   const [raiseTo, setRaiseTo] = useState(0)
+  // The keyboard (lib/tableKeys): on a mouse-and-keyboard device only. Shared
+  // with the multiplayer room, which plays through this same bar.
+  const keyboard = useTableKeyboard()
+  const [keysKnown, markKeysKnown] = useKeysKnown()
+  const [keysOpen, setKeysOpen] = useState(false)
+  const slider = useRef<HTMLInputElement>(null)
 
   const legal = legalActions(hand)
   const hero = hand.players[hand.toActIndex]
   const isHeroTurn = hero?.id === viewerId && !!legal
 
+  const openSizer = () => {
+    if (!legal) return
+    setRaiseTo(clamp(legal.minRaiseTo, legal.minRaiseTo, legal.maxRaiseTo))
+    setSizerOpen(true)
+  }
+  const openKeys = () => {
+    sound.play('tap')
+    markKeysKnown()
+    setKeysOpen(true)
+  }
+
+  // Bound before the early return below, so `?` answers off-turn too. The
+  // sizer and the list are dialogs, and `keysReachTable` stands down for any
+  // open dialog: the sizer's own keys are handled on the sizer.
+  useTableKeys(keyboard, (e) => {
+    const intent = tableKeyFor(e, e.target as KeyTarget | null, document, isHeroTurn ? legal : null)
+    if (!intent) return
+    e.preventDefault()
+    if (intent === 'help') return openKeys()
+    markKeysKnown()
+    if (intent === 'sizer') openSizer()
+    else act({ type: intent })
+  })
+
+  const keysList = <TableKeysDialog open={keysOpen} onOpenChange={setKeysOpen} />
+
   // Match the real button row's height exactly (py-4 + text-base = 56px) so the
   // bar appearing/clearing on the hero's turn never resizes the layout — that
   // resize is what nudges the community cards.
   if (!isHeroTurn || !legal) {
-    return <div className="h-[56px]" aria-hidden />
+    return (
+      <>
+        <div className="h-[56px]" aria-hidden />
+        {keysList}
+      </>
+    )
   }
 
   const pot = potSize(hand)
   const isAllIn = raiseTo >= legal.maxRaiseTo
 
-  const openSizer = () => {
-    setRaiseTo(clamp(legal.minRaiseTo, legal.minRaiseTo, legal.maxRaiseTo))
-    setSizerOpen(true)
-  }
   const preset = (fraction: number) => {
     sound.play('tap')
     setRaiseTo(
       clamp(hand.currentBet + Math.round(pot * fraction), legal.minRaiseTo, legal.maxRaiseTo),
     )
   }
+  const maxOut = () => {
+    sound.play('tap')
+    setRaiseTo(legal.maxRaiseTo)
+  }
   const confirmRaise = () => {
     act({ type: legal.canBet ? 'bet' : 'raise', amount: raiseTo })
     setSizerOpen(false)
+  }
+  // In the sizer: 1–4 are the presets, Enter puts the chips in (lib/tableKeys).
+  const sizerKeys = (e: React.KeyboardEvent) => {
+    const intent = sizerIntentFor(e, e.target as KeyTarget)
+    if (!intent) return
+    e.preventDefault()
+    if (intent === 'confirm') confirmRaise()
+    else if (intent.preset < PRESETS.length) preset(PRESETS[intent.preset].fraction)
+    else maxOut()
   }
 
   // The draw round: one button, and what it says depends on what you picked.
@@ -69,21 +130,24 @@ export function ActionBar({
   if (legal.canDraw) {
     const count = marked.length
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex gap-2"
-      >
-        <Pill
-          tone="primary"
-          onClick={() => {
-            act({ type: 'draw', discard: [...marked] })
-            onDrawn?.()
-          }}
+      <>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex gap-2"
         >
-          {count === 0 ? 'Stand pat' : `Draw ${count}`}
-        </Pill>
-      </motion.div>
+          <Pill
+            tone="primary"
+            onClick={() => {
+              act({ type: 'draw', discard: [...marked] })
+              onDrawn?.()
+            }}
+          >
+            {count === 0 ? 'Stand pat' : `Draw ${count}`}
+          </Pill>
+        </motion.div>
+        {keysList}
+      </>
     )
   }
 
@@ -92,25 +156,59 @@ export function ActionBar({
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex gap-2"
+        className="relative flex gap-2"
       >
-        <Pill onClick={() => act({ type: 'fold' })} tone="ghost">
+        <Pill
+          onClick={() => act({ type: 'fold' })}
+          tone="ghost"
+          shortcut={keyboard ? BUTTON_KEYS.fold : undefined}
+        >
           Fold
         </Pill>
         {legal.canCheck ? (
-          <Pill onClick={() => act({ type: 'check' })}>Check</Pill>
+          <Pill
+            onClick={() => act({ type: 'check' })}
+            shortcut={keyboard ? BUTTON_KEYS.middle : undefined}
+          >
+            Check
+          </Pill>
         ) : (
-          <Pill onClick={() => act({ type: 'call' })}>Call {money(legal.callAmount)}</Pill>
+          <Pill
+            onClick={() => act({ type: 'call' })}
+            shortcut={keyboard ? BUTTON_KEYS.middle : undefined}
+          >
+            Call {money(legal.callAmount)}
+          </Pill>
         )}
         {(legal.canBet || legal.canRaise) && (
-          <Pill onClick={openSizer} tone="primary">
+          <Pill
+            onClick={openSizer}
+            tone="primary"
+            shortcut={keyboard ? BUTTON_KEYS.raise : undefined}
+          >
             {legal.canBet ? 'Bet' : 'Raise'}
           </Pill>
         )}
+        {keyboard && !keysKnown && (
+          <TableKeysHint
+            onList={openKeys}
+            onDismiss={() => {
+              sound.play('tap')
+              markKeysKnown()
+            }}
+          />
+        )}
       </motion.div>
+      {keysList}
 
       <Dialog open={sizerOpen} onOpenChange={setSizerOpen}>
-        <DialogContent className="sm:max-w-xs">
+        <DialogContent
+          className="sm:max-w-xs"
+          // The slider rather than the close button, so Enter confirms and the
+          // arrow keys size from the moment it opens.
+          initialFocus={keyboard ? slider : undefined}
+          onKeyDown={keyboard ? sizerKeys : undefined}
+        >
           <DialogHeader>
             <DialogTitle>{legal.canBet ? 'Bet' : 'Raise'}</DialogTitle>
           </DialogHeader>
@@ -121,6 +219,7 @@ export function ActionBar({
             </div>
 
             <input
+              ref={slider}
               type="range"
               min={legal.minRaiseTo}
               max={legal.maxRaiseTo}
@@ -134,31 +233,34 @@ export function ActionBar({
             />
 
             <div className="flex gap-2">
-              {(['½', '¾', 'Pot'] as const).map((label, i) => (
+              {PRESETS.map(({ label, fraction }, i) => (
                 <button
                   key={label}
-                  onClick={() => preset([0.5, 0.75, 1][i])}
-                  className="flex-1 rounded-xl bg-foreground/5 py-2 text-sm font-medium transition hover:bg-foreground/10"
+                  onClick={() => preset(fraction)}
+                  aria-keyshortcuts={keyboard ? SIZER_PRESET_KEYS[i] : undefined}
+                  className="relative flex-1 rounded-xl bg-foreground/5 py-2 text-sm font-medium transition hover:bg-foreground/10"
                 >
                   {label}
+                  {keyboard && <KeyBadge k={SIZER_PRESET_KEYS[i]} small />}
                 </button>
               ))}
               <button
-                onClick={() => {
-                  sound.play('tap')
-                  setRaiseTo(legal.maxRaiseTo)
-                }}
-                className="flex-1 rounded-xl bg-foreground/5 py-2 text-sm font-medium transition hover:bg-foreground/10"
+                onClick={maxOut}
+                aria-keyshortcuts={keyboard ? SIZER_PRESET_KEYS[PRESETS.length] : undefined}
+                className="relative flex-1 rounded-xl bg-foreground/5 py-2 text-sm font-medium transition hover:bg-foreground/10"
               >
                 Max
+                {keyboard && <KeyBadge k={SIZER_PRESET_KEYS[PRESETS.length]} small />}
               </button>
             </div>
 
             <button
               onClick={confirmRaise}
-              className="w-full rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+              aria-keyshortcuts={keyboard ? 'Enter' : undefined}
+              className="relative w-full rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
             >
               {legal.canBet ? 'Bet' : 'Raise'} {isAllIn ? 'all in' : money(raiseTo)}
+              {keyboard && <KeyBadge k="Enter" onPrimary />}
             </button>
           </div>
         </DialogContent>
@@ -167,26 +269,38 @@ export function ActionBar({
   )
 }
 
+/** The sizer's presets, in `SIZER_PRESET_KEYS` order; Max is the fourth. */
+const PRESETS = [
+  { label: '½', fraction: 0.5 },
+  { label: '¾', fraction: 0.75 },
+  { label: 'Pot', fraction: 1 },
+] as const
+
 function Pill({
   children,
   onClick,
   tone = 'default',
+  shortcut,
 }: {
   children: React.ReactNode
   onClick: () => void
   tone?: 'default' | 'primary' | 'ghost'
+  /** The key that presses it, shown in the corner. Keyboard devices only. */
+  shortcut?: string
 }) {
   return (
     <button
       onClick={onClick}
+      aria-keyshortcuts={shortcut}
       className={cn(
-        'flex-1 rounded-2xl py-4 text-base font-semibold transition active:scale-[0.97]',
+        'relative flex-1 rounded-2xl py-4 text-base font-semibold transition active:scale-[0.97]',
         tone === 'primary' && 'bg-primary text-primary-foreground hover:bg-primary/90',
         tone === 'default' && 'bg-foreground/[0.08] text-foreground hover:bg-foreground/[0.14]',
         tone === 'ghost' && 'bg-foreground/[0.03] text-muted-foreground hover:bg-foreground/[0.08]',
       )}
     >
       {children}
+      {shortcut && <KeyBadge k={shortcut} onPrimary={tone === 'primary'} />}
     </button>
   )
 }
