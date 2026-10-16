@@ -36,6 +36,9 @@
     "lead-band": "tsx scripts/lead-band.ts",
     "exploit-sim": "tsx scripts/exploit-sim.ts",
     "ai-stats": "tsx scripts/ai-stats.ts",
+    "bot-duel": "tsx scripts/bot-duel.ts",
+    "ai-bench": "tsx scripts/ai-bench.ts",
+    "persona-stats": "tsx scripts/persona-stats.ts",
     "win-read": "tsx scripts/win-read.ts",
     "cash-sim": "tsx scripts/cash-sim.ts",
     "build:ios": "cd mobile && npx eas-cli@latest build --platform ios --profile production --auto-submit"
