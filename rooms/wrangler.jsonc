@@ -26,7 +26,10 @@
   // The browser connects here directly. A custom domain on the playpip.io zone:
   // the first deploy creates its DNS record and certificate.
   "routes": [{ "pattern": "rooms.playpip.io", "custom_domain": true }],
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // The upload time of the running version, which /health reports, so anyone
+  // can tell whether a fix merged since has reached the tables.
+  "version_metadata": { "binding": "VERSION" }
   // Secrets (wrangler secret put, never in this file):
   //   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
   //   TURN_KEY_ID, TURN_KEY_API_TOKEN   (camera and mic; optional)

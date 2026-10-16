@@ -213,7 +213,8 @@ token.
    npx wrangler secret put TURN_KEY_API_TOKEN -c rooms/wrangler.jsonc
    ```
 3. **Deploy:** `pnpm rooms:deploy`. The first deploy creates `rooms.playpip.io` (a custom
-   domain on the playpip.io zone). Check `https://rooms.playpip.io/health`.
+   domain on the playpip.io zone). Check `https://rooms.playpip.io/health`: `uploaded` is when
+   the running version went up, so a room fix merged after it has not reached the tables.
 4. **Repo variables and secret:**
    - secret `CLOUDFLARE_WORKERS_TOKEN`, for the rooms workflow;
    - `ROOMS_ENABLED=true`, so `.github/workflows/deploy-rooms.yaml` redeploys on changes;

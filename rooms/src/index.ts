@@ -28,7 +28,11 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
     const parts = url.pathname.split('/').filter(Boolean)
 
-    if (parts[0] === 'health') return json({ ok: true }, 200, cors)
+    // `uploaded` is when the running version went up: a merge to
+    // src/lib/poker or src/lib/multiplayer after it is not on the tables yet.
+    if (parts[0] === 'health') {
+      return json({ ok: true, uploaded: env.VERSION?.timestamp ?? null }, 200, cors)
+    }
 
     if (parts[0] === 'rooms' && parts.length === 1 && request.method === 'POST') {
       if (!originAllowed(request, env)) return json({ error: 'origin' }, 403)

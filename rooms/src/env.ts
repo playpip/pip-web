@@ -16,6 +16,8 @@ export interface Env {
   /** Cloudflare Realtime TURN key, for camera and mic. Optional. */
   TURN_KEY_ID?: string
   TURN_KEY_API_TOKEN?: string
+  /** The running version (wrangler.jsonc `version_metadata`). */
+  VERSION?: WorkerVersionMetadata
 }
 
 export function originAllowed(request: Request, env: Env): boolean {
