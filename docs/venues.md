@@ -27,6 +27,31 @@ Daily, and the custom-table route placeholder.
 The **buy-in is your starting stack** (everyone sits equal); it's deducted from your Roll
 and a venue is playable when `roll >= buyIn`. Prizes are winner-take-all (≈ buy-in × seats).
 
+### Bigger tables at the top
+
+From The Riverboat (rung 6) up, the dialog offers **6, 7 or 8 seats** (`LADDER_SEATS`,
+`seatChoices` in `config/venues.ts`), starting on the rung's own six. The size rides the
+same `?seats=` route and snapshot resume as the Rail's picker (`playPath`, `withSeats`; see
+[game-flow.md](./game-flow.md)).
+
+- **The prize follows the count, one buy-in per chair** (`withSeats` sets
+  `prize = buyIn × seats`, which is what every one of these rungs already is at six). The
+  winner nets one buy-in per player beaten at any size, so beating the rung's field is worth
+  the same per opponent, and a fuller table is a longer, higher-variance run for a bigger
+  prize rather than a cheaper one.
+- **Only upwards.** Fewer than six would be a smaller field for a prize priced on a bigger
+  one; scaling it down instead would make a rung's win worth less than it says on the card.
+  So the rung's own number is the floor.
+- **One record per rung.** `venueRecords` (entries, wins, best finish, fastest win) and the
+  `venue-<id>` award are not split by size: every size on offer is the rung's field or more
+  of it, so a record set at eight is never an easier one. A fuller table only makes a win
+  slower and a best finish no better; the run recap names the size (`of 8`).
+- **Below rung 6 nothing changes.** The lower rungs are where the game is learnt, at the
+  sizes they were built at; the Daily, the side tables, challenges and rooms are untouched.
+- At eight, from The Penthouse up, the high band's six regulars are one fewer than the table
+  has opponents, so `draftCast` tops it up from the rest of the cast — at the rung's own AI
+  profile, as on the Rail. The Riverboat's band has ten, so it never needs to.
+
 ## Side tables (formats)
 
 Off the ladder, **`SIDE_TABLES`** offers the same game under different pressure —

@@ -182,7 +182,9 @@ ladder and why difficulty tracks the stake.
 **You pick the table size.** Each room has its own number of seats, and its dialog
 (`VenueInfoDialog`) offers 2 to 8 (`RAIL_SEATS`). A size other than the room's own rides in
 the route as `?seats=` (`playPath`) and `PlayClient` applies it with `withSeats`, which does
-nothing to a table that is not cash, so no prize table can be re-sized. Nothing else moves:
+nothing to a table whose size is not a choice (`seatChoices`): the only prize tables it
+re-sizes are the top of the ladder (see [venues.md](./venues.md#bigger-tables-at-the-top)).
+Nothing else moves:
 the stake still sets the opposition, a busted regular rebuys in the same chair so the table
 stays at the size you picked, and a refresh resumes the seats the snapshot already holds. At
 the two dearest rooms an eight-seat table has one more chair than the high band has
