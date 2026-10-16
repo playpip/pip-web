@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'five-card-draw-what-a-draw-gives-away',
+    title: 'Five-Card Draw: what the number of cards gives away',
+    description:
+      'In Five-Card Draw the only tell is how many cards somebody asks for. Every one of the 2,598,960 five-card hands, dealt through the rule Pip’s Draw regulars throw by, and what each number means.',
+    date: '2026-10-14',
+  },
+  {
     slug: 'your-cards-stay-on-the-server',
     title: 'Your cards stay on the server',
     description:
