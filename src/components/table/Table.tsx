@@ -31,9 +31,11 @@ import {
   KITCHEN_TABLE,
   cashOutValue,
   houseStack,
+  playPath,
   prizeFor,
   reviewableVenue,
   WELCOME_TABLE,
+  withSeats,
 } from '@/config/venues'
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
@@ -215,7 +217,10 @@ export function Table() {
             sound.play('call')
             leave()
             // Same table again: the route would not re-run on a push to itself.
-            if (next.venue.id === venue.id) window.location.assign(`/play/${next.venue.id}`)
+            // It is sat down at the size this run was (`withSeats`, a no-op
+            // anywhere the size is not a choice).
+            if (next.venue.id === venue.id)
+              window.location.assign(playPath(withSeats(next.venue, venue.seats)))
             else router.push(`/play/${next.venue.id}`)
           },
         }

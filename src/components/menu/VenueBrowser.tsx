@@ -6,7 +6,7 @@ import { Splash } from '@/components/Splash'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
-import { venueTag, type Venue } from '@/config/venues'
+import { playPath, venueTag, type Venue } from '@/config/venues'
 import { useEntitlement } from '@/store/entitlement'
 import { SectionScreen } from './SectionScreen'
 import { VenueInfoDialog } from './VenueInfoDialog'
@@ -113,7 +113,7 @@ export function VenueBrowser({
         onOpenChange={(o) => !o && setInfoVenue(null)}
         onPlay={(venue) => {
           sound.play('call')
-          router.push(`/play/${venue.id}`)
+          router.push(playPath(venue))
         }}
       />
     </SectionScreen>

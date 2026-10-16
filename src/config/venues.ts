@@ -512,14 +512,52 @@ export const RING_TABLES: readonly Venue[] = [
 export const RAIL_SEATS = [2, 3, 4, 5, 6, 7, 8] as const
 
 /**
- * A Rail room at a different table size. Anything that is not a cash table, or
- * a count that is not on offer, comes back unchanged: the Daily, the ladder and
- * every prize table keep the seat count their prize was priced on.
+ * How many may sit at the top of the ladder, including you: the rung's own six,
+ * or a fuller table.
+ *
+ * A ladder prize *is* priced on the count (`prize` is the buy-in times the
+ * seats), so here the count may only go up, and the prize goes up with it:
+ * every extra chair is one more buy-in in the pot. Each opponent is worth what
+ * they were at six, so a player who beats the rung at six expects the same per
+ * opponent at eight, and nothing gets cheaper — fewer than the rung's own
+ * would be a smaller field for a prize priced on a bigger one, which is why
+ * there is no such option. The rung's records stay one record for the same
+ * reason: a win at a fuller table is a win against more of the same field,
+ * never an easier one.
+ */
+export const LADDER_SEATS = [6, 7, 8] as const
+
+/**
+ * Where on the ladder the choice starts: The Riverboat, the sixth rung, and
+ * every rung above it. Below it the tables are smaller than six and the rungs
+ * are where the game is learnt, so their size stays the one they were built at.
+ */
+const LADDER_SEATS_FROM = VENUES.findIndex((v) => v.id === 'riverboat')
+
+/**
+ * The table sizes this venue can be sat down at, or null where the size is not
+ * a choice. A Rail room takes anything the felt seats (`RAIL_SEATS`); the top
+ * of the ladder takes its own six or more (`LADDER_SEATS`); everything else —
+ * the lower rungs, the Daily, the side tables, every other prize table — keeps
+ * the count its prize was priced on.
+ */
+export function seatChoices(venue: Venue): readonly number[] | null {
+  if (venue.cash) return RAIL_SEATS
+  const rung = VENUES.findIndex((v) => v.id === venue.id)
+  return rung >= LADDER_SEATS_FROM ? LADDER_SEATS : null
+}
+
+/**
+ * A venue at a different table size. Anything whose size is not a choice
+ * (`seatChoices`), or a count that is not on offer, comes back unchanged. A
+ * ladder rung's prize follows the count — one buy-in per chair, as the rung's
+ * own prize already is.
  */
 export function withSeats(venue: Venue, seats: number | null | undefined): Venue {
-  if (!venue.cash || seats == null) return venue
-  if (!RAIL_SEATS.includes(seats as (typeof RAIL_SEATS)[number])) return venue
-  return seats === venue.seats ? venue : { ...venue, seats }
+  const choices = seatChoices(venue)
+  if (!choices || seats == null || !choices.includes(seats)) return venue
+  if (seats === venue.seats) return venue
+  return venue.cash ? { ...venue, seats } : { ...venue, seats, prize: venue.buyIn * seats }
 }
 
 // Challenge tables: where a cast member's standing challenge is played out.
@@ -1330,13 +1368,14 @@ export function venueById(id: string): Venue | undefined {
 }
 
 /**
- * Where to sit down at this venue. A Rail room at a size other than its own
- * carries the size in the query (`?seats=8`), the one choice the route cannot
- * read off the venue id; `PlayClient` reads it back through `withSeats`.
+ * Where to sit down at this venue. A Rail room or a top rung at a size other
+ * than its own carries the size in the query (`?seats=8`), the one choice the
+ * route cannot read off the venue id; `PlayClient` reads it back through
+ * `withSeats`.
  */
 export function playPath(venue: Venue): string {
   const base = venueById(venue.id)
-  return venue.cash && base && venue.seats !== base.seats
+  return seatChoices(venue) && base && venue.seats !== base.seats
     ? `/play/${venue.id}?seats=${venue.seats}`
     : `/play/${venue.id}`
 }

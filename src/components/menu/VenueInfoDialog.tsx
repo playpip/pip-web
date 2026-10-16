@@ -16,8 +16,8 @@ import { ChevronLeft, Lock, XIcon } from 'lucide-react'
 import { HANDS_PER_LEVEL } from '@/config/blinds'
 import type { Character } from '@/config/cast'
 import {
-  RAIL_SEATS,
   VENUES,
+  seatChoices,
   venueTag,
   withSeats,
   type TableFamily,
@@ -171,8 +171,9 @@ export function VenueInfoDialog({
   // this component stays mounted between openings and would otherwise reopen
   // straight into the picker.
   const [picking, setPicking] = useState(false)
-  // How many sit down, at a Rail table (config/venues `RAIL_SEATS`). Null is
-  // the room's own number. Reset on close for the same reason as `picking`.
+  // How many sit down, at a Rail table or a top rung (config/venues
+  // `seatChoices`). Null is the room's own number. Reset on close for the same
+  // reason as `picking`.
   const [seats, setSeats] = useState<number | null>(null)
   if (!venue) return <Dialog open={false} onOpenChange={onOpenChange} />
 
@@ -188,6 +189,10 @@ export function VenueInfoDialog({
     art: family?.art ?? venue.id,
   }
   const difficulty = venueDifficulty(venue)
+  const choices = seatChoices(venue)
+  // The table as it will be sat down at: at a top rung the prize follows the
+  // size picked, so the row that names it reads off this, not `venue`.
+  const table = withSeats(venue, seats)
   const rung = VENUES.findIndex((v) => v.id === venue.id) + 1
   const note = family?.note ?? formatNote(venue)
   const escalates = venue.escalation !== false
@@ -334,9 +339,10 @@ export function VenueInfoDialog({
                         label="Starting stack"
                         value={money(venue.startingStack ?? venue.buyIn)}
                       />
-                      {venue.cash ? (
+                      {choices ? (
                         <SeatPicker
-                          value={seats ?? venue.seats}
+                          choices={choices}
+                          value={table.seats}
                           usual={venue.seats}
                           onPick={setSeats}
                         />
@@ -351,7 +357,7 @@ export function VenueInfoDialog({
                             : `${money(venue.smallBlind)}/${money(venue.bigBlind)}, fixed`
                         }
                       />
-                      {!venue.cash && <InfoRow label="Winner takes" value={money(venue.prize)} />}
+                      {!venue.cash && <InfoRow label="Winner takes" value={money(table.prize)} />}
                       {venue.runnerUpPrize !== undefined && (
                         <InfoRow label="Second takes" value={money(venue.runnerUpPrize)} />
                       )}
@@ -383,7 +389,7 @@ export function VenueInfoDialog({
                 </button>
               ) : playable && (canAfford?.(venue) ?? true) ? (
                 <button
-                  onClick={() => onPlay(withSeats(venue, seats))}
+                  onClick={() => onPlay(table)}
                   className="w-full rounded-2xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
                 >
                   {venue.freeroll || venue.buyIn === 0
@@ -556,15 +562,17 @@ function StakePicker({
 }
 
 /**
- * How many sit down at a Rail table, you included. The room's own number is
- * picked to start with and named underneath, so leaving it alone is the
- * ordinary choice and changing it is a deliberate one.
+ * How many sit down at a Rail table or a top rung, you included. The room's own
+ * number is picked to start with and named underneath, so leaving it alone is
+ * the ordinary choice and changing it is a deliberate one.
  */
 function SeatPicker({
+  choices,
   value,
   usual,
   onPick,
 }: {
+  choices: readonly number[]
   value: number
   usual: number
   onPick: (seats: number) => void
@@ -579,7 +587,7 @@ function SeatPicker({
       </div>
       <div className="mt-2">
         <Segmented
-          options={RAIL_SEATS.map((n) => ({ value: n, label: String(n) }))}
+          options={choices.map((n) => ({ value: n, label: String(n) }))}
           value={value}
           onPick={onPick}
         />
