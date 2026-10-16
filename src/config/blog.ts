@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'how-often-both-your-cards-play',
+    title: 'How often both your cards play in Hold’em',
+    description:
+      'We counted all 2,809,475,760 Hold’em deals. Both hole cards make the best five in 1,324,680,512 of them, a little under half. One card does it more often, and in one deal in twenty the board plays. Worked hands, and when two different fives are both right.',
+    date: '2026-10-15',
+  },
+  {
     slug: 'your-cards-stay-on-the-server',
     title: 'Your cards stay on the server',
     description:
