@@ -28,7 +28,7 @@ import { signupFact } from '@/components/settings/AccountOffer'
 import { playedWelcome } from '@/components/onboarding/firstSeat'
 import { memberLines } from '@/components/onboarding/memberLines'
 import { WELCOME_TABLE } from '@/config/venues'
-import { MEMBERSHIP_PRICES } from '@/config/membership'
+import { formatPrice, MEMBERSHIP_PRICES } from '@/config/membership'
 import { detectCurrency } from '@/lib/membership/currency'
 import { type ShownPrice, useStorePrices } from '@/lib/membership/store'
 import { appSupports } from '@/lib/nativeApp'
@@ -370,7 +370,7 @@ function useMembershipPrice(): ShownPrice | null {
     navigator.languages?.length ? navigator.languages : [navigator.language],
     Intl.DateTimeFormat().resolvedOptions().timeZone ?? '',
   )
-  return MEMBERSHIP_PRICES[currency]
+  return { ...MEMBERSHIP_PRICES[currency], format: (minor) => formatPrice(minor, currency) }
 }
 
 function MembershipStep({ status }: { status: SyncStatus }) {
@@ -384,7 +384,9 @@ function MembershipStep({ status }: { status: SyncStatus }) {
       id: 'free',
       name: 'Free',
       detail: 'The ladder, the Daily, the Rail, Level 1 of the lessons, and one member table a day',
-      price: '£0',
+      // In the membership's own currency, so a player priced in yuan doesn't see
+      // "£0" next to "¥58 a month". Blank, like the member row, until it is known.
+      price: price?.format?.(0) ?? '',
     },
     {
       id: 'member',
