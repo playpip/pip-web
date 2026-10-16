@@ -22,9 +22,15 @@
 // Each tally is shrunk toward a typical player's rate with a prior worth
 // `PRIOR_WEIGHT` decisions, so one hand never swings it and a few orbits do.
 //
+// Three more tallies — 3-bets, folds to a continuation bet, and how often a
+// player who sees the flop goes to showdown — are kept for the weighted ranges
+// of the `weightedRanges` experiment (`weightedRange.ts`), which reads them as
+// its priors. Nothing the shipped AI decides reads them.
+//
 // Pure and deterministic: a plain object the store feeds every action into.
 
 import type { Action, HandState } from '../engine'
+import { lineOf, preflopAggressor } from './line'
 
 /** A typical player's rates, which every read starts from and is shrunk toward. */
 export const TYPICAL = {
@@ -34,6 +40,12 @@ export const TYPICAL = {
   postflopAggression: 0.32,
   /** Folds per time facing a bet. */
   foldToBet: 0.45,
+  /** Re-raises per time facing exactly one preflop raise. */
+  threeBet: 0.08,
+  /** Folds per time facing the preflop raiser's first bet on the flop. */
+  foldToCbet: 0.45,
+  /** Showdowns per hand in which the player saw the flop. */
+  wtsd: 0.28,
 } as const
 
 /** How many decisions' worth of "typical" every read starts with. */
@@ -48,6 +60,9 @@ export interface PlayerReads {
   preflopRaise: Tally
   postflopAggression: Tally
   foldToBet: Tally
+  threeBet?: Tally
+  foldToCbet?: Tally
+  wtsd?: Tally
 }
 
 export interface TableMemory {
@@ -96,6 +111,48 @@ export function observeAction(memory: TableMemory, state: HandState, action: Act
     reads.foldToBet.chances++
     if (action.type === 'fold') reads.foldToBet.hits++
   }
+
+  if (!facingBet || action.type === 'check') return
+  const line = lineOf(state)
+  const raisesThisStreet = line.filter(
+    (a) => a.street === state.street && (a.type === 'bet' || a.type === 'raise'),
+  )
+  if (state.street === 'preflop' && raisesThisStreet.length === 1) {
+    reads.threeBet ??= { hits: 0, chances: 0 }
+    reads.threeBet.chances++
+    if (aggressive) reads.threeBet.hits++
+  }
+  if (
+    state.street === 'flop' &&
+    raisesThisStreet.length === 1 &&
+    raisesThisStreet[0].playerId === preflopAggressor(state)
+  ) {
+    reads.foldToCbet ??= { hits: 0, chances: 0 }
+    reads.foldToCbet.chances++
+    if (action.type === 'fold') reads.foldToCbet.hits++
+  }
+}
+
+/**
+ * Record how a finished hand ended for everyone who saw its flop: whether they
+ * were still in at a showdown. Call it once per hand, with the completed state.
+ */
+export function observeHandEnd(memory: TableMemory, state: HandState): void {
+  if (state.variant !== 'holdem' || !state.result) return
+  const line = lineOf(state)
+  const sawFlop = line.some((a) => a.street !== 'preflop') || state.community.length >= 3
+  if (!sawFlop) return
+  for (const p of state.players) {
+    if (p.status === 'out') continue
+    const foldedPreflop = line.some(
+      (a) => a.playerId === p.id && a.street === 'preflop' && a.type === 'fold',
+    )
+    if (foldedPreflop) continue
+    const reads = readsFor(memory, p.id)
+    reads.wtsd ??= { hits: 0, chances: 0 }
+    reads.wtsd.chances++
+    if (state.result.showdown && p.status !== 'folded') reads.wtsd.hits++
+  }
 }
 
 function shrunk(t: Tally, typical: number): number {
@@ -110,6 +167,9 @@ export function ratesFor(memory: TableMemory | undefined, id: string) {
     preflopRaise: shrunk(r.preflopRaise, TYPICAL.preflopRaise),
     postflopAggression: shrunk(r.postflopAggression, TYPICAL.postflopAggression),
     foldToBet: r.foldToBet ? shrunk(r.foldToBet, TYPICAL.foldToBet) : TYPICAL.foldToBet,
+    threeBet: r.threeBet ? shrunk(r.threeBet, TYPICAL.threeBet) : TYPICAL.threeBet,
+    foldToCbet: r.foldToCbet ? shrunk(r.foldToCbet, TYPICAL.foldToCbet) : TYPICAL.foldToCbet,
+    wtsd: r.wtsd ? shrunk(r.wtsd, TYPICAL.wtsd) : TYPICAL.wtsd,
   }
 }
 

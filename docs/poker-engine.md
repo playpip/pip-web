@@ -174,6 +174,50 @@ equity + pot odds + a personality.
   the tracker stats (VPIP, PFR, c-bet, fold to c-bet...) beside a regular's; `pnpm
   win-read` measures how accurate the win % is. `pnpm sim` and `pnpm cash-sim` play
   the AI against itself and cannot find a hole the policy shares with its own hero.
+  `pnpm bot-duel` plays two AI versions on the same cards with the seats swapped
+  (duplicate poker), so the deal's luck cancels and a version against itself scores
+  exactly 0; `pnpm persona-stats` asks whether a tracker can tell the cast apart.
+  Both, and `exploit-sim`/`ai-stats --ai <version>`, name versions from
+  `scripts/ai-versions.ts`.
+- **Experiments** (`AiProfile.experiment`): switches under measurement, all off by
+  default. With none set the AI makes exactly the decisions it shipped with, which
+  the Daily's replay rests on; `tests/aiExperiment.test.ts` pins that with a
+  fingerprint. `fastShowdown` settles the Monte-Carlo showdowns with `rankHoldem`
+  (`rank7.ts`): the same winners as pokersolver, so the same decisions, 12-34x sooner at The Main Event.
+  `weightedRanges` (version `wrange`) reads each opponent as a weight on every one
+  of the 1,326 holdings instead of one selectivity number (`ai/weightedRange.ts`,
+  after the Loki/Poki opponent model): weights start from position and the
+  preflop action (open, call, 3-bet), and every later action multiplies them by
+  how likely that action was with that holding, judged by a fast effective
+  strength per street (share of random holdings beaten via `rankHoldem`, plus a
+  fixed bump for a live draw in place of exact hand potential), floored at
+  `FLOOR`. So a check-call line caps a range and a river overbet polarises it.
+  `estimateEquity` samples opponents from the weights (`opponentRanges`). It
+  reads three more memory tallies, kept for it alone: 3-bets, folds to a c-bet
+  and went-to-showdown (`observeHandEnd`, fed at the end of every hand).
+  `rangeTuning` (version `wrange2`, only with `weightedRanges`) is its second
+  round, each part switchable for measuring alone: `halfTax` halves the
+  tightness tax on continuing (the honest, lower equity of a weighted range
+  folded the big blind to steals far too often), `wideReads` lets the postflop
+  aggression read reach 5x typical and floors weights at `TUNED_FLOOR`,
+  `flattenManiacs` raises a bet's likelihood to `1 / ratio` for a player who
+  bets more than twice as often as typical (their bets say little), and a
+  preflop raise's the same way by the preflop raise rate, and
+  `riverBluffs` bluffs the river only where the shipped read would too, and
+  plays an unbet river with a hand that loses to most random holdings
+  (`shareBeaten` under one half) on the shipped read, so it is not bet as
+  "value" against a range read as capped.
+  `preflopRanges` (version `pf3`, `ai/preflopRanges.ts`) reads a re-raised pot
+  before the flop by percentile ranges: the open by where it came from, each
+  re-raise a slice of the range it answers (`PREFLOP_RANGES`), and the AI's own
+  3-bets and 4-bets come from the same ranges. `threeBetReads` (version
+  `wpf3`, with `weightedRanges` and `rangeTuning` too) reads an opponent's
+  re-raise as the AI's own re-raise range scaled by that player's 3-bet rate
+  over a typical 8% (`reRaiseShare`, at most `widest`) instead of by
+  `credibility`, and the weighted ranges' preflop likelihoods take their
+  re-raise shares from the same function. Its own re-raises stay the same
+  slice of the range they answer, but of that range as read (`answerScale`),
+  so against a player who re-raises half their hands it 4-bets wider.
 - Difficulty scales per venue via the profile (see `config/venues.ts`).
 
 ## Variants
