@@ -64,14 +64,16 @@ function fourFlush(hole: readonly Card[]): number[] | null {
  *
  * Only the open-ended shape, not gutshots. A gutshot draw is four outs against
  * eight and is not worth breaking a pair for, which is exactly the mistake this
- * function would cause if it were more generous.
+ * function would cause if it were more generous. J-Q-K-A and A-2-3-4 are four
+ * outs too (only a ten, or only a five), so neither counts: the first is ruled
+ * out below, and the second never forms because the ace only counts high here.
  */
 function fourStraight(hole: readonly Card[]): number[] | null {
   const values = hole.map((c, i) => ({ v: ORDER[c.rank], i })).sort((a, b) => a.v - b.v)
   for (let start = 0; start + 3 < values.length; start++) {
     const run = values.slice(start, start + 4)
     const consecutive = run.every((card, k) => k === 0 || card.v === run[k - 1].v + 1)
-    if (consecutive) return run.map((card) => card.i)
+    if (consecutive && run[3].v < ORDER.A) return run.map((card) => card.i)
   }
   return null
 }

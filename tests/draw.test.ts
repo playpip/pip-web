@@ -272,6 +272,14 @@ test('it keeps four to a flush and throws the odd card', (t) => {
   t.deepEqual(discard('Ah Kh 7h 2h 9c'), [4])
 })
 
+test('it keeps four to an open straight, but not one an ace closes', (t) => {
+  t.deepEqual(discard('9h Td Js Qc 2h'), [4], 'it did not draw to 9-T-J-Q')
+  // J-Q-K-A fills only with a ten: four outs, so it plays as ace-high.
+  t.deepEqual(discard('Jh Qd Ks Ac 2h').sort(), [0, 1, 2, 4], 'it drew to J-Q-K-A')
+  // A-2-3-4 fills only with a five, the same.
+  t.deepEqual(discard('Ah 2d 3s 4c 9h').sort(), [1, 2, 3, 4], 'it drew to A-2-3-4')
+})
+
 test('it keeps a pair over nothing, and draws three', (t) => {
   const kept = discard('9h 9d 2s 5c Kh')
   t.is(kept.length, 3)
