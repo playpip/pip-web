@@ -41,6 +41,12 @@ Object.defineProperty(globalThis, 'localStorage', {
 
 const { useGame, loadTableSnapshot } = await import('@/store/game')
 
+const HERO = {
+  name: 'Hero',
+  avatar: { seed: 'hero', backgroundColor: 'b6e3f4' },
+  member: false,
+}
+
 const FROM = VENUES.findIndex((v) => v.id === 'riverboat')
 const TOP = VENUES.slice(FROM)
 const LOWER = VENUES.slice(0, FROM)
@@ -148,7 +154,7 @@ test('every top rung seats a full eight with seven different faces at its own ga
 // snapshot.seats.length)`) hands back the eight-seat prize.
 test.serial('a refresh resumes at the size picked, prize included', (t) => {
   const rung = venueById('riverboat')!
-  useGame.getState().sitDown(withSeats(rung, 8), { name: 'Hero', avatar: 'a', member: false })
+  useGame.getState().sitDown(withSeats(rung, 8), HERO)
   try {
     t.is(useGame.getState().seats.length, 8)
     t.is(useGame.getState().venue?.prize, rung.buyIn * 8)
@@ -180,7 +186,7 @@ test.serial('a refresh resumes at the size picked, prize included', (t) => {
 
 test.serial('a six-seat snapshot from before the choice resumes as it was', (t) => {
   const rung = venueById('penthouse')!
-  useGame.getState().sitDown(rung, { name: 'Hero', avatar: 'a', member: false })
+  useGame.getState().sitDown(rung, HERO)
   try {
     const snapshot = loadTableSnapshot()
     t.is(snapshot?.seats.length, 6)
