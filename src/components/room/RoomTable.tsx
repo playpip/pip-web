@@ -77,6 +77,7 @@ export function RoomTable({
   const finish = tableFinishById(useProfile((s) => s.tableFinish))
   const ring = avatarRingById(useProfile((s) => s.avatarRing))
   const dealerButton = dealerButtonById(useProfile((s) => s.dealerButton))
+  const showOdds = useProfile((s) => s.showOdds)
   const tableStyle = useMemo(() => ({ ring, button: dealerButton }), [ring, dealerButton])
   const seatActions = useSeatActions(hand, view.handIndex)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -339,6 +340,7 @@ export function RoomTable({
                   avatar={me.avatar}
                   hand={hand}
                   equity={equity}
+                  hideOdds={!showOdds}
                   isButton={hero.id === buttonId}
                   isActive={activeId === hero.id}
                   corners={{
