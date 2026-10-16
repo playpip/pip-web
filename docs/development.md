@@ -41,7 +41,12 @@ pnpm sim garage pub            # specific venues; also: ladder | side | all
 pnpm sim garage --n 500        # more tournaments = tighter estimate (slower)
 pnpm sim --hero casual         # beginner | casual | competent | best
 pnpm sim garage --skill 0.4    # trial an AI skill without editing config
+pnpm sim cardroom --ai v1      # pin an AI version (scripts/ai-versions.ts)
 ```
+
+The bots play the AI the table plays in the game (`tableAi`): v1 below
+`RANGED_AI_FROM_SKILL`, the ranged reads from it up. `--ai` pins a named version
+instead, to compare against a baseline; `pnpm cash-sim` takes it too.
 
 It's Monte-Carlo-heavy — a venue takes ~2–4 minutes at n=50; high venues
 (more `iterations`) take longer. n=50 has roughly a ±7pp margin; use n≥200

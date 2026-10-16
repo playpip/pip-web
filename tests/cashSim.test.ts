@@ -33,6 +33,7 @@ import {
   runCashSession,
 } from '../scripts/cash-sim'
 import { mulberry32 } from '@/lib/poker/cards'
+import { RANGED_AI_FROM_SKILL } from '@/config/aiGates'
 import { RING_TABLES, venueById, type Venue } from '@/config/venues'
 
 const micro = venueById('ring-micro') as Venue
@@ -81,6 +82,20 @@ test('a hand is a closed system: the same index gives the same result, alone or 
 test('a session is deterministic in its seed', (t) => {
   t.deepEqual(runCashSession(micro, hero, 1, 0, 3), runCashSession(micro, hero, 1, 0, 3))
   t.notDeepEqual(runCashSession(micro, hero, 1, 0, 3), runCashSession(micro, hero, 2, 0, 3))
+})
+
+test('the bots play the AI the table plays in the game, unless --ai pins a version', (t) => {
+  const session = (venue: Venue, ai?: string) => runCashSession(venue, hero, 1, 0, 12, ai)
+  // Below the line the table's own AI is v1.
+  t.true((micro.ai.skill ?? 1) < RANGED_AI_FROM_SKILL)
+  t.deepEqual(session(micro), session(micro, 'v1'))
+  // From it up it is wpf3, so a run there measures what players face, and
+  // `--ai v1` still gives the old baseline.
+  const ranged = RING_TABLES.filter((v) => (v.ai.skill ?? 1) >= RANGED_AI_FROM_SKILL).sort(
+    (a, b) => (a.ai.skill ?? 1) - (b.ai.skill ?? 1),
+  )[0]
+  t.deepEqual(session(ranged), session(ranged, 'wpf3'))
+  t.notDeepEqual(session(ranged), session(ranged, 'v1'))
 })
 
 test('the button advances one seat a hand and covers every position once an orbit', (t) => {

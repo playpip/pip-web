@@ -180,3 +180,19 @@ export const PREFLOP_RANGES = {
    */
   bluff: 0.3,
 } as const
+
+/**
+ * The lowest table skill (`AiProfile.skill`, read off the venue) that plays
+ * with ranged reads: weighted opponent ranges, re-raises read by 3-bet rate
+ * and the rest of `RANGED_AI` (`lib/poker/ai/tableAi.ts`). Every table below
+ * it, and the Daily at any tier, plays the AI it always has, decision for
+ * decision.
+ *
+ * The line is drawn by measurement (`pnpm bot-duel`, the same cards dealt to
+ * both versions with seats swapped). The Pool Hall (0.44) is the softest rung
+ * where ranged reads beat the old AI on both seeds, and the gain grows with
+ * skill up to The Main Event; at The Pub (0.36) it was too small to tell, and
+ * at the Garage there was none, while both gave more away to a player who
+ * shoves every decent hand.
+ */
+export const RANGED_AI_FROM_SKILL = 0.44

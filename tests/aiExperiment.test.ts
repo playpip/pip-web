@@ -3,24 +3,20 @@
 //
 // **With no switch set, the AI is the one that shipped.** The Daily replays its
 // opponents off a seed, so every decision and every draw from the rng has to
-// come out the same as before the switches existed. The fingerprint below is a
-// hash of every action over a fixed set of hands at three rungs, computed on the
-// commit before this file existed and typed in, not read back out of the code.
+// come out the same as before the switches existed. The fingerprint
+// (`tests/helpers.ts`) is a hash of every action over a fixed set of hands at
+// three rungs; the value below was computed on the commit before this file
+// existed and typed in, not read back out of the code.
 //
 // **`fastShowdown` changes nothing but the time it takes.** It settles the same
 // sampled showdowns with a different evaluator, so the same rng must give the
 // same equity to the last bit and the same decisions all the way through.
 
 import test from 'ava'
-import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
-import {
-  createTableMemory,
-  observeAction,
-  observeHandEnd,
-  type TableMemory,
-} from '@/lib/poker/ai/memory'
+import { decideAction } from '@/lib/poker/ai/policy'
+import { createTableMemory, type TableMemory } from '@/lib/poker/ai/memory'
 import { cardFromString, mulberry32 } from '@/lib/poker/cards'
-import { applyAction, isHandComplete, startHand } from '@/lib/poker/engine'
+import { applyAction, startHand } from '@/lib/poker/engine'
 import { estimateEquity } from '@/lib/poker/equity'
 import { exactStrength, holeStrength, preflopPercentile, preflopTop } from '@/lib/poker/range'
 import {
@@ -32,42 +28,9 @@ import {
 } from '@/lib/poker/ai/preflopRanges'
 import { opponentRanges } from '@/lib/poker/ai/weightedRange'
 import { venueById, type Venue } from '@/config/venues'
+import { fingerprint } from './helpers'
 
 const cards = (s: string) => s.split(' ').map(cardFromString)
-
-/** Every action at three rungs over twelve hands, folded into one hash. */
-function fingerprint(tweak: (p: AiProfile) => AiProfile = (p) => p): string {
-  let h = 2166136261
-  const mix = (s: string) => {
-    for (let i = 0; i < s.length; i++) {
-      h ^= s.charCodeAt(i)
-      h = Math.imul(h, 16777619)
-    }
-  }
-  for (const id of ['garage', 'cardroom', 'mainevent']) {
-    const venue = venueById(id) as Venue
-    const profile = tweak({ ...venue.ai, iterations: 60 })
-    const rng = mulberry32(11)
-    const memory = createTableMemory()
-    for (let hand = 0; hand < 12; hand++) {
-      let s = startHand({
-        seats: Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, name: `s${i}`, stack: 200 })),
-        buttonIndex: hand % 6,
-        smallBlind: 1,
-        bigBlind: 2,
-        rng,
-      })
-      while (!isHandComplete(s)) {
-        const a = decideAction(s, profile, rng, memory)
-        mix(`${a.type}${a.amount ?? ''};`)
-        observeAction(memory, s, a)
-        s = applyAction(s, a)
-      }
-      observeHandEnd(memory, s)
-    }
-  }
-  return (h >>> 0).toString(16)
-}
 
 /** Computed at 8dd33e6, before `AiProfile.experiment` existed. */
 const SHIPPED = 'b6e55ee'

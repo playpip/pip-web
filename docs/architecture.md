@@ -159,7 +159,9 @@ choreography (timers, sounds, transitions) on top.
   reset on every `sitDown`/`resumeTable`/`leave` — but it's the seam to fold into
   the store first if we ever run two tables or need stricter test isolation.
 - **The AI is stateless per decision** — equity vs pot odds, ranged opponents
-  (`opponentSelectivity`) and a light positional term, but no cross-street memory
-  of a specific villain, no board-texture bluffing, no explicit hand-reading. The
-  `skill` knob makes bots *worse* convincingly; there's no lever yet that makes
-  them read *better* than "more Monte-Carlo iterations."
+  (`opponentSelectivity`) and a light positional term, but no board-texture
+  bluffing. The `skill` knob makes bots *worse* convincingly. Below
+  `RANGED_AI_FROM_SKILL` there is no explicit hand-reading; from it up the bots
+  read each opponent as a weighted range, reweighted by every action they take
+  and seeded by the table memory's rates for that player (`ai/tableAi.ts`, see
+  docs/poker-engine.md).
