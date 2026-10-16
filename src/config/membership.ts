@@ -291,7 +291,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'custom-tables',
     title: 'Build your own table',
     blurb:
-      'Pick the seats, the stakes, how deep you sit, how fast the blinds climb, whether heads are worth money, and which of the regulars sit down with you. Invite anybody you like: a high roller at a cheap table brings their own game with them, so you can play the hardest company in the cast for a price you can afford to lose. The prize is the same either way, and nobody you invite can ever make a table softer than its price.',
+      'Pick the seats, the stakes, how deep you sit, how fast the blinds climb, whether heads are worth chips, and which of the regulars sit down with you. Invite anybody you like: a high roller at a cheap table brings their own game with them, so you can play the hardest company in the cast for a price you can afford to lose. The prize is the same either way, and nobody you invite can ever make a table softer than its price.',
     shipped: true,
     place: { href: '/game/custom', name: 'the table builder' },
   },

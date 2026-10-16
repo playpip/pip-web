@@ -284,7 +284,7 @@ export function MembershipScreen() {
             id="plans"
             eyebrow="Price"
             title="One membership, two ways to pay"
-            lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table or a lesson first."
+            lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table first."
           >
             <Plans
               price={price}
@@ -1332,8 +1332,8 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
         <Question q="Can I try it before I pay?">
           <p>{DAILY_FREE_GAME}</p>
           <p>
-            The card on the shelf says <em>Free today</em> while it is there. It is the same table
-            or lesson a member gets.
+            The card on the shelf says <em>Free today</em> while it is there. It is the same table a
+            member gets.
           </p>
         </Question>
         <Question q="How do I cancel?">
@@ -1402,10 +1402,10 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
         )}
         <Question q="Is this pay-to-win?">
           <p>
-            Member rooms are ordinary tables — same engine, same shuffle, same opponents, same
-            prize-to-buy-in ratio — and winning in them moves your Roll like winning anywhere else
-            does. Your rank comes from your Roll, so a member reaches a rank sooner for having more
-            tables to win at.
+            The member tables are ordinary tables: same engine, same shuffle, same opponents, same
+            prize-to-buy-in ratio. Winning at them moves your Roll like winning anywhere else does.
+            Your rank comes from your Roll, so a member reaches a rank sooner for having more tables
+            to win at.
           </p>
           <p>
             We do not think that is pay-to-win, and here is the reasoning so you can disagree with
