@@ -51,9 +51,11 @@ import {
   createTableMemory,
   credibility,
   observeAction,
+  observeHandEnd,
   type TableMemory,
 } from '@/lib/poker/ai/memory'
 import { decideDiscard } from '@/lib/poker/ai/draw'
+import { tableAi } from '@/lib/poker/ai/tableAi'
 import { estimateEquity } from '@/lib/poker/equity'
 import { heroEquity } from '@/lib/poker/heroEquity'
 import { mulberry32, type Card } from '@/lib/poker/cards'
@@ -771,7 +773,7 @@ export const useGame = create<GameState>((set, get) => {
       const action: Action =
         cur.street === 'draw'
           ? { type: 'draw', discard: decideDiscard(cur.players[cur.toActIndex].hole, rng) }
-          : decideAction(cur, seatAi ?? venue.ai, rng, tableReads)
+          : decideAction(cur, tableAi(seatAi ?? venue.ai, venue), rng, tableReads)
       playActionSound(action, cur)
       const next = applyAction(cur, action)
       recordStep(cur, action, next)
@@ -785,6 +787,8 @@ export const useGame = create<GameState>((set, get) => {
     const { hand, seats, venue } = get()
     if (!hand || !venue) return
 
+    // Here rather than per action, so a hand the deal itself finished counts too.
+    observeHandEnd(tableReads, hand)
     const stackById = new Map(hand.players.map((p) => [p.id, p.stack]))
     const nextSeats = seats.map((s) => ({ ...s, stack: stackById.get(s.id) ?? s.stack }))
 

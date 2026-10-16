@@ -4,8 +4,10 @@
 
 import type { Card, Rank, Rng, Suit } from './cards'
 import { RANKS, SUITS } from './cards'
+import { CARD_AT, COMBO_A, COMBO_B, COMBOS, cardIndex } from './combos'
 import { DECK_RANKS, HOLE_CARDS, type Variant, determineWinners } from './handEval'
-import { holeStrength, omahaStrength } from './range'
+import { exactStrength, holeStrength, omahaStrength, preflopTop } from './range'
+import { rankHoldem } from './rank7'
 
 /** How many candidate holdings a maximally-tight opponent picks the best of. */
 const MAX_EXTRA_CANDIDATES = 5
@@ -46,6 +48,35 @@ export interface EquityOptions {
    * estimates are raw equity against random hands.
    */
   variant?: Variant
+  /**
+   * Settle each sampled Hold'em showdown with `rankHoldem` instead of
+   * pokersolver. Same winners on every board (`tests/rank7.test.ts`), so the
+   * same rng gives the same answer, about fifty times sooner. Off by default
+   * while it is measured; Hold'em only, ignored elsewhere.
+   */
+  fastShowdown?: boolean
+  /**
+   * Rank an opponent's candidate holdings by their exact made hand (pair rank
+   * and kickers included) plus live draws, instead of `holeStrength`'s
+   * category read. Only changes anything when `opponentSelectivity` is set.
+   * Hold'em only.
+   */
+  exactRange?: boolean
+  /**
+   * Per-opponent weighted ranges: one weight per two-card combo (`combos.ts`),
+   * any scale, and each opponent's holding is sampled in proportion to it.
+   * Replaces `opponentSelectivity` for every opponent that has one; a missing
+   * entry is a random hand. Hold'em only, ignored elsewhere. Built by
+   * `ai/weightedRange.ts` for the AI's `weightedRanges` experiment.
+   */
+  opponentRanges?: readonly (Float64Array | null | undefined)[]
+  /**
+   * Per-opponent percentile range before the flop: an entry of 0.06 deals that
+   * opponent a hand drawn evenly from the top 6% of starting hands (by
+   * `holeStrength`), in place of their `opponentSelectivity`. Missing entries
+   * keep the selectivity read. Hold'em preflop only, ignored elsewhere.
+   */
+  opponentTopShare?: readonly (number | undefined)[]
 }
 
 function cardKey(c: Card): string {
@@ -90,6 +121,8 @@ function drawRangedHoles(
   community: readonly Card[],
   strength: (hole: readonly Card[], community: readonly Card[]) => number,
   rng: Rng,
+  topRanges?: readonly (readonly (readonly Card[])[] | undefined)[],
+  baseIndex?: ReadonlyMap<string, number>,
 ): { oppHoles: Card[][]; board: Card[] } {
   const n = base.length
   const used = new Array<boolean>(n).fill(false)
@@ -101,6 +134,15 @@ function drawRangedHoles(
 
   const oppHoles: Card[][] = []
   for (let o = 0; o < opponents; o++) {
+    const top = topRanges?.[o]
+    if (top && baseIndex) {
+      const chosen = drawFromTop(top, baseIndex, used, rng)
+      if (chosen) {
+        for (const i of chosen) used[i] = true
+        oppHoles.push(chosen.map((i) => base[i]))
+        continue
+      }
+    }
     const sel = Math.max(0, Math.min(1, selectivity[o] ?? 0))
     const candidates = 1 + Math.floor(sel * MAX_EXTRA_CANDIDATES)
     let best: number[] | null = null
@@ -139,6 +181,148 @@ function drawRangedHoles(
   return { oppHoles, board }
 }
 
+/** How many colliding weighted deals to redraw before falling back to dealing in order. */
+const WEIGHTED_RETRIES = 24
+
+/**
+ * A weighted range ready to sample: cumulative weights over the combos left
+ * once the hero's cards and the board are out, or null for a random hand.
+ */
+interface RangeSampler {
+  combos: Uint16Array
+  cumulative: Float64Array
+  total: number
+}
+
+function rangeSampler(weights: Float64Array, dead: Uint8Array): RangeSampler | null {
+  const combos: number[] = []
+  const cumulative: number[] = []
+  let total = 0
+  for (let c = 0; c < COMBOS; c++) {
+    const w = weights[c]
+    if (!(w > 0) || dead[COMBO_A[c]] || dead[COMBO_B[c]]) continue
+    total += w
+    combos.push(c)
+    cumulative.push(total)
+  }
+  if (combos.length === 0) return null
+  return { combos: Uint16Array.from(combos), cumulative: Float64Array.from(cumulative), total }
+}
+
+/** One combo from a sampler, by binary search over the cumulative weights. */
+function sampleCombo(s: RangeSampler, rng: Rng): number {
+  const target = rng() * s.total
+  let lo = 0
+  let hi = s.combos.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (s.cumulative[mid] <= target) lo = mid + 1
+    else hi = mid
+  }
+  return s.combos[lo]
+}
+
+/**
+ * Deal each opponent from their weighted range and the rest of the board from
+ * what is left. When two sampled holdings share a card the whole set is drawn
+ * again, not just the later one: redrawing only the later hand would leave the
+ * earlier ones at their unconditioned odds, and the answer would depend on the
+ * order the opponents are listed in. After `WEIGHTED_RETRIES` collisions (ranges
+ * that all but exclude each other) it falls back to dealing in order, with two
+ * random live cards for any opponent whose range has nothing left.
+ */
+function drawWeightedHoles(
+  live: readonly number[],
+  dead: Uint8Array,
+  samplers: readonly (RangeSampler | null)[],
+  boardNeeded: number,
+  community: readonly Card[],
+  rng: Rng,
+): { oppHoles: Card[][]; board: Card[] } {
+  const n = live.length
+  let used = dead.slice()
+  const pickUnused = (): number => {
+    let card = live[Math.floor(rng() * n)]
+    while (used[card]) card = live[Math.floor(rng() * n)]
+    return card
+  }
+  const randomHole = (): [number, number] => {
+    const a = pickUnused()
+    used[a] = 1
+    const b = pickUnused()
+    used[b] = 1
+    return [a, b]
+  }
+
+  let holes: [number, number][] = []
+  let dealt = false
+  for (let tries = 0; tries < WEIGHTED_RETRIES && !dealt; tries++) {
+    used = dead.slice()
+    holes = []
+    dealt = true
+    for (const sampler of samplers) {
+      if (!sampler) {
+        holes.push(randomHole())
+        continue
+      }
+      const c = sampleCombo(sampler, rng)
+      if (used[COMBO_A[c]] || used[COMBO_B[c]]) {
+        dealt = false
+        break
+      }
+      used[COMBO_A[c]] = 1
+      used[COMBO_B[c]] = 1
+      holes.push([COMBO_A[c], COMBO_B[c]])
+    }
+  }
+  if (!dealt) {
+    used = dead.slice()
+    holes = []
+    for (const sampler of samplers) {
+      let hole: [number, number] | null = null
+      for (let tries = 0; sampler && tries < WEIGHTED_RETRIES && !hole; tries++) {
+        const c = sampleCombo(sampler, rng)
+        if (!used[COMBO_A[c]] && !used[COMBO_B[c]]) hole = [COMBO_A[c], COMBO_B[c]]
+      }
+      if (hole) {
+        used[hole[0]] = 1
+        used[hole[1]] = 1
+      }
+      holes.push(hole ?? randomHole())
+    }
+  }
+
+  const oppHoles = holes.map(([a, b]) => [CARD_AT[a], CARD_AT[b]])
+  const board = [...community]
+  for (let i = 0; i < boardNeeded; i++) {
+    const card = pickUnused()
+    used[card] = 1
+    board.push(CARD_AT[card])
+  }
+  return { oppHoles, board }
+}
+
+/**
+ * One holding drawn evenly from a percentile range, as indices into the deck,
+ * skipping any that share a card with the hero, the board or an opponent
+ * already dealt. Null when a few tries find none free: the caller falls back to
+ * the selectivity read rather than loop on a range the dead cards have emptied.
+ */
+function drawFromTop(
+  top: readonly (readonly Card[])[],
+  baseIndex: ReadonlyMap<string, number>,
+  used: readonly boolean[],
+  rng: Rng,
+): number[] | null {
+  for (let attempt = 0; attempt < 64; attempt++) {
+    const hole = top[Math.floor(rng() * top.length)]
+    const a = baseIndex.get(cardKey(hole[0]))
+    const b = baseIndex.get(cardKey(hole[1]))
+    if (a !== undefined && b !== undefined && !used[a] && !used[b]) return [a, b]
+  }
+  return null
+}
+
 export function estimateEquity(opts: EquityOptions): EquityResult {
   const community = opts.community ?? []
   const iterations = opts.iterations ?? 1500
@@ -160,8 +344,42 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
   // Ranged at Hold'em and Omaha, each with its own idea of a strong holding.
   // Hi-lo and Short Deck stay raw: a hi-lo hand is strong two ways at once,
   // and Short Deck reorders the categories the strength read is built on.
-  const strength = variant === 'holdem' ? holeStrength : variant === 'omaha' ? omahaStrength : null
-  const ranged = !!strength && !!selectivity && selectivity.some((s) => s > 0)
+  const strength =
+    variant === 'holdem'
+      ? opts.exactRange
+        ? exactStrength
+        : holeStrength
+      : variant === 'omaha'
+        ? omahaStrength
+        : null
+  const fast = !!opts.fastShowdown && variant === 'holdem'
+  const topShare =
+    variant === 'holdem' && community.length === 0 ? opts.opponentTopShare : undefined
+  const topRanges = topShare?.map((share) => (share ? preflopTop(share) : undefined))
+  const baseIndex = topRanges?.some(Boolean)
+    ? new Map(base.map((c, i) => [cardKey(c), i]))
+    : undefined
+  const ranged =
+    (!!strength && !!selectivity && selectivity.some((s) => s > 0)) || baseIndex !== undefined
+
+  // Weighted ranges, when given, take the place of selectivity entirely.
+  let weighted: {
+    live: number[]
+    dead: Uint8Array
+    samplers: (RangeSampler | null)[]
+  } | null = null
+  if (variant === 'holdem' && opts.opponentRanges) {
+    const dead = new Uint8Array(52)
+    for (const c of [...opts.hole, ...community]) dead[cardIndex(c)] = 1
+    const live: number[] = []
+    for (let i = 0; i < 52; i++) if (!dead[i]) live.push(i)
+    const samplers: (RangeSampler | null)[] = []
+    for (let o = 0; o < opponents; o++) {
+      const w = opts.opponentRanges[o]
+      samplers.push(w ? rangeSampler(w, dead) : null)
+    }
+    weighted = { live, dead, samplers }
+  }
 
   let wins = 0
   let ties = 0
@@ -173,16 +391,27 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     // opponent gets a uniformly random hand (classic raw equity).
     let oppHoles: Card[][]
     let board: Card[]
-    if (ranged) {
+    if (weighted) {
+      ;({ oppHoles, board } = drawWeightedHoles(
+        weighted.live,
+        weighted.dead,
+        weighted.samplers,
+        boardNeeded,
+        community,
+        rng,
+      ))
+    } else if (ranged) {
       ;({ oppHoles, board } = drawRangedHoles(
         base,
         opponents,
         holeSize,
         boardNeeded,
-        selectivity as readonly number[],
+        selectivity ?? [],
         community,
         strength as NonNullable<typeof strength>,
         rng,
+        topRanges,
+        baseIndex,
       ))
     } else {
       const need = opponents * holeSize + boardNeeded
@@ -192,6 +421,32 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
         oppHoles.push(drawn.slice(o * holeSize, (o + 1) * holeSize))
       }
       board = [...community, ...drawn.slice(opponents * holeSize)]
+    }
+
+    if (fast) {
+      // The same tally as below, off one number per hand: the hero is among
+      // the winners when nobody ranks above them, and splits with every equal.
+      const mine = rankHoldem(opts.hole, board)
+      let beaten = false
+      let sharing = 1
+      for (const hole of oppHoles) {
+        const r = rankHoldem(hole, board)
+        if (r > mine) {
+          beaten = true
+          break
+        }
+        if (r === mine) sharing++
+      }
+      if (!beaten) {
+        if (sharing === 1) {
+          wins++
+          equitySum += 1
+        } else {
+          ties++
+          equitySum += 1 / sharing
+        }
+      }
+      continue
     }
 
     const contenders = [

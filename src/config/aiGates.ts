@@ -145,3 +145,54 @@ export const OPENING = {
   loosest: 1.5,
   perTightness: 1.65,
 } as const
+
+/**
+ * Re-raises before the flop, under the `preflopRanges` experiment (see
+ * `lib/poker/ai/preflopRanges.ts`). Every range is a share of all starting
+ * hands; each raise level is a fraction of the one before it, the way a
+ * regular's 3-bet range is a slice of the opens it faces.
+ */
+export const PREFLOP_RANGES = {
+  /** A 3-bet range is this share of the opener's range, plus `threeBetFloor`. */
+  threeBetOfOpen: 0.3,
+  threeBetFloor: 0.02,
+  /** And never wider than this, against a button that opens everything. */
+  threeBetMax: 0.15,
+  /** A 4-bet range is this share of the 3-bet range it answers. */
+  fourBetOf3Bet: 0.35,
+  /** The narrowest range anybody raises with: about QQ+ and AK. */
+  floor: 0.02,
+  /** The widest a known maniac's raise is ever read as. */
+  widest: 0.6,
+  /**
+   * What share of its showdown equity a call before the flop gets to keep. A
+   * call that buys a flop does not realise all of it: out of position, against
+   * the range that raised, it gives some up on every later street.
+   */
+  realize: 0.85,
+  /** Extra equity a tight seat asks for, before the field scale. */
+  perTightness: 0.06,
+  /**
+   * Bluff re-raises, as a multiple of the profile's `bluff`. The shipped
+   * branch fires at half of it, which at the top of the ladder re-raised one
+   * folding hand in ten. Lower than this, the big blind folded to steals more
+   * than it already does (`pnpm ai-stats`).
+   */
+  bluff: 0.3,
+} as const
+
+/**
+ * The lowest table skill (`AiProfile.skill`, read off the venue) that plays
+ * with ranged reads: weighted opponent ranges, re-raises read by 3-bet rate
+ * and the rest of `RANGED_AI` (`lib/poker/ai/tableAi.ts`). Every table below
+ * it, and the Daily at any tier, plays the AI it always has, decision for
+ * decision.
+ *
+ * The line is drawn by measurement (`pnpm bot-duel`, the same cards dealt to
+ * both versions with seats swapped). The Pool Hall (0.44) is the softest rung
+ * where ranged reads beat the old AI on both seeds, and the gain grows with
+ * skill up to The Main Event; at The Pub (0.36) it was too small to tell, and
+ * at the Garage there was none, while both gave more away to a player who
+ * shoves every decent hand.
+ */
+export const RANGED_AI_FROM_SKILL = 0.44
