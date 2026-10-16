@@ -70,8 +70,9 @@ export function PlayClient() {
     // An interrupted table (hard refresh) resumes — the buy-in was already paid.
     const snapshot = loadTableSnapshot()
     if (snapshot && snapshot.venueId === venueId) {
-      // A Rail table resumes at the size it was sat down at, which the
-      // snapshot's seats already are; the venue is told so it agrees.
+      // A Rail table or a top rung resumes at the size it was sat down at,
+      // which the snapshot's seats already are (a busted seat keeps its chair);
+      // the venue is told so it agrees, prize included.
       useGame.getState().resumeTable(withSeats(venue, snapshot.seats.length), snapshot, member)
       return
     }
@@ -128,9 +129,10 @@ export function PlayClient() {
     // game loop deliberately knows nothing about entitlement (see store/game).
     // A free game is handed `member: false`: it is the table, not the rest of
     // the membership (no review, no watching it out after you bust).
-    // A Rail room at the size picked in its dialog (`?seats=`, config/venues
-    // `playPath`). `withSeats` ignores it anywhere else, and anything not on
-    // offer, so a hand-typed `?seats=40` sits down at the room's own size.
+    // A Rail room or a top rung at the size picked in its dialog (`?seats=`,
+    // config/venues `playPath`). `withSeats` ignores it anywhere else, and
+    // anything not on offer, so a hand-typed `?seats=40` or `?seats=3` at the
+    // Main Event sits down at the room's own size.
     const seats = Number(new URLSearchParams(window.location.search).get('seats')) || null
     useGame.getState().sitDown(withSeats(venue, seats), {
       name: profile.name,

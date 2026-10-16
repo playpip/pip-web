@@ -6,6 +6,7 @@ import {
   RING_TABLES,
   THE_DAILY,
   playPath,
+  seatChoices,
   withSeats,
 } from '@/config/venues'
 import { CUSTOM_SEATS } from '@/config/customTable'
@@ -27,8 +28,10 @@ test('a size that is not on offer leaves the room as it is', (t) => {
   t.is(withSeats(room, null), room)
 })
 
-test('no table with a prize can be re-sized', (t) => {
-  for (const venue of ALL_VENUES.filter((v) => !v.cash)) {
+test('no table with a prize can be re-sized to any size the Rail offers', (t) => {
+  // The top of the ladder is the one exception, and only upwards, with its
+  // prize following the count (tests/ladderSeats.test.ts).
+  for (const venue of ALL_VENUES.filter((v) => !v.cash && !seatChoices(v))) {
     t.is(withSeats(venue, 8), venue, `${venue.id} took a new size`)
   }
   t.is(withSeats(THE_DAILY, 8).seats, THE_DAILY.seats)
