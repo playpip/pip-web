@@ -12,7 +12,7 @@
 // with a touchscreen, which is the accepted cost: a stray letter on a button
 // somebody taps is worse than a shortcut a keyboard player goes without.
 // Anything that fails either test gets nothing: no listener, no letters on the
-// buttons, no hint.
+// buttons.
 //
 // Two queries rather than one: `… and (not (any-pointer: coarse))` needs Media
 // Queries 4, and written without the inner brackets it does not parse at all
@@ -43,9 +43,6 @@ export const TOUCH_QUERY = '(any-pointer: coarse)'
 
 /** Whether a device gets the table's keys, from its two media query answers. */
 export const keyboardDevice = (fine: boolean, touch: boolean) => fine && !touch
-
-/** localStorage key: the hint under the buttons has been seen off on this device. */
-export const KEYS_KNOWN_KEY = 'pip.tableKeys'
 
 /** What a key asks the table for. `sizer` opens the bet/raise sizer. */
 export type TableIntent = 'fold' | 'check' | 'call' | 'sizer' | 'help'
@@ -227,6 +224,3 @@ export function listenForTableKeys(
   win.addEventListener('keydown', onKey)
   return () => win.removeEventListener('keydown', onKey)
 }
-
-/** Whether a stored value says the hint has been seen off. Anything else: not yet. */
-export const keysKnown = (raw: string | null | undefined) => raw === 'known'

@@ -15,14 +15,7 @@ import {
   tableKeyFor,
   type KeyTarget,
 } from '@/lib/tableKeys'
-import {
-  KeyBadge,
-  TableKeysDialog,
-  TableKeysHint,
-  useKeysKnown,
-  useTableKeyboard,
-  useTableKeys,
-} from './keys'
+import { KeyBadge, TableKeysDialog, useTableKeyboard, useTableKeys } from './keys'
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
@@ -51,7 +44,6 @@ export function ActionBar({
   // The keyboard (lib/tableKeys): on a mouse-and-keyboard device only. Shared
   // with the multiplayer room, which plays through this same bar.
   const keyboard = useTableKeyboard()
-  const [keysKnown, markKeysKnown] = useKeysKnown()
   const [keysOpen, setKeysOpen] = useState(false)
   const slider = useRef<HTMLInputElement>(null)
 
@@ -66,7 +58,6 @@ export function ActionBar({
   }
   const openKeys = () => {
     sound.play('tap')
-    markKeysKnown()
     setKeysOpen(true)
   }
 
@@ -78,7 +69,6 @@ export function ActionBar({
     if (!intent) return
     e.preventDefault()
     if (intent === 'help') return openKeys()
-    markKeysKnown()
     if (intent === 'sizer') openSizer()
     else act({ type: intent })
   })
@@ -156,7 +146,7 @@ export function ActionBar({
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative flex gap-2"
+        className="flex gap-2"
       >
         <Pill
           onClick={() => act({ type: 'fold' })}
@@ -188,15 +178,6 @@ export function ActionBar({
           >
             {legal.canBet ? 'Bet' : 'Raise'}
           </Pill>
-        )}
-        {keyboard && !keysKnown && (
-          <TableKeysHint
-            onList={openKeys}
-            onDismiss={() => {
-              sound.play('tap')
-              markKeysKnown()
-            }}
-          />
         )}
       </motion.div>
       {keysList}

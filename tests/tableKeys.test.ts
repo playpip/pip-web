@@ -10,7 +10,6 @@ import {
   KEY_LIST,
   KEYBOARD_QUERY,
   keyboardDevice,
-  keysKnown,
   keysReachTable,
   letterOf,
   listenForTableKeys,
@@ -351,7 +350,7 @@ test('in the sizer, Enter on a focused preset picks it rather than betting', (t)
   t.deepEqual(sizerIntentFor(press('3'), node('BUTTON')), { preset: 2 })
 })
 
-test('server render and touch render: no letters, no hint, no aria-keyshortcuts', (t) => {
+test('server render and touch render: no letters, no aria-keyshortcuts', (t) => {
   // Rendered on the server the media queries answer false, which is exactly a
   // phone's answer, so this is the markup a phone gets as well as first paint.
   for (const hand of [
@@ -379,9 +378,4 @@ test('the list says what the keys do, and every key in it is one that answers', 
   t.is(intentFor(press(BUTTON_KEYS.middle.toLowerCase()), facingBet()), 'call')
   t.is(intentFor(press(BUTTON_KEYS.middle.toLowerCase()), canCheck()), 'check')
   t.is(intentFor(press(BUTTON_KEYS.raise.toLowerCase()), facingBet()), 'sizer')
-})
-
-test('the hint retires on "known" and on nothing else', (t) => {
-  t.true(keysKnown('known'))
-  for (const raw of [null, undefined, '', '1', 'true', 'KNOWN']) t.false(keysKnown(raw))
 })
