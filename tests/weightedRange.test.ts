@@ -241,6 +241,30 @@ test('memory counts 3-bets, folds to c-bets and showdowns', (t) => {
   t.true(ratesFor(memory, 'vil').threeBet > ratesFor(undefined, 'vil').threeBet)
 })
 
+test('memory counts no flop seen when the board is run out after everybody is all in before it', (t) => {
+  const memory = createTableMemory()
+  let s = startHand({
+    seats: ['a', 'b', 'c'].map((id) => ({ id, name: id, stack: 40 })),
+    buttonIndex: 0,
+    smallBlind: 1,
+    bigBlind: 2,
+    rng: mulberry32(5),
+  })
+  let shoved = false
+  while (!isHandComplete(s)) {
+    const legal = legalActions(s)
+    const a: Action =
+      !shoved && legal?.canRaise ? { type: 'raise', amount: legal.maxRaiseTo } : call
+    shoved = true
+    observeAction(memory, s, a)
+    s = applyAction(s, a)
+  }
+  observeHandEnd(memory, s)
+  t.is(s.community.length, 5)
+  t.true(!!s.result?.showdown)
+  for (const id of ['a', 'b', 'c']) t.is(memory.players[id].wtsd, undefined, id)
+})
+
 test('wrange plays legal, repeatable hands at every rung', (t) => {
   for (const id of ['garage', 'cardroom', 'mainevent']) {
     const venue = venueById(id) as Venue

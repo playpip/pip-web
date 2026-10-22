@@ -136,18 +136,23 @@ export function observeAction(memory: TableMemory, state: HandState, action: Act
 /**
  * Record how a finished hand ended for everyone who saw its flop: whether they
  * were still in at a showdown. Call it once per hand, with the completed state.
+ *
+ * Seeing a flop means being there to bet it. A board the engine runs out
+ * after everybody is all in before the flop was never played, and a player all
+ * in before the flop is carried to showdown whatever they think of it, so
+ * neither says anything about how far this player takes a hand.
  */
 export function observeHandEnd(memory: TableMemory, state: HandState): void {
   if (state.variant !== 'holdem' || !state.result) return
   const line = lineOf(state)
-  const sawFlop = line.some((a) => a.street !== 'preflop') || state.community.length >= 3
-  if (!sawFlop) return
+  if (!line.some((a) => a.street === 'flop')) return
   for (const p of state.players) {
     if (p.status === 'out') continue
+    const preflopOnly = !line.some((a) => a.playerId === p.id && a.street !== 'preflop')
     const foldedPreflop = line.some(
       (a) => a.playerId === p.id && a.street === 'preflop' && a.type === 'fold',
     )
-    if (foldedPreflop) continue
+    if (foldedPreflop || (p.status === 'allin' && preflopOnly)) continue
     const reads = readsFor(memory, p.id)
     reads.wtsd ??= { hits: 0, chances: 0 }
     reads.wtsd.chances++

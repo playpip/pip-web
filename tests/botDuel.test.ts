@@ -29,6 +29,7 @@ import {
 import { createHandTracker, emptySeatStats, isRiverBluff, rate } from '../scripts/table-stats'
 import { cardFromString } from '@/lib/poker/cards'
 import { applyAction, isHandComplete, legalActions, startHand } from '@/lib/poker/engine'
+import { createTableMemory, observeAction, observeHandEnd } from '@/lib/poker/ai/memory'
 import { decideAction } from '@/lib/poker/ai/policy'
 import { mulberry32 } from '@/lib/poker/cards'
 import { venueById, type Venue } from '@/config/venues'
@@ -210,7 +211,7 @@ test('a duel refuses a venue that is not Hold’em rather than deal it Hold’em
   t.notThrows(() => duel({ venueId: 'cardroom' }))
 })
 
-test('a board run out after everyone is all in before the flop still counts as seen and shown down', (t) => {
+test('a board run out after everyone is all in before the flop is no flop seen, but a showdown', (t) => {
   const stats = { s0: emptySeatStats(), s1: emptySeatStats(), s2: emptySeatStats() }
   let state = startHand({
     seats: ['s0', 's1', 's2'].map((id) => ({ id, name: id, stack: 40 })),
@@ -234,9 +235,51 @@ test('a board run out after everyone is all in before the flop still counts as s
   tracker.finish(state, { s0: 40, s1: 40, s2: 40 })
   t.is(state.community.length, 5)
   t.true(!!state.result?.showdown)
+  // Nobody bet the flop, so nobody saw one: the same read as `observeHandEnd`.
+  // The showdown is still won or lost.
   for (const s of Object.values(stats)) {
-    t.deepEqual(s.stat.wtsd, { hits: 1, chances: 1 })
+    t.deepEqual(s.stat.wtsd, { hits: 0, chances: 0 })
     t.is(s.stat.wonAtShowdown.chances, 1)
+  }
+})
+
+test('a seat all in before the flop sees no flop, beside two that check it down; the memory agrees', (t) => {
+  const stats = { s0: emptySeatStats(), s1: emptySeatStats(), s2: emptySeatStats() }
+  const memory = createTableMemory()
+  // The short stack under the gun shoves, both blinds call and check it down.
+  let state = startHand({
+    seats: [
+      { id: 's0', name: 's0', stack: 10 },
+      { id: 's1', name: 's1', stack: 40 },
+      { id: 's2', name: 's2', stack: 40 },
+    ],
+    buttonIndex: 0,
+    smallBlind: 1,
+    bigBlind: 2,
+    rng: mulberry32(5),
+  })
+  const tracker = createHandTracker((id) => stats[id as keyof typeof stats])
+  while (!isHandComplete(state)) {
+    const legal = legalActions(state)!
+    const me = state.players[state.toActIndex]
+    const action =
+      me.id === 's0' && legal.canRaise
+        ? { type: 'raise' as const, amount: legal.maxRaiseTo }
+        : legal.canCheck
+          ? { type: 'check' as const }
+          : { type: 'call' as const }
+    tracker.observe(state, action)
+    observeAction(memory, state, action)
+    state = applyAction(state, action)
+  }
+  tracker.finish(state, { s0: 10, s1: 40, s2: 40 })
+  observeHandEnd(memory, state)
+  t.true(!!state.result?.showdown)
+  t.deepEqual(stats.s0.stat.wtsd, { hits: 0, chances: 0 })
+  t.is(memory.players.s0.wtsd, undefined)
+  for (const id of ['s1', 's2'] as const) {
+    t.deepEqual(stats[id].stat.wtsd, { hits: 1, chances: 1 }, id)
+    t.deepEqual(memory.players[id].wtsd, { hits: 1, chances: 1 }, id)
   }
 })
 

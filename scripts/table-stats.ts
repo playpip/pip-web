@@ -219,10 +219,10 @@ export function createHandTracker(statsFor: (id: string) => SeatStats | null) {
         street = state.street
         streetBets = 0
         checkedThisStreet.clear()
+        // Seeing a flop means being there to bet it, as `observeHandEnd` reads
+        // it: not a seat all in before it, and not a board run out to nobody.
         if (street === 'flop') {
-          for (const p of state.players) {
-            if (p.status !== 'folded' && p.status !== 'out') sawFlop.add(p.id)
-          }
+          for (const p of state.players) if (p.status === 'active') sawFlop.add(p.id)
         }
       }
       const me = state.players[state.toActIndex]
@@ -314,9 +314,6 @@ export function createHandTracker(statsFor: (id: string) => SeatStats | null) {
     finish(state: HandState, startStacks: Record<string, number>) {
       const bb = Math.max(state.bigBlind, 1)
       const showdown = !!state.result?.showdown
-      // All in before the flop, the engine runs the board out with nobody to
-      // act on it, so no flop was ever observed: everyone still in saw it.
-      const ranOut = sawFlop.size === 0 && state.community.length >= 3
       for (const p of state.players) {
         if (p.status === 'out') continue
         const s = statsFor(p.id)
@@ -325,11 +322,10 @@ export function createHandTracker(statsFor: (id: string) => SeatStats | null) {
         s.netBb += (p.stack - (startStacks[p.id] ?? p.stack)) / bb
         bump(s.stat.vpip, vpip.has(p.id))
         bump(s.stat.pfr, pfr.has(p.id))
-        if (sawFlop.has(p.id) || (ranOut && p.status !== 'folded')) {
-          const reached = showdown && p.status !== 'folded'
-          bump(s.stat.wtsd, reached)
-          if (reached) bump(s.stat.wonAtShowdown, wonContested(state, p.id))
-        }
+        const reached = showdown && p.status !== 'folded'
+        if (sawFlop.has(p.id)) bump(s.stat.wtsd, reached)
+        // Every showdown is won or lost, a board run out to all-ins included.
+        if (reached) bump(s.stat.wonAtShowdown, wonContested(state, p.id))
       }
     },
   }
