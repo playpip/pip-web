@@ -42,8 +42,7 @@ export function ActionBar({
   const money = useMoney()
   const [sizerOpen, setSizerOpen] = useState(false)
   const [raiseTo, setRaiseTo] = useState(0)
-  // The keyboard (lib/tableKeys): on a mouse-and-keyboard device only. Shared
-  // with the multiplayer room, which plays through this same bar.
+  // Desktop only (lib/tableKeys). The multiplayer room plays through this bar too.
   const keyboard = useTableKeyboard()
   const [keysOpen, setKeysOpen] = useState(false)
   const slider = useRef<HTMLInputElement>(null)
@@ -62,9 +61,7 @@ export function ActionBar({
     setKeysOpen(true)
   }
 
-  // Bound before the early return below, so `?` answers off-turn too. The
-  // sizer and the list are dialogs, and `keysReachTable` stands down for any
-  // open dialog: the sizer's own keys are handled on the sizer.
+  // Before the early return, so `?` works off turn. Open dialogs handle their own keys.
   useTableKeys(keyboard, (e) => {
     const intent = tableKeyFor(e, e.target as KeyTarget | null, document, isHeroTurn ? legal : null)
     if (!intent) return
@@ -105,7 +102,6 @@ export function ActionBar({
     act({ type: legal.canBet ? 'bet' : 'raise', amount: raiseTo })
     setSizerOpen(false)
   }
-  // In the sizer: 1–4 are the presets, Enter puts the chips in (lib/tableKeys).
   const sizerKeys = (e: React.KeyboardEvent) => {
     const intent = sizerIntentFor(e, e.target as KeyTarget)
     if (!intent) return
@@ -186,8 +182,7 @@ export function ActionBar({
       <Dialog open={sizerOpen} onOpenChange={setSizerOpen}>
         <DialogContent
           className="sm:max-w-xs"
-          // The slider rather than the close button, so Enter confirms and the
-          // arrow keys size from the moment it opens.
+          // The slider, so the arrow keys size and Enter confirms straight away.
           initialFocus={keyboard ? slider : undefined}
           onKeyDown={keyboard ? sizerKeys : undefined}
         >

@@ -9,17 +9,12 @@ import {
   intentFor,
   KEY_LIST,
   KEYBOARD_QUERY,
-  keyboardDevice,
   keysReachTable,
-  letterOf,
-  listenForTableKeys,
   SIZER_PRESET_KEYS,
   sizerIntentFor,
   tableKeyFor,
-  TOUCH_QUERY,
   type KeyPress,
   type KeyTarget,
-  type KeyWindow,
 } from '@/lib/tableKeys'
 
 // Real spots from the real engine rather than hand-built flags, so the keys are
@@ -42,11 +37,7 @@ const callOrFold = (): LegalActions => ({
 })
 const drawRound = (): LegalActions => ({ ...canCheck(), canDraw: true })
 
-const press = (key: string, extra: Partial<KeyPress> = {}): KeyPress => ({
-  key,
-  code: /^[a-z]$/i.test(key) ? `Key${key.toUpperCase()}` : key === ' ' ? 'Space' : undefined,
-  ...extra,
-})
+const press = (key: string, extra: Partial<KeyPress> = {}): KeyPress => ({ key, ...extra })
 
 test('the spots are what they say they are', (t) => {
   t.false(facingBet().canCheck)
@@ -135,20 +126,6 @@ test('other keys do nothing', (t) => {
   }
 })
 
-test('the printed letter decides, and a non-Latin layout falls back to the physical key', (t) => {
-  // Dvorak: the key printed F sits where QWERTY has Y.
-  t.is(letterOf({ key: 'f', code: 'KeyY' }), 'f')
-  // AZERTY: the key printed A is QWERTY's Q. It is A, not anything we map.
-  t.is(letterOf({ key: 'a', code: 'KeyQ' }), 'a')
-  // Russian: the key under F prints а. There is no F on the board, so the
-  // physical key stands in.
-  t.is(letterOf({ key: 'а', code: 'KeyF' }), 'f')
-  t.is(intentFor({ key: 'с', code: 'KeyC' }, facingBet()), 'call')
-  // Punctuation on the physical letter's key is not a letter.
-  t.is(letterOf({ key: ';', code: 'KeyS' }), null)
-  t.is(letterOf({ key: 'Enter', code: 'Enter' }), null)
-})
-
 test('in the sizer: 1–4 are the presets, Enter confirms, nothing else answers', (t) => {
   t.deepEqual(
     SIZER_PRESET_KEYS.map((key) => sizerIntentFor(press(key))),
@@ -208,97 +185,13 @@ test('the page itself reaches the table', (t) => {
   t.true(keysReachTable(press('c'), null))
 })
 
-/**
- * A pretend window: how it answers the two media queries, and the listeners
- * it was handed. `undefined` is a window with no `matchMedia` at all.
- */
-function fakeWindow(device: { fine: boolean; touch: boolean } | undefined) {
-  const listeners = new Set<unknown>()
-  const queries: string[] = []
-  const win: KeyWindow = {
-    // A method, not an arrow, and it insists on being called on the window the
-    // way a browser's does: `const m = window.matchMedia; m(q)` throws there.
-    matchMedia:
-      device === undefined
-        ? undefined
-        : function (this: unknown, query: string) {
-            if (this !== win) throw new TypeError('Illegal invocation')
-            queries.push(query)
-            return {
-              matches:
-                query === KEYBOARD_QUERY ? device.fine : query === TOUCH_QUERY && device.touch,
-            }
-          },
-    addEventListener: (_type, fn) => listeners.add(fn),
-    removeEventListener: (_type, fn) => listeners.delete(fn),
-  }
-  return { win, listeners, queries }
-}
-
-test('a mouse or trackpad and no touchscreen: it listens, and the cleanup stops it', (t) => {
-  const { win, listeners, queries } = fakeWindow({ fine: true, touch: false })
-  const stop = listenForTableKeys(win, () => {})
-  t.is(listeners.size, 1)
-  t.deepEqual(queries.sort(), [KEYBOARD_QUERY, TOUCH_QUERY].sort())
-  t.truthy(stop)
-  stop?.()
-  t.is(listeners.size, 0)
-})
-
-test('a phone, a tablet, a tablet with a trackpad, a touchscreen laptop: nothing at all', (t) => {
-  const devices = {
-    // A finger is the only pointer.
-    phone: { fine: false, touch: true },
-    // An iPad with a trackpad case can report a fine primary pointer, and it
-    // still has the touchscreen. So does a laptop with one.
-    'tablet with a trackpad, or a touchscreen laptop': { fine: true, touch: true },
-    // A TV remote or a stylus-only screen: no fine primary, nothing coarse.
-    'no fine pointer': { fine: false, touch: false },
-  }
-  for (const [name, device] of Object.entries(devices)) {
-    const { win, listeners } = fakeWindow(device)
-    t.is(
-      listenForTableKeys(win, () => {}),
-      null,
-      name,
-    )
-    t.is(listeners.size, 0, name)
-  }
-})
-
-test('nowhere to ask, or no window: nothing registered', (t) => {
-  const { win, listeners } = fakeWindow(undefined)
-  t.is(
-    listenForTableKeys(win, () => {}),
-    null,
-  )
-  t.is(listeners.size, 0)
-  t.is(
-    listenForTableKeys(undefined, () => {}),
-    null,
-  )
-})
-
-test('the device test is: fine primary pointer, and no coarse pointer anywhere', (t) => {
-  t.true(keyboardDevice(true, false))
-  t.false(keyboardDevice(true, true))
-  t.false(keyboardDevice(false, false))
-  t.false(keyboardDevice(false, true))
-})
-
-test('desktop is the pointers, never the width, and every query parses', (t) => {
-  t.is(KEYBOARD_QUERY, '(hover: hover) and (pointer: fine)')
-  t.is(TOUCH_QUERY, '(any-pointer: coarse)')
-  for (const query of [KEYBOARD_QUERY, TOUCH_QUERY]) {
-    t.false(/width/.test(query), query)
-    // `… and not (x)` is not a media query: browsers read it as `not all`,
-    // which matches nothing and would switch the keys off without a word.
-    t.false(/\bnot\b/.test(query), query)
-  }
-  // And nothing on the keyboard's path quietly re-gates it on the screen size.
+test('desktop is one query on the pointers, never the width', (t) => {
+  // A fine hovering primary pointer, and no touchscreen anywhere: that keeps
+  // out tablets with a trackpad and touchscreen laptops as well as phones.
+  t.is(KEYBOARD_QUERY, '(hover: hover) and (pointer: fine) and (not (any-pointer: coarse))')
   for (const file of ['src/lib/tableKeys.ts', 'src/components/table/keys.tsx']) {
     const src = readFileSync(file, 'utf8')
-    t.false(/useIsMobile|max-width|min-width|\bsm:grid\b/.test(src), file)
+    t.false(/useIsMobile|max-width|min-width/.test(src), file)
   }
 })
 

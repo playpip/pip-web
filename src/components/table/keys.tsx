@@ -1,51 +1,25 @@
 'use client'
 
-// The table's keyboard, on screen: the letters on the buttons and the list `?`
-// opens. What the keys do is decided in `lib/tableKeys`.
+// The table's keyboard on screen. What the keys do is in `lib/tableKeys`.
 
 import { useEffect, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useMediaQuery } from '@/lib/useMediaQuery'
-import {
-  KEY_LIST,
-  KEYBOARD_QUERY,
-  keyboardDevice,
-  listenForTableKeys,
-  TOUCH_QUERY,
-} from '@/lib/tableKeys'
+import { KEY_LIST, KEYBOARD_QUERY } from '@/lib/tableKeys'
 
-/**
- * True on a device whose primary pointer is a mouse or a trackpad and which has
- * no touchscreen (lib/tableKeys). False on the server and on first paint.
- */
-export function useTableKeyboard() {
-  const fine = useMediaQuery(KEYBOARD_QUERY)
-  const touch = useMediaQuery(TOUCH_QUERY)
-  return keyboardDevice(fine, touch)
-}
+/** Whether this device gets the keys at all. False on the server and first paint. */
+export const useTableKeyboard = () => useMediaQuery(KEYBOARD_QUERY)
 
-/**
- * Listen on `window` while `enabled`, on a keyboard device only.
- *
- * The handler is held in a ref and the listener bound once per `enabled`, as
- * in `ReviewTable`: depending on the handler would re-bind it every render.
- */
+/** A window keydown listener while `enabled`. The handler lives in a ref, as in `ReviewTable`. */
 export function useTableKeys(enabled: boolean, onKey: (e: KeyboardEvent) => void) {
   const handler = useRef(onKey)
   handler.current = onKey
   useEffect(() => {
     if (!enabled) return
-    return listenForTableKeys(window, (e) => handler.current(e)) ?? undefined
+    const listener = (e: KeyboardEvent) => handler.current(e)
+    window.addEventListener('keydown', listener)
+    return () => window.removeEventListener('keydown', listener)
   }, [enabled])
-}
-
-/** A key, written out in a sentence or the list. */
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="inline-grid h-5 min-w-5 place-items-center rounded-md bg-foreground/[0.08] px-1.5 font-sans text-[0.65rem] font-medium leading-none text-foreground/80">
-      {children}
-    </kbd>
-  )
 }
 
 /** The list `?` opens. */
@@ -71,7 +45,12 @@ export function TableKeysDialog({
               <dt className="text-sm">{row.does}</dt>
               <dd className="flex shrink-0 gap-1">
                 {row.keys.map((k) => (
-                  <Kbd key={k}>{k}</Kbd>
+                  <kbd
+                    key={k}
+                    className="inline-grid h-5 min-w-5 place-items-center rounded-md bg-foreground/[0.08] px-1.5 font-sans text-[0.65rem] font-medium leading-none text-foreground/80"
+                  >
+                    {k}
+                  </kbd>
                 ))}
               </dd>
             </div>
