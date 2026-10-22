@@ -182,29 +182,11 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 
 ### The table's keyboard
 
-On a computer the action bar answers the keyboard: **F** folds, **C** presses the middle
-button (Call, or Check when there is nothing to call), **R** opens the Bet/Raise sizer,
-**Space** or **X** checks, **?** lists them. In the sizer **1–4** are ½ · ¾ · Pot · Max
-and **Enter** puts the chips in. The decisions are pure, in `lib/tableKeys.ts`
-(`tests/tableKeys.test.ts`, no DOM library); the drawing is `table/keys.tsx`.
-
-- **"A computer" is the pointers, not the width:** the primary pointer matches
-  `(hover: hover) and (pointer: fine)` *and* nothing matches `(any-pointer: coarse)`.
-  A phone, a tablet (with a trackpad case too) and a laptop with a touchscreen register
-  no listener and draw no letters; a narrow desktop window still gets them. Two Level 3
-  queries rather than one with `not` in it: `… and not (…)` does not parse, matches
-  nothing, and would switch the keys off silently.
-- **R never bets by itself, and Space never calls.** A size is a decision, and Space is
-  the key a hand rests on. Facing a bet, Space does nothing. **F always folds**, a free
-  check included, because it is the Fold button's letter; Space is the free check.
-- **Nothing fires** with Ctrl/⌘/Alt (or Shift, bar `?`), on a held key repeating, while
-  typing, or while a dialog or menu is open; and Space on a focused button is that
-  button's.
-- **How a player finds out:** the letter in each button's corner (the drills' badge), and
-  one line under the bar until a key is used, the list is opened or it is closed. It is
-  furniture in space already there, never over the felt, and it does not come back
-  (brand principle 5). Device-local (`pip.tableKeys`), like the text size.
-- The multiplayer room plays through the same `ActionBar`, so it has the same keys.
+On desktop the action bar takes **F** fold, **C** call/check, **R** the sizer (never a bet
+by itself), **Space**/**X** check (never a call), and in the sizer **1–4** and **Enter**;
+**?** lists them. Desktop is one media query on the pointers, not the width, so phones,
+tablets and touchscreen laptops get none of it. The letters use the drills' `KeyBadge`;
+no hint lines. Logic in `lib/tableKeys.ts`.
 
 ## Components inventory
 
@@ -214,8 +196,8 @@ and **Enter** puts the chips in. The decisions are pure, in `lib/tableKeys.ts`
   `ChipsDialog` (award collection), `StatsDialog` (lifetime stats + the Roll graph).
 - Settings: `SettingsDialog` (card-back picker + profile backup/restore).
 - Table: `Table`, `ActionBar` (fold / check·call / bet·raise + sizer with ½·¾·Pot·Max),
-  `table/keys` (the keyboard's badges, hint and list), `HandHistoryDialog` (last-hand timeline).
-- Primitives: `PlayerAvatar`, `PlayingCard`, `CardBack`, `CountUp`, `AwardChip`,
+  `table/keys` (the keyboard and its list), `HandHistoryDialog` (last-hand timeline).
+- Primitives: `PlayerAvatar`, `PlayingCard`, `CardBack`, `CountUp`, `AwardChip`, `KeyBadge`,
   `RollGraph` (hand-rolled smoothed SVG area chart; its `LineGraph` core also draws the
   drill rating over spots answered, and the report's sparklines via `profile/DrillRating`), `ThemeToggle`,
   shadcn `ui/button`, `ui/dialog`.
