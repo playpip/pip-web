@@ -4,13 +4,7 @@
 // opens. What the keys do is decided in `lib/tableKeys`.
 
 import { useEffect, useRef } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useMediaQuery } from '@/lib/useMediaQuery'
 import {
   KEY_LIST,
@@ -100,7 +94,6 @@ export function TableKeysDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Keyboard</DialogTitle>
-          <DialogDescription>On your turn. The letter on a button presses it.</DialogDescription>
         </DialogHeader>
         <dl className="flex flex-col gap-1.5 pt-1">
           {KEY_LIST.map((row) => (

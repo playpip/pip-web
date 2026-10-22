@@ -71,12 +71,12 @@ export const SIZER_PRESET_KEYS = ['1', '2', '3', '4'] as const
  */
 export const KEY_LIST: readonly { keys: readonly string[]; does: string }[] = [
   { keys: ['F'], does: 'Fold' },
-  { keys: ['C'], does: 'Call, or check when there is nothing to call' },
-  { keys: ['Space', 'X'], does: 'Check. Never calls' },
-  { keys: ['R'], does: 'Bet or raise: opens the sizer' },
-  { keys: SIZER_PRESET_KEYS, does: 'In the sizer: ½ pot, ¾ pot, pot, max' },
-  { keys: ['Enter'], does: 'In the sizer: put the chips in' },
-  { keys: ['Esc'], does: 'Close the sizer without betting' },
+  { keys: ['C'], does: 'Call / Check' },
+  { keys: ['Space', 'X'], does: 'Check' },
+  { keys: ['R'], does: 'Bet / Raise' },
+  { keys: SIZER_PRESET_KEYS, does: '½ · ¾ · Pot · Max' },
+  { keys: ['Enter'], does: 'Confirm' },
+  { keys: ['Esc'], does: 'Close' },
   { keys: ['?'], does: 'This list' },
 ]
 
