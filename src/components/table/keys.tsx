@@ -13,7 +13,6 @@ import {
   listenForTableKeys,
   TOUCH_QUERY,
 } from '@/lib/tableKeys'
-import { cn } from '@/lib/utils'
 
 /**
  * True on a device whose primary pointer is a mouse or a trackpad and which has
@@ -38,38 +37,6 @@ export function useTableKeys(enabled: boolean, onKey: (e: KeyboardEvent) => void
     if (!enabled) return
     return listenForTableKeys(window, (e) => handler.current(e)) ?? undefined
   }, [enabled])
-}
-
-/**
- * The letter in a button's corner. The drills' badge (`Answer` in
- * drills/felt.tsx), so a key reads the same everywhere it is offered.
- */
-export function KeyBadge({
-  k,
-  onPrimary = false,
-  small = false,
-}: {
-  k: string
-  onPrimary?: boolean
-  /** For the sizer's small preset buttons, as `HandSeat` sizes it in the drills. */
-  small?: boolean
-}) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        'pointer-events-none absolute grid place-items-center font-medium leading-none',
-        small
-          ? 'right-1 top-1 h-4 min-w-4 rounded px-0.5 text-[0.6rem]'
-          : 'right-2 top-2 h-5 min-w-5 rounded-md px-1 text-[0.65rem]',
-        onPrimary
-          ? 'bg-primary-foreground/10 text-primary-foreground/60'
-          : 'bg-foreground/[0.06] text-muted-foreground',
-      )}
-    >
-      {k}
-    </span>
-  )
 }
 
 /** A key, written out in a sentence or the list. */

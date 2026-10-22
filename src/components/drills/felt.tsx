@@ -21,6 +21,7 @@
 
 import { MotionConfig, motion } from 'framer-motion'
 import { Check, Lock } from 'lucide-react'
+import { KeyBadge } from '@/components/KeyBadge'
 import { DealtCard, PlayingCard } from '@/components/PlayingCard'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import type { DrillStakes } from '@/lib/drills/types'
@@ -380,12 +381,7 @@ export function Answer({
       {state === 'right' || state === 'missed' ? (
         <Check className="absolute right-2.5 top-2.5 size-4 text-emerald-500" />
       ) : (
-        state === 'open' &&
-        shortcut && (
-          <span className="absolute right-2 top-2 hidden size-5 place-items-center rounded-md bg-foreground/[0.06] text-[0.65rem] font-medium text-muted-foreground sm:grid">
-            {shortcut}
-          </span>
-        )
+        state === 'open' && shortcut && <KeyBadge className="hidden sm:grid">{shortcut}</KeyBadge>
       )}
     </button>
   )

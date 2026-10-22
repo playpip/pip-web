@@ -15,7 +15,8 @@ import {
   tableKeyFor,
   type KeyTarget,
 } from '@/lib/tableKeys'
-import { KeyBadge, TableKeysDialog, useTableKeyboard, useTableKeys } from './keys'
+import { KeyBadge } from '@/components/KeyBadge'
+import { TableKeysDialog, useTableKeyboard, useTableKeys } from './keys'
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
@@ -222,7 +223,7 @@ export function ActionBar({
                   className="relative flex-1 rounded-xl bg-foreground/5 py-2 text-sm font-medium transition hover:bg-foreground/10"
                 >
                   {label}
-                  {keyboard && <KeyBadge k={SIZER_PRESET_KEYS[i]} small />}
+                  {keyboard && <KeyBadge className={ON_PRESET}>{SIZER_PRESET_KEYS[i]}</KeyBadge>}
                 </button>
               ))}
               <button
@@ -231,7 +232,9 @@ export function ActionBar({
                 className="relative flex-1 rounded-xl bg-foreground/5 py-2 text-sm font-medium transition hover:bg-foreground/10"
               >
                 Max
-                {keyboard && <KeyBadge k={SIZER_PRESET_KEYS[PRESETS.length]} small />}
+                {keyboard && (
+                  <KeyBadge className={ON_PRESET}>{SIZER_PRESET_KEYS[PRESETS.length]}</KeyBadge>
+                )}
               </button>
             </div>
 
@@ -242,7 +245,7 @@ export function ActionBar({
               className="relative w-full rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
             >
               {legal.canBet ? 'Bet' : 'Raise'} {isAllIn ? 'all in' : money(raiseTo)}
-              {keyboard && <KeyBadge k="Enter" onPrimary />}
+              {keyboard && <KeyBadge className={ON_PRIMARY}>Enter</KeyBadge>}
             </button>
           </div>
         </DialogContent>
@@ -257,6 +260,11 @@ const PRESETS = [
   { label: '¾', fraction: 0.75 },
   { label: 'Pot', fraction: 1 },
 ] as const
+
+/** The badge on the white primary button. */
+const ON_PRIMARY = 'bg-primary-foreground/10 text-primary-foreground/60'
+/** The badge on the sizer's narrow presets, clear of the label. */
+const ON_PRESET = 'right-1 top-1 h-4 min-w-4 text-[0.6rem]'
 
 function Pill({
   children,
@@ -282,7 +290,9 @@ function Pill({
       )}
     >
       {children}
-      {shortcut && <KeyBadge k={shortcut} onPrimary={tone === 'primary'} />}
+      {shortcut && (
+        <KeyBadge className={tone === 'primary' ? ON_PRIMARY : undefined}>{shortcut}</KeyBadge>
+      )}
     </button>
   )
 }
