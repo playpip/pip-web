@@ -47,6 +47,28 @@ It's Monte-Carlo-heavy — a venue takes ~2–4 minutes at n=50; high venues
 (more `iterations`) take longer. n=50 has roughly a ±7pp margin; use n≥200
 for numbers you'll quote.
 
+### Measuring an AI change
+
+`pnpm bot-duel` is the A/B test for the AI itself. Two versions sit at one table
+on the same deck and the same per-chair decision streams, then swap chairs and
+play the deal again, so the luck of the cards cancels: a version against itself
+scores exactly 0 on every deal (`tests/botDuel.test.ts`). Versions are named in
+`scripts/ai-versions.ts`; a new one is v1 with an `AiProfile.experiment` switch on,
+so v1 itself never moves.
+
+```bash
+pnpm bot-duel --a exact --b fast --venue mainevent --deals 20000 --iters 99999
+pnpm bot-duel --mode sng --deals 600            # sit-and-gos, ROI an entry
+pnpm bot-duel --layout solo                     # one new bot at a table of old ones
+pnpm bot-duel --a v1@cardroom --b v1@garage     # one rung against another
+pnpm exploit-sim --ai exact                     # the scripted heroes, against a version
+pnpm persona-stats casino                       # can a tracker tell the cast apart?
+pnpm ai-bench --ai v1,fast,wrange               # milliseconds per decision, by version
+```
+
+Quote the 95% band, never the rate alone. `fast` makes exactly v1's decisions, so
+long runs use it in v1's place.
+
 ## Testing (AVA)
 
 Tests are **AVA**, not Vitest. Config in `ava.config.js` runs TypeScript via `tsx`:

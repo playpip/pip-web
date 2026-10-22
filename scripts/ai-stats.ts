@@ -8,13 +8,14 @@
 //   pnpm ai-stats mainevent penthouse      # venue ids
 //   pnpm ai-stats --hands 4000 --iters 300 # sample size, and a cap on sims per decision
 //   pnpm ai-stats --bb 20                  # stack depth in big blinds (default 100)
+//   pnpm ai-stats --ai exact               # another AI version (scripts/ai-versions.ts)
 //
 // Reference ranges for a solid six-handed regular are printed beside each
 // stat. They are rough and widely quoted, not a target: a soft table should
 // sit well outside them, and the top of the ladder near them.
 
 import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
-import { createTableMemory, observeAction } from '@/lib/poker/ai/memory'
+import { createTableMemory, observeAction, observeHandEnd } from '@/lib/poker/ai/memory'
 import { mulberry32 } from '@/lib/poker/cards'
 import {
   type Action,
@@ -24,6 +25,7 @@ import {
   startHand,
 } from '@/lib/poker/engine'
 import { venueById } from '@/config/venues'
+import { versionProfile } from './ai-versions'
 
 interface Counter {
   hits: number
@@ -152,6 +154,7 @@ function playHand(
     observeAction(memory, state, action)
     state = applyAction(state, action)
   }
+  observeHandEnd(memory, state)
   for (const p of state.players) {
     if (p.status === 'out') continue
     bump('vpip', vpip.has(p.id))
@@ -171,7 +174,7 @@ const flag = (name: string) => {
   return i >= 0 ? args[i + 1] : undefined
 }
 const flagged = new Set(
-  ['--hands', '--iters', '--bb', '--seed'].flatMap((f) => {
+  ['--hands', '--iters', '--bb', '--seed', '--ai'].flatMap((f) => {
     const i = args.indexOf(f)
     return i >= 0 ? [i, i + 1] : []
   }),
@@ -182,13 +185,17 @@ const hands = Number(flag('hands') ?? 3000)
 const iters = Number(flag('iters') ?? 300)
 const depth = Number(flag('bb') ?? 100)
 const seed = Number(flag('seed') ?? 1)
+const version = flag('ai') ?? 'v1'
 
 const columns: string[][] = []
 for (const id of ids) {
   const venue = venueById(id)
   if (!venue) throw new Error(`unknown venue ${id}`)
   for (const k of Object.keys(STATS) as StatKey[]) STATS[k] = c()
-  const profile = { ...venue.ai, iterations: Math.min(venue.ai.iterations, iters) }
+  const profile = {
+    ...versionProfile(version, venue.ai),
+    iterations: Math.min(venue.ai.iterations, iters),
+  }
   const rng = mulberry32(seed)
   const memory = createTableMemory()
   for (let h = 0; h < hands; h++) {
@@ -214,7 +221,7 @@ for (const id of ids) {
 }
 
 console.log(
-  `${hands} hands a venue · 6-handed · ${depth}bb · sims capped at ${iters} · seed ${seed}\n`,
+  `${hands} hands a venue · 6-handed · ${depth}bb · sims capped at ${iters} · seed ${seed} · AI ${version}\n`,
 )
 console.log(
   `  ${''.padEnd(32)}${ids.map((id) => id.padStart(16)).join('')}${'reference'.padStart(12)}`,
