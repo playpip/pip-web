@@ -135,13 +135,15 @@ export function intentFor(e: KeyPress, legal: LegalActions | null): TableIntent 
 export type SizerIntent = { preset: number } | 'confirm'
 
 /**
- * A key press inside the open sizer. 1–4 pick a preset; Enter confirms from
- * anywhere in it but the close button, so a size picked with the mouse can be
- * confirmed from the keyboard without tabbing to the big button first.
+ * A key press inside the open sizer. 1–4 pick a preset. Enter confirms from
+ * the slider or the confirm button; on any other button it is that button's.
  */
 export function sizerIntentFor(e: KeyPress, target?: KeyTarget | null): SizerIntent | null {
   if (anyModifier(e) || e.shiftKey || e.repeat || e.isComposing) return null
-  if (e.key === 'Enter') return target?.closest?.(SIZER_CLOSE) ? null : 'confirm'
+  if (e.key === 'Enter') {
+    const onButton = target?.closest?.('button') && !target.closest?.(SIZER_CONFIRM)
+    return onButton ? null : 'confirm'
+  }
   const preset = (SIZER_PRESET_KEYS as readonly string[]).indexOf(e.key)
   return preset === -1 ? null : { preset }
 }
@@ -153,8 +155,8 @@ export interface KeyTarget {
   closest?: (selector: string) => unknown
 }
 
-/** The dialog's own close button, whose Enter closes rather than bets. */
-const SIZER_CLOSE = '[data-slot="dialog-close"]'
+/** The sizer's confirm button. */
+export const SIZER_CONFIRM = '[data-sizer-confirm]'
 /** Something already open over the table that owns the keyboard while it is. */
 const OVERLAY = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'
 /** Elements whose own Space and Enter already do something. */

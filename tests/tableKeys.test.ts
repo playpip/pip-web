@@ -336,14 +336,19 @@ test('the listener answers what the buttons say, wherever the page has focus', (
   t.is(tableKeyFor(press('?', { shiftKey: true }), body, noDialog, drawRound()), 'help')
 })
 
-test('in the sizer, Enter confirms from the slider or a preset, but not from the close button', (t) => {
+test('in the sizer, Enter bets from the slider, the confirm button or no focus', (t) => {
   t.is(sizerIntentFor(press('Enter'), node('INPUT')), 'confirm')
-  t.is(sizerIntentFor(press('Enter'), node('BUTTON')), 'confirm')
+  t.is(sizerIntentFor(press('Enter'), node('BUTTON', ['[data-sizer-confirm]'])), 'confirm')
+  t.is(sizerIntentFor(press('Enter'), node('DIV', ['[role="dialog"]'])), 'confirm')
   t.is(sizerIntentFor(press('Enter'), null), 'confirm')
-  const close = node('BUTTON', ['[data-slot="dialog-close"]'])
-  t.is(sizerIntentFor(press('Enter'), close), null)
-  // The presets answer wherever focus is.
-  t.deepEqual(sizerIntentFor(press('3'), close), { preset: 2 })
+})
+
+test('in the sizer, Enter on a focused preset picks it rather than betting', (t) => {
+  // Tabbed to Pot, or to Max, or to the close button: Enter is that button's.
+  t.is(sizerIntentFor(press('Enter'), node('BUTTON')), null)
+  t.is(sizerIntentFor(press('Enter'), node('BUTTON', ['[data-slot="dialog-close"]'])), null)
+  // The presets' digits answer wherever focus is.
+  t.deepEqual(sizerIntentFor(press('3'), node('BUTTON')), { preset: 2 })
 })
 
 test('server render and touch render: no letters, no hint, no aria-keyshortcuts', (t) => {

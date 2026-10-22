@@ -256,6 +256,7 @@ export function ActionBar({
 
             <button
               onClick={confirmRaise}
+              data-sizer-confirm
               aria-keyshortcuts={keyboard ? 'Enter' : undefined}
               className="relative w-full rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
             >
