@@ -1,14 +1,17 @@
 // The AI versions the measurement scripts can name: `pnpm bot-duel --a exact`,
 // `pnpm exploit-sim --ai exact`, `pnpm ai-stats --ai exact`.
 //
-// `v1` is the shipped AI. Every other version is v1 with switches from
+// `v1` is the AI with no switches, the one the Daily and every table below
+// `RANGED_AI_FROM_SKILL` play; `wpf3` is what the tables from it up play
+// (`lib/poker/ai/tableAi.ts`). Every other version is v1 with switches from
 // `AiProfile.experiment` turned on, so none of them can change v1: the Daily
-// replays the shipped AI off a seed, and it has to stay exactly as it is.
+// replays it off a seed, and it has to stay exactly as it is.
 // `fast` makes exactly v1's decisions sooner (tests/aiExperiment.test.ts), so a
 // long measurement uses it in v1's place and says so.
 
 import type { TableMemory } from '@/lib/poker/ai/memory'
 import { type AiExperiment, type AiProfile, decideAction } from '@/lib/poker/ai/policy'
+import { RANGED_AI } from '@/lib/poker/ai/tableAi'
 import type { Rng } from '@/lib/poker/cards'
 import type { Action, HandState } from '@/lib/poker/engine'
 
@@ -27,9 +30,9 @@ export interface Policy {
 }
 
 /**
- * The versions a duel can name. `v1` is the shipped AI. A new version earns a
- * line here by being switchable without touching `v1`: the Daily replays the
- * shipped AI off a seed, so the old one has to stay exactly as it is.
+ * The versions a duel can name. A new version earns a line here by being
+ * switchable without touching `v1`: the Daily replays v1 off a seed, so the
+ * old one has to stay exactly as it is.
  */
 const withExperiment =
   (experiment: AiExperiment) =>
@@ -43,7 +46,10 @@ const withExperiment =
 export const OPENING_EIGHT_HANDED = [0.42, 0.38, 0.42, 0.26, 0.19, 0.15, 0.13, 0.115] as const
 
 export const POLICIES: Record<string, Policy> = {
-  v1: { about: 'the shipped decideAction', decide: decideAction },
+  v1: {
+    about: 'decideAction with no switches: the Daily and the softer tables',
+    decide: decideAction,
+  },
   fast: {
     about: 'v1 with showdowns settled by rankHoldem: must play exactly like v1',
     decide: decideAction,
@@ -66,15 +72,9 @@ export const POLICIES: Record<string, Policy> = {
     profile: withExperiment({ fastShowdown: true, weightedRanges: true, rangeTuning: true }),
   },
   wpf3: {
-    about: 'wrange2, with re-raises read by 3-bet rate off the same percentile ranges as pf3',
+    about: 'wrange2, with re-raises read by 3-bet rate: what the ranged tables play',
     decide: decideAction,
-    profile: withExperiment({
-      fastShowdown: true,
-      weightedRanges: true,
-      rangeTuning: true,
-      preflopRanges: true,
-      threeBetReads: true,
-    }),
+    profile: withExperiment(RANGED_AI),
   },
   open8: {
     about: 'fast, with first-in opening shares for seven and eight behind',

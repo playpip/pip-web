@@ -9,6 +9,7 @@
 //   pnpm cash-sim --hero casual       # beginner | casual | competent | best
 //   pnpm cash-sim --seed 7            # deterministic; same seed = same result
 //   pnpm cash-sim --workers 2         # default is one core short of the box
+//   pnpm cash-sim ring-mid --ai v1    # pin an AI version (scripts/ai-versions.ts), not the table's own
 //
 // ## What it measures
 //
@@ -68,6 +69,7 @@ import { spawn } from 'node:child_process'
 import os from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
+import { tableAi } from '@/lib/poker/ai/tableAi'
 import { mulberry32 } from '@/lib/poker/cards'
 import { applyAction, isHandComplete, startHand } from '@/lib/poker/engine'
 import {
@@ -78,6 +80,7 @@ import {
   venueById,
   type Venue,
 } from '@/config/venues'
+import { versionProfile } from './ai-versions'
 
 export const HERO_ID = 'hero'
 
@@ -114,14 +117,18 @@ export function orbitHands(requested: number, seats: number): number {
 /**
  * One hand at `venue`, every seat starting on the table stack. Returns each
  * seat's chip delta. Nothing carries over: the hand is a closed system, which is
- * what makes a session shardable by hand index.
+ * what makes a session shardable by hand index. The bots play the table's own
+ * AI, as `tableAi` picks it in the game, unless `ai` names a version
+ * (scripts/ai-versions.ts) to hold a baseline still.
  */
 export function playCashHand(
   venue: Venue,
   hero: AiProfile,
   rng: () => number,
   buttonIndex: number,
+  ai?: string,
 ): HandDeltas {
+  const field = ai === undefined ? tableAi(venue.ai, venue) : versionProfile(ai, venue.ai)
   const stack = venue.startingStack ?? venue.buyIn
   const seats = Array.from({ length: venue.seats }, (_, i) => ({
     id: i === 0 ? HERO_ID : `ai${i}`,
@@ -141,7 +148,7 @@ export function playCashHand(
   while (!isHandComplete(state)) {
     if (++guard > 400) throw new Error(`hand never completed at ${venue.id}`)
     const actor = state.players[state.toActIndex]
-    const profile = actor?.id === HERO_ID ? hero : venue.ai
+    const profile = actor?.id === HERO_ID ? hero : field
     state = applyAction(state, decideAction(state, profile, rng))
   }
 
@@ -180,11 +187,12 @@ export function runCashSession(
   seed: number,
   handStart: number,
   handEnd: number,
+  ai?: string,
 ): CashResult {
   let result = EMPTY
   for (let h = handStart; h < handEnd; h++) {
     const rng = mulberry32((hash(venue.id) + seed * 1_000_003 + h) >>> 0)
-    const delta = playCashHand(venue, hero, rng, h)[HERO_ID] ?? 0
+    const delta = playCashHand(venue, hero, rng, h, ai)[HERO_ID] ?? 0
     result = {
       hands: result.hands + 1,
       chips: result.chips + delta,
@@ -245,6 +253,7 @@ interface WorkerInput {
   seed: number
   handStart: number
   handEnd: number
+  ai?: string
 }
 
 // True only when this file is the process entry point. Everything above is
@@ -258,13 +267,15 @@ const IS_ENTRY =
 // and writes the totals back as JSON. (worker_threads can't be used: the thread
 // wouldn't inherit tsx's TS loader.)
 if (IS_ENTRY && process.env.CASH_SLICE) {
-  const { venueId, heroName, seed, handStart, handEnd } = JSON.parse(
+  const { venueId, heroName, seed, handStart, handEnd, ai } = JSON.parse(
     process.env.CASH_SLICE,
   ) as WorkerInput
   const venue = venueById(venueId)
   const heroProfile = HEROES[heroName]
   if (!venue || !heroProfile) throw new Error(`worker: bad venue/hero ${venueId}/${heroName}`)
-  process.stdout.write(JSON.stringify(runCashSession(venue, heroProfile, seed, handStart, handEnd)))
+  process.stdout.write(
+    JSON.stringify(runCashSession(venue, heroProfile, seed, handStart, handEnd, ai)),
+  )
   process.exit(0)
 }
 
@@ -274,6 +285,7 @@ function runVenueParallel(
   heroName: string,
   hands: number,
   workers: number,
+  ai?: string,
 ): Promise<CashResult> {
   // Chunk on a multiple of `seats` so every shard is position-balanced too, and
   // a partial run is never quietly biased towards the button.
@@ -289,7 +301,7 @@ function runVenueParallel(
     ranges.map(
       ([handStart, handEnd]) =>
         new Promise<CashResult>((resolve, reject) => {
-          const input: WorkerInput = { venueId: venue.id, heroName, seed, handStart, handEnd }
+          const input: WorkerInput = { venueId: venue.id, heroName, seed, handStart, handEnd, ai }
           const child = spawn(process.execPath, ['--import', 'tsx', scriptPath], {
             env: { ...process.env, CASH_SLICE: JSON.stringify(input) },
             stdio: ['ignore', 'pipe', 'inherit'],
@@ -360,13 +372,15 @@ if (IS_ENTRY && !process.env.CASH_SLICE) {
     console.error(`Unknown hero "${heroName}". Heroes: ${Object.keys(HEROES).join(', ')}`)
     process.exit(1)
   }
+  const ai = flags.get('ai')
+  if (ai !== undefined) versionProfile(ai, hero) // an unknown --ai fails here
   const venues = resolveVenues(names)
   // One core short of the box by default, so an interactive session stays usable.
   // A long unattended measurement should be given every core with --workers.
   const workers = Math.max(1, Number(flags.get('workers') ?? os.cpus().length - 1))
 
   console.log(
-    `Cash sessions · hero: ${heroName} (skill ${hero.skill}) · seed ${seed} · ${workers} worker(s)\n`,
+    `Cash sessions · hero: ${heroName} (skill ${hero.skill}) · seed ${seed} · AI ${ai ?? "the table's own"} · ${workers} worker(s)\n`,
   )
 
   const pad = (s: string, w: number) => s.padEnd(w)
@@ -387,7 +401,7 @@ if (IS_ENTRY && !process.env.CASH_SLICE) {
   for (const venue of venues) {
     const hands = orbitHands(requested, venue.seats)
     const started = Date.now()
-    const result = await runVenueParallel(venue, seed, heroName, hands, workers)
+    const result = await runVenueParallel(venue, seed, heroName, hands, workers, ai)
     const s = cashStats(result, venue.bigBlind)
     const secs = ((Date.now() - started) / 1000).toFixed(0)
     const lo = s.bb100 - s.ci95

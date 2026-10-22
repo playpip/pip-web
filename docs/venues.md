@@ -260,7 +260,11 @@ removing one can land quietly.
 higher venues. **Soundness** — `skill` climbs from 0.35 at the Garage (players who
 just learned: misread hands, fold under pressure) through 0.97 at Vegas to 1.0 at
 the Main Event (plays its best game, no manufactured mistakes). The Kitchen Table
-freeroll sits below the ladder at 0.3. See `docs/poker-engine.md`.
+freeroll sits below the ladder at 0.3. **Reads** — a table whose `skill` reaches
+`RANGED_AI_FROM_SKILL` (`config/aiGates.ts`) reads its opponents as weighted ranges
+and re-raises by percentile ranges (`lib/poker/ai/tableAi.ts`); softer tables, and the
+Daily at every tier, play the AI with no switches. A new venue gets one or the other by
+its `skill` alone. See `docs/poker-engine.md`.
 
 ## Adding / editing a venue
 

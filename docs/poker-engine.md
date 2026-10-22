@@ -178,7 +178,8 @@ equity + pot odds + a personality.
   (duplicate poker), so the deal's luck cancels and a version against itself scores
   exactly 0; `pnpm persona-stats` asks whether a tracker can tell the cast apart.
   Both, and `exploit-sim`/`ai-stats --ai <version>`, name versions from
-  `scripts/ai-versions.ts`.
+  `scripts/ai-versions.ts`. `sim` and `cash-sim` seat the table's own AI, as
+  `tableAi` picks it, unless `--ai` names one.
 - **Experiments** (`AiProfile.experiment`): switches under measurement, all off by
   default. With none set the AI makes exactly the decisions it shipped with, which
   the Daily's replay rests on; `tests/aiExperiment.test.ts` pins that with a
@@ -218,6 +219,17 @@ equity + pot odds + a personality.
   re-raise shares from the same function. Its own re-raises stay the same
   slice of the range they answer, but of that range as read (`answerScale`),
   so against a player who re-raises half their hands it 4-bets wider.
+- **Which AI sits at a table** (`ai/tableAi.ts`): a table whose skill is
+  `RANGED_AI_FROM_SKILL` (`config/aiGates.ts`, the one place the line is drawn)
+  or more plays `RANGED_AI`, the `wpf3` switches; every softer table plays with
+  none, decision for decision as before. The Daily keeps no switches at every
+  tier, whatever its skill, so its seeded replay stands. `tableAi` is applied
+  where the tables' players decide, the game store and a multiplayer room's
+  bots, by the table's skill rather than the seat's, so one table plays one AI.
+  Every switch acts at Hold'em only, so a ranged Omaha, Short Deck or draw
+  table plays exactly as before. Lessons, drills, the coach and the odds quote
+  never call `decideAction` and are untouched. `tests/tableAi.test.ts` pins both
+  sides of the line without naming its value.
 - Difficulty scales per venue via the profile (see `config/venues.ts`).
 
 ## Variants

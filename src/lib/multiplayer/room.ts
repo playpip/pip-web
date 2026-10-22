@@ -30,7 +30,13 @@ import {
   type HandState,
 } from '@/lib/poker/engine'
 import { type AiProfile, decideAction } from '@/lib/poker/ai/policy'
-import { createTableMemory, observeAction, type TableMemory } from '@/lib/poker/ai/memory'
+import { tableAi } from '@/lib/poker/ai/tableAi'
+import {
+  createTableMemory,
+  observeAction,
+  observeHandEnd,
+  type TableMemory,
+} from '@/lib/poker/ai/memory'
 import { BOT_ALONE_MS, botThinkMs, fillPlayers } from './players'
 
 /**
@@ -751,8 +757,12 @@ export function timeoutAction(hand: HandState): Action {
  * with, the bigger stack finishing higher, which is the standard tournament
  * rule. The last player standing wins the prize and the game is over.
  */
-function settle(state: RoomState, now: number): RoomState {
-  const hand = state.hand!
+function settle(ended: RoomState, now: number): RoomState {
+  const hand = ended.hand!
+  // Once a hand, at its end, so a hand the deal itself finished counts too.
+  const memory = structuredClone(ended.memory)
+  observeHandEnd(memory, hand)
+  const state = { ...ended, memory }
   const after = new Map(hand.players.map((p) => [p.id, p.stack]))
   const busting = state.players
     .filter((p) => p.place === null && p.stack > 0 && after.get(p.id) === 0)
@@ -800,7 +810,8 @@ export function tick(state: RoomState, now: number, rng: Rng): RoomState {
       // and the whole table waits on it.
       let applied: RoomState | null = null
       try {
-        const action = decideAction(hand, bot.ai ?? roomVenue(state.venueId)!.ai, rng, state.memory)
+        const venue = roomVenue(state.venueId)!
+        const action = decideAction(hand, tableAi(bot.ai ?? venue.ai, venue), rng, state.memory)
         applied = apply(state, action)
       } catch {
         applied = null
