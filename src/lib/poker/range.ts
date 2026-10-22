@@ -4,6 +4,7 @@
 // full 5-from-7 solve for speed — good enough to tell a flush from bottom pair.
 
 import type { Card, Rank, Suit } from './cards'
+import { CATEGORY, categoryOf, rankHoldem } from './rank7'
 
 const RANK_VALUE: Record<Rank, number> = {
   '2': 2,
@@ -170,4 +171,89 @@ export function preflopPercentile(hole: readonly Card[]): number {
   let ties = 0
   while (lo + ties < table.length && table[lo + ties] === mine) ties++
   return (lo + ties / 2) / table.length
+}
+
+/**
+ * `holeStrength` with the made hand read exactly, for ranking an opponent's
+ * candidate holdings on one board (`estimateEquity`'s `exactRange`).
+ *
+ * `madeStrength` reads the category and nudges by the highest card among all
+ * seven, which on most boards is a board card everybody shares. So inside a
+ * category it cannot tell top pair from bottom pair, or a good kicker from a
+ * bad one, and on a paired board every holding is "a pair": an opponent who
+ * bets is then drawn as any pair at all, which flatters every hand facing
+ * them. Here the made hand is `rankHoldem`'s exact order, pair rank and
+ * kickers included, and a draw only counts when one of the two hole cards is
+ * in it, because a draw on the board belongs to everybody. Preflop is the same
+ * as `holeStrength`.
+ */
+export function exactStrength(hole: readonly Card[], community: readonly Card[]): number {
+  if (hole.length < 2) return 0
+  if (community.length === 0) return preflopStrength(hole[0], hole[1])
+  const rank = rankHoldem(hole, community)
+  const cat = categoryOf(rank)
+  const within = (rank % 0x100000) / 0x100000
+  let s = (cat / 8) * 0.9 + within * 0.1
+  if (cat < CATEGORY.straight && community.length < 5) {
+    if (privateFlushDraw(hole, community)) s += 0.1
+    if (privateStraightDraw(hole, community)) s += 0.08
+  }
+  return Math.min(1, s)
+}
+
+/** Four to a flush, with at least one of them in the hand. */
+function privateFlushDraw(hole: readonly Card[], community: readonly Card[]): boolean {
+  for (const suit of new Set(hole.map((c) => c.suit))) {
+    const n =
+      hole.filter((c) => c.suit === suit).length + community.filter((c) => c.suit === suit).length
+    if (n === 4) return true
+  }
+  return false
+}
+
+/** Four ranks in a row that the board alone does not hold. */
+function privateStraightDraw(hole: readonly Card[], community: readonly Card[]): boolean {
+  const mask = (cards: readonly Card[]) => {
+    let m = 0
+    for (const c of cards) {
+      const v = RANK_VALUE[c.rank]
+      m |= 1 << v
+      if (v === 14) m |= 1 << 1
+    }
+    return m
+  }
+  const fours = (m: number) => m & (m << 1) & (m << 2) & (m << 3)
+  const all = fours(mask([...hole, ...community]))
+  return all !== 0 && all !== fours(mask(community))
+}
+
+let preflopOrder: { hole: readonly [Card, Card]; s: number }[] | null = null
+
+/**
+ * The top `share` of all 1,326 starting hands by `holeStrength`, strongest
+ * first, for drawing an opponent from a percentile range (`estimateEquity`'s
+ * `opponentTopShare`). Never fewer than one hand, and a cut that lands inside
+ * hands of equal strength takes all of them: cutting by deck order would keep
+ * some suits of a pair and drop the rest, and invent blockers that are not
+ * there. Built once, on first use.
+ */
+export function preflopTop(share: number): readonly (readonly [Card, Card])[] {
+  if (!preflopOrder) {
+    const deck: Card[] = []
+    for (const rank of Object.keys(RANK_VALUE) as Rank[]) {
+      for (const suit of ['c', 'd', 'h', 's'] as Suit[]) deck.push({ rank, suit })
+    }
+    const all: { hole: readonly [Card, Card]; s: number }[] = []
+    for (let i = 0; i < deck.length; i++) {
+      for (let j = i + 1; j < deck.length; j++) {
+        all.push({ hole: [deck[i], deck[j]], s: preflopStrength(deck[i], deck[j]) })
+      }
+    }
+    // Stable on ties, so the list is the same on every engine.
+    preflopOrder = all.sort((a, b) => b.s - a.s)
+  }
+  const order = preflopOrder
+  let n = Math.max(1, Math.min(order.length, Math.round(share * order.length)))
+  while (n < order.length && order[n].s === order[n - 1].s) n++
+  return order.slice(0, n).map((h) => h.hole)
 }

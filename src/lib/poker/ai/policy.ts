@@ -8,6 +8,7 @@ import {
   LINE,
   OPENING,
   POSTFLOP_GATE,
+  PREFLOP_RANGES,
   PREFLOP_RAISE_STRENGTH,
   PREFLOP_RAISE_THIN_STRENGTH,
   SEMI_BLUFF,
@@ -18,7 +19,9 @@ import { estimateEquity } from '../equity'
 import { holeStrength, preflopPercentile } from '../range'
 import { barrelledEveryStreet, checkRaised, lineOf, preflopAggressor, streetIsUnbet } from './line'
 import { credibility, foldiness, type TableMemory } from './memory'
+import { answerScale, levelShare, openShare, opponentShares, preflopRaises } from './preflopRanges'
 import { pushFoldAction } from './pushFold'
+import { opponentRanges, type RangeReads, shareBeaten } from './weightedRange'
 
 /**
  * A habit a character plays with, on top of their numbers: the thing a regular
@@ -50,6 +53,94 @@ export interface AiProfile {
   skill?: number
   /** A character's habit, if they have one. See `Habit`. */
   habit?: Habit
+  /**
+   * Changes under measurement (`pnpm bot-duel`). Every one is off unless set,
+   * and with none set this policy draws the same numbers in the same order as
+   * it always has, which is what the Daily's replay of its opponents rests on.
+   */
+  experiment?: AiExperiment
+}
+
+export interface AiExperiment {
+  /** Settle Monte-Carlo showdowns with `rankHoldem` (same answer, sooner). */
+  fastShowdown?: boolean
+  /** Rank opponents' sampled holdings by their exact hand (`exactStrength`). */
+  exactRange?: boolean
+  /**
+   * First-in opening shares by players behind, replacing `OPENING.shareByBehind`.
+   * The shipped table stops at five behind, so at seven and eight seats the
+   * first three chairs all open like six-handed under the gun.
+   */
+  openingByBehind?: readonly number[]
+  /**
+   * Read each opponent as a weighted range over every holding, reweighted by
+   * every action they take (`weightedRange.ts`), instead of one selectivity
+   * number. Hold'em only.
+   */
+  weightedRanges?: boolean
+  /**
+   * The second round of `weightedRanges`, and nothing without it: `true` for
+   * every part, or the parts one at a time to measure each (`RangeTuning`).
+   */
+  rangeTuning?: boolean | RangeTuning
+  /**
+   * Before the flop, read a re-raised pot by percentile ranges
+   * (`preflopRanges.ts`): equity against a 3-bet or 4-bet is taken against the
+   * top few percent of hands it represents, and it decides 4-bet, call or fold.
+   * The AI's own 3-bets and 4-bets come from the same ranges instead of the
+   * holding-quality gate, which is wider than the top rungs' whole opening
+   * range. Hold'em only.
+   */
+  preflopRanges?: boolean
+  /**
+   * With `preflopRanges`: read an opponent's re-raise by their own 3-bet rate
+   * (`reRaiseShare`) rather than by `credibility`. With `weightedRanges` as
+   * well, the weighted ranges' preflop likelihoods take their re-raise shares
+   * from the same function, so one set of percentile ranges serves both. The
+   * AI's own next raise stays a slice of the range it answers, but of that
+   * range as read (`answerScale`), never narrower than the table's.
+   */
+  threeBetReads?: boolean
+}
+
+/**
+ * The parts of `AiExperiment.rangeTuning`. The first round of weighted ranges
+ * beat the shipped AI at the top two rungs and lost money to the simplest
+ * human lines (`pnpm exploit-sim`): it folded too much, to steals and to bets
+ * from players who bet everything, and bluffed the river into a player who
+ * never folds.
+ */
+export interface RangeTuning extends RangeReads {
+  /**
+   * Halve the tightness tax on continuing, before and after the flop. It was
+   * set against the selectivity read, which flatters the hand it is asked
+   * about; a weighted range reads it honestly lower, so the same tax folded
+   * the big blind to steals far more often than a regular does.
+   */
+  halfTax?: boolean
+  /**
+   * Bluff the river only where the shipped read would also call the hand a
+   * bluff, and play an unbet river with a hand that loses to most random
+   * holdings on the shipped read. A range that has called down reads capped,
+   * which made weak hands look worth a stab, or even a value bet, into a
+   * player who calls everything: the river's bluffs ran at half again the
+   * shipped rate (`pnpm bot-duel`, river bets that are bluffs).
+   */
+  riverBluffs?: boolean
+}
+
+const ALL_TUNING: Required<RangeTuning> = {
+  wideReads: true,
+  flattenManiacs: true,
+  halfTax: true,
+  riverBluffs: true,
+}
+
+/** The `rangeTuning` parts in force: none unless weighted ranges are on, at Hold'em. */
+function rangeTuningOf(experiment: AiExperiment | undefined, state: HandState): RangeTuning {
+  const tuning = experiment?.rangeTuning
+  if (!tuning || !experiment?.weightedRanges || state.variant !== 'holdem') return {}
+  return tuning === true ? ALL_TUNING : tuning
 }
 
 const clamp = (n: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, n))
@@ -237,33 +328,80 @@ export function decideAction(
 
   const skill = clamp(profile.skill ?? 1, 0, 1)
 
+  // A re-raised pot read by ranges (`preflopRanges`): only set when the
+  // experiment is on, so the shipped AI draws exactly what it always drew.
+  const ranges =
+    profile.experiment?.preflopRanges && state.street === 'preflop' && state.variant === 'holdem'
+      ? preflopRaises(state)
+      : null
+  const reraised = !!ranges && ranges.length >= 2
+  const threeBetReads =
+    !!profile.experiment?.preflopRanges &&
+    !!profile.experiment?.threeBetReads &&
+    state.variant === 'holdem'
+
   // Short-stacked and first in, or facing one short shove: play the solved
   // chart (see pushFold.ts). Weaker seats reach for it less often and play the
   // spot by feel instead, which is the mistake a soft table should make.
   const chartMove = pushFoldAction(state, rng)
   if (chartMove && rng() < skill * skill) return chartMove
 
+  const tuning = rangeTuningOf(profile.experiment, state)
+
   // Model each opponent's range by how they've backed the hand, not as two
   // random cards, or the AI over-values its equity into aggression and calls
   // too light. Not as the best of a handful either: see `aiSelectivity`.
-  const { equity: trueEquity } = estimateEquity({
-    hole: player.hole,
-    community: state.community,
-    opponents: opponents.length,
-    opponentSelectivity: opponents.map((p) => aiSelectivity(state, p, memory, skill)),
-    iterations: profile.iterations,
-    rng,
-    // Without this the AI would be estimating Hold'em equity for a four-card
-    // hand: it would read its own first two cards and every opponent as two
-    // random ones, and play a different game from the one on the table.
-    variant: state.variant,
-  })
+  const equityOf = (weighted: boolean) =>
+    estimateEquity({
+      hole: player.hole,
+      community: state.community,
+      opponents: opponents.length,
+      opponentSelectivity: opponents.map((p) => aiSelectivity(state, p, memory, skill)),
+      iterations: profile.iterations,
+      rng,
+      // Without this the AI would be estimating Hold'em equity for a four-card
+      // hand: it would read its own first two cards and every opponent as two
+      // random ones, and play a different game from the one on the table.
+      variant: state.variant,
+      fastShowdown: profile.experiment?.fastShowdown,
+      exactRange: profile.experiment?.exactRange,
+      // Weighted ranges read a re-raise themselves, from the same percentile
+      // ranges (`threeBetReads`), so they take the place of these.
+      opponentTopShare:
+        reraised && !profile.experiment?.weightedRanges
+          ? opponentShares(state, opponents, memory, skill, threeBetReads)
+          : undefined,
+      opponentRanges:
+        weighted && profile.experiment?.weightedRanges && state.variant === 'holdem'
+          ? opponentRanges(state, player, opponents, memory, skill, tuning, threeBetReads)
+          : undefined,
+    }).equity
+  const trueEquity = equityOf(true)
 
   // Unskilled players misread their hand strength. The noisy estimate feeds
   // every decision below, so mistakes compound naturally: missed value bets,
   // bad calls, folded winners.
   const misread = (rng() - 0.5) * (1 - skill) * 0.6
-  const equity = clamp(trueEquity + misread, 0.02, 0.98)
+  let equity = clamp(trueEquity + misread, 0.02, 0.98)
+
+  // `rangeTuning.riverBluffs`: whether the shipped read, without the weighted
+  // ranges, also finds this hand under `gate`. Only asked on the river, and
+  // only once a bluff is about to be made, so it costs a second estimate in
+  // the few spots that need one.
+  const riverBluffGate = !!tuning.riverBluffs && state.street === 'river'
+  let shippedEquity: number | undefined
+  const shipped = () => {
+    shippedEquity ??= clamp(equityOf(false) + misread, 0.02, 0.98)
+    return shippedEquity
+  }
+  const shippedReadsUnder = (gate: number) => shipped() < gate
+  // A river hand that loses to most random holdings is a bluff to anybody
+  // keeping count, whatever a capped range makes of it, and betting it as
+  // value into a player who calls everything is the same leak as bluffing
+  // them. So an unbet river plays such a hand on the shipped read.
+  if (riverBluffGate && legal.callAmount === 0 && shareBeaten(player.hole, state.community) < 0.5) {
+    equity = shipped()
+  }
 
   const toCall = legal.callAmount
   const pot = potSize(state)
@@ -432,8 +570,19 @@ export function decideAction(
       (profile.habit === 'barreler' && state.street === 'turn' && rng() < HABIT.barreler) ||
       (profile.habit === 'positional' && !preflop && posPressure === 0 && rng() < HABIT.positional)
 
+    // On the river the only bets left are value, the habits and bluffs; a
+    // bluff under `rangeTuning.riverBluffs` also needs the shipped read's say-so.
     const anyBet =
-      wantsValue || wantsBluff || wantsSemiBluff || wantsCbet || wantsStoryBluff || wantsHabitBet
+      (wantsValue ||
+        wantsBluff ||
+        wantsSemiBluff ||
+        wantsCbet ||
+        wantsStoryBluff ||
+        wantsHabitBet) &&
+      (!riverBluffGate ||
+        wantsValue ||
+        wantsHabitBet ||
+        shippedReadsUnder(fairShare * POSTFLOP_GATE.bluffCeiling))
     if (anyBet && (legal.canBet || legal.canRaise)) {
       const valueSize = 0.55 + profile.aggression * 0.25
       let fraction = disguised(0.5, valueSize, skill)
@@ -486,8 +635,9 @@ export function decideAction(
     !lineOf(state).some((a) => a.street === 'preflop' && a.type !== 'fold')
   if (firstIn && legal.canRaise && rng() < skill) {
     const behind = opponents.filter((p) => p.status === 'active' && !p.hasActed).length
+    const byBehind = profile.experiment?.openingByBehind ?? OPENING.shareByBehind
     const share =
-      OPENING.shareByBehind[Math.min(behind, OPENING.shareByBehind.length - 1)] *
+      byBehind[Math.min(behind, byBehind.length - 1)] *
       Math.min(1, OPENING.loosest - OPENING.perTightness * profile.tightness)
     if (preflopPercentile(player.hole) >= 1 - share) {
       return {
@@ -530,7 +680,7 @@ export function decideAction(
       ? rawOddsFactor
       : 0.7 + (rawOddsFactor - 0.7) * 0.35
     : 1
-  const tightnessTax = profile.tightness * (preflop ? 0.2 : 0.15)
+  const tightnessTax = profile.tightness * (preflop ? 0.2 : 0.15) * (tuning.halfTax ? 0.5 : 1)
 
   // Those two taxes are quoted in equity points, and an equity point is not the
   // same size against one opponent as against five. Heads-up the usable range
@@ -543,9 +693,26 @@ export function decideAction(
   const continueThreshold =
     (potOdds * oddsFactor + (tightnessTax + posPressure * 0.06) * fieldScale) * stationFactor
 
+  if (ranges && ranges.length >= 1) {
+    return reRaiseAction(state, profile, legal, ranges.length, {
+      answer: threeBetReads ? answerScale(state, memory, skill) : 1,
+      equity,
+      potOdds,
+      continueThreshold,
+      roll,
+      fieldScale,
+      misread,
+      rng,
+    })
+  }
+
   if (equity < continueThreshold) {
     // Usually fold; occasionally bluff-raise, or peel one cheaply when close.
-    if (legal.canRaise && roll < profile.bluff * 0.5) {
+    if (
+      legal.canRaise &&
+      roll < profile.bluff * 0.5 &&
+      (!riverBluffGate || shippedReadsUnder(continueThreshold))
+    ) {
       return {
         type: 'raise',
         amount: sizedRaise(
@@ -585,5 +752,82 @@ export function decideAction(
       ),
     }
   }
+  return legal.canCall ? { type: 'call' } : { type: 'check' }
+}
+
+/**
+ * A pot already raised before the flop, under `preflopRanges`. Facing a single
+ * open it only replaces the raise gates, with a 3-bet range that is a slice of
+ * the open, and keeps the shipped continue/fold logic around them. Facing
+ * a re-raise it decides the whole spot: `equity` was taken against the
+ * re-raiser's percentile range, so the price is compared to it directly, less
+ * what a call before the flop fails to realise, and the top of the next level's
+ * range raises again.
+ */
+function reRaiseAction(
+  state: HandState,
+  profile: AiProfile,
+  legal: NonNullable<ReturnType<typeof legalActions>>,
+  raises: number,
+  read: {
+    /** How much wider than the table's ranges this raise is made (`answerScale`). */
+    answer: number
+    equity: number
+    potOdds: number
+    continueThreshold: number
+    roll: number
+    fieldScale: number
+    misread: number
+    rng: Rng
+  },
+): Action {
+  const player = state.players[state.toActIndex]
+  const { answer, equity, potOdds, continueThreshold, roll, fieldScale, misread, rng } = read
+  const open = openShare(state)
+  // The range a raise from here would represent, and where this holding sits.
+  const raiseShare = Math.min(levelShare(raises + 1, open) * answer, PREFLOP_RANGES.widest)
+  const percentile = clamp(preflopPercentile(player.hole) + misread * 0.5, 0, 1)
+  const valueRaise = percentile >= 1 - raiseShare
+  const thinRaise = percentile >= 1 - raiseShare * 1.5
+  const raise = (fraction: number): Action => ({
+    type: 'raise',
+    amount: sizedRaise(
+      state,
+      fraction,
+      legal.minRaiseTo,
+      legal.maxRaiseTo,
+      rng,
+      profile.aggression,
+    ),
+  })
+
+  if (raises === 1) {
+    // Facing the open: the shipped equity read and threshold decide whether to
+    // continue, as they always have. Only which hands re-raise moves.
+    if (equity < continueThreshold) {
+      if (legal.canRaise && roll < profile.bluff * PREFLOP_RANGES.bluff) return raise(0.6)
+      const cheap = legal.callAmount <= potSize(state) * 0.15
+      if (legal.canCall && cheap && equity > potOdds * 0.85 && roll < 0.5) return { type: 'call' }
+      return { type: 'fold' }
+    }
+    if (legal.canRaise && valueRaise && roll < 0.45 + profile.aggression * 0.5) return raise(0.7)
+    if (legal.canRaise && thinRaise && roll < profile.aggression * 0.4) return raise(0.5)
+    return legal.canCall ? { type: 'call' } : { type: 'check' }
+  }
+
+  // A call nobody can bet after (it puts us all in, or everybody left is) goes
+  // straight to showdown and keeps all its equity, so it pays the bare price.
+  const closesBetting =
+    legal.callAmount >= player.stack ||
+    state.players.every((p) => p.id === player.id || p.status !== 'active')
+  const need = closesBetting
+    ? potOdds
+    : potOdds / PREFLOP_RANGES.realize +
+      profile.tightness * PREFLOP_RANGES.perTightness * fieldScale
+  if (equity < need) {
+    if (legal.canRaise && roll < profile.bluff * PREFLOP_RANGES.bluff) return raise(0.6)
+    return { type: 'fold' }
+  }
+  if (legal.canRaise && valueRaise && roll < 0.45 + profile.aggression * 0.5) return raise(0.7)
   return legal.canCall ? { type: 'call' } : { type: 'check' }
 }
