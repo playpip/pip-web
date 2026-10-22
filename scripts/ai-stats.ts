@@ -8,7 +8,7 @@
 //   pnpm ai-stats mainevent penthouse      # venue ids
 //   pnpm ai-stats --hands 4000 --iters 300 # sample size, and a cap on sims per decision
 //   pnpm ai-stats --bb 20                  # stack depth in big blinds (default 100)
-//   pnpm ai-stats --ai exact               # another AI version (scripts/ai-versions.ts)
+//   pnpm ai-stats --ai exact               # another AI version (lib/poker/ai/versions.ts)
 //
 // Reference ranges for a solid six-handed regular are printed beside each
 // stat. They are rough and widely quoted, not a target: a soft table should

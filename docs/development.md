@@ -41,7 +41,7 @@ pnpm sim garage pub            # specific venues; also: ladder | side | all
 pnpm sim garage --n 500        # more tournaments = tighter estimate (slower)
 pnpm sim --hero casual         # beginner | casual | competent | best
 pnpm sim garage --skill 0.4    # trial an AI skill without editing config
-pnpm sim cardroom --ai v1      # pin an AI version (scripts/ai-versions.ts)
+pnpm sim cardroom --ai v1      # pin an AI version (src/lib/poker/ai/versions.ts)
 ```
 
 The bots play the AI the table plays in the game (`tableAi`): v1 below
@@ -58,8 +58,8 @@ for numbers you'll quote.
 on the same deck and the same per-chair decision streams, then swap chairs and
 play the deal again, so the luck of the cards cancels: a version against itself
 scores exactly 0 on every deal (`tests/botDuel.test.ts`). Versions are named in
-`scripts/ai-versions.ts`; a new one is v1 with an `AiProfile.experiment` switch on,
-so v1 itself never moves.
+`src/lib/poker/ai/versions.ts` (`AI_VERSIONS`), where tests can name them too; a
+new one is v1 with an `AiProfile.experiment` switch on, so v1 itself never moves.
 
 ```bash
 pnpm bot-duel --a exact --b fast --venue mainevent --deals 20000 --iters 99999

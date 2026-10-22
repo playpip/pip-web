@@ -178,7 +178,7 @@ equity + pot odds + a personality.
   (duplicate poker), so the deal's luck cancels and a version against itself scores
   exactly 0; `pnpm persona-stats` asks whether a tracker can tell the cast apart.
   Both, and `exploit-sim`/`ai-stats --ai <version>`, name versions from
-  `scripts/ai-versions.ts`. `sim` and `cash-sim` seat the table's own AI, as
+  `ai/versions.ts`. `sim` and `cash-sim` seat the table's own AI, as
   `tableAi` picks it, unless `--ai` names one.
 - **Experiments** (`AiProfile.experiment`): switches under measurement, all off by
   default. With none set the AI makes exactly the decisions it shipped with, which

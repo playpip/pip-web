@@ -9,7 +9,7 @@
 //   pnpm cash-sim --hero casual       # beginner | casual | competent | best
 //   pnpm cash-sim --seed 7            # deterministic; same seed = same result
 //   pnpm cash-sim --workers 2         # default is one core short of the box
-//   pnpm cash-sim ring-mid --ai v1    # pin an AI version (scripts/ai-versions.ts), not the table's own
+//   pnpm cash-sim ring-mid --ai v1    # pin an AI version (lib/poker/ai/versions.ts), not the table's own
 //
 // ## What it measures
 //
@@ -119,7 +119,7 @@ export function orbitHands(requested: number, seats: number): number {
  * seat's chip delta. Nothing carries over: the hand is a closed system, which is
  * what makes a session shardable by hand index. The bots play the table's own
  * AI, as `tableAi` picks it in the game, unless `ai` names a version
- * (scripts/ai-versions.ts) to hold a baseline still.
+ * (lib/poker/ai/versions.ts) to hold a baseline still.
  */
 export function playCashHand(
   venue: Venue,

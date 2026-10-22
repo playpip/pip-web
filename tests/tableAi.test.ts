@@ -13,7 +13,7 @@ import { ALL_VENUES, dailyFor, type Venue, venueById } from '@/config/venues'
 import { RANKS } from '@/config/ranks'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import { RANGED_AI, tableAi } from '@/lib/poker/ai/tableAi'
-import { versionProfile } from '../scripts/ai-versions'
+import { versionProfile } from '@/lib/poker/ai/versions'
 import { fingerprint } from './helpers'
 
 /** The pin in tests/aiExperiment.test.ts: the AI before any switch existed. */

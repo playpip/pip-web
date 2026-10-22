@@ -11,7 +11,7 @@
 //   pnpm sim --seed 7               # deterministic; same seed = same result
 //   pnpm sim garage --skill 0.4     # try a different AI skill before editing config
 //   pnpm sim pub --cast             # seat drafted characters (profileFor), as the game does
-//   pnpm sim cardroom --ai v1       # pin an AI version (scripts/ai-versions.ts), not the table's own
+//   pnpm sim cardroom --ai v1       # pin an AI version (lib/poker/ai/versions.ts), not the table's own
 //
 // **This harness cannot measure a cash table** and blanks their outcome columns:
 // a ring table has no elimination and no prize, so a freezeout win rate answers
@@ -86,7 +86,7 @@ function nextButtonId(seats: { id: string; stack: number }[], current: string): 
 
 /**
  * The AI a seat plays: the table's own, as `tableAi` picks it in the game, or
- * the version `--ai` names (scripts/ai-versions.ts), to hold a baseline still.
+ * the version `--ai` names (lib/poker/ai/versions.ts), to hold a baseline still.
  */
 function seatAi(profile: AiProfile, venue: Venue, ai: string | undefined): AiProfile {
   return ai === undefined ? tableAi(profile, venue) : versionProfile(ai, profile)
