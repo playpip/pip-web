@@ -18,7 +18,12 @@ import { fingerprint } from './helpers'
 
 /** The pin in tests/aiExperiment.test.ts: the AI before any switch existed. */
 const SHIPPED = 'b6e55ee'
-/** `RANGED_AI` at the three fingerprint rungs, computed at the commit that turned it on. */
+/**
+ * `RANGED_AI` at the three fingerprint rungs, computed at the commit that turned
+ * it on. `shoveReads` and the flop-seen fix left it as it was: its 36 hands of
+ * bots never face an all in before the flop or run a board out to one, and
+ * tests/rangeTuning.test.ts pins those spots instead.
+ */
 const RANGED = 'b010bc78'
 
 const skillOf = (v: Venue) => v.ai.skill ?? 1

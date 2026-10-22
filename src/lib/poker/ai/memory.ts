@@ -22,10 +22,11 @@
 // Each tally is shrunk toward a typical player's rate with a prior worth
 // `PRIOR_WEIGHT` decisions, so one hand never swings it and a few orbits do.
 //
-// Three more tallies — 3-bets, folds to a continuation bet, and how often a
-// player who sees the flop goes to showdown — are kept for the weighted ranges
-// of the `weightedRanges` experiment (`weightedRange.ts`), which reads them as
-// its priors. Nothing the shipped AI decides reads them.
+// Four more tallies — 3-bets, folds to a continuation bet, all-in raises
+// before the flop, and how often a player who sees the flop goes to showdown —
+// are kept for the weighted ranges of the `weightedRanges` experiment
+// (`weightedRange.ts`), which reads them as its priors. Nothing the shipped AI
+// decides reads them.
 //
 // Pure and deterministic: a plain object the store feeds every action into.
 
@@ -46,6 +47,8 @@ export const TYPICAL = {
   foldToCbet: 0.45,
   /** Showdowns per hand in which the player saw the flop. */
   wtsd: 0.28,
+  /** All-in raises per voluntary preflop decision, at a deep stack. */
+  shove: 0.02,
 } as const
 
 /** How many decisions' worth of "typical" every read starts with. */
@@ -63,6 +66,7 @@ export interface PlayerReads {
   threeBet?: Tally
   foldToCbet?: Tally
   wtsd?: Tally
+  shove?: Tally
 }
 
 export interface TableMemory {
@@ -101,6 +105,9 @@ export function observeAction(memory: TableMemory, state: HandState, action: Act
     if (facingBet || aggressive) {
       reads.preflopRaise.chances++
       if (aggressive) reads.preflopRaise.hits++
+      reads.shove ??= { hits: 0, chances: 0 }
+      reads.shove.chances++
+      if (aggressive && (action.amount ?? 0) >= p.committedThisStreet + p.stack) reads.shove.hits++
     }
   } else {
     reads.postflopAggression.chances++
@@ -175,6 +182,7 @@ export function ratesFor(memory: TableMemory | undefined, id: string) {
     threeBet: r.threeBet ? shrunk(r.threeBet, TYPICAL.threeBet) : TYPICAL.threeBet,
     foldToCbet: r.foldToCbet ? shrunk(r.foldToCbet, TYPICAL.foldToCbet) : TYPICAL.foldToCbet,
     wtsd: r.wtsd ? shrunk(r.wtsd, TYPICAL.wtsd) : TYPICAL.wtsd,
+    shove: r.shove ? shrunk(r.shove, TYPICAL.shove) : TYPICAL.shove,
   }
 }
 

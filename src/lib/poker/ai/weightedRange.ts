@@ -77,6 +77,24 @@ export interface RangeReads {
    * shipped AI; flattening the raises too took that to nothing measurable.
    */
   flattenManiacs?: boolean
+  /**
+   * Read a raise that puts the player all in before the flop by how often
+   * this player goes all in (`memory.ts`), at least that wide, and keep it out
+   * of `flattenManiacs`.
+   *
+   * The scripted shover of `pnpm exploit-sim`, all in with every decent hand,
+   * won 83 to 130 bb/100 more against the ranged AI than against the shipped
+   * one, from Friends' Garage to Downtown Casino. Its shoves were read two
+   * wrong ways at once. As raises, they were read off a regular's opening
+   * range by position, moved by skill, so an under-the-gun shove of the top
+   * 45% read as about the top 29% at Downtown Casino; and as raises from
+   * somebody who raises far more than typical they were flattened toward 1,
+   * which spread the same shove over far worse hands. A shove is a count, like
+   * a 3-bet: how often somebody does it says how wide it is.
+   *
+   * `decideAction` also plays the call as a call of a shove (see there).
+   */
+  shoveReads?: boolean
 }
 
 /** `FLOOR` under `RangeReads.wideReads`. */
@@ -402,31 +420,32 @@ type Tendencies = ReturnType<typeof tendencies>
 /**
  * Preflop: a likelihood per holding from its percentile `p`. `reRaise`, when
  * given, is the share of hands a re-raise at each level is read as, from the
- * same percentile ranges the AI re-raises from (`threeBetReads`).
+ * same percentile ranges the AI re-raises from (`threeBetReads`). `shove`,
+ * when given, is the share of hands this player goes all in with, and an all
+ * in is read at least that wide (`RangeReads.shoveReads`).
  */
 function preflopLikelihood(
   read: Read,
   t: Tendencies,
   reRaise?: (level: number) => number,
+  shove?: number,
 ): (p: number) => number {
   const w = PREFLOP_WIDTH
   const type = read.record.type
   const threeBetShare = reRaise ? reRaise(2) : clamp(TYPICAL.threeBet * t.threeBets, 0.02, 0.4)
   if (isAggressive(read.record)) {
+    let share: number
     if (read.raisesBefore === 0) {
       const byBehind = OPENING.shareByBehind
-      const share = clamp(
-        byBehind[Math.min(read.behind, byBehind.length - 1)] * t.opens,
-        0.05,
-        0.95,
-      )
-      return (p) => step(p, 1 - share, w)
+      share = clamp(byBehind[Math.min(read.behind, byBehind.length - 1)] * t.opens, 0.05, 0.95)
+    } else {
+      share = reRaise
+        ? reRaise(read.raisesBefore + 1)
+        : read.raisesBefore === 1
+          ? threeBetShare
+          : clamp(0.035 * t.threeBets, 0.01, 0.2)
     }
-    const share = reRaise
-      ? reRaise(read.raisesBefore + 1)
-      : read.raisesBefore === 1
-        ? threeBetShare
-        : clamp(0.035 * t.threeBets, 0.01, 0.2)
+    if (shove !== undefined) share = Math.max(share, shove)
     return (p) => step(p, 1 - share, w)
   }
   if (type === 'call') {
@@ -534,12 +553,22 @@ export function opponentRanges(
     const reRaise = percentileReRaises
       ? (level: number) => reRaiseShare(level, open, memory, opp.id)
       : undefined
+    // A player all in made their last action with their last chips.
+    let shove: Read | undefined
+    if (tuning.shoveReads && opp.status === 'allin') {
+      for (const read of reads) if (read.record.playerId === opp.id) shove = read
+    }
     for (const read of reads) {
       if (read.record.playerId !== opp.id || read.record.type === 'fold') continue
       const street = read.record.street
       if (street === 'preflop') {
-        const like = preflopLikelihood(read, t, reRaise)
-        const flatten = isAggressive(read.record) ? t.raiseFlatten : 1
+        const like = preflopLikelihood(
+          read,
+          t,
+          reRaise,
+          read === shove ? ratesFor(memory, opp.id).shove : undefined,
+        )
+        const flatten = isAggressive(read.record) && read !== shove ? t.raiseFlatten : 1
         if (flatten === 1) {
           for (let c = 0; c < COMBOS; c++) if (weights[c] > 0) weights[c] *= like(pct[c])
         } else {

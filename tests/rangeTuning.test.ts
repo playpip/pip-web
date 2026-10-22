@@ -3,12 +3,13 @@
 // decision, and off it has to leave the first round exactly as it was.
 
 import test from 'ava'
-import { createTableMemory, type TableMemory } from '@/lib/poker/ai/memory'
+import { createTableMemory, observeAction, ratesFor, type TableMemory } from '@/lib/poker/ai/memory'
 import { type AiExperiment, type AiProfile, decideAction } from '@/lib/poker/ai/policy'
 import { FLOOR, opponentRanges, TUNED_FLOOR } from '@/lib/poker/ai/weightedRange'
 import { cardFromString, mulberry32 } from '@/lib/poker/cards'
-import { COMBO_A, COMBO_B, COMBOS, cardIndex, comboIndex } from '@/lib/poker/combos'
+import { CARD_AT, COMBO_A, COMBO_B, COMBOS, cardIndex, comboIndex } from '@/lib/poker/combos'
 import { type Action, applyAction, type HandState, startHand } from '@/lib/poker/engine'
+import { preflopPercentile } from '@/lib/poker/range'
 import { venueById, type Venue } from '@/config/venues'
 
 const cards = (s: string) => s.split(' ').map(cardFromString)
@@ -170,4 +171,185 @@ test('riverBluffs keeps a showdown hand the shipped read would check', (t) => {
   for (let i = 0; i < 60; i++)
     if (decideAction(air, profile, mulberry32(i)).type !== 'check') gated++
   t.true(gated > 15)
+})
+
+/**
+ * Six-handed, button s0: under the gun (s3) goes all in for 100 big blinds,
+ * or opens to three, and s4 is next with four players still behind it.
+ */
+function shoveSpot(allIn = true, hole = 'Qc Qd'): HandState {
+  let s = startHand({
+    seats: Array.from({ length: 6 }, (_, i) => ({ id: `s${i}`, name: `s${i}`, stack: 200 })),
+    buttonIndex: 0,
+    smallBlind: 1,
+    bigBlind: 2,
+    rng: mulberry32(4),
+  })
+  s = applyAction(s, { type: 'raise', amount: allIn ? 200 : 6 })
+  s.players[4].hole = cards(hole)
+  return s
+}
+
+/** A table that has watched s3 go all in on 18 of 40 preflop decisions. */
+function shoverMemory(): TableMemory {
+  const memory = createTableMemory()
+  memory.players.s3 = {
+    preflopRaise: { hits: 18, chances: 40 },
+    postflopAggression: { hits: 0, chances: 0 },
+    foldToBet: { hits: 22, chances: 40 },
+    shove: { hits: 18, chances: 40 },
+  }
+  return memory
+}
+
+test('the memory counts all-in raises before the flop, and nothing else', (t) => {
+  const memory = createTableMemory()
+  const s = shoveSpot(false)
+  observeAction(memory, s, { type: 'raise', amount: 200 })
+  t.deepEqual(memory.players.s4.shove, { hits: 1, chances: 1 })
+  observeAction(memory, s, { type: 'raise', amount: 12 })
+  t.deepEqual(memory.players.s4.shove, { hits: 1, chances: 2 })
+  t.true(ratesFor(memory, 's4').shove > ratesFor(undefined, 's4').shove)
+})
+
+test('shoveReads reads a shove as wide as the player shoves, and does not flatten it', (t) => {
+  const range = (shoveReads: boolean, s: HandState) =>
+    opponentRanges(s, s.players[4], [s.players[3]], shoverMemory(), 0.64, {
+      flattenManiacs: true,
+      shoveReads,
+    })[0]
+  // Mean weight of the holdings between two percentiles.
+  const band = (w: Float64Array, lo: number, hi: number) => {
+    let sum = 0
+    let n = 0
+    for (let c = 0; c < COMBOS; c++) {
+      const p = preflopPercentile([CARD_AT[COMBO_A[c]], CARD_AT[COMBO_B[c]]])
+      if (w[c] > 0 && p >= lo && p < hi) {
+        sum += w[c]
+        n++
+      }
+    }
+    return sum / n
+  }
+  // In the top 45% but outside a regular's under-the-gun opening range,
+  // which is where the read off position put the shove.
+  const shove = shoveSpot()
+  t.true(band(range(true, shove), 0.6, 0.7) > 1.5 * band(range(false, shove), 0.6, 0.7))
+  // An open that is not all in is read as before.
+  const open = shoveSpot(false)
+  t.deepEqual(range(true, open), range(false, open))
+})
+
+test('shoveReads calls a shove on its equity against the shover, not the players behind', (t) => {
+  const decide = (tuning: AiExperiment['rangeTuning'], seed: number) =>
+    decideAction(
+      shoveSpot(),
+      { ...mainEvent, iterations: 400, experiment: { ...WRANGE, rangeTuning: tuning } },
+      mulberry32(seed),
+      shoverMemory(),
+    ).type
+  const all = { wideReads: true, flattenManiacs: true, halfTax: true, riverBluffs: true }
+  for (let seed = 1; seed <= 5; seed++) {
+    // Queens hold about 73% against the top 45%, far over the price; against
+    // that and four random hands they do not clear it.
+    t.is(decide({ ...all, shoveReads: true }, seed), 'call', `${seed}`)
+    t.is(decide(all, seed), 'fold', `${seed}`)
+  }
+})
+
+test('shoveReads pays the bare price for a shove over its open, with a deep caller still in', (t) => {
+  // s3 opens and s4 shoves its 50 big blinds over it; the big blind, as deep
+  // as s3, calls. s3's call does not put it all in, and the big blind could
+  // still bet after it, but against the shove it is a showdown all the same.
+  const spot = (hole: string) => {
+    let s = startHand({
+      seats: Array.from({ length: 6 }, (_, i) => ({
+        id: `s${i}`,
+        name: `s${i}`,
+        stack: i === 4 ? 100 : 400,
+      })),
+      buttonIndex: 0,
+      smallBlind: 1,
+      bigBlind: 2,
+      rng: mulberry32(4),
+    })
+    for (const a of [
+      { type: 'raise', amount: 6 },
+      { type: 'raise', amount: 100 },
+      { type: 'fold' },
+      { type: 'fold' },
+      { type: 'fold' },
+      call,
+    ] as Action[])
+      s = applyAction(s, a)
+    s.players[3].hole = cards(hole)
+    return s
+  }
+  const all = { wideReads: true, flattenManiacs: true, halfTax: true, riverBluffs: true }
+  const decide = (hole: string, shoveReads: boolean, seed: number) =>
+    decideAction(
+      spot(hole),
+      {
+        ...mainEvent,
+        iterations: 400,
+        experiment: {
+          ...WRANGE,
+          preflopRanges: true,
+          threeBetReads: true,
+          rangeTuning: { ...all, shoveReads },
+        },
+      },
+      mulberry32(seed),
+    ).type
+  // Middling pairs clear the bare price three-way and not the price a call
+  // that buys a flop is asked for.
+  for (const hole of ['9c 9d', '8c 8d']) {
+    for (let seed = 1; seed <= 5; seed++) {
+      t.is(decide(hole, true, seed), 'call', `${hole} ${seed}`)
+      t.not(decide(hole, false, seed), 'call', `${hole} ${seed}`)
+    }
+  }
+})
+
+test('a short stack calling all in for the price is not a shove', (t) => {
+  // s3 opens to three big blinds and s4, with exactly that left, calls all in.
+  // s3 still has chips: s5 faces an open, not a shove, and shoveReads must
+  // leave it as it was.
+  const spot = (hole: string) => {
+    let s = startHand({
+      seats: Array.from({ length: 6 }, (_, i) => ({
+        id: `s${i}`,
+        name: `s${i}`,
+        stack: i === 4 ? 6 : 400,
+      })),
+      buttonIndex: 0,
+      smallBlind: 1,
+      bigBlind: 2,
+      rng: mulberry32(4),
+    })
+    s = applyAction(s, { type: 'raise', amount: 6 })
+    s = applyAction(s, call)
+    s.players[5].hole = cards(hole)
+    return s
+  }
+  t.is(spot('2c 3d').players[4].status, 'allin')
+  const all = { wideReads: true, flattenManiacs: true, halfTax: true, riverBluffs: true }
+  const decide = (hole: string, shoveReads: boolean, seed: number) =>
+    decideAction(
+      spot(hole),
+      {
+        ...mainEvent,
+        iterations: 200,
+        experiment: {
+          ...WRANGE,
+          preflopRanges: true,
+          threeBetReads: true,
+          rangeTuning: { ...all, shoveReads },
+        },
+      },
+      mulberry32(seed),
+    )
+  for (const hole of ['Ac Jd', 'Tc Td', 'Kh Qh', '7c 7d', 'Ah 5h'])
+    for (let seed = 1; seed <= 4; seed++)
+      t.deepEqual(decide(hole, true, seed), decide(hole, false, seed), `${hole} ${seed}`)
 })

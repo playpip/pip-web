@@ -132,6 +132,7 @@ export interface RangeTuning extends RangeReads {
 const ALL_TUNING: Required<RangeTuning> = {
   wideReads: true,
   flattenManiacs: true,
+  shoveReads: true,
   halfTax: true,
   riverBluffs: true,
 }
@@ -348,6 +349,27 @@ export function decideAction(
 
   const tuning = rangeTuningOf(profile.experiment, state)
 
+  // `rangeTuning.shoveReads`: facing an all in before the flop, the hand is
+  // between the AI and whoever has put the whole price in, the shover and any
+  // caller. A player still to act behind needs a hand to call a shove and
+  // nearly always folds, but counted as a live opponent with two random cards
+  // it took a third or more off every holding's equity, and the shover took
+  // the blinds with whatever it shoved.
+  //
+  // The price has to have been set by a raise from a player now all in: a
+  // short stack calling all in for the price leaves the raiser with chips.
+  let lastRaiser: string | undefined
+  for (const a of lineOf(state))
+    if (a.street === 'preflop' && a.type === 'raise') lastRaiser = a.playerId
+  const facingShove =
+    !!tuning.shoveReads &&
+    state.street === 'preflop' &&
+    legal.callAmount > 0 &&
+    opponents.some((p) => p.id === lastRaiser && p.status === 'allin')
+  const field = facingShove
+    ? opponents.filter((p) => p.status === 'allin' || p.committedThisStreet >= state.currentBet)
+    : opponents
+
   // Model each opponent's range by how they've backed the hand, not as two
   // random cards, or the AI over-values its equity into aggression and calls
   // too light. Not as the best of a handful either: see `aiSelectivity`.
@@ -355,8 +377,8 @@ export function decideAction(
     estimateEquity({
       hole: player.hole,
       community: state.community,
-      opponents: opponents.length,
-      opponentSelectivity: opponents.map((p) => aiSelectivity(state, p, memory, skill)),
+      opponents: field.length,
+      opponentSelectivity: field.map((p) => aiSelectivity(state, p, memory, skill)),
       iterations: profile.iterations,
       rng,
       // Without this the AI would be estimating Hold'em equity for a four-card
@@ -369,11 +391,11 @@ export function decideAction(
       // ranges (`threeBetReads`), so they take the place of these.
       opponentTopShare:
         reraised && !profile.experiment?.weightedRanges
-          ? opponentShares(state, opponents, memory, skill, threeBetReads)
+          ? opponentShares(state, field, memory, skill, threeBetReads)
           : undefined,
       opponentRanges:
         weighted && profile.experiment?.weightedRanges && state.variant === 'holdem'
-          ? opponentRanges(state, player, opponents, memory, skill, tuning, threeBetReads)
+          ? opponentRanges(state, player, field, memory, skill, tuning, threeBetReads)
           : undefined,
     }).equity
   const trueEquity = equityOf(true)
@@ -674,12 +696,24 @@ export function decideAction(
   // collapse every rung above it onto one number and flatten the top of the
   // ladder; this keeps them ordered and keeps the loose end exactly where it
   // was, since nothing below 0.7 was ever the problem.
+  //
+  // None of that holds facing a shove under `rangeTuning.shoveReads`: equity is
+  // already taken against the players in the pot, and the call buys a
+  // showdown, not a flop, so it pays the whole price, as a re-raised pot's
+  // call that closes the betting does (`reRaiseAction`). The two taxes below
+  // still apply to an open shove, unlike to a re-raised one. Tightness is the
+  // table's character, and a tight table folding more to a shove is the
+  // ladder working; position is now the only term that counts the players
+  // still to act, who left the equity but can still wake up with a hand. A
+  // full tax there folded too much at the tight end, and no tax was not
+  // measured (`pnpm exploit-sim --hero shover`).
   const rawOddsFactor = 0.42 + profile.tightness * 1.15
-  const oddsFactor = preflop
-    ? rawOddsFactor < 0.7
-      ? rawOddsFactor
-      : 0.7 + (rawOddsFactor - 0.7) * 0.35
-    : 1
+  const oddsFactor =
+    preflop && !facingShove
+      ? rawOddsFactor < 0.7
+        ? rawOddsFactor
+        : 0.7 + (rawOddsFactor - 0.7) * 0.35
+      : 1
   const tightnessTax = profile.tightness * (preflop ? 0.2 : 0.15) * (tuning.halfTax ? 0.5 : 1)
 
   // Those two taxes are quoted in equity points, and an equity point is not the
@@ -688,7 +722,7 @@ export function decideAction(
   // poker holds ~0.49 and the same +0.14 is nearly a third of everything
   // available, which folded aces under the gun. Shrink them with the field so
   // "tight" and "out of position" mean the same thing at every table size.
-  const fieldScale = 2 / (opponents.length + 1) // heads-up 1, six-handed 1/3
+  const fieldScale = 2 / (field.length + 1) // heads-up 1, six-handed 1/3
   const stationFactor = profile.habit === 'caller' && !preflop ? HABIT.caller : 1
   const continueThreshold =
     (potOdds * oddsFactor + (tightnessTax + posPressure * 0.06) * fieldScale) * stationFactor
@@ -696,6 +730,7 @@ export function decideAction(
   if (ranges && ranges.length >= 1) {
     return reRaiseAction(state, profile, legal, ranges.length, {
       answer: threeBetReads ? answerScale(state, memory, skill) : 1,
+      facingShove,
       equity,
       potOdds,
       continueThreshold,
@@ -772,6 +807,8 @@ function reRaiseAction(
   read: {
     /** How much wider than the table's ranges this raise is made (`answerScale`). */
     answer: number
+    /** Facing an all in, under `rangeTuning.shoveReads`: the call buys a showdown. */
+    facingShove: boolean
     equity: number
     potOdds: number
     continueThreshold: number
@@ -782,7 +819,17 @@ function reRaiseAction(
   },
 ): Action {
   const player = state.players[state.toActIndex]
-  const { answer, equity, potOdds, continueThreshold, roll, fieldScale, misread, rng } = read
+  const {
+    answer,
+    facingShove,
+    equity,
+    potOdds,
+    continueThreshold,
+    roll,
+    fieldScale,
+    misread,
+    rng,
+  } = read
   const open = openShare(state)
   // The range a raise from here would represent, and where this holding sits.
   const raiseShare = Math.min(levelShare(raises + 1, open) * answer, PREFLOP_RANGES.widest)
@@ -817,7 +864,11 @@ function reRaiseAction(
 
   // A call nobody can bet after (it puts us all in, or everybody left is) goes
   // straight to showdown and keeps all its equity, so it pays the bare price.
+  // So does the call of a shove under `shoveReads`, whoever else is still in:
+  // against the shover it is a showdown, and the equity was taken against the
+  // players in the pot.
   const closesBetting =
+    facingShove ||
     legal.callAmount >= player.stack ||
     state.players.every((p) => p.id === player.id || p.status !== 'active')
   const need = closesBetting

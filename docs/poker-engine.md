@@ -194,8 +194,10 @@ equity + pot odds + a personality.
   fixed bump for a live draw in place of exact hand potential), floored at
   `FLOOR`. So a check-call line caps a range and a river overbet polarises it.
   `estimateEquity` samples opponents from the weights (`opponentRanges`). It
-  reads three more memory tallies, kept for it alone: 3-bets, folds to a c-bet
-  and went-to-showdown (`observeHandEnd`, fed at the end of every hand).
+  reads four more memory tallies, kept for it alone: 3-bets, folds to a c-bet,
+  all-in raises before the flop, and went-to-showdown (`observeHandEnd`, fed at
+  the end of every hand; a flop counts as seen only by a player who was there
+  to bet it, not on a board run out to all-ins).
   `rangeTuning` (version `wrange2`, only with `weightedRanges`) is its second
   round, each part switchable for measuring alone: `halfTax` halves the
   tightness tax on continuing (the honest, lower equity of a weighted range
@@ -203,8 +205,12 @@ equity + pot odds + a personality.
   aggression read reach 5x typical and floors weights at `TUNED_FLOOR`,
   `flattenManiacs` raises a bet's likelihood to `1 / ratio` for a player who
   bets more than twice as often as typical (their bets say little), and a
-  preflop raise's the same way by the preflop raise rate, and
-  `riverBluffs` bluffs the river only where the shipped read would too, and
+  preflop raise's the same way by the preflop raise rate, `shoveReads` reads
+  an all in before the flop by how often that player shoves rather than as a
+  flattened raise, and calls one on its equity against the shover and its
+  callers alone, at the whole price (a player who shoves every decent hand had
+  been read narrower than it is, and called as though the players behind would
+  stay in), and `riverBluffs` bluffs the river only where the shipped read would too, and
   plays an unbet river with a hand that loses to most random holdings
   (`shareBeaten` under one half) on the shipped read, so it is not bet as
   "value" against a range read as capped.

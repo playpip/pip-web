@@ -51,7 +51,7 @@ export const AI_VERSIONS: Record<string, AiVersion> = {
   },
   wrange2: {
     about:
-      'wrange, with the second round of tuning: lower tax, wider reads, flat maniacs, river bluffs',
+      'wrange, with the second round of tuning: lower tax, wider reads, flat maniacs, shoves read as shoves, river bluffs',
     experiment: { fastShowdown: true, weightedRanges: true, rangeTuning: true },
   },
   wpf3: {
