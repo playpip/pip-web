@@ -131,13 +131,35 @@ function fours(mask: number): number {
   return m & (m << 1) & (m << 2) & (m << 3)
 }
 
+/** How many boards' strengths `boardStrengths` keeps: a hand has three, a few tables a few. */
+const STRENGTH_CACHE = 8
+const strengthCache = new Map<string, Float64Array>()
+
 /**
  * Every holding's effective strength on one board, in [0, 1], or -1 where the
  * board holds one of its cards. Strength is the share of holdings it beats
  * (ties half), plus `(1 - strength) * potential` for a draw the hole cards are
  * part of.
+ *
+ * Kept for the last few boards, because every decision of a hand asks for the
+ * same ones again: each opponent's range on every street so far, and on the
+ * river `shareBeaten` too. It is 1,326 evaluations a board, and a pure function
+ * of the board, so a kept table is the same answer. Shared, so read-only.
  */
 export function boardStrengths(board: readonly Card[]): Float64Array {
+  const key = board.map(cardIndex).join(',')
+  let out = strengthCache.get(key)
+  if (!out) {
+    out = strengthsOn(board)
+    strengthCache.set(key, out)
+    // A Map iterates in insertion order, so the first key is the oldest.
+    if (strengthCache.size > STRENGTH_CACHE)
+      strengthCache.delete(strengthCache.keys().next().value!)
+  }
+  return out
+}
+
+function strengthsOn(board: readonly Card[]): Float64Array {
   const out = new Float64Array(COMBOS).fill(-1)
   const dead = deadMask(board)
   const ranks = new Float64Array(COMBOS)
@@ -499,16 +521,8 @@ export function opponentRanges(
 ): Float64Array[] {
   const reads = replay(state)
   const pct = preflopPercentiles()
-  const strengths = new Map<Street, Float64Array>()
-  const strengthOn = (street: Street) => {
-    let s = strengths.get(street)
-    if (!s) {
-      const cards = street === 'flop' ? 3 : street === 'turn' ? 4 : 5
-      s = boardStrengths(state.community.slice(0, cards))
-      strengths.set(street, s)
-    }
-    return s
-  }
+  const strengthOn = (street: Street) =>
+    boardStrengths(state.community.slice(0, street === 'flop' ? 3 : street === 'turn' ? 4 : 5))
   const dead = deadMask([...self.hole, ...state.community])
   const floor = tuning.wideReads ? TUNED_FLOOR : FLOOR
   const open = percentileReRaises ? openShare(state) : 0

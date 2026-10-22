@@ -165,6 +165,17 @@ test('board strengths: the nuts on top, a blocked holding at -1, draws lifted', 
   t.true(weight(flop, 'Ah 4h') > weight(flop, 'Ad 4c'))
 })
 
+test('board strengths are kept per board, and a kept table is the one a fresh build gives', (t) => {
+  const board = cards('Qs Jd 4h 7c')
+  const first = Float64Array.from(boardStrengths(board))
+  t.is(boardStrengths(board), boardStrengths([...board]))
+  // Enough other boards to push it out, then build it again.
+  for (const extra of ['2c', '3c', '5c', '6c', '8c', '9c', 'Tc', 'Jc', 'Kc', 'Ac']) {
+    boardStrengths([...board, cardFromString(extra)])
+  }
+  t.deepEqual(Float64Array.from(boardStrengths(board)), first)
+})
+
 test('estimateEquity samples from a weighted range', (t) => {
   // A range of only kings: aces hold about 81% against it.
   const w = new Float64Array(COMBOS)
