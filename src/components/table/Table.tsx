@@ -7,6 +7,7 @@ import { HelpCircle, History } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
 import { ActionBar } from './ActionBar'
+import { ActionRow } from './ActionRow'
 import { nextUp } from '@/lib/nextUp'
 import { deviceId } from '@/lib/sync/client'
 import { HeroCards, HeroPanel, TableStyleContext } from './parts'
@@ -302,7 +303,7 @@ export function Table() {
   const actionArea = peeking ? (
     // The final hand, face up where it was dealt, with the line that says who
     // took it. The way back is to the end card, which holds every way out.
-    <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3">
+    <div className="flex w-full items-center justify-between gap-3 self-stretch rounded-2xl bg-foreground/[0.03] px-4 py-2 ring-1 ring-foreground/10 ring-inset">
       <span className="text-sm text-muted-foreground">{message ?? 'The last hand.'}</span>
       <button
         onClick={() => setPeekedAt(null)}
@@ -314,7 +315,7 @@ export function Table() {
   ) : spectating ? (
     // No buttons: there is nobody to press them. What sits here instead is the
     // one line that says why the table is still dealing, and the way out.
-    <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3">
+    <div className="flex w-full items-center justify-between gap-3 self-stretch rounded-2xl bg-foreground/[0.03] px-4 py-2 ring-1 ring-foreground/10 ring-inset">
       <span className="text-sm text-muted-foreground">
         {message ?? `Watching it out. You finished ${place ? ordinal(place) : 'out'}.`}
       </span>
@@ -332,7 +333,7 @@ export function Table() {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <button
         onClick={nextHand}
-        className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+        className="w-full whitespace-nowrap rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
       >
         Next hand
       </button>
@@ -551,16 +552,7 @@ export function Table() {
             ))}
 
           {/* actions, under the thumb */}
-          <div
-            className={cn(
-              'relative z-20 w-full',
-              isMobile
-                ? 'px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]'
-                : 'mx-auto max-w-xl px-6 pt-4 pb-7',
-            )}
-          >
-            {actionArea}
-          </div>
+          <ActionRow compact={isMobile}>{actionArea}</ActionRow>
           <HandsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
           <HandHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
           <LeaveDialog
