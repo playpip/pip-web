@@ -29,7 +29,8 @@ export function PreActions({
   const hero = hand.players.find((p) => p.id === heroId)
   const toAct = hand.players[hand.toActIndex]
   if (hero?.status !== 'active' || !toAct || toAct.id === heroId || hand.result) {
-    return <div className="h-[56px]" aria-hidden />
+    // Nothing: the row (ActionRow) holds its height on its own.
+    return null
   }
   const owed = Math.min(hero.stack, Math.max(0, hand.currentBet - hero.committedThisStreet))
   // Only what still stands for this street counts as set.
@@ -59,7 +60,7 @@ export function PreActions({
             onClick={() => onSet(on ? null : { kind: o.kind, amount: o.amount })}
             aria-pressed={on}
             className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold ring-1 transition',
+              'flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl py-4 text-base font-semibold ring-1 transition',
               on
                 ? 'bg-foreground/[0.1] text-foreground ring-foreground/40'
                 : 'bg-transparent text-muted-foreground ring-foreground/15 hover:text-foreground hover:ring-foreground/30',
