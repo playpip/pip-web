@@ -14,6 +14,7 @@ import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { HelpCircle, SlidersHorizontal, WifiOff } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { ActionBar } from '@/components/table/ActionBar'
+import { ActionRow } from '@/components/table/ActionRow'
 import { HandsHelpDialog } from '@/components/table/HandsHelpDialog'
 import { HeroCards, HeroPanel, TableStyleContext } from '@/components/table/parts'
 import { FeltSeat } from '@/components/table/seat'
@@ -418,40 +419,35 @@ export function RoomTable({
             </div>
           )}
 
-          <div
-            className={cn(
-              'relative z-20 w-full',
-              isMobile
-                ? 'px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]'
-                : 'mx-auto max-w-xl px-6 pt-4 pb-7',
-            )}
+          <ActionRow
+            compact={isMobile}
+            line={
+              // One height, held (empty) while catching up too, so nothing jumps as the turn moves.
+              hero && (
+                <p
+                  aria-live="polite"
+                  className="mb-2 flex min-h-5 items-center justify-center text-center text-xs"
+                >
+                  {turnLine}
+                </p>
+              )
+            }
           >
-            {/* Always the same height, so the buttons never jump as the turn moves. */}
-            {hero && !catching && (
-              <p
-                aria-live="polite"
-                className="mb-2 flex min-h-5 items-center justify-center text-center text-xs"
-              >
-                {turnLine}
-              </p>
-            )}
+            {/* While your move is on its way (`pending`) the row stays empty. */}
             {catching ? (
               // What you missed, playing: the way back to the live table.
-              <div className="flex h-[56px] items-center justify-between gap-3 rounded-2xl bg-foreground/[0.04] px-4 ring-1 ring-foreground/10">
+              <div className="flex w-full items-center justify-between gap-3 self-stretch rounded-2xl bg-foreground/[0.04] px-4 py-2 ring-1 ring-foreground/10">
                 <span className="text-sm text-muted-foreground tabular-nums">
                   Catching up · hand {handIndex}
                 </span>
                 <button
                   onClick={catchUp.skip}
-                  className="rounded-full bg-foreground/[0.08] px-4 py-2 text-sm font-semibold transition hover:bg-foreground/[0.14] active:scale-[0.97]"
+                  className="shrink-0 whitespace-nowrap rounded-full bg-foreground/[0.08] px-4 py-2 text-sm font-semibold transition hover:bg-foreground/[0.14] active:scale-[0.97]"
                 >
                   Skip
                 </button>
               </div>
-            ) : hero && pending ? (
-              // Your move has gone; the row keeps its height until the table answers.
-              <div className="h-[56px]" aria-hidden />
-            ) : hero && !myTurn && !settled && view.you ? (
+            ) : hero && pending ? null : hero && !myTurn && !settled && view.you ? (
               <PreActions
                 hand={hand}
                 handIndex={view.handIndex}
@@ -468,7 +464,7 @@ export function RoomTable({
                 onDrawn={() => setMarked([])}
               />
             ) : (
-              <div className="flex w-full items-center justify-between gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3">
+              <div className="flex w-full items-center justify-between gap-3 self-stretch rounded-2xl bg-foreground/[0.03] px-4 py-2 ring-1 ring-foreground/10 ring-inset">
                 <span className="text-sm text-muted-foreground">
                   {me?.place ? `You finished ${ordinal(me.place)}. Watching it out.` : 'Watching.'}
                 </span>
@@ -480,7 +476,7 @@ export function RoomTable({
                 </button>
               </div>
             )}
-          </div>
+          </ActionRow>
 
           <AnimatePresence>
             {result && !showEnd && (

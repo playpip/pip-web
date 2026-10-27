@@ -73,16 +73,10 @@ export function ActionBar({
 
   const keysList = <TableKeysDialog open={keysOpen} onOpenChange={setKeysOpen} />
 
-  // Match the real button row's height exactly (py-4 + text-base = 56px) so the
-  // bar appearing/clearing on the hero's turn never resizes the layout — that
-  // resize is what nudges the community cards.
+  // Off turn only the shortcuts list, which takes no room: the row this sits in
+  // (ActionRow) holds the buttons' height on its own, so the felt does not move.
   if (!isHeroTurn || !legal) {
-    return (
-      <>
-        <div className="h-[56px]" aria-hidden />
-        {keysList}
-      </>
-    )
+    return keysList
   }
 
   const pot = potSize(hand)
@@ -282,6 +276,8 @@ function Pill({
         tone === 'primary' && 'bg-primary text-primary-foreground hover:bg-primary/90',
         tone === 'default' && 'bg-foreground/[0.08] text-foreground hover:bg-foreground/[0.14]',
         tone === 'ghost' && 'bg-foreground/[0.03] text-muted-foreground hover:bg-foreground/[0.08]',
+        // One line, always: the row's reserve (ActionRow) is one line tall.
+        'whitespace-nowrap',
       )}
     >
       {children}
