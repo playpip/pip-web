@@ -91,6 +91,15 @@ relationship, so type that doubles has nowhere to push except off the screen.
 - **Do not fix a table overflow by widening the cap**, and do not fix one by dropping the 200%
   step: that would take the WCAG 1.4.4 answer away from every reading surface to fix one screen.
 
+### The action row never changes height
+
+The stage above the action row is `flex-1`, so any change in the row's height moves the felt.
+`ActionRow` takes the height from an invisible copy of an action button's own box
+(`ACTION_BUTTON_BOX`), never a px number, stacked in one grid cell with whatever the row shows, so
+every state in both tables is the buttons' height at any text size (`tests/actionRow.test.ts`).
+Nothing in the row may be taller: labels don't wrap. Only a result line that needs three lines (a
+phone at 150%, after the hero is out) grows it, on purpose, rather than being cut off.
+
 ### Dialogs are capped and scroll, never clipped
 
 A dialog is centred with a transform, so content taller than the viewport spills off **both**
