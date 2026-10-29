@@ -55,7 +55,15 @@ test('the table caps at 150%, and nothing else does', (t) => {
   )
   t.true(TABLE_MAX_TEXT_SCALE < 200, 'a cap at the top step would not be a cap')
 
-  for (const path of ['/play/kitchen', '/play/kitchen/', '/play/challenge-high']) {
+  // A multiplayer room is the same felt: at 200% a five-figure call pushed
+  // Raise off a 375px phone (found measuring pip-web#244).
+  for (const path of [
+    '/play/kitchen',
+    '/play/kitchen/',
+    '/play/challenge-high',
+    '/game/room',
+    '/game/room/',
+  ]) {
     t.true(isTableRoute(path))
     t.is(effectiveTextScale(200, path), TABLE_MAX_TEXT_SCALE)
     // Below the cap the table is left alone.
@@ -70,6 +78,8 @@ test('the table caps at 150%, and nothing else does', (t) => {
     '/stats',
     '/tutorial',
     '/play',
+    '/game/multiplayer',
+    '/game/rooms',
     null,
   ]) {
     t.false(isTableRoute(path))
@@ -95,6 +105,10 @@ test('the boot script applies the cap before first paint', (t) => {
   t.is(run('200', '/game'), '200%')
   t.is(run('150', '/play/kitchen'), '150%')
   t.is(run('125', '/play/kitchen'), '125%')
+  t.is(run('200', '/game/room'), '150%')
+  t.is(run('200', '/game/room/'), '150%')
+  t.is(run('200', '/game/multiplayer'), '200%')
+  t.is(run('200', '/game/rooms'), '200%')
   // 100 and junk are left alone, so the reader's own browser default stands.
   t.is(run('100', '/game'), '')
   t.is(run(null, '/game'), '')

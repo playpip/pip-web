@@ -64,12 +64,23 @@ export function textScaleLabel(scale: TextScale): string {
 /** The table's ceiling. Above this the seats and the board stop fitting on a phone. */
 export const TABLE_MAX_TEXT_SCALE = 150 satisfies TextScale
 
-/** Route prefix for the felt. The lobby, Learn and the rest are not capped. */
+/** Route prefix for the ladder's felt. The lobby, Learn and the rest are not capped. */
 export const TABLE_ROUTE_PREFIX = '/play/'
 
-/** Is this path the table itself? `/play/kitchen`, with or without a trailing slash. */
+/**
+ * A multiplayer room (`/game/room?code=…`). Its table has the same seats, board
+ * and action row, so it stops at the same size. The hub is not capped.
+ */
+export const ROOM_ROUTE = '/game/room'
+
+/** Is this path a table? `/play/kitchen` or `/game/room`, with or without a trailing slash. */
 export function isTableRoute(pathname: string | null | undefined): boolean {
-  return typeof pathname === 'string' && pathname.startsWith(TABLE_ROUTE_PREFIX)
+  if (typeof pathname !== 'string') return false
+  return (
+    pathname.startsWith(TABLE_ROUTE_PREFIX) ||
+    pathname === ROOM_ROUTE ||
+    pathname.startsWith(`${ROOM_ROUTE}/`)
+  )
 }
 
 /**
