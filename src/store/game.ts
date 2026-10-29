@@ -10,7 +10,7 @@ import type { AvatarSpec } from '@/lib/avatar'
 import { sound } from '@/lib/sound'
 import { haptics, type Buzz } from '@/lib/haptics'
 import { trackOnce } from '@/lib/analytics'
-import { draftCast, profileFor, characterById } from '@/config/cast'
+import { draftCast, formFor, profileFor, characterById, type Form } from '@/config/cast'
 import { styleFor, randomBankroll } from '@/config/opponents'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
@@ -63,6 +63,7 @@ import { cryptoRng } from '@/lib/cryptoRng'
 import {
   dailyAiRng as dailyAiRngFor,
   dailyDateKey,
+  dailyFormRng,
   dailyNumber,
   dailySeed,
   handSeed,
@@ -87,6 +88,8 @@ export interface SeatMeta {
   characterId?: string
   /** This seat's AI profile: the venue's, nudged by the character. */
   ai?: AiProfile
+  /** Tonight's form (config/cast `Form`), already applied to `ai`. Absent reads as usual. */
+  form?: Form
 }
 
 export type GameStatus = 'idle' | 'playing' | 'handover' | 'busted' | 'won' | 'watching'
@@ -552,7 +555,11 @@ function maybeTalk(
   if (!useProfile.getState().tableTalk) return null
   if (handIndex - lastTalkHand < TALK_MIN_GAP_HANDS) return null
   if (Math.random() > chance) return null
-  const lines = seat?.characterId ? characterById(seat.characterId)?.lines[kind] : undefined
+  const all = seat?.characterId ? characterById(seat.characterId)?.lines : undefined
+  // A quiet or loud night opens with its own line, where the character has one.
+  const tonight =
+    kind === 'seat' && seat?.form && seat.form !== 'usual' ? all?.[seat.form] : undefined
+  const lines = tonight ?? all?.[kind]
   if (!lines || lines.length === 0) return null
   lastTalkHand = handIndex
   return lines[Math.floor(Math.random() * lines.length)]
@@ -1290,8 +1297,15 @@ export const useGame = create<GameState>((set, get) => {
             aiCount,
             dailyBase !== null ? mulberry32(dailyBase ^ 0x9e3779b9) : undefined,
           )
+      // Tonight's forms, one per seat in seat order, off their own stream so
+      // the deal and the AI's draws are untouched. The Daily's comes off the
+      // day's seed, so everyone meets the same Frank. A first game and a
+      // challenge play everybody as written.
+      const formRng = dailyBase !== null ? dailyFormRng(dailyBase) : Math.random
+      const steady = venue.welcome === true || challenger !== null
       const aiSeats: SeatMeta[] = cast.map((ch, i) => {
-        const ai = profileFor(venue, ch)
+        const form: Form = steady ? 'usual' : formFor(formRng)
+        const ai = profileFor(venue, ch, form)
         return {
           id: `ai${i}`,
           name: ch.name,
@@ -1303,6 +1317,7 @@ export const useGame = create<GameState>((set, get) => {
           bankroll: randomBankroll(venue),
           characterId: ch.id,
           ai,
+          form,
         }
       })
       const humanSeat: SeatMeta = {

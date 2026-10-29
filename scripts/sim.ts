@@ -11,6 +11,9 @@
 //   pnpm sim --seed 7               # deterministic; same seed = same result
 //   pnpm sim garage --skill 0.4     # try a different AI skill before editing config
 //   pnpm sim pub --cast             # seat drafted characters (profileFor), as the game does
+//   pnpm sim pub --cast --forms     # ...each on tonight's form (formFor), as the game does
+//   pnpm sim mainevent --seats 8    # a top rung at a fuller table (withSeats)
+//   pnpm sim --workers 4            # cap the worker processes (default: cores - 2)
 //   pnpm sim cardroom --ai v1       # pin an AI version (lib/poker/ai/versions.ts), not the table's own
 //
 // **This harness cannot measure a cash table** and blanks their outcome columns:
@@ -35,18 +38,26 @@ import { applyAction, isHandComplete, startHand } from '@/lib/poker/engine'
 import { decideAction, type AiProfile } from '@/lib/poker/ai/policy'
 import { tableAi } from '@/lib/poker/ai/tableAi'
 import { blindsAt } from '@/config/blinds'
-import { draftCast, profileFor } from '@/config/cast'
+import { draftCast, formFor, profileFor } from '@/config/cast'
 import {
   KITCHEN_TABLE,
   RING_TABLES,
   SIDE_TABLES,
   VENUES,
   venueById,
+  withSeats,
   type Venue,
 } from '@/config/venues'
 import { versionProfile } from './ai-versions'
 
 const HERO_ID = 'hero'
+
+/**
+ * Keeps `--forms` draws off the tournament's stream, so each tournament seats
+ * the same faces and deals the same first hand as a plain `--cast` run; only
+ * the profiles differ.
+ */
+const FORM_SALT = 0x2c1b3c6d
 
 // Proxy players. "competent" is the calibration reference — a solid casual
 // player who knows the game but isn't optimal. Venue difficulty targets are
@@ -98,15 +109,18 @@ function runTournament(
   hero: AiProfile,
   rng: Rng,
   cast: boolean,
+  formRng: Rng | null,
   ai?: string,
 ): TourneyOutcome {
   const startingStack = venue.startingStack ?? venue.buyIn
   // Without --cast every AI seat plays the venue's own profile. With it, each
-  // seat is a drafted character with their delta applied, as store/game does.
+  // seat is a drafted character with their delta applied, as store/game does,
+  // and with --forms that delta is scaled by a form drawn off its own stream.
   const profiles = new Map<string, AiProfile>()
   if (cast) {
     draftCast(venue, venue.seats - 1, rng).forEach((ch, i) => {
-      profiles.set(`ai${i + 1}`, seatAi(profileFor(venue, ch), venue, ai))
+      const form = formRng ? formFor(formRng) : 'usual'
+      profiles.set(`ai${i + 1}`, seatAi(profileFor(venue, ch, form), venue, ai))
     })
   }
   const field = seatAi(venue.ai, venue, ai)
@@ -179,14 +193,17 @@ function simulateSlice(
   tStart: number,
   tEnd: number,
   cast: boolean,
+  forms: boolean,
   ai?: string,
 ) {
   let wins = 0
   let hands = 0
   let timeouts = 0
   for (let t = tStart; t < tEnd; t++) {
-    const rng = mulberry32((hash(venue.id) + seed * 1_000_003 + t) >>> 0)
-    const outcome = runTournament(venue, hero, rng, cast, ai)
+    const key = (hash(venue.id) + seed * 1_000_003 + t) >>> 0
+    const rng = mulberry32(key)
+    const formRng = forms ? mulberry32((key ^ FORM_SALT) >>> 0) : null
+    const outcome = runTournament(venue, hero, rng, cast, formRng, ai)
     if (outcome.heroWon) wins++
     if (outcome.timedOut) timeouts++
     hands += outcome.hands
@@ -204,6 +221,8 @@ interface WorkerInput {
   tStart: number
   tEnd: number
   cast: boolean
+  forms: boolean
+  seats?: number
   ai?: string
 }
 
@@ -211,15 +230,16 @@ interface WorkerInput {
 // set, runs its tournament slice, and writes the totals back as JSON on stdout.
 // (worker_threads can't be used: the thread wouldn't inherit tsx's TS loader.)
 if (process.env.SIM_SLICE) {
-  const { venueId, skill, heroName, seed, tStart, tEnd, cast, ai } = JSON.parse(
+  const { venueId, skill, heroName, seed, tStart, tEnd, cast, forms, seats, ai } = JSON.parse(
     process.env.SIM_SLICE,
   ) as WorkerInput
-  const base = venueById(venueId)
+  const found = venueById(venueId)
   const heroProfile = HEROES[heroName]
-  if (!base || !heroProfile) throw new Error(`worker: bad venue/hero ${venueId}/${heroName}`)
+  if (!found || !heroProfile) throw new Error(`worker: bad venue/hero ${venueId}/${heroName}`)
+  const base = withSeats(found, seats)
   const venue = skill === undefined ? base : { ...base, ai: { ...base.ai, skill } }
   process.stdout.write(
-    JSON.stringify(simulateSlice(venue, heroProfile, seed, tStart, tEnd, cast, ai)),
+    JSON.stringify(simulateSlice(venue, heroProfile, seed, tStart, tEnd, cast, forms, ai)),
   )
   process.exit(0)
 }
@@ -232,6 +252,7 @@ function runVenueParallel(
   n: number,
   workers: number,
   cast: boolean,
+  forms: boolean,
   ai?: string,
 ): Promise<SliceResult> {
   const chunk = Math.ceil(n / workers)
@@ -251,6 +272,8 @@ function runVenueParallel(
             tStart,
             tEnd,
             cast,
+            forms,
+            seats: venue.seats,
             ai,
           }
           const child = spawn(process.execPath, ['--import', 'tsx', scriptPath], {
@@ -291,8 +314,8 @@ function parseArgs(argv: string[]) {
   const names: string[] = []
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
-    if (a === '--cast') {
-      flags.set('cast', '')
+    if (a === '--cast' || a === '--forms') {
+      flags.set(a.slice(2), '')
     } else if (a.startsWith('--')) {
       flags.set(a.slice(2), argv[i + 1] ?? '')
       i++
@@ -349,20 +372,27 @@ if (!process.env.SIM_SLICE) {
     process.exit(1)
   }
   const cast = flags.has('cast')
+  const forms = flags.has('forms')
+  if (forms && !cast) {
+    console.error('--forms scales the characters’ nudges, so it needs --cast')
+    process.exit(1)
+  }
   const ai = flags.get('ai')
   if (ai !== undefined) versionProfile(ai, HEROES.competent) // an unknown --ai fails here
   const skillOverride = flags.has('skill') ? Number(flags.get('skill')) : undefined
-  const venues = resolveVenues(names).map((v) =>
-    skillOverride === undefined ? v : { ...v, ai: { ...v.ai, skill: skillOverride } },
-  )
+  const seats = flags.has('seats') ? Number(flags.get('seats')) : undefined
+  const venues = resolveVenues(names)
+    .map((v) => withSeats(v, seats))
+    .map((v) => (skillOverride === undefined ? v : { ...v, ai: { ...v.ai, skill: skillOverride } }))
 
   // Fan each venue's tournaments across cores. Sharding is by tournament index,
   // so results are identical to a serial run — just N× faster. Leave a couple of
   // cores free for the OS; never spin up more workers than there are tournaments.
-  const workers = Math.max(1, Math.min(os.cpus().length - 2, n))
+  const cap = flags.has('workers') ? Number(flags.get('workers')) : os.cpus().length - 2
+  const workers = Math.max(1, Math.min(cap, n))
 
   console.log(
-    `Simulating ${n} tournaments per venue · hero: ${heroName} (skill ${hero.skill}) · seed ${seed} · ${cast ? 'cast seated' : 'venue profile'} · AI ${ai ?? "the table's own"} · ${workers} workers\n`,
+    `Simulating ${n} tournaments per venue · hero: ${heroName} (skill ${hero.skill}) · seed ${seed} · ${cast ? (forms ? 'cast seated, tonight’s forms' : 'cast seated') : 'venue profile'} · AI ${ai ?? "the table's own"} · ${workers} workers\n`,
   )
 
   const pad = (s: string, w: number) => s.padEnd(w)
@@ -389,6 +419,7 @@ if (!process.env.SIM_SLICE) {
       n,
       workers,
       cast,
+      forms,
       ai,
     )
     const winRate = wins / n

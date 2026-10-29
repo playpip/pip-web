@@ -946,7 +946,7 @@ const THE_REGULARS: Lesson = {
         prompt: 'Who bets it the most?',
       },
       aside:
-        'Frank bets air more often than anybody else here, by a distance. He still checks it most of the time. More bluffs is not all bluffs.',
+        'Frank bets air more often than anybody else here, most nights by a distance. He still checks it most of the time. More bluffs is not all bluffs.',
     },
     {
       id: 'what-it-is-not',
