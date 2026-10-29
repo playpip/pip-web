@@ -35,6 +35,18 @@ Each `Character` in `src/config/cast.ts`:
   (tightness / aggression / bluff). **The venue owns difficulty** — `skill` and
   `iterations` are never touched, so the ladder curve is exactly as tuned.
   Applied by `profileFor` per seat; validate big changes with `pnpm sim --cast`, and keep each band's mean delta near zero so the rung keeps its difficulty.
+- **Tonight's form** scales the delta, and only the delta: each seating draws `quiet`,
+  `usual` or `loud` per character (`formFor`, 25 / 50 / 25) and plays
+  `clamp01(base + delta × FORM_SCALE[form])`, with `FORM_SCALE` 0.4 / 1 / 1.6. The weighted
+  scale is exactly 1, so a band's mean delta, and with it the rung, is unchanged
+  (`tests/castForm.test.ts` holds it, clamping included). The sign never flips: a quiet
+  Frank still bluffs more than the room, just less than usual. A character with no delta
+  has no form. `profileFor` defaults to `usual`, which is the delta as written, so lessons,
+  drills and the builder read the baseline. Drawn once per seating and kept in the seat
+  (`SeatMeta.form`), so a refresh resumes the same night; the Daily draws off the day's seed
+  on its own stream (`dailyFormRng`), so everyone meets the same Frank; the welcome table
+  and challenges play everybody `usual`. Check a change with `pnpm sim --cast` against
+  `--cast --forms`.
 - **`lines`** — table talk (below).
 
 ### The one exception: a guest brings their own rung
@@ -80,6 +92,10 @@ big pot** (≥20 big blinds), **busting out**. Rationing is the design:
 The writing bar is the feature: lines are dry, specific and short. If a line
 wouldn't read well spoken by a bartender, cut it.
 
+A quiet or loud night can open with its own line (`lines.quiet` / `lines.loud`, optional,
+in place of `seat`): Frank promises to play it straight on a quiet one. A hint for whoever
+is paying attention, never a label, so keep them as rare as the rest.
+
 A fourth moment, **the read** (`lines.read`, optional): the table has learned the
 player bets nearly every hand (`credibility` under 0.6 in `lib/poker/ai/memory`),
 they took a hand to showdown, and this character beat them. It outranks the
@@ -113,8 +129,8 @@ invitations nobody can ever accept.
 
 ## Non-goals
 
-- No character progression, moods, or grudges — tendencies are observed, not
-  scripted arcs.
+- No long-term progression or grudges — tendencies are observed, not scripted arcs.
+  A nightly form changes how much, never which way.
 - No dialogue *at* the player mid-hand; talk never interrupts a decision.
 - **No character is inventory.** You cannot buy one, collect one, or unlock one
   individually, and there is no roster to complete.
@@ -136,6 +152,7 @@ invitations nobody can ever accept.
 | Add/rewrite a character, bio, lines | `src/config/cast.ts` (+ `tests/cast.test.ts` and `tests/challenge.test.ts` coverage holds) |
 | Where a character plays | `bands` / `only` on the character |
 | A character's habit | `habit` on the character; sizes in `HABIT` (`config/aiGates.ts`) |
+| How far a form leans, how often | `FORM_SCALE` / `FORM_WEIGHTS` in `src/config/cast.ts` (keep the weighted scale at 1; `tests/castForm.test.ts`) |
 | Talk frequency / moments | `maybeTalk` + call sites in `src/store/game.ts` |
 | The talk line's look | the table-talk block in `components/table/Table.tsx` |
 | Career record shape | `store/profile.ts` (bump `PERSIST_VERSION`, add migration) |
