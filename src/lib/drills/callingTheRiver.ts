@@ -1,5 +1,5 @@
 import { pct } from '@/config/potOdds'
-import { mulberry32, shuffledDeck } from '@/lib/poker/cards'
+import { type Card, mulberry32, shuffledDeck } from '@/lib/poker/cards'
 import { formatChips } from '@/lib/useMoney'
 import { type RiverShape, riverDifficulty } from './rating'
 import {
@@ -19,6 +19,7 @@ import {
   type DrillChoice,
   type DrillLineStep,
   type Generated,
+  type RejectReason,
   type RiverRangeSummary,
   accept,
   reject,
@@ -73,7 +74,7 @@ const EARLY_FRACTIONS = [1 / 2, 2 / 3] as const
  * both. The overbets are here on purpose. They are the bets a beginner calls
  * because they look like bluffs, and they are the narrowest range the model has.
  */
-const RIVER_FRACTIONS = [
+export const RIVER_FRACTIONS = [
   1 / 5,
   1 / 4,
   1 / 3,
@@ -102,7 +103,7 @@ const HERO_PLAYABLE = 0.45
 const roundBet = (chips: number) => Math.max(5, Math.round(chips / 5) * 5)
 
 /** A price this river could be charging, and the range that bets it. */
-interface RiverPrice {
+export interface RiverPrice {
   toCall: number
   /** The pot as the table shows it: what was there, plus their bet. */
   pot: number
@@ -113,35 +114,39 @@ interface RiverPrice {
   high: Facing
 }
 
+/** A river spot dealt and priced at every bet, before any bet is picked to ask. */
+export interface DealtRiver {
+  hero: Card[]
+  board: Card[]
+  /** The second stream, left where the deal stopped: the generator draws on from it. */
+  rng: () => number
+  /** The pot before the river bet. */
+  pot: number
+  steps: DrillLineStep[]
+  /** One per bet in RIVER_FRACTIONS, in that order, before rounding duplicates out. */
+  prices: RiverPrice[]
+}
+
 /**
- * Deal the river spot at `seed`, or say why it was thrown away.
- *
- * Rejections reuse the shared vocabulary rather than adding to it:
- *
- * - `unexplainable`: the board is two pair or better on its own, so "a hand of
- *   their own" and "a hand that missed" stop meaning what the lesson says they
- *   mean. Rare, and not worth a paragraph of exceptions in the copy.
- * - `one-sided`: your hand is not one anybody calls with (nothing of your own
- *   on the river, or a starting hand you would not have played), or no bet this
- *   pot could carry asks it both ways.
- * - `ambiguous`: some bet would have asked it, but only inside the margin or
- *   only at one end of the bluffing band.
+ * The deal and the prices `generateRiverCall` grades, on their own, so
+ * /blog/calling-a-river-bet counts exactly the spots this pack deals
+ * (`riverBluffCount` in ./riverBluffCount).
  */
-export function generateRiverCall(seed: number): Generated {
+export function dealRiver(seed: number): DealtRiver | { rejected: RejectReason } {
   const deck = shuffledDeck(mulberry32(seed))
   const hero = deck.slice(0, 2)
   const board = deck.slice(2, 7)
 
   const boardScore = fastScore(board)
-  if (categoryOf(boardScore) >= TWO_PAIR) return reject('unexplainable')
+  if (categoryOf(boardScore) >= TWO_PAIR) return { rejected: 'unexplainable' }
 
   // A hand you would have played, with a pair of your own on the river: the
   // spot a beginner is actually in. Ace-high bluff-catching is a real skill and
   // a later pack.
-  if (holeStrength(hero, []) < HERO_PLAYABLE) return reject('one-sided')
+  if (holeStrength(hero, []) < HERO_PLAYABLE) return { rejected: 'one-sided' }
   const heroScore = fastScore([...hero, ...board])
   if (categoryOf(heroScore) <= categoryOf(boardScore)) {
-    return reject('one-sided')
+    return { rejected: 'one-sided' }
   }
 
   // The second stream, as the other pricing kinds do it: reproducible from the
@@ -182,6 +187,28 @@ export function generateRiverCall(seed: number): Generated {
       high: weigh(counted, BLUFF_WEIGHTS.high),
     }
   })
+
+  return { hero, board, rng, pot, steps, prices }
+}
+
+/**
+ * Deal the river spot at `seed`, or say why it was thrown away.
+ *
+ * Rejections reuse the shared vocabulary rather than adding to it:
+ *
+ * - `unexplainable`: the board is two pair or better on its own, so "a hand of
+ *   their own" and "a hand that missed" stop meaning what the lesson says they
+ *   mean. Rare, and not worth a paragraph of exceptions in the copy.
+ * - `one-sided`: your hand is not one anybody calls with (nothing of your own
+ *   on the river, or a starting hand you would not have played), or no bet this
+ *   pot could carry asks it both ways.
+ * - `ambiguous`: some bet would have asked it, but only inside the margin or
+ *   only at one end of the bluffing band.
+ */
+export function generateRiverCall(seed: number): Generated {
+  const dealt = dealRiver(seed)
+  if ('rejected' in dealt) return reject(dealt.rejected)
+  const { hero, board, rng, pot, steps, prices } = dealt
 
   // Deduplicate: two fractions can round to the same bet on a small pot.
   const unique = prices.filter(
