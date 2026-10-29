@@ -8,6 +8,7 @@
 //   pnpm persona-stats casino             # one venue's roster
 //   pnpm persona-stats --hands 30000      # hands per table (default 20000)
 //   pnpm persona-stats --json             # machine-readable
+//   pnpm persona-stats pub --form quiet   # every character on one form (config/cast `Form`)
 //
 // Six-handed cash at 100bb, reset every hand. The seats rotate in blocks of
 // `BLOCK` hands, the table keeping its memory within a block, so every
@@ -26,7 +27,15 @@
 import { spawn } from 'node:child_process'
 import os from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { bandFor, type CastBand, type Character, profileFor, rosterFor } from '@/config/cast'
+import {
+  bandFor,
+  type CastBand,
+  type Character,
+  FORM_SCALE,
+  type Form,
+  profileFor,
+  rosterFor,
+} from '@/config/cast'
 import { VENUES, type Venue, venueById } from '@/config/venues'
 import { createTableMemory, observeAction } from '@/lib/poker/ai/memory'
 import { type AiProfile, decideAction } from '@/lib/poker/ai/policy'
@@ -57,12 +66,15 @@ export interface Participant {
   profile: AiProfile
 }
 
-/** The venue's roster with their profiles, and the control seat. */
-export function participantsFor(venue: Venue): Participant[] {
+/** The venue's roster with their profiles on one form, and the control seat. */
+export function participantsFor(venue: Venue, form: Form = 'usual'): Participant[] {
   const cast: Character[] = rosterFor(venue)
   return [
     { id: CONTROL, profile: versionProfile('fast', venue.ai) },
-    ...cast.map((ch) => ({ id: ch.id, profile: versionProfile('fast', profileFor(venue, ch)) })),
+    ...cast.map((ch) => ({
+      id: ch.id,
+      profile: versionProfile('fast', profileFor(venue, ch, form)),
+    })),
   ]
 }
 
@@ -156,13 +168,15 @@ const IS_ENTRY =
 const BLOCKS_PER_CHUNK = 10
 
 if (IS_ENTRY && process.env.PERSONA_SLICE) {
-  const { venueId, seed, blocks, chunkStart, chunkEnd } = JSON.parse(process.env.PERSONA_SLICE)
+  const { venueId, seed, blocks, chunkStart, chunkEnd, form } = JSON.parse(
+    process.env.PERSONA_SLICE,
+  )
   const venue = venueById(venueId) as Venue
+  const field = participantsFor(venue, form)
   const out: PersonaTotals[] = []
   for (let c = chunkStart; c < chunkEnd; c++) {
-    out.push(
-      runPersonas(venue, seed, c * BLOCKS_PER_CHUNK, Math.min((c + 1) * BLOCKS_PER_CHUNK, blocks)),
-    )
+    const end = Math.min((c + 1) * BLOCKS_PER_CHUNK, blocks)
+    out.push(runPersonas(venue, seed, c * BLOCKS_PER_CHUNK, end, field))
   }
   // A pipe takes 64 KB at a time and exit() drops the rest, so exit once it
   // has all been written.
@@ -175,7 +189,7 @@ function merge(a: PersonaTotals, b: PersonaTotals): PersonaTotals {
   return out
 }
 
-function runParallel(venueId: string, seed: number, blocks: number, workers: number) {
+function runParallel(venueId: string, seed: number, blocks: number, workers: number, form: Form) {
   const chunks = Math.ceil(blocks / BLOCKS_PER_CHUNK)
   const per = Math.max(1, Math.ceil(chunks / workers))
   const jobs: Promise<PersonaTotals[]>[] = []
@@ -186,6 +200,7 @@ function runParallel(venueId: string, seed: number, blocks: number, workers: num
       blocks,
       chunkStart,
       chunkEnd: Math.min(chunkStart + per, chunks),
+      form,
     }
     jobs.push(
       new Promise((resolve, reject) => {
@@ -225,7 +240,7 @@ if (IS_ENTRY && !process.env.PERSONA_SLICE) {
     return i >= 0 ? args[i + 1] : undefined
   }
   const flagged = new Set(
-    ['--hands', '--seed', '--workers'].flatMap((f) => {
+    ['--hands', '--seed', '--workers', '--form'].flatMap((f) => {
       const i = args.indexOf(f)
       return i >= 0 ? [i, i + 1] : []
     }),
@@ -246,17 +261,20 @@ if (IS_ENTRY && !process.env.PERSONA_SLICE) {
   const seed = Number(flag('seed') ?? 1)
   const workers = Math.max(1, Number(flag('workers') ?? Math.min(os.cpus().length - 2, 14)))
   const blocks = Math.max(1, Math.round(hands / BLOCK))
+  const form = (flag('form') ?? 'usual') as Form
+  if (!(form in FORM_SCALE)) throw new Error(`unknown form "${form}" (quiet, usual, loud)`)
 
   for (const venue of venues) {
     const t0 = Date.now()
-    const field = participantsFor(venue)
-    const totals = await runParallel(venue.id, seed, blocks, workers)
+    const field = participantsFor(venue, form)
+    const totals = await runParallel(venue.id, seed, blocks, workers, form)
     if (args.includes('--json')) {
       console.log(
         JSON.stringify({
           venue: venue.id,
           hands: blocks * BLOCK,
           seed,
+          form,
           profiles: Object.fromEntries(field.map((p) => [p.id, p.profile])),
           totals,
           lookalikes: lookalikes(totals),
@@ -266,7 +284,7 @@ if (IS_ENTRY && !process.env.PERSONA_SLICE) {
     }
     const ids = field.map((p) => p.id)
     console.log(
-      `${venue.name} · ${blocks * BLOCK} hands · six-handed, ${STACK_BB}bb · seed ${seed} · rate (z vs control)\n`,
+      `${venue.name} · ${blocks * BLOCK} hands · six-handed, ${STACK_BB}bb · seed ${seed} · ${form} form · rate (z vs control)\n`,
     )
     const cell = (s: SeatStats, k: StatKey) => {
       const r = rate(s.stat[k])
