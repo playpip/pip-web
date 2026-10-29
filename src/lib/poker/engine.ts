@@ -271,25 +271,29 @@ export interface LegalActions {
 }
 
 /**
- * The most a pot-limit player may put it to.
+ * The "to" amount for raising `fraction` of the pot, for the player to act. At
+ * `fraction = 1` it is the most a pot-limit player may put it to.
  *
  * The standard rule, written out because it is the one people get wrong: you
  * may raise by the size of the pot *after* your call. So the pot you are
  * raising into is everything already committed plus the chips you are about to
- * call, and your maximum total for this action is that call plus that pot —
+ * call, and your total for this action is that call plus your share of that
+ * pot —
  *
- *     maxTo = committedThisStreet + toCall + (pot + toCall)
+ *     to = committedThisStreet + toCall + fraction × (pot + toCall)
  *
  * — where `pot` is every chip committed this hand, on every street, including
- * the current round's bets. A first bet on a street has `toCall === 0`, which
- * collapses to "bet the pot", exactly as it should.
+ * the current round's bets, and `committedThisStreet + toCall` is the current
+ * bet. A first bet on a street has `toCall === 0`, which collapses to "bet that
+ * share of the pot", exactly as it should.
  *
- * Capped by the stack upstream: pot-limit never lets you put in more than you
- * have, and it never stops you putting in all of it when the pot is bigger.
+ * Not capped: pot-limit never lets you put in more than you have, and it never
+ * stops you putting in all of it when the pot is bigger, so callers clamp.
  */
-function potLimitMaxTo(state: HandState, p: Player, toCall: number): number {
-  const pot = state.players.reduce((sum, player) => sum + player.committedThisHand, 0)
-  return p.committedThisStreet + toCall + (pot + toCall)
+export function potRaiseTo(state: HandState, fraction = 1): number {
+  const p = state.players[state.toActIndex]
+  const toCall = state.currentBet - p.committedThisStreet
+  return state.currentBet + Math.round(fraction * (potSize(state) + toCall))
 }
 
 const NO_BETTING = {
@@ -323,9 +327,7 @@ export function legalActions(state: HandState): LegalActions | null {
   // Omaha is pot-limit here, and Hold'em is no-limit. They are not separate
   // settings because we do not ship the other two combinations, and a `betting`
   // field nothing varies independently would be a lie about the design.
-  const maxRaiseTo = isOmaha(state.variant)
-    ? Math.min(allInTo, potLimitMaxTo(state, p, toCall))
-    : allInTo
+  const maxRaiseTo = isOmaha(state.variant) ? Math.min(allInTo, potRaiseTo(state)) : allInTo
 
   const minBetTo = state.bigBlind
   const minRaiseTo = state.currentBet + state.lastRaiseSize
@@ -701,6 +703,15 @@ function seatOrder(state: HandState, id: string): number {
 /** Total chips currently in all pots + committed this street. */
 export function potSize(state: HandState): number {
   return state.players.reduce((sum, p) => sum + p.committedThisHand, 0)
+}
+
+/**
+ * Where a sizer preset (half pot, the pot) puts the raise: `potRaiseTo`, so a
+ * player facing a bet raises into the pot after their call, held inside the
+ * legal band. With the pot-limit cap that makes "Pot" and the cap one number.
+ */
+export function presetRaiseTo(state: HandState, legal: LegalActions, fraction: number): number {
+  return Math.max(legal.minRaiseTo, Math.min(legal.maxRaiseTo, potRaiseTo(state, fraction)))
 }
 
 export const isHandComplete = (state: HandState): boolean => state.street === 'complete'
