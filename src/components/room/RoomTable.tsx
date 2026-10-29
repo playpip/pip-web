@@ -252,14 +252,17 @@ export function RoomTable({
   const turnLine =
     hero && actor && !catching ? (
       myTurn ? (
-        <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap font-semibold text-foreground">
           <span aria-hidden className="size-1.5 rounded-full bg-primary" />
           Your move
         </span>
       ) : (
-        <span className="text-muted-foreground">
-          Waiting for {actor.name}
-          {theirLeft && ` · ${theirLeft} to move`}
+        // One line on the narrowest phone: a long name shortens, the time left does not.
+        <span className="flex min-w-0 text-muted-foreground">
+          <span className="truncate">Waiting for {actor.name}</span>
+          {theirLeft && (
+            <span className="shrink-0 whitespace-pre">{` · ${theirLeft} to move`}</span>
+          )}
         </span>
       )
     ) : null
