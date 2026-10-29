@@ -240,7 +240,11 @@ test.serial('Frank opens a quiet or a loud night with its own line', (t) => {
   const heard = new Set<string>()
   try {
     useProfile.getState().setTableTalk(true)
-    for (const seed of SEEDS) {
+    // The form is drawn before the deal, so it follows the seed; whether
+    // anyone speaks does not (the odds panel samples first, off an unseeded
+    // deck). So sit down until every form has been heard: about 0.15 of
+    // sittings open a quiet night aloud, and 200 without one is ~1e-14.
+    for (let seed = 1; seed <= 200 && heard.size < 3; seed++) {
       const { opponents, talk } = seat(FRANK_ALONE, seed)
       if (!talk) continue
       const form = opponents[0].form ?? 'usual'
