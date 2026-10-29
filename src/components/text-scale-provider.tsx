@@ -27,6 +27,7 @@ import {
   parseTextScale,
   rootFontSize,
   TABLE_MAX_TEXT_SCALE,
+  ROOM_ROUTE,
   TABLE_ROUTE_PREFIX,
   TEXT_SCALE_KEY,
   TEXT_SCALES,
@@ -88,7 +89,7 @@ export function TextScaleProvider({ children }: { children: React.ReactNode }) {
  * the setting keeps whatever their browser's own default font size is.
  *
  * It applies the table cap itself rather than leaving it to the provider: a
- * hard refresh on `/play/kitchen` resumes the table, and the provider's effect
+ * hard refresh on `/play/kitchen` or a room resumes the table, and the provider's effect
  * runs after paint, so without this the felt draws once at 200% and then jumps.
  * The steps are written out from TEXT_SCALES so a new step cannot be added to
  * the setting and silently miss the boot.
@@ -97,4 +98,7 @@ const BOOT_STEPS = TEXT_SCALES.filter((step) => step !== DEFAULT_TEXT_SCALE)
   .map((step) => `s==='${step}'`)
   .join('||')
 
-export const TEXT_SCALE_BOOT_SCRIPT = `(function(){try{var s=localStorage.getItem('${TEXT_SCALE_KEY}');if(!(${BOOT_STEPS}))return;var n=+s;if(n>${TABLE_MAX_TEXT_SCALE}&&location.pathname.indexOf('${TABLE_ROUTE_PREFIX}')===0)n=${TABLE_MAX_TEXT_SCALE};document.documentElement.style.fontSize=n+'%'}catch(e){}})()`
+// The same test as isTableRoute, written out for a script that cannot import it.
+const BOOT_ON_TABLE = `p.indexOf('${TABLE_ROUTE_PREFIX}')===0||p==='${ROOM_ROUTE}'||p.indexOf('${ROOM_ROUTE}/')===0`
+
+export const TEXT_SCALE_BOOT_SCRIPT = `(function(){try{var s=localStorage.getItem('${TEXT_SCALE_KEY}');if(!(${BOOT_STEPS}))return;var n=+s,p=location.pathname;if(n>${TABLE_MAX_TEXT_SCALE}&&(${BOOT_ON_TABLE}))n=${TABLE_MAX_TEXT_SCALE};document.documentElement.style.fontSize=n+'%'}catch(e){}})()`
