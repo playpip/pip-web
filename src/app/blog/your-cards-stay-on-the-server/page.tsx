@@ -106,7 +106,10 @@ export default function YourCardsStayOnTheServerPost() {
         <p>
           A member opens a room and sends the code. Friends join free with a Pip account, camera and
           voice if they want them. Multiplayer is part of the{' '}
-          <Link href={`${membershipFor('multiplayer')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('multiplayer')}&from=blog&post=your-cards-stay-on-the-server`}
+            className={linkClass}
+          >
             membership
           </Link>
           . The ladder, the Rail, the Daily and the freeroll stay free.
