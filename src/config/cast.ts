@@ -833,7 +833,7 @@ export const FORM_SCALE: Readonly<Record<Form, number>> = { quiet: 0.4, usual: 1
 /**
  * How often each form turns up. The weighted scale is exactly 1, so every
  * rung's regulars average the same profile they always did
- * (`tests/cast.test.ts` holds it, clamping included).
+ * (`tests/castForm.test.ts` holds it, clamping included).
  */
 export const FORM_WEIGHTS: Readonly<Record<Form, number>> = { quiet: 0.25, usual: 0.5, loud: 0.25 }
 
