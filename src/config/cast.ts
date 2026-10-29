@@ -42,6 +42,12 @@ export interface CharacterLines {
    * some characters have something to say about it.
    */
   read?: readonly string[]
+  /**
+   * Sitting down on a quiet or a loud night (`Form`), in place of `seat`.
+   * Optional and rare: a hint for whoever is paying attention, not a label.
+   */
+  quiet?: readonly string[]
+  loud?: readonly string[]
 }
 
 export interface Character {
@@ -99,10 +105,9 @@ export const CAST: readonly Character[] = [
     bands: ['low'],
     delta: { bluff: 0.12, aggression: 0.1 },
     lines: {
-      seat: [
-        'Frank arrives ten minutes late and blames traffic.',
-        'Frank promises to play it straight tonight.',
-      ],
+      seat: ['Frank arrives ten minutes late and blames traffic.'],
+      quiet: ['Frank promises to play it straight tonight.'],
+      loud: ['Frank says he’s feeling lucky tonight. He says it twice.'],
       win: [
         '“Told you I had it,” says Frank. He did not have it.',
         'Frank rakes it in, looking extremely honest.',
@@ -815,7 +820,38 @@ export function draftCast(
 }
 
 /**
- * The seat's AiProfile: the table's, with the character's nudges applied.
+ * Tonight's form: how far a character leans into their own nudges, drawn once
+ * per seating. It scales the `delta` and nothing else, so it changes how much,
+ * never which way: a quiet Frank still bluffs more than the room, a loud Marge
+ * is still the tightest chair at it. Skill, iterations and habit never move.
+ */
+export type Form = 'quiet' | 'usual' | 'loud'
+
+/** How much of the delta each form plays. */
+export const FORM_SCALE: Readonly<Record<Form, number>> = { quiet: 0.4, usual: 1, loud: 1.6 }
+
+/**
+ * How often each form turns up. The weighted scale is exactly 1, so every
+ * rung's regulars average the same profile they always did
+ * (`tests/cast.test.ts` holds it, clamping included).
+ */
+export const FORM_WEIGHTS: Readonly<Record<Form, number>> = { quiet: 0.25, usual: 0.5, loud: 0.25 }
+
+const FORMS: readonly Form[] = ['quiet', 'usual', 'loud']
+
+/** Draw a form. Pass a seeded rng for a reproducible table (the Daily does). */
+export function formFor(rng: () => number = Math.random): Form {
+  let roll = rng()
+  for (const form of FORMS) {
+    roll -= FORM_WEIGHTS[form]
+    if (roll < 0) return form
+  }
+  return 'usual'
+}
+
+/**
+ * The seat's AiProfile: the table's, with the character's nudges applied,
+ * scaled by tonight's form (`usual` plays the delta as written).
  *
  * **The venue still owns difficulty, with one named exception.** A character
  * invited by name to a built table (`venue.guests`) plays their home rung's
@@ -830,14 +866,15 @@ export function draftCast(
  * so a table you built and invited nobody to is exactly the ladder rung its
  * price bought, to the object.
  */
-export function profileFor(venue: Venue, ch: Character): AiProfile {
+export function profileFor(venue: Venue, ch: Character, form: Form = 'usual'): AiProfile {
   const clamp01 = (n: number) => Math.max(0, Math.min(1, n))
   const base = venue.guests?.includes(ch.id) ? harderOf(venue.ai, homeRungFor(ch).ai) : venue.ai
+  const scale = FORM_SCALE[form]
   return {
     ...base,
-    tightness: clamp01(base.tightness + (ch.delta?.tightness ?? 0)),
-    aggression: clamp01(base.aggression + (ch.delta?.aggression ?? 0)),
-    bluff: clamp01(base.bluff + (ch.delta?.bluff ?? 0)),
+    tightness: clamp01(base.tightness + (ch.delta?.tightness ?? 0) * scale),
+    aggression: clamp01(base.aggression + (ch.delta?.aggression ?? 0) * scale),
+    bluff: clamp01(base.bluff + (ch.delta?.bluff ?? 0) * scale),
     habit: ch.habit,
   }
 }
