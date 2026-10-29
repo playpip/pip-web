@@ -119,7 +119,10 @@ export default function PokerNightPost() {
       <Section title="Where it is">
         <p>
           Opening a room is part of the{' '}
-          <Link href={`${membershipFor('multiplayer')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('multiplayer')}&from=blog&post=poker-night-with-friends-online`}
+            className={linkClass}
+          >
             membership
           </Link>
           , and that page says what else is in it. Joining a friend’s room is free, and so are the
