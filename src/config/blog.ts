@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'deep-stack-set-mining',
+    title: 'Set mining needs a deep stack. How long each table gives you one',
+    description:
+      'A pocket pair flops its third card 2,304 times in 19,600, so calling a raise to three big blinds needs about 26 big blinds behind, on both sides, to break even. Pip’s ladder tables keep that for 18 to 20 hands. Deep Stack keeps it for 60 to 84. Counted from each table’s own blinds.',
+    date: '2026-10-30',
+  },
+  {
     slug: 'pot-limit-omaha-max-bet',
     title: 'The most you can bet in Pot-Limit Omaha',
     description:
