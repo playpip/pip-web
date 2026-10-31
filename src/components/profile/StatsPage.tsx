@@ -27,6 +27,8 @@ import { derivePlayStyle } from '@/lib/playStyle'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
 import { drillHref } from '@/components/drills/exit'
+import { useHydrated } from '@/lib/useHydrated'
+import { listRoomReviews } from '@/lib/multiplayer/review'
 
 const ALL_VENUES = [...VENUES, ...SIDE_TABLES, KITCHEN_TABLE]
 
@@ -46,6 +48,9 @@ export function StatsPage() {
   } = useProfile()
   const ring = avatarRingById(avatarRing)
   const money = useMoney()
+  // Multiplayer games kept for review on this device (lib/multiplayer/review).
+  const hydrated = useHydrated()
+  const roomReviews = useMemo(() => (hydrated ? listRoomReviews().slice(0, 4) : []), [hydrated])
 
   const style = derivePlayStyle(tendencies)
   const rank = rankFor(peakRoll)
@@ -182,6 +187,16 @@ export function StatsPage() {
             >
               Review your last session
             </Link>
+            {roomReviews.map((r) => (
+              <Link
+                key={r.room.code}
+                href={`/game/review?room=${r.room.code}`}
+                className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+              >
+                Review {r.room.kind === 'slow' ? 'your slow game' : 'your multiplayer game'} ·{' '}
+                {r.hands.length === 1 ? '1 hand' : `${r.hands.length} hands`}
+              </Link>
+            ))}
           </div>
         </Card>
 
