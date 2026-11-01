@@ -177,6 +177,28 @@ simplification `lib/coach.ts` makes. A raise is read as a bet of what it added,
 and a hand with no recorded pot or chips in front is not graded at all rather
 than graded at zero.
 
+## Multiplayer games
+
+Fast and slow multiplayer games have a session review too
+(`lib/multiplayer/review.ts`), on the same screen: `/game/review?room=CODE`.
+
+- **Only the cards you saw.** The room server never sends another seat's cards
+  unless a showdown turned them over, and the review is built from those same
+  views. So it shows your hand and the shown hands, nothing else. Where a live
+  hand is unknown, the seats carry no odds and the move gets no rating
+  (`everyLiveHandKnown` in `lib/review/handState.ts`); your own calls and folds
+  are still priced from what you could see, as solo.
+- **Kept on this device, as views arrive.** Each finished hand is dealt again
+  (`rebuild` in `lib/multiplayer/catchUp.ts`) and written as an ordinary
+  `HandRecord` with your seat renamed `hero`. A slow game's view carries its
+  last few hands, so a game opened now and then still fills in; opening the
+  review of a slow game you are in sits down at it to fetch them.
+- **One review per room**, the last `MAX_ROOM_REVIEWS` rooms, in
+  `localStorage` `pip.roomReviews`. Not added to the career report.
+- **Where it is offered:** the end card at the table (members), a finished
+  game's card in "Your games" (tap → *Session review*), a small button on a game
+  in play, and links on the stats page. The page does the member check.
+
 ## Grades (the report's, on calls and folds only)
 
 In **big blinds** — chips are meaningless across a 100-chip Garage and a
@@ -214,6 +236,7 @@ that difference could be written down.
 | | Where | Lives for |
 |---|---|---|
 | The session | `localStorage` `pip.review` | one session — the next sit-down replaces it |
+| Multiplayer games | `localStorage` `pip.roomReviews` | one per room, the last few rooms |
 | The career table | `profile.reviewStats` (v20) | forever, and it syncs |
 
 **One session, not a library** (Will, 2026-09-20). No dates, nothing to fall

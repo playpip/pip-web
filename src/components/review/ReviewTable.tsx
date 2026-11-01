@@ -42,7 +42,7 @@ import { MoveChip } from './GradeChip'
 import { HandPicker, type HandFilter } from './HandPicker'
 import type { Card } from '@/lib/poker/cards'
 import { showdownOdds } from '@/lib/poker/equity'
-import { HERO_ID, handStateAt, liveHands } from '@/lib/review/handState'
+import { HERO_ID, everyLiveHandKnown, handStateAt, liveHands } from '@/lib/review/handState'
 import { commentaryAt } from '@/lib/review/commentary'
 import { encodeHand } from '@/lib/handLink'
 import { useCopied } from '@/lib/useCopied'
@@ -122,10 +122,10 @@ export function ReviewTable({
   )
 
   const odds = useMemo(() => {
-    if (!frame) return null
+    if (!frame || !record || !everyLiveHandKnown(frame.hand, record)) return null
     const live = liveHands(frame.hand)
     return live.length > 1 ? solve(live, frame.hand.community) : null
-  }, [frame, solve])
+  }, [frame, record, solve])
 
   const commentary = useMemo(
     () => (reviewHand && frame ? commentaryAt(reviewHand, frame, money, solve) : null),
@@ -392,7 +392,7 @@ export function ReviewTable({
           leading={shared ? 'none' : 'back'}
           chrome={false}
           showWordmark={false}
-          onBack={() => router.push('/game')}
+          onBack={() => router.push(session.room ? '/game/multiplayer' : '/game')}
           title={
             <>
               <span className="text-sm font-medium text-muted-foreground">{session.venueName}</span>
