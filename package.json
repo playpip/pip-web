@@ -1,6 +1,6 @@
 {
   "name": "clean-poker",
-  "version": "1.33.4",
+  "version": "1.34.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.0.9",
