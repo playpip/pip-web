@@ -53,14 +53,11 @@ Deno.serve(async (req) => {
   if (!PRICES.has(priceId)) return json({ error: 'unknown-price' }, 400)
   if (!CURRENCIES.has(currency)) return json({ error: 'unknown-currency' }, 400)
 
-  // The player asked for the membership to start now, which is what ends a
-  // consumer's 14-day right to cancel on the day they join rather than 14 days
-  // later (/terms says they will be asked). The box on /membership is required,
-  // but a POST can arrive without the page, so it is checked again here.
-  //
-  // It cannot be asked on Stripe's page: Checkout's own terms consent points at
-  // the account's terms URL, and this account is Ava's, shared with Probus.
-  if (body.startNow !== true) return json({ error: 'consent' }, 400)
+  // No waiver is asked for (terms of 2026-11-02): a new member keeps the
+  // 14-day right to cancel for a full refund, done by hand in the dashboard.
+  // `startNow` still arrives from the page, for a function deployed before
+  // then, and is ignored. The terms version is recorded for a dispute months
+  // from now; it says which terms the player joined under.
   const termsVersion = typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : ''
 
   // What the player tapped to reach /membership, handed back on the success
@@ -120,13 +117,12 @@ Deno.serve(async (req) => {
     // `PROJECT_METADATA` on both is what tells Pip's webhook this is Pip's and
     // Probus's webhook that it is not theirs — the account is shared, and every
     // endpoint on it hears every project's events (see _shared/billing.ts).
-    // `start_now` and `terms_version` are the record of the consent above, for
-    // a cancellation request or a dispute months from now.
+    // `terms_version` says which terms the player joined under, for a
+    // cancellation request or a dispute months from now.
     client_reference_id: user.id,
     metadata: {
       ...PROJECT_METADATA,
       user_id: user.id,
-      start_now: 'requested',
       terms_version: termsVersion,
     },
     subscription_data: {

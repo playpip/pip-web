@@ -460,7 +460,7 @@ export const HOW_TO_CANCEL =
  * months later can be answered with which terms were on the page. Bump it when
  * the membership section of `/terms` changes in substance, not for typos.
  */
-export const TERMS_VERSION = '2026-09-26'
+export const TERMS_VERSION = '2026-11-02'
 
 /**
  * Who actually sells the membership.

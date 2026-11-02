@@ -68,19 +68,23 @@ test('on the shared account, Pip only touches what it tagged', (t) => {
   )
 })
 
-// /terms says the player is asked to confirm the membership starts at once.
-test('checkout refuses without the start-now consent', (t) => {
-  t.regex(checkout, /if \(body\.startNow !== true\) return json\(\{ error: 'consent' \}, 400\)/)
-  t.regex(checkout, /start_now: 'requested'/)
+// Since the 2026-11-02 terms a new member keeps the 14-day right to cancel for
+// a full refund, so there is no waiver box, and nothing may bring one back
+// without the terms changing too. The session still records which terms.
+test('joining asks for no refund waiver', (t) => {
+  const screen = code('src/components/membership/MembershipScreen.tsx')
+  t.notRegex(screen, /right to cancel/i)
+  t.notRegex(screen, /type="checkbox"/)
+  t.regex(screen, /within 14 days/)
+  t.notRegex(checkout, /error: 'consent'/)
   t.regex(checkout, /terms_version: termsVersion/)
+  t.regex(code('src/app/terms/page.tsx'), /within 14 days of joining/)
 })
 
-// A Join greyed out until the box is ticked did nothing when tapped, and the
-// 'consent' message below it could never show. The tap now says why.
-test('an unticked Join says why instead of doing nothing', (t) => {
-  const screen = code('src/components/membership/MembershipScreen.tsx')
-  t.regex(screen, /if \(!startNow\) \{[^}]*setError\('consent'\)/)
-  t.notRegex(screen, /disabled=\{[^}]*!startNow/)
+// The checkout deployed before 2026-11-02 refuses a request without startNow,
+// and functions deploy by hand, so the page keeps sending it.
+test('the page still sends startNow for an older checkout', (t) => {
+  t.regex(code('src/lib/membership/billing.ts'), /startNow: true/)
 })
 
 // Two tabs, or Back and Join again, each got a session; paying both made two

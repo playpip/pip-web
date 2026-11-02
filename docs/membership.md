@@ -435,9 +435,9 @@ Two more sit beside the four, for the account step a signed-out tab meets before
 and `membership-signup-tapped` ("Create a free account to join" tapped). Both are in `Join`.
 Two more sit between the page view and checkout: `membership-join-seen` (half of the till, the
 box with the Join button, scrolled into view; members and signed-out tabs count too) and
-`membership-join-tapped` (a signed-in player pressed Join, counted before the consent box is
-checked, so `membership-join-tapped` minus `checkout-opened` is the tabs the box or the till
-stopped). Both are in `MembershipScreen`; neither fires in the store app's own join.
+`membership-join-tapped` (a signed-in player pressed Join, or was carried on to checkout after
+making an account from the Join box, so `membership-join-tapped` minus `checkout-opened` is the
+tabs the till stopped; until 2026-11-02 a required refund-waiver box sat in between). Both are in `MembershipScreen`; neither fires in the store app's own join.
 Signed-in views are `membership-viewed` minus the signed-out ones; a tab that signs in on the page
 counts as signed out, which is the point.
 

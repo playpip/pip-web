@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms" updated="September 2026">
+    <LegalPage title="Terms" updated="November 2026">
       <Section title="The short version">
         <p>
           The plain-English rules for using Pip at <A href="https://playpip.io">playpip.io</A>. No
@@ -69,12 +69,14 @@ export default function TermsPage() {
           “cancel any time” is easy to read as “and get my money back”, and it does not mean that.
         </p>
         <p>
-          When you join, you are asking us to give you access straight away rather than after a
-          waiting period, and you will be asked to confirm that before you go to the checkout.
-          Because the membership starts at once,{' '}
-          <strong>that ends your 14-day right to cancel for a refund</strong>; cancelling still
-          stops the next renewal. Nothing on this page affects any rights you have under consumer
-          law that cannot be signed away.
+          Your membership starts as soon as you pay.{' '}
+          <strong>
+            If you change your mind within 14 days of joining, email hello@playpip.io and we will
+            refund that payment in full
+          </strong>
+          , and the membership ends. After 14 days, cancelling stops the next renewal. A membership
+          bought in the iPhone app is refunded by Apple, not by us. Nothing on this page affects any
+          rights you have under consumer law that cannot be signed away.
         </p>
         <p>
           The membership is sold by <strong>{SELLER.name}</strong>, the company that makes Pip,

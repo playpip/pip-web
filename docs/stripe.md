@@ -49,10 +49,17 @@ every project's events**. What follows from that, all built:
   statement carry Ava's name, not Pip's. The join box and `/terms` both name
   `SELLER` (`config/membership.ts`) and the statement text `AVA TECH* PIP`. An unrecognised
   statement line is the commonest cause of chargebacks on a small subscription.
-- **Consent is asked on our page, not Stripe's.** Checkout's own terms checkbox points at the
-  account's terms URL, which is Ava's. So the join box has a required "start straight away"
-  box, `checkout` refuses without it, and the session records `start_now` and
-  `terms_version` (`TERMS_VERSION`) — the same record Probus keeps.
+- **The terms are named on our page, not Stripe's.** Checkout's own terms checkbox points at the
+  account's terms URL, which is Ava's. The join box says joining means agreeing to Pip's terms,
+  and the session records `terms_version` (`TERMS_VERSION`).
+- **No refund waiver (since 2026-11-02).** Until then the join box had a required tick that
+  ended the 14-day right to cancel. Will left it to the call of a session that found 28
+  membership tabs, 2 reaching Join and 0 pressing it in a week; the tick was the most
+  off-putting sentence at the till. Now a new web member can email within 14 days for a full
+  refund: refund the first payment **and** cancel the subscription in the dashboard (below).
+  App Store memberships are refunded by Apple. The page still sends `startNow: true`, because
+  a `checkout` deployed before then refuses a request without it; drop it once the current
+  `checkout` is deployed.
 - **Pip has its own customer-portal configuration** (`STRIPE_PORTAL_CONFIGURATION`), because
   the default one is shared.
 - **The API version is pinned** (`2026-08-26.dahlia`, the same as Probus) along with the SDK
@@ -134,7 +141,7 @@ Put the test-mode price ids in `.env.local`, run `pnpm dev`, and walk through:
 - [ ] Signed out, `/membership` → "Create a free account to join" opens sign-up
 - [ ] Signed in → Join is dead until the start-now box is ticked
 - [ ] Join → Stripe Checkout in the currency picked on the page, under Ava's name
-- [ ] The session and subscription in the dashboard carry `project: pip`, `start_now`,
+- [ ] The session and subscription in the dashboard carry `project: pip`,
       `terms_version`
 - [ ] Pay with `4242 4242 4242 4242` → back on `/membership#plans`, "Confirming…" → "Welcome in"
 - [ ] A side table unlocks without a reload
@@ -178,15 +185,13 @@ A 7-day trial would be one line in `checkout`
 even switched off, because it changes what the player agrees to and the legal copy would
 be wrong the moment the flag went on:
 
-- **The consent box** (`Join` in `MembershipScreen.tsx`) says *"Start my membership straight
-  away. I understand this ends my 14-day right to cancel for a refund"*. With a trial nothing
-  is charged on day one, so there is no payment for that waiver to attach to, and the
-  sentence would need to say what happens on day 8 instead: the first charge, its amount,
-  and that cancelling before then costs nothing.
-- **`/terms`** (`src/app/terms/page.tsx`, the billing section) says *"Because the membership
-  starts at once, that ends your 14-day right to cancel for a refund"*. It would need a
-  trial paragraph: when the first charge lands, that Stripe sends a reminder, and how the
-  14-day right runs from the first paid period. Bump `TERMS_VERSION` with it.
+- **The join box** (`Join` in `MembershipScreen.tsx`) says a refund is yours within 14 days
+  of joining. With a trial nothing is charged on day one, so it would need to say what happens
+  on day 8 instead: the first charge, its amount, and that cancelling before then costs
+  nothing.
+- **`/terms`** (`src/app/terms/page.tsx`, the billing section) promises a full refund within
+  14 days of joining. It would need a trial paragraph: when the first charge lands, that Stripe
+  sends a reminder, and when the 14 days start. Bump `TERMS_VERSION` with it.
 - **`/membership`** — the plan cards and "Can I join yet?" say you pay at checkout; both
   would need the trial's length and the date of the first charge.
 - **Stripe**: turn on the *trial ending* reminder email (account-wide, so Probus's too), and

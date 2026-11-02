@@ -1048,7 +1048,6 @@ const BILLING_ERRORS: Record<BillingError, string> = {
   'already-a-member':
     'This account already has a membership. Manage it below rather than starting a second one.',
   'no-membership': 'There is no membership on this account to manage.',
-  consent: 'Tick the box above first. It is what lets the membership start straight away.',
   unavailable: 'Couldn’t reach the till just now. Nothing was charged, so try again in a moment.',
 }
 
@@ -1088,7 +1087,9 @@ function Join({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<BillingError | null>(null)
   const [account, setAccount] = useState<AccountMode | null>(null)
-  const [startNow, setStartNow] = useState(false)
+  // Set when the player opened the account form from here: they came to join,
+  // so once they are signed in the checkout opens without a second tap.
+  const [joinAfterAccount, setJoinAfterAccount] = useState(false)
   const app = useInApp()
   const source = useMembershipSource()
 
@@ -1118,19 +1119,21 @@ function Join({
   }
 
   const pay = () => {
-    // Counted before the box is checked, so pressed-join minus checkout-opened
-    // is the tabs the box (or the till) stopped.
+    // Pressed-join minus checkout-opened is the tabs the till stopped.
     trackOnce('membership-join-tapped')
-    // The button stays live without the box so a tap says why, rather than
-    // a greyed button doing nothing.
-    if (!startNow) {
-      sound.play('tap')
-      setError('consent')
-      return
-    }
     const priceId = MEMBERSHIP_PRICE_IDS[plan]
-    if (priceId) void run(() => startCheckout(priceId, currency, startNow, tapped?.id))
+    if (priceId) void run(() => startCheckout(priceId, currency, tapped?.id))
   }
+
+  // Back from the account form signed in, and not already a member: on to the
+  // checkout they set out for. Waits for the membership row (`checked`) so a
+  // returning member who signed in is shown the portal instead.
+  useEffect(() => {
+    if (!joinAfterAccount || !signedIn || !checked || app) return
+    setJoinAfterAccount(false)
+    setAccount(null)
+    if (!member) pay()
+  })
 
   let body: React.ReactNode
   // Nothing until the answer is real. Before the stored session is restored,
@@ -1216,36 +1219,24 @@ function Join({
   } else if (signedIn) {
     body = (
       <>
-        {/* Asked here, not on Stripe's page: Checkout's own terms consent
-            points at the shared account's terms, which are Ava's, not Pip's. */}
-        <label className="mb-4 flex cursor-pointer gap-3 text-left text-sm leading-relaxed text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={startNow}
-            onChange={(e) => {
-              sound.play('tap')
-              setStartNow(e.target.checked)
-              setError(null)
-            }}
-            className="mt-1 size-4 shrink-0 accent-[var(--color-primary)]"
-          />
-          <span>
-            Start my membership straight away. I understand this ends my 14-day right to cancel for
-            a refund, and that I agree to the{' '}
-            <Link
-              href="/terms"
-              className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
-            >
-              terms
-            </Link>
-            .
-          </span>
-        </label>
-        <button disabled={busy} onClick={pay} className={cn(joinButton, !startNow && 'opacity-60')}>
+        <button disabled={busy} onClick={pay} className={joinButton}>
           {busy ? 'Opening checkout…' : `Join ${planName.toLowerCase()}`}
           {!busy && <ChevronRight className="size-4" />}
         </button>
         <p className="mt-3 text-center text-sm text-muted-foreground">
+          Changed your mind within 14 days? Email us for a full refund. Joining means you agree to
+          the{' '}
+          {/* Said here, not on Stripe's page: Checkout's own terms consent
+              points at the shared account's terms, which are Ava's, not Pip's. */}
+          <Link
+            href="/terms"
+            className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
+          >
+            terms
+          </Link>
+          .
+        </p>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
           Payment is taken by Stripe on their own page, and we never see your card. You are buying
           from {SELLER.name}, who make Pip; it shows on your statement as{' '}
           <span className="whitespace-nowrap font-medium text-foreground">{SELLER.statement}</span>.
@@ -1259,6 +1250,7 @@ function Join({
           onClick={() => {
             sound.play('tap')
             trackOnce('membership-signup-tapped')
+            setJoinAfterAccount(true)
             setAccount('signup')
           }}
           className={joinButton}
@@ -1271,6 +1263,7 @@ function Join({
           <button
             onClick={() => {
               sound.play('tap')
+              setJoinAfterAccount(true)
               setAccount('signin')
             }}
             className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"
@@ -1290,7 +1283,12 @@ function Join({
       <AccountDialog
         open={account !== null}
         mode={account ?? 'signup'}
-        onOpenChange={(o) => !o && setAccount(null)}
+        onOpenChange={(o) => {
+          if (o) return
+          setAccount(null)
+          // Closed without signing in: they backed out, so no checkout later.
+          if (!signedIn) setJoinAfterAccount(false)
+        }}
       />
     </>
   )
@@ -1483,7 +1481,11 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
             Cancelling stops the renewal and leaves you a member until the period you have already
             paid for runs out. A yearly membership cancelled in month two runs to the end of the
             year and is not refunded pro rata; that is the standard arrangement and we would rather
-            you read it here than discover it. See the{' '}
+            you read it here than discover it.{' '}
+            {app
+              ? 'Refunds for a membership bought in the app are handled by Apple.'
+              : 'If you change your mind within 14 days of joining, email hello@playpip.io and we refund the payment in full.'}{' '}
+            See the{' '}
             <Link
               href="/terms"
               className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 hover:decoration-foreground"

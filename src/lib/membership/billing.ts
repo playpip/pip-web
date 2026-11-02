@@ -16,12 +16,7 @@ import { trackOnce } from '@/lib/analytics'
 import { getSupabase } from '@/lib/sync/client'
 import { useMembership } from '@/store/entitlement'
 
-export type BillingError =
-  | 'signed-out'
-  | 'already-a-member'
-  | 'no-membership'
-  | 'consent'
-  | 'unavailable'
+export type BillingError = 'signed-out' | 'already-a-member' | 'no-membership' | 'unavailable'
 
 type Result = { ok: true } | { ok: false; error: BillingError }
 
@@ -43,12 +38,7 @@ async function go(name: 'checkout' | 'portal', body: object = {}): Promise<Resul
       ?.json()
       .then((b: { error?: string }) => b.error)
       .catch(() => undefined)
-    if (
-      reason === 'already-a-member' ||
-      reason === 'no-membership' ||
-      reason === 'signed-out' ||
-      reason === 'consent'
-    ) {
+    if (reason === 'already-a-member' || reason === 'no-membership' || reason === 'signed-out') {
       return { ok: false, error: reason }
     }
     return { ok: false, error: 'unavailable' }
@@ -65,9 +55,10 @@ async function go(name: 'checkout' | 'portal', body: object = {}): Promise<Resul
 /**
  * Off to Stripe Checkout, in the currency the player was looking at.
  *
- * `startNow` is the ticked box on /membership. It is sent rather than assumed so
- * the function can refuse without it: /terms says the player is asked to confirm
- * the membership starts straight away, and this is where they were asked.
+ * `startNow` is always true: the membership starts at checkout, and since the
+ * 2026-11-02 terms a new member can still cancel for a full refund within 14
+ * days, so there is no waiver box any more. It is still sent because a
+ * `checkout` deployed before then refuses a request without it.
  *
  * `feature` is the `?for=` the page was opened with, if it named a shipped
  * feature. Stripe hands it back on the success URL, so a new member lands next
@@ -76,10 +67,15 @@ async function go(name: 'checkout' | 'portal', body: object = {}): Promise<Resul
 export function startCheckout(
   priceId: string,
   currency: CurrencyCode,
-  startNow: boolean,
   feature?: string,
 ): Promise<Result> {
-  return go('checkout', { priceId, currency, startNow, termsVersion: TERMS_VERSION, for: feature })
+  return go('checkout', {
+    priceId,
+    currency,
+    startNow: true,
+    termsVersion: TERMS_VERSION,
+    for: feature,
+  })
 }
 
 /** Off to the Stripe customer portal: cancel, change card, invoices. */

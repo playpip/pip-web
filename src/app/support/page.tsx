@@ -56,7 +56,8 @@ export default function SupportPage() {
         </List>
         <p>
           Cancelling stops the renewal; you stay a member until the end of the period you paid for.
-          Refunds for a membership bought in the app are handled by Apple, through{' '}
+          Joined on the website and changed your mind within 14 days? Email us and we refund the
+          payment in full. Refunds for a membership bought in the app are handled by Apple, through{' '}
           <A href="https://reportaproblem.apple.com">reportaproblem.apple.com</A>.
         </p>
       </Section>
