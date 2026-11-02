@@ -26,6 +26,13 @@ export const BLOG_POSTS: BlogPost[] = [
     date: '2026-10-30',
   },
   {
+    slug: 'calling-a-river-bet',
+    title: 'Calling a river bet: when the answer depends on who is betting',
+    description:
+      'A bet of half the pot needs you to win one time in four, and a pot-sized bet one in three. Whether your pair does depends on how often they bluff. We dealt 40,000 hands through Pip’s river drill: about one river decision in four is right against one player and wrong against another.',
+    date: '2026-10-29',
+  },
+  {
     slug: 'pot-limit-omaha-max-bet',
     title: 'The most you can bet in Pot-Limit Omaha',
     description:

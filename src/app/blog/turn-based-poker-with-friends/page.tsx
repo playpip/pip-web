@@ -132,7 +132,10 @@ export default function TurnBasedPokerPost() {
       <Section title="Where it is">
         <p>
           Opening a slow game is part of the{' '}
-          <Link href={`${membershipFor('multiplayer')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('multiplayer')}&from=blog&post=turn-based-poker-with-friends`}
+            className={linkClass}
+          >
             membership
           </Link>
           , as is opening a live room. Joining a friend’s game is free, and so are the ladder, the

@@ -156,6 +156,22 @@ export function handStateAt(record: HandRecord, step: number): ReplayStep {
   }
 }
 
+/**
+ * Whether every player still in the hand has their cards on the record.
+ *
+ * Always true for a solo hand, which keeps every hand dealt. A multiplayer hand
+ * keeps only what the viewer saw (lib/multiplayer/review), and odds worked out
+ * between the hands that are known, while somebody holding cards nobody saw is
+ * still in, would be a confident wrong number. So there are none.
+ */
+export function everyLiveHandKnown(hand: HandState, record: HandRecord): boolean {
+  // A seat that was not dealt in (busted earlier) has no cards and is not in it.
+  const dealt = record.start?.stacks
+  return hand.players.every(
+    (p) => p.status === 'folded' || p.hole.length >= 2 || (dealt !== undefined && !(p.id in dealt)),
+  )
+}
+
 /** The players still live at this step — the ones an equity read is between. */
 export function liveHands(hand: HandState): { id: string; hole: Card[] }[] {
   return hand.players

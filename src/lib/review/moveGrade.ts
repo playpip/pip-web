@@ -37,7 +37,7 @@
 import { showdownOdds, type ShowdownOdds } from '@/lib/poker/equity'
 import type { Card } from '@/lib/poker/cards'
 import type { HandRecord } from '@/store/game'
-import { HERO_ID, handStateAt } from './handState'
+import { HERO_ID, everyLiveHandKnown, handStateAt } from './handState'
 
 export type MoveVerdict = 'brilliant' | 'good' | 'standard' | 'mistake' | 'blunder'
 
@@ -182,6 +182,8 @@ export function gradeMove(
   const before = handStateAt(record, eventIndex)
   const actor = before.hand.players.find((p) => p.id === event.playerId)
   if (!actor || actor.hole.length < 2) return null
+  // A live hand nobody saw (a multiplayer review) means there is no exact answer to give.
+  if (!everyLiveHandKnown(before.hand, record)) return null
   const others = before.hand.players.filter(
     (p) => p.id !== actor.id && p.status !== 'folded' && p.hole.length >= 2,
   )

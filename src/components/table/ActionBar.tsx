@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { legalActions, potSize, type Action, type HandState } from '@/lib/poker/engine'
+import { legalActions, presetRaiseTo, type Action, type HandState } from '@/lib/poker/engine'
 import { useGame } from '@/store/game'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
@@ -79,14 +79,11 @@ export function ActionBar({
     return keysList
   }
 
-  const pot = potSize(hand)
   const isAllIn = raiseTo >= legal.maxRaiseTo
 
   const preset = (fraction: number) => {
     sound.play('tap')
-    setRaiseTo(
-      clamp(hand.currentBet + Math.round(pot * fraction), legal.minRaiseTo, legal.maxRaiseTo),
-    )
+    setRaiseTo(presetRaiseTo(hand, legal, fraction))
   }
   const maxOut = () => {
     sound.play('tap')

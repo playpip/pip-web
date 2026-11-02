@@ -26,6 +26,7 @@ import { haptics } from '@/lib/haptics'
 import { legalActions, type HandState } from '@/lib/poker/engine'
 import { type Cue, sound } from '@/lib/sound'
 import { DEFAULT_QUIET, type PreKind, type Quiet } from '@/lib/multiplayer/slow'
+import { captureRoomView } from '@/lib/multiplayer/review'
 import { useProfile } from './profile'
 
 export type RoomConnection = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'gone'
@@ -180,6 +181,10 @@ export const useRoom = create<RoomStore>((set, get) => {
         sound.play(cue as Cue)
       }
     }
+    // Finished hands, kept for the session review (lib/multiplayer/review).
+    // After this frame, because it deals each new hand again and prices your
+    // calls, and the table's sounds and redraw should not wait on that.
+    setTimeout(() => captureRoomView(view), 0)
     set({
       view,
       clockOffset: now - Date.now(),

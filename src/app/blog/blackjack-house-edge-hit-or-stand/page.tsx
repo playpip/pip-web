@@ -125,7 +125,10 @@ export default function BlackjackEdgePost() {
       <Section title="Where it is">
         <p>
           Blackjack is in the{' '}
-          <Link href={`${membershipFor('blackjack')}&from=blog`} className={linkClass}>
+          <Link
+            href={`${membershipFor('blackjack')}&from=blog&post=blackjack-house-edge-hit-or-stand`}
+            className={linkClass}
+          >
             membership
           </Link>
           , with the {friendly.name}, {standard.name} and {brutal.name} tables and their edges on
