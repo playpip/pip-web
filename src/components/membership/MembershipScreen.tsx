@@ -259,6 +259,23 @@ export function MembershipScreen() {
             </section>
           )}
 
+          {/* The price comes straight after the headline (2 Nov 2026). Below
+              six sections, almost no tab scrolled as far as Join in the first
+              days it was counted. The hero already says what the membership
+              holds; the sections below are the detail. */}
+          <Section
+            id="plans"
+            eyebrow="Price"
+            title="One membership, two ways to pay"
+            lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table first."
+          >
+            <Plans
+              price={price}
+              currency={currency}
+              onCurrency={storeSells ? undefined : setCurrency}
+            />
+          </Section>
+
           <Stats />
 
           <Section
@@ -298,19 +315,6 @@ export function MembershipScreen() {
               <Shelf feature={shelf} />
             </Section>
           )}
-
-          <Section
-            id="plans"
-            eyebrow="Price"
-            title="One membership, two ways to pay"
-            lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table first."
-          >
-            <Plans
-              price={price}
-              currency={currency}
-              onCurrency={storeSells ? undefined : setCurrency}
-            />
-          </Section>
 
           <Section id="free" eyebrow="Free, forever" title="What you already have">
             <FreeVersusMember price={price} />
@@ -830,7 +834,7 @@ function plansIn(
       // the store's price labels), rather than worked out from a string.
       note:
         format && saving > 0
-          ? `${format(perMonth)} a month, near enough — ${format(saving)} less than paying monthly for twelve months.`
+          ? `${format(perMonth)} a month, near enough: ${format(saving)} less than paying monthly for twelve months.`
           : 'One payment a year.',
     },
     monthly: {
@@ -1044,8 +1048,8 @@ const BILLING_ERRORS: Record<BillingError, string> = {
   'already-a-member':
     'This account already has a membership. Manage it below rather than starting a second one.',
   'no-membership': 'There is no membership on this account to manage.',
-  consent: 'Tick the box above first — it is what lets the membership start straight away.',
-  unavailable: 'Couldn’t reach the till just now. Nothing was charged — try again in a moment.',
+  consent: 'Tick the box above first. It is what lets the membership start straight away.',
+  unavailable: 'Couldn’t reach the till just now. Nothing was charged, so try again in a moment.',
 }
 
 function endsOn(periodEnd: number | null): string {
@@ -1150,7 +1154,7 @@ function Join({
             </div>
             <p className="mt-3 text-center text-sm text-muted-foreground">
               {leaving
-                ? `Cancelled — you stay a member until ${endsOn(periodEnd)}.`
+                ? `Cancelled. You stay a member until ${endsOn(periodEnd)}.`
                 : `Renews on ${endsOn(periodEnd)}.`}
             </p>
           </>
@@ -1185,7 +1189,7 @@ function Join({
         </div>
         <p className="mt-3 text-center text-sm text-muted-foreground">
           {leaving
-            ? `Cancelled — you stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
+            ? `Cancelled. You stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
             : `Renews on ${endsOn(periodEnd)}. Cancel, change card or get an invoice from the portal.`}
         </p>
         <button
