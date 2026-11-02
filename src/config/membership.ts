@@ -367,7 +367,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'review',
     title: 'Session review',
     blurb:
-      'Stand up and play the whole session again, hand by hand — the board dealing in, your cards, and what the pot was charging at each call you made. The hands worth a second look are picked out for you. Ladder, Rail and the Daily.',
+      'Stand up and play the whole session again, hand by hand: the board dealing in, your cards, and what the pot was charging at each call you made. The hands worth a second look are picked out for you. Ladder, Rail, the Daily, and your multiplayer games, fast or slow, with only the cards you saw at the table. Their folded hands stay theirs.',
     shipped: true,
     place: { href: '/game/review', name: 'your last session' },
   },
