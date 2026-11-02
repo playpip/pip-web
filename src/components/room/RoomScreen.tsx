@@ -23,7 +23,13 @@ import { AccountDialog, type AccountMode } from '@/components/settings/AccountDi
 import { venueById } from '@/config/venues'
 import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { normaliseRoomCode } from '@/lib/multiplayer/code'
-import { devSignedIn, peekRoom, roomsConfigured, type RoomPeek } from '@/lib/multiplayer/client'
+import {
+  devMember,
+  devSignedIn,
+  peekRoom,
+  roomsConfigured,
+  type RoomPeek,
+} from '@/lib/multiplayer/client'
 import type { ServerError } from '@/lib/multiplayer/protocol'
 import { hosted } from '@/lib/multiplayer/room'
 import { appSupports, inApp } from '@/lib/nativeApp'
@@ -35,6 +41,7 @@ import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
 import { useSlowGames } from '@/store/slowGames'
 import { useSync } from '@/store/sync'
+import { useEntitlement } from '@/store/entitlement'
 import { RoomLobby } from './RoomLobby'
 import { RoomTable } from './RoomTable'
 
@@ -60,6 +67,7 @@ export function RoomScreen() {
   const error = useRoom((s) => s.error)
   const leave = useRoom((s) => s.leave)
   const exit = useRoom((s) => s.exit)
+  const member = useEntitlement() || devMember()
 
   const sitting = code !== null && roomCode === code
   const slow = view?.kind === 'slow'
@@ -90,6 +98,21 @@ export function RoomScreen() {
     router.push('/game')
   }
 
+  /**
+   * To this game's session review. A slow game keeps your seat, as Back does; a
+   * fast one is over for you by now, so the seat goes. The hands are already
+   * kept on this device (lib/multiplayer/review).
+   */
+  const review = () => {
+    if (!code) return
+    sound.play('tap')
+    setLeaving(true)
+    useMedia.getState().stop()
+    if (slow) exit()
+    else leave()
+    router.push(`/game/review?room=${code}`)
+  }
+
   if (leaving) return <Waiting label="Leaving the table" />
   if (!roomsConfigured()) return <Unavailable />
   if (!code) return <NoRoom message="That link doesn’t have a room code in it." />
@@ -109,7 +132,13 @@ export function RoomScreen() {
       {view.phase === 'lobby' ? (
         <RoomLobby view={view} live={live} onLeave={goBack} onLeaveGame={leaveGame} />
       ) : view.hand ? (
-        <RoomTable view={view} live={live} onLeave={goBack} onLeaveGame={leaveGame} />
+        <RoomTable
+          view={view}
+          live={live}
+          onLeave={goBack}
+          onLeaveGame={leaveGame}
+          onReview={member ? review : undefined}
+        />
       ) : (
         <Waiting label="Dealing" />
       )}

@@ -11,7 +11,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
-import { HelpCircle, SlidersHorizontal, WifiOff } from 'lucide-react'
+import { HelpCircle, History, SlidersHorizontal, WifiOff } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { ActionBar } from '@/components/table/ActionBar'
 import { ActionRow } from '@/components/table/ActionRow'
@@ -62,6 +62,7 @@ export function RoomTable({
   live,
   onLeave,
   onLeaveGame,
+  onReview,
 }: {
   view: RoomView
   /** Camera and mic are on offer: a private room, in a browser or app that can. */
@@ -70,6 +71,8 @@ export function RoomTable({
   onLeave: () => void
   /** A slow game: stand up on purpose. */
   onLeaveGame?: () => void
+  /** The session review of this game, offered once it is over for you. Members only. */
+  onReview?: () => void
 }) {
   const slow = view.kind === 'slow'
   // At a slow game, what you missed plays first; until it has, the felt shows it.
@@ -510,6 +513,7 @@ export function RoomTable({
                 leaveLabel={slow ? 'Done' : 'Back to multiplayer'}
                 onLeave={onLeave}
                 onWatch={finished ? undefined : () => setWatching(true)}
+                onReview={onReview}
               />
             )}
           </AnimatePresence>
@@ -625,6 +629,7 @@ function EndCard({
   leaveLabel,
   onLeave,
   onWatch,
+  onReview,
 }: {
   won: boolean
   place: number | null
@@ -632,6 +637,7 @@ function EndCard({
   leaveLabel: string
   onLeave: () => void
   onWatch?: () => void
+  onReview?: () => void
 }) {
   const money = useMoney()
   return (
@@ -665,6 +671,16 @@ function EndCard({
                 ? `You finished ${ordinal(place)}`
                 : 'Out of the game'}
           </p>
+          {/* The same button the single-player end screen has. */}
+          {onReview && (
+            <button
+              onClick={onReview}
+              className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 active:scale-[0.98]"
+            >
+              <History className="size-4" />
+              Review the session
+            </button>
+          )}
         </motion.div>
         <div className="flex flex-col items-center gap-3">
           <button

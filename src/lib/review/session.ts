@@ -63,6 +63,11 @@ export interface ReviewSession {
   hands: ReviewHand[]
   /** Hands played beyond `MAX_REVIEW_HANDS`, dropped from the front. */
   dropped: number
+  /**
+   * Set when this is a multiplayer game (lib/multiplayer/review), whose other
+   * seats' cards are only known where a showdown turned them over.
+   */
+  room?: { code: string; kind: 'private' | 'quick' | 'slow' }
 }
 
 // --- storage ---------------------------------------------------------------
