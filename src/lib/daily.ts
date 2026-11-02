@@ -68,6 +68,19 @@ export function dailyAiRng(base: number, handIndex: number, from = 0): CountedRn
   return rng
 }
 
+/** Keeps tonight's forms off both the deck's stream and the AI's. */
+const FORM_STREAM_SALT = 0x2c1b3c6d
+
+/**
+ * The Daily's form stream: one draw per seat, in seat order, at sitting down
+ * (`formFor` in config/cast). Off the day's seed, so everybody meets the same
+ * Frank on the same day; its own stream, so the deal and the decisions are
+ * exactly what they were before forms existed.
+ */
+export function dailyFormRng(base: number): Rng {
+  return mulberry32((base ^ FORM_STREAM_SALT) >>> 0)
+}
+
 /**
  * The copyable result: deal number, finish, hands, and the streak once it is
  * two days or more (a run of one is just today).

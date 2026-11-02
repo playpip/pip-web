@@ -68,6 +68,8 @@ pnpm bot-duel --layout solo                     # one new bot at a table of old 
 pnpm bot-duel --a v1@cardroom --b v1@garage     # one rung against another
 pnpm exploit-sim --ai exact                     # the scripted heroes, against a version
 pnpm persona-stats casino                       # can a tracker tell the cast apart?
+pnpm persona-stats pub --form quiet             # ...with everyone on one night's form
+pnpm sim ladder --cast --forms --n 1000         # does a nightly form move a rung? (vs --cast)
 pnpm ai-bench --ai v1,fast,wrange               # milliseconds per decision, by version
 ```
 
