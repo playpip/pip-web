@@ -47,7 +47,8 @@
 // `TappedShopItem`), with which of the shelf's two deals it is.
 //
 // A tap on the report shows one (`TappedCoaching`): a made-up player's counts,
-// read by the report's own code, loaded the same way.
+// read by the report's own code, loaded the same way. Under it, that the first
+// full report of your own is free (lib/membership/freeReport).
 //
 // A tap on hosting lists the rules a host sets (`TappedMultiplayer`), from the
 // lists the room itself is opened with, and a tap on the table builder lists
@@ -60,6 +61,7 @@ import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
 import { tappedFeature } from '@/config/membership'
 import { familyTableNames, tappedFamily } from '@/config/venues'
+import { FREE_REPORT_COPY } from '@/lib/membership/freeReport'
 import type { ShownPrice } from '@/lib/membership/store'
 import { waitingSessionLine } from '@/lib/review/highlights'
 import { loadReview } from '@/lib/review/session'
@@ -135,7 +137,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
   return (
     <section
       aria-labelledby="tapped-for"
-      className="mx-auto w-full max-w-3xl px-4 pt-8 md:px-10 md:pt-12"
+      className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 pt-6 md:px-10 md:pt-8"
     >
       <div className="rounded-2xl border border-pip/30 bg-pip/[0.06] px-5 py-5 md:px-7 md:py-6">
         <p className="text-sm font-medium text-pip">What you tapped is part of</p>
@@ -167,6 +169,9 @@ export function TappedFor({ price }: { price: ShownPrice }) {
         {lesson && <TappedLesson search={search} />}
         {shopItem && <TappedShopItem search={search} />}
         {feature.id === 'coaching' && <TappedCoaching />}
+        {feature.id === 'coaching' && (
+          <p className="mt-3 font-medium text-foreground">{FREE_REPORT_COPY.offer}</p>
+        )}
         {feature.id === 'multiplayer' && <TappedMultiplayer />}
         {feature.id === 'custom-tables' && <TappedCustomTable />}
         {feature.id === 'blackjack' && <TappedBlackjack />}

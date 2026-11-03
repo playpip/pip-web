@@ -11,12 +11,20 @@
 // — keyed by feature id. A feature with no visual still renders (as a plain
 // row), so shipping one never needs this file to notice.
 //
-// **The art and the fans are `data-mirror="skip"`.** The markdown mirror
-// (scripts/gen-llms.mjs) reads `<main>`, and a card back or a painting is
-// nothing to a reader that cannot see it. Every sentence stays outside them.
+// **The shape (Will, 2026-11-02).** In the week to 1 November 28 tabs opened
+// this page, 2 scrolled as far as Join and none pressed it. It listed seventeen
+// things over twelve sections with no headline. Now: the headline with the
+// price and Join beside it; what was tapped, if anything; two pillars,
+// `MEMBERSHIP_PILLARS` ("Get better", "Play with friends, no limits"); every
+// other feature as one compact list; free against member, row by row; then the
+// questions. Each feature is said once.
+//
+// **The art is `data-mirror="skip"`.** The markdown mirror
+// (scripts/gen-llms.mjs) reads `<main>`, and a painting is nothing to a reader
+// that cannot see it. Every sentence stays outside them.
 //
 // **No `<table>`**: the mirror's Turndown pass has shipped a broken one before.
-// The free-versus-member comparison is two lists side by side.
+// The free-versus-member comparison is a grid of rows.
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -33,29 +41,28 @@ import {
   Hand,
   Lock,
   History,
+  Minus,
+  Palette,
   ShieldCheck,
+  Smile,
   Spade,
   Sparkles,
   Star,
   Target,
   TrendingUp,
 } from 'lucide-react'
-import { CardBack } from '@/components/CardBack'
-import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Reveal } from '@/components/Reveal'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { TappedFor } from '@/components/membership/TappedFor'
 import { MultiplayerSpotlight } from '@/components/membership/MultiplayerSpotlight'
-import { MEMBER_BACKS, MEMBER_SHOP_BACKS } from '@/config/cardBacks'
-import { DRILL_KINDS } from '@/config/drills'
-import { LESSONS } from '@/config/lessons'
 import {
   CURRENCIES,
   type CurrencyCode,
   DAILY_FREE_GAME,
   HOW_TO_CANCEL,
   MEMBERSHIP_FEATURES,
+  MEMBERSHIP_PILLARS,
   MEMBERSHIP_PRICE_IDS,
   MEMBERSHIP_PRICES,
   MEMBERSHIP_PROMISES,
@@ -69,7 +76,9 @@ import {
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { trackOnce } from '@/lib/analytics'
 import { type BillingError, openPortal, startCheckout } from '@/lib/membership/billing'
+import { comparisonRows } from '@/lib/membership/compare'
 import { detectCurrency } from '@/lib/membership/currency'
+import { FREE_REPORT_COPY } from '@/lib/membership/freeReport'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useSync } from '@/store/sync'
 import { useHydrated } from '@/lib/useHydrated'
@@ -84,59 +93,25 @@ import {
   type ShownPrice,
   useStorePrices,
 } from '@/lib/membership/store'
-import { SHOP_ITEMS } from '@/config/shop'
-import type { AvatarSpec } from '@/lib/avatar'
-import { AVATAR_PARTS } from '@/lib/avatarParts'
-import { DEEP_STACK_TABLES, SIDE_SHELF, SIDE_TABLES } from '@/config/venues'
-import { formatChips } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
-// --- the numbers, counted rather than written -----------------------------------
-
-const STATS = [
-  { value: DRILL_KINDS.filter((k) => k.membersOnly).length, label: 'more drills' },
-  { value: SIDE_TABLES.length + DEEP_STACK_TABLES.length, label: 'side tables' },
-  {
-    value: SIDE_SHELF.filter((f) => f.section === 'games' && f.membersOnly).length,
-    label: 'more kinds of poker',
-  },
-  { value: SHOP_ITEMS.filter((i) => i.membersOnly).length, label: 'for the members’ shelf' },
-]
-
-/** The hero's one number, counted from the course rather than typed. */
-const HERO = { lessons: LESSONS.filter((l) => l.membersOnly).length }
-
 // --- how each feature looks -----------------------------------------------------
 
-type Visual =
-  | { kind: 'art'; art: string; accent: string; tag: string }
-  | { kind: 'category'; art: string; accent: string; tag: string }
-  | { kind: 'collage'; arts: { art: string; accent: string }[]; tag: string }
-
-/** The play shelf, in the order it reads best. Paintings are the venues' own. */
-const PLAY: Record<string, Visual> = {
-  'side-tables': {
-    kind: 'collage',
-    tag: 'Side tables',
-    arts: [
-      { art: 'redeye', accent: '#E06D8C' },
-      { art: 'duel', accent: '#9A7FD1' },
-      { art: 'docks', accent: '#C9873D' },
-      { art: 'study', accent: '#B5835A' },
-    ],
-  },
-  rooms: { kind: 'art', art: 'deepstack-750', accent: '#B5835A', tag: 'Deep' },
-  omaha: { kind: 'art', art: 'bigpot', accent: '#5B7FC7', tag: 'Omaha' },
-  shortdeck: { kind: 'art', art: 'chopshop', accent: '#D95F43', tag: 'Short Deck' },
-  hilo: { kind: 'art', art: 'vault', accent: '#4FB477', tag: 'Hi-Lo' },
-  draw: { kind: 'art', art: 'allnighter', accent: '#8F6FE8', tag: 'Draw' },
-  blackjack: { kind: 'art', art: 'casino', accent: '#C9873D', tag: 'Not poker' },
-  'custom-tables': { kind: 'category', art: 'custom', accent: '#8A8F98', tag: 'Yours' },
+/** A painting for the things you sit down at. The paintings are the venues' own. */
+const ART: Record<string, { art: string; accent: string; category?: boolean }> = {
+  'side-tables': { art: 'redeye', accent: '#E06D8C' },
+  rooms: { art: 'deepstack-750', accent: '#B5835A' },
+  omaha: { art: 'bigpot', accent: '#5B7FC7' },
+  shortdeck: { art: 'chopshop', accent: '#D95F43' },
+  hilo: { art: 'vault', accent: '#4FB477' },
+  draw: { art: 'allnighter', accent: '#8F6FE8' },
+  blackjack: { art: 'casino', accent: '#C9873D' },
+  'custom-tables': { art: 'custom', accent: '#8A8F98', category: true },
 }
 
-/** The tools beside the game: an iOS settings-row icon each. */
-const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
+/** An iOS settings-row icon for everything else. */
+const ICONS: Record<string, { icon: typeof Target; tint: string }> = {
   'daily-reward': { icon: Flame, tint: '#FF8A3D' },
   lessons: { icon: GraduationCap, tint: '#3FA7B8' },
   drills: { icon: Target, tint: '#5B7FC7' },
@@ -145,24 +120,13 @@ const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
   coaching: { icon: TrendingUp, tint: '#4FB477' },
   review: { icon: History, tint: '#D95F43' },
   'god-view': { icon: Eye, tint: '#8F6FE8' },
+  avatar: { icon: Smile, tint: '#E0A23D' },
+  cosmetics: { icon: Palette, tint: '#9A7FD1' },
 }
 
-/** Have their own sections rather than a card or a row. */
-const SHELF_ID = 'cosmetics'
 const MULTIPLAYER_ID = 'multiplayer'
-const AVATAR_ID = 'avatar'
 
-/** What stays free, said as a list. Rule 1 in docs/membership.md is the long form. */
-const FREE_FOREVER = [
-  'The ten-venue ladder, Garage to Main Event',
-  'The Rail’s cash games and the challenge tables',
-  'The Daily Deal and the Kitchen Table freeroll',
-  'The Chip Shop, and everything chips buy in it',
-  'The read on every hand as you finish it',
-  '“What have you got?” and “Which hand wins?”',
-  'Level 1 of Lessons with Webb, and every guide',
-  'The odds calculator',
-]
+const iconFor = (id: string) => ICONS[id] ?? { icon: Sparkles, tint: '#7C8CF0' }
 
 const SPRING = { type: 'spring', stiffness: 420, damping: 30 } as const
 
@@ -200,17 +164,17 @@ export function MembershipScreen() {
     }
   }, [router])
   const sellable = sellableFeatures()
-  const play = Object.keys(PLAY)
-    .map((id) => sellable.find((f) => f.id === id))
-    .filter((f): f is MembershipFeature => Boolean(f))
-  const shelf = sellable.find((f) => f.id === SHELF_ID)
-  const multiplayer = sellable.find((f) => f.id === MULTIPLAYER_ID)
-  const avatar = sellable.find((f) => f.id === AVATAR_ID)
-  // Anything shipped that has no card lands in the tools list, so a new
-  // feature is on the page the moment it is marked shipped.
-  const tools = sellable.filter(
-    (f) => !PLAY[f.id] && ![SHELF_ID, MULTIPLAYER_ID, AVATAR_ID].includes(f.id),
-  )
+  const pillars = MEMBERSHIP_PILLARS.map((pillar) => ({
+    ...pillar,
+    features: pillar.ids
+      .map((id) => sellable.find((f) => f.id === id))
+      .filter((f): f is MembershipFeature => Boolean(f)),
+  })).filter((pillar) => pillar.features.length > 0)
+  const inPillar = new Set<string>(MEMBERSHIP_PILLARS.flatMap((p) => p.ids))
+  // Anything shipped and not in a pillar lands in the list below them, so a
+  // new feature is on the page the moment it is marked shipped.
+  const rest = sellable.filter((f) => !inPillar.has(f.id))
+  const multiplayer = sellable.some((f) => f.id === MULTIPLAYER_ID)
   const coming = MEMBERSHIP_FEATURES.filter((f) => !f.shipped)
   const [currency, setCurrency] = useCurrency()
   // In the store app with purchases on, every price on the page is the store's,
@@ -239,92 +203,38 @@ export function MembershipScreen() {
   return (
     <MotionConfig reducedMotion="user">
       <main className="flex-1 overflow-x-clip">
+        <Hero multiplayer={multiplayer}>
+          <Plans
+            price={price}
+            currency={currency}
+            onCurrency={storeSells ? undefined : setCurrency}
+          />
+        </Hero>
+
         <TappedFor price={price} />
-        <Hero price={price} multiplayer={multiplayer !== undefined} />
 
         <div className="mx-auto w-full max-w-6xl px-4 md:px-10">
-          {/* The headline, first after the hero (Will, 2026-10-11): the one
-              thing on the page with other people in it. */}
-          {multiplayer && (
-            <section id="multiplayer" className="scroll-mt-24 pb-16 md:pb-24">
-              <Reveal>
-                <p className="text-sm font-medium text-pip">New · Multiplayer</p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-4xl">
-                  Deal your friends in
-                </h2>
-              </Reveal>
-              <div className="mt-6 md:mt-8">
-                <MultiplayerSpotlight feature={multiplayer} />
-              </div>
-            </section>
-          )}
+          {pillars.map((pillar) => (
+            <Section key={pillar.id} id={pillar.id} title={pillar.title}>
+              {pillar.id === 'multiplayer' ? (
+                <MultiplayerSpotlight feature={pillar.features[0]} />
+              ) : (
+                <PillarGrid features={pillar.features} />
+              )}
+            </Section>
+          ))}
 
-          {/* The price comes straight after the headline (2 Nov 2026). Below
-              six sections, almost no tab scrolled as far as Join in the first
-              days it was counted. The hero already says what the membership
-              holds; the sections below are the detail. */}
-          <Section
-            id="plans"
-            eyebrow="Price"
-            title="One membership, two ways to pay"
-            lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table first."
-          >
-            <Plans
-              price={price}
-              currency={currency}
-              onCurrency={storeSells ? undefined : setCurrency}
-            />
-          </Section>
-
-          <Stats />
-
-          <Section
-            id="tools"
-            eyebrow="Get better"
-            title="Find out what is costing you"
-            lede="The free read tells you about one hand. These tell you about you: where your chips go, every session back on the felt, and the spots to practise until they stop going there."
-          >
-            <GroupedList>
-              {tools.map((feature) => (
-                <ToolRow key={feature.id} feature={feature} />
-              ))}
-            </GroupedList>
-          </Section>
-
-          <Section
-            id="play"
-            eyebrow="Play"
-            title="And more to play it on"
-            lede="The game you know with one screw turned, four games that are not Hold’em, and a table you build yourself."
-          >
-            <PlayShelf features={play} />
-          </Section>
-
-          {avatar && (
-            <Section id="avatar" eyebrow="Make it yours" title={avatar.title}>
-              <AvatarSpotlight feature={avatar} />
+          {rest.length > 0 && (
+            <Section id="more" title="And the rest of it">
+              <MoreList features={rest} />
             </Section>
           )}
 
-          {shelf && (
-            <Section
-              id="shelf"
-              eyebrow={avatar ? 'And the table' : 'Make it yours'}
-              title={shelf.title}
-            >
-              <Shelf feature={shelf} />
-            </Section>
-          )}
-
-          <Section id="free" eyebrow="Free, forever" title="What you already have">
-            <FreeVersusMember price={price} />
+          <Section id="free" title="Free or member">
+            <Compare price={price} />
           </Section>
 
-          <Section id="promises" eyebrow="Our word" title="Two rules it can never break">
-            <Promises />
-          </Section>
-
-          <Section id="questions" eyebrow="Questions" title="Before you ask">
+          <Section id="questions" title="Questions">
             <Questions coming={coming} />
           </Section>
         </div>
@@ -335,159 +245,47 @@ export function MembershipScreen() {
 
 // --- hero -----------------------------------------------------------------------
 
-/** The backs that come with it and the ones it lets you buy, fanned like a hand. */
-const FAN = [
-  MEMBER_BACKS[0],
-  MEMBER_SHOP_BACKS[0],
-  MEMBER_SHOP_BACKS[2],
-  MEMBER_SHOP_BACKS[1],
-  MEMBER_BACKS[3],
-]
-
-function Hero({ price, multiplayer }: { price: ShownPrice; multiplayer: boolean }) {
+/**
+ * The headline, with the price and Join beside it (under it on a phone). The
+ * price came up under the headline on 2 November 2026 (#283); now Join is on
+ * the first screen too, because almost no tab scrolled down to it.
+ */
+function Hero({ multiplayer, children }: { multiplayer: boolean; children: React.ReactNode }) {
   return (
     <section className="relative isolate overflow-hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-0 -z-10 size-[44rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_22%,transparent),transparent_65%)] blur-2xl"
+        className="pointer-events-none absolute left-1/4 top-0 -z-10 size-[44rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_20%,transparent),transparent_65%)] blur-2xl"
       />
-      <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-4 pb-10 pt-12 text-center md:pb-16 md:pt-20">
-        <CardFan />
-
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-4 pb-6 pt-8 md:grid-cols-[1fr_minmax(0,28rem)] md:gap-12 md:px-10 md:pb-12 md:pt-16">
         {/* CSS rather than Framer, so the headline is in the static HTML at
             full opacity and does not wait for hydration (globals.css). */}
         <div
-          className="rise-in flex flex-col items-center"
-          style={{ '--rise-delay': '0.25s' } as React.CSSProperties}
+          className="rise-in flex flex-col items-start"
+          style={{ '--rise-delay': '0.05s' } as React.CSSProperties}
         >
-          <span className="mt-8 inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
             <Star className="size-3 fill-pip text-pip" />
             Pip Membership
           </span>
-          {multiplayer && (
-            <a
-              href="#multiplayer"
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary transition hover:bg-primary/25"
-            >
-              New: play with your friends, camera and all
-            </a>
-          )}
-          <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight md:text-6xl">
-            {/* Hosting leads because it is the locked feature people tap most,
-                and the second line is the part a host is buying: one
-                membership seats the whole table. */}
-            {multiplayer ? 'Host the game.' : 'Get better at poker.'}{' '}
+          <h1 className="mt-4 text-balance text-[2.1rem] font-semibold leading-tight tracking-tight md:text-6xl">
+            Get better at poker.{' '}
             <span className="block text-muted-foreground">
-              {multiplayer ? 'Your friends join free.' : 'And find out what is costing you.'}
+              {multiplayer ? 'Play with friends, no limits.' : 'Find out what is costing you.'}
             </span>
           </h1>
-          <p className="mt-5 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
-            {multiplayer &&
-              'Open a room, send your friends the code, and play with your camera in your seat. '}
-            {HERO.lessons} lessons with Webb, played on the felt. A report that reads every hand you
-            have played and names what is costing you chips, in big blinds, with the hands it
-            happened in. Every session back on the table, hand by hand. Plus the side tables, the
-            games that are not Hold’em and the members’ shelf. The core game stays free, for good.
+          <p className="mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
+            {MEMBERSHIP_PILLARS.filter((p) => multiplayer || p.id !== 'multiplayer')
+              .map((p) => p.lede)
+              .join(' ')}{' '}
+            The core game stays free, for good.
           </p>
-          {/* In the app the store's prices replace "…" after the first paint.
-              iOS WebKit repainted only the old, narrower line, so the new one
-              came out clipped at both ends: the line spans the column, and a
-              new price is a new element, painted whole. */}
-          <p
-            key={`${price.monthly}|${price.annual}`}
-            className="mt-5 self-stretch text-sm tabular-nums text-muted-foreground"
-          >
-            <span className="font-semibold text-foreground">{price.monthly}</span> a month{' '}
-            <span className="px-1 text-foreground/25">·</span>{' '}
-            <span className="font-semibold text-foreground">{price.annual}</span> a year
-          </p>
-          <div className="mt-6 flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row">
-            <PillLink href="#plans" primary>
-              See the plans
-            </PillLink>
-            <PillLink href="#free">What stays free</PillLink>
-          </div>
-          <p className="mt-4 max-w-md text-balance text-sm text-muted-foreground">
-            One member game a day is free without joining.{' '}
-            <a href="#plans" className="underline underline-offset-2 hover:text-foreground">
-              How it works
-            </a>
-          </p>
+        </div>
+        <div id="plans" className="scroll-mt-24">
+          {children}
         </div>
       </div>
     </section>
-  )
-}
-
-function CardFan() {
-  const mid = (FAN.length - 1) / 2
-  return (
-    <div data-mirror="skip" aria-hidden className="relative h-36 w-72 md:h-40 md:w-80">
-      {FAN.map((design, i) => {
-        const offset = i - mid
-        return (
-          <motion.div
-            key={design.id}
-            className="absolute bottom-0 left-1/2 origin-bottom"
-            style={{ zIndex: 10 - Math.abs(offset) }}
-            initial={{ opacity: 0, y: 40, x: '-50%', rotate: 0 }}
-            animate={{
-              opacity: 1,
-              y: Math.abs(offset) * 6,
-              x: `calc(-50% + ${offset * 2.6}rem)`,
-              rotate: offset * 9,
-            }}
-            whileHover={{ y: Math.abs(offset) * 6 - 14 }}
-            transition={{ ...SPRING, delay: 0.05 * i }}
-          >
-            <CardBack design={design} size="lg" className="shadow-xl shadow-black/30" />
-          </motion.div>
-        )
-      })}
-    </div>
-  )
-}
-
-function PillLink({
-  href,
-  primary = false,
-  children,
-}: {
-  href: string
-  primary?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <a
-      href={href}
-      className={cn(
-        'inline-flex h-12 items-center justify-center rounded-full px-6 text-sm font-semibold transition active:scale-[0.97]',
-        primary
-          ? 'bg-primary text-primary-foreground shadow-lg shadow-black/10 hover:bg-primary/90'
-          : 'border border-foreground/10 bg-foreground/[0.04] text-foreground hover:bg-foreground/[0.08]',
-      )}
-    >
-      {children}
-    </a>
-  )
-}
-
-// --- the counts -----------------------------------------------------------------
-
-function Stats() {
-  return (
-    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
-      {STATS.map((stat, i) => (
-        <Reveal key={stat.label} delay={i * 0.05}>
-          <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-4 md:px-5 md:py-5">
-            <p className="text-3xl font-semibold tabular-nums tracking-tight md:text-4xl">
-              {stat.value}
-            </p>
-            <p className="mt-0.5 text-sm text-muted-foreground">{stat.label}</p>
-          </div>
-        </Reveal>
-      ))}
-    </div>
   )
 }
 
@@ -495,317 +293,181 @@ function Stats() {
 
 function Section({
   id,
-  eyebrow,
   title,
-  lede,
   children,
 }: {
   id: string
-  eyebrow: string
   title: string
-  lede?: string
   children: React.ReactNode
 }) {
   return (
-    <section id={id} className="scroll-mt-24 pt-16 md:pt-24">
+    <section id={id} className="scroll-mt-24 pt-14 md:pt-20">
       <Reveal>
-        <p className="text-sm font-medium text-pip">{eyebrow}</p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-4xl">{title}</h2>
-        {lede && <p className="mt-2 max-w-2xl text-muted-foreground md:text-lg">{lede}</p>}
+        <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">{title}</h2>
       </Reveal>
       <div className="mt-6 md:mt-8">{children}</div>
     </section>
   )
 }
 
-// --- play -----------------------------------------------------------------------
+// --- the pillars ----------------------------------------------------------------
 
-/**
- * A snap carousel on a phone, the way the App Store shelves a row, and a grid
- * from `md`. The first card is the widest thing on the page because it is the
- * most of what the membership is.
- */
-function PlayShelf({ features }: { features: MembershipFeature[] }) {
+/** "Get better": one card each, the report first because it is the one tapped most. */
+function PillarGrid({ features }: { features: MembershipFeature[] }) {
   return (
-    <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-8 -mb-6 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden">
-      {features.map((feature, i) => (
-        <PlayCard
-          key={feature.id}
-          feature={feature}
-          visual={PLAY[feature.id]}
-          index={i}
-          className={cn(
-            feature.id === 'side-tables' && 'md:col-span-2',
-            feature.id === 'custom-tables' && 'md:col-span-2 lg:col-span-1',
-          )}
-        />
-      ))}
+    <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+      {features.map((feature, i) => {
+        const { icon: Icon, tint } = iconFor(feature.id)
+        return (
+          <Reveal key={feature.id} delay={Math.min(i * 0.05, 0.15)}>
+            <article className="relative h-full overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_16px_40px_-24px_rgba(0,0,0,0.4)] md:p-6">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full opacity-25 blur-2xl"
+                style={{ backgroundColor: tint }}
+              />
+              <div className="flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className="grid size-11 shrink-0 place-items-center rounded-xl text-white shadow-sm"
+                  style={{ backgroundColor: tint }}
+                >
+                  <Icon className="size-5" strokeWidth={2.25} />
+                </span>
+                <h3 className="text-lg font-semibold tracking-tight">{feature.title}</h3>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{feature.blurb}</p>
+              {feature.id === 'coaching' && (
+                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-pip/[0.12] px-3 py-1 text-xs font-medium text-foreground">
+                  <Sparkles className="size-3 text-pip" />
+                  {FREE_REPORT_COPY.offer}
+                </p>
+              )}
+            </article>
+          </Reveal>
+        )
+      })}
     </div>
   )
 }
 
-function PlayCard({
-  feature,
-  visual,
-  index,
-  className,
-}: {
-  feature: MembershipFeature
-  visual: Visual
-  index: number
-  className?: string
-}) {
-  const wide = feature.id === 'side-tables'
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.4, ease: 'easeOut', delay: Math.min(index * 0.04, 0.2) }}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.985 }}
-      className={cn(
-        'flex w-[82%] shrink-0 snap-start flex-col overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_16px_40px_-20px_rgba(0,0,0,0.35)] sm:w-[60%] md:w-auto',
-        className,
-      )}
-    >
-      <div
-        data-mirror="skip"
-        aria-hidden
-        className={cn(
-          'relative w-full overflow-hidden',
-          wide ? 'aspect-[16/10] md:aspect-[21/9]' : 'aspect-[16/10]',
-        )}
-      >
-        <CardArt visual={visual} />
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-lg bg-black/45 px-2 py-1 text-2xs font-semibold text-white/90 backdrop-blur-sm">
-          <Star className="size-3 fill-current text-pip" />
-          {visual.tag}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col p-4 md:p-5">
-        <h3 className="text-lg font-semibold tracking-tight">{feature.title}</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{feature.blurb}</p>
-      </div>
-    </motion.article>
-  )
-}
+// --- everything else ------------------------------------------------------------
 
-function CardArt({ visual }: { visual: Visual }) {
-  if (visual.kind === 'collage') {
-    return (
-      <div className="grid size-full grid-cols-2 grid-rows-2 gap-px bg-black md:grid-cols-4 md:grid-rows-1">
-        {visual.arts.map((a) => (
-          <VenueArt key={a.art} id={a.art} accent={a.accent} className="size-full" />
-        ))}
-      </div>
-    )
-  }
-  if (visual.kind === 'category') {
-    return (
-      <CategoryArt id={visual.art} accent={visual.accent} className="absolute inset-0 size-full" />
-    )
-  }
-  return <VenueArt id={visual.art} accent={visual.accent} className="absolute inset-0 size-full" />
-}
-
-// --- tools ----------------------------------------------------------------------
-
-/** An inset grouped list, the way iOS Settings draws one. */
-function GroupedList({ children }: { children: React.ReactNode }) {
+/**
+ * Every other feature, one row each: a picture and a name, and the blurb a tap
+ * away. `<details>` so it opens without JavaScript and the mirror reads it.
+ */
+function MoreList({ features }: { features: MembershipFeature[] }) {
   return (
     <Reveal>
-      <ul className="divide-y divide-foreground/[0.07] overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
-        {children}
+      <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {features.map((feature) => (
+          <li key={feature.id}>
+            <details className="group h-full rounded-2xl border border-foreground/10 bg-foreground/[0.03] transition-colors open:bg-foreground/[0.05] hover:border-foreground/20">
+              <summary className="flex cursor-pointer list-none items-center gap-3 p-2.5 pr-4 [&::-webkit-details-marker]:hidden">
+                <Thumb id={feature.id} />
+                <span className="min-w-0 flex-1 text-sm font-semibold leading-snug">
+                  {feature.title}
+                </span>
+                <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+              </summary>
+              <p className="px-4 pb-4 pt-1 text-sm leading-relaxed text-muted-foreground">
+                {feature.blurb}
+              </p>
+            </details>
+          </li>
+        ))}
       </ul>
     </Reveal>
   )
 }
 
-function ToolRow({ feature }: { feature: MembershipFeature }) {
-  const tool = TOOLS[feature.id] ?? { icon: Sparkles, tint: '#7C8CF0' }
-  const Icon = tool.icon
-  return (
-    <li className="flex gap-4 px-4 py-4 md:gap-5 md:px-6 md:py-5">
+function Thumb({ id }: { id: string }) {
+  const art = ART[id]
+  if (art) {
+    return (
       <span
+        data-mirror="skip"
         aria-hidden
-        className="grid size-10 shrink-0 place-items-center rounded-xl text-white shadow-sm md:size-11"
-        style={{ backgroundColor: tool.tint }}
+        className="relative size-11 shrink-0 overflow-hidden rounded-xl shadow-sm ring-1 ring-foreground/10"
       >
-        <Icon className="size-5" strokeWidth={2.25} />
+        {art.category ? (
+          <CategoryArt id={art.art} accent={art.accent} className="absolute inset-0 size-full" />
+        ) : (
+          <VenueArt id={art.art} accent={art.accent} className="absolute inset-0 size-full" />
+        )}
       </span>
-      <div className="min-w-0">
-        <h3 className="font-semibold tracking-tight md:text-lg">{feature.title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{feature.blurb}</p>
-      </div>
-    </li>
+    )
+  }
+  const { icon: Icon, tint } = iconFor(id)
+  return (
+    <span
+      aria-hidden
+      className="grid size-11 shrink-0 place-items-center rounded-xl text-white shadow-sm"
+      style={{ backgroundColor: tint }}
+    >
+      <Icon className="size-5" strokeWidth={2.25} />
+    </span>
   )
 }
 
-// --- your own face -------------------------------------------------------------
+// --- free versus member ---------------------------------------------------------
 
-/**
- * One face, changed a feature at a time, so the card shows what the picker
- * does rather than five strangers. Fixed specs, not random: the page is the
- * same for everybody and the markdown mirror never sees them anyway.
- */
-const FACE_SEED = 'pip-membership-face'
-const FACES: readonly { label: string; spec: AvatarSpec }[] = [
-  { label: 'Shuffled', spec: { seed: FACE_SEED, backgroundColor: 'b6e3f4' } },
-  {
-    label: 'Glasses',
-    spec: { seed: FACE_SEED, backgroundColor: 'c0aede', features: { glasses: 'variant03' } },
-  },
-  {
-    label: 'A hat',
-    spec: {
-      seed: FACE_SEED,
-      backgroundColor: 'ffdfbf',
-      features: { glasses: 'variant03', hair: 'hat' },
-    },
-  },
-  {
-    label: 'A beard',
-    spec: {
-      seed: FACE_SEED,
-      backgroundColor: 'd1f4d0',
-      features: { glasses: 'variant03', hair: 'hat', beard: 'variant05' },
-    },
-  },
-  {
-    label: 'A wave',
-    spec: {
-      seed: FACE_SEED,
-      backgroundColor: 'ffd5dc',
-      features: {
-        glasses: 'variant03',
-        hair: 'hat',
-        beard: 'variant05',
-        gesture: 'waveLongArm',
-      },
-    },
-  },
-]
+function Mark({ value, member }: { value: string | boolean; member: boolean }) {
+  if (value === true)
+    return (
+      <Check
+        aria-label="Yes"
+        className={cn('size-4', member ? 'text-pip' : 'text-muted-foreground')}
+        strokeWidth={3}
+      />
+    )
+  if (value === false) return <Minus aria-label="No" className="size-4 text-muted-foreground/50" />
+  return <span className={cn(member && 'font-medium text-foreground')}>{value}</span>
+}
 
-function AvatarSpotlight({ feature }: { feature: MembershipFeature }) {
+function Compare({ price }: { price: ShownPrice }) {
+  const rows = comparisonRows()
+  const cols =
+    'grid grid-cols-[minmax(0,1fr)_6.5rem_7rem] items-center gap-3 md:grid-cols-[minmax(0,1fr)_11rem_11rem]'
   return (
     <Reveal>
       <div className="overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
-        <div
-          data-mirror="skip"
-          aria-hidden
-          className="flex items-end justify-center gap-3 overflow-hidden bg-[#0A0A0A] px-4 pb-8 pt-10 md:gap-8 md:pb-12 md:pt-14"
-        >
-          {FACES.map((face, i) => (
-            <motion.div
-              key={face.label}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.4 }}
-              transition={{ ...SPRING, delay: i * 0.06 }}
-              className={cn('flex flex-col items-center gap-2', i === 3 && 'hidden sm:flex')}
+        <div className={cn(cols, 'border-b border-foreground/[0.07] px-4 py-4 md:px-6')}>
+          <span />
+          <span className="text-sm font-semibold">Free</span>
+          <span className="flex flex-col text-sm font-semibold">
+            <span className="flex items-center gap-1.5">
+              <Star className="size-3.5 fill-pip text-pip" />
+              Member
+            </span>
+            <span className="text-xs font-normal tabular-nums text-muted-foreground">
+              {price.monthly} a month
+            </span>
+          </span>
+        </div>
+        <ul className="divide-y divide-foreground/[0.07]">
+          {rows.map((row) => (
+            <li
+              key={row.thing}
+              className={cn(cols, 'px-4 py-3 text-sm text-muted-foreground md:px-6')}
             >
-              <PlayerAvatar
-                spec={face.spec}
-                size={i === FACES.length - 1 ? 112 : 80}
-                className={cn(
-                  'shadow-2xl shadow-black/60',
-                  i === FACES.length - 1 ? 'size-24 md:size-28' : 'size-14 md:size-20',
-                )}
-              />
-              <span className="text-xs text-muted-foreground">{face.label}</span>
-            </motion.div>
+              <span className="text-foreground">{row.thing}</span>
+              <Mark value={row.free} member={false} />
+              <Mark value={row.member} member />
+            </li>
           ))}
-        </div>
-        <div className="p-5 md:p-7">
-          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">
-            {feature.blurb}
-          </p>
-          <ul className="mt-5 flex flex-wrap gap-2">
-            {AVATAR_PARTS.map(({ part, label, values }) => (
-              <li
-                key={part}
-                className="rounded-xl bg-foreground/[0.04] px-3.5 py-2 text-sm tabular-nums"
-              >
-                <span className="font-medium">{label}</span>{' '}
-                <span className="text-muted-foreground">· {values.length}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </Reveal>
-  )
-}
-
-// --- the shelf ------------------------------------------------------------------
-
-const SHELF_KIND_LABEL: Record<string, string> = {
-  back: 'Card back',
-  face: 'Deck',
-  finish: 'Table finish',
-  ring: 'Avatar ring',
-  button: 'Dealer button',
-  sound: 'Sound',
-}
-
-function Shelf({ feature }: { feature: MembershipFeature }) {
-  const items = SHOP_ITEMS.filter((item) => item.membersOnly && item.kind !== 'back')
-  const backs = [...MEMBER_BACKS, ...MEMBER_SHOP_BACKS]
-  return (
-    <Reveal>
-      <div className="overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
-        <div
-          data-mirror="skip"
-          aria-hidden
-          className="flex items-end justify-center gap-2 overflow-hidden bg-[#0A0A0A] px-4 pb-8 pt-10 md:gap-4 md:pb-12 md:pt-16 lg:gap-9"
-        >
-          {backs.map((design, i) => (
-            <motion.div
-              key={design.id}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: i % 2 === 0 ? 0 : -10 }}
-              viewport={{ once: true, amount: 0.4 }}
-              whileHover={{ y: -18, rotate: i % 2 === 0 ? -3 : 3 }}
-              transition={{ ...SPRING, delay: i * 0.04 }}
-              className={cn(i > 3 && 'hidden sm:block')}
-            >
-              <div className="lg:scale-[1.3]">
-                <CardBack design={design} size="md" className="shadow-2xl shadow-black/60" />
-              </div>
-            </motion.div>
-          ))}
-        </div>
-        <div className="p-5 md:p-7">
-          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground md:text-base">
-            {feature.blurb}
-          </p>
-          <ul className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              ...backs.map((b) => ({
-                id: b.id,
-                name: b.name,
-                kind: 'back',
-                price: b.unlock?.price ?? 0,
-              })),
-              ...items,
-            ].map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center justify-between gap-3 rounded-xl bg-foreground/[0.04] px-3.5 py-2.5 text-sm"
-              >
-                <span className="min-w-0 truncate">
-                  <span className="font-medium">{item.name}</span>{' '}
-                  <span className="text-muted-foreground">
-                    · {SHELF_KIND_LABEL[item.kind] ?? item.kind}
-                  </span>
-                </span>
-                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {item.price > 0 ? `${formatChips(item.price)} chips` : 'Included'}
-                </span>
-              </li>
-            ))}
-          </ul>
+        </ul>
+        <div className="grid gap-3 border-t border-foreground/[0.07] bg-foreground/[0.02] px-4 py-4 md:grid-cols-2 md:px-6">
+          {MEMBERSHIP_PROMISES.map((promise, i) => {
+            const Icon = i === 0 ? ShieldCheck : Hand
+            return (
+              <p key={promise} className="flex gap-2.5 text-sm text-muted-foreground">
+                <Icon className="mt-0.5 size-4 shrink-0 text-foreground" />
+                <span>{promise}</span>
+              </p>
+            )
+          })}
         </div>
       </div>
     </Reveal>
@@ -922,117 +584,116 @@ function Plans({
   }
 
   return (
-    <Reveal>
-      <div>
-        {onCurrency && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">Prices in</p>
-            <CurrencyPicker currency={currency} onCurrency={onCurrency} />
-          </div>
-        )}
-        <div role="radiogroup" aria-label="Billing" className="grid gap-3 sm:grid-cols-2">
-          {PLAN_ORDER.map((id) => {
-            const p = PLANS[id]
-            const on = plan === id
-            return (
-              <motion.button
-                key={id}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => pick(id)}
-                whileTap={{ scale: 0.97 }}
-                transition={SPRING}
-                className={cn(
-                  'relative flex flex-col rounded-3xl border p-5 text-left transition-colors md:p-6',
-                  on
-                    ? 'border-foreground/60 bg-foreground/[0.06] ring-1 ring-foreground/60'
-                    : 'border-foreground/10 bg-foreground/[0.03] hover:border-foreground/25',
-                )}
-              >
-                <span className="flex items-center justify-between">
-                  <span className="font-semibold">{p.name}</span>
-                  <span
-                    className={cn(
-                      'grid size-6 place-items-center rounded-full border transition-colors',
-                      on
-                        ? 'border-transparent bg-primary text-primary-foreground'
-                        : 'border-foreground/20',
-                    )}
-                  >
-                    {on && (
-                      <motion.span
-                        initial={{ scale: 0.4 }}
-                        animate={{ scale: 1 }}
-                        transition={SPRING}
-                      >
-                        <Check className="size-3.5" strokeWidth={3} />
-                      </motion.span>
-                    )}
-                  </span>
-                </span>
-                <span className="mt-4 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-semibold tabular-nums tracking-tight">
-                    {p.price}
-                  </span>
-                  <span className="text-muted-foreground">{p.per}</span>
-                </span>
-                <span className="mt-2 text-sm leading-relaxed text-muted-foreground">{p.note}</span>
-              </motion.button>
-            )
-          })}
+    <div className="rise-in rounded-[2rem] border border-foreground/10 bg-foreground/[0.04] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_30px_70px_-30px_rgba(0,0,0,0.55)] backdrop-blur md:p-5">
+      {onCurrency && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">Prices in</p>
+          <CurrencyPicker currency={currency} onCurrency={onCurrency} />
         </div>
-
-        <div
-          ref={till}
-          className="mt-5 rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5 md:p-6"
-        >
-          {ready ? (
-            <Join plan={plan} planName={PLANS[plan].name} currency={currency} />
-          ) : (
-            <>
-              <div
-                aria-disabled
-                className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground"
-              >
-                <Lock className="size-4" />
-                Checkout isn’t open yet
-              </div>
-              <p className="mt-3 text-center text-sm text-muted-foreground">
-                <strong className="font-medium text-foreground">
-                  Nobody has paid us anything.
-                </strong>{' '}
-                Everything on this page is built and behind the membership check. The till is not:
-                there is no card form and no way to give us money yet.
-              </p>
-            </>
-          )}
-
-          <ul className="mt-5 grid gap-x-6 gap-y-2.5 border-t border-foreground/[0.07] pt-5 text-sm text-muted-foreground sm:grid-cols-2">
-            {(app
-              ? [
-                  'Paid through the store, in your own currency, with tax included.',
-                  'Renews until you stop it. Cancel any time in your store’s subscription settings.',
-                  'You need a free Pip account to join. You never need one to play.',
-                  DAILY_FREE_GAME,
-                ]
-              : [
-                  'Tax is inside the price: the number here is the number that leaves your bank.',
-                  'A fixed price in your currency, never converted at checkout, so no exchange fee is hidden in it.',
-                  'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
-                  'You need a free Pip account to join. You never need one to play.',
-                  DAILY_FREE_GAME,
-                ]
-            ).map((line) => (
-              <li key={line} className="flex gap-2.5">
-                <Check className="mt-0.5 size-4 shrink-0 text-pip" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      )}
+      <div role="radiogroup" aria-label="Billing" className="grid grid-cols-2 gap-2.5">
+        {PLAN_ORDER.map((id) => {
+          const p = PLANS[id]
+          const on = plan === id
+          return (
+            <motion.button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => pick(id)}
+              whileTap={{ scale: 0.97 }}
+              transition={SPRING}
+              className={cn(
+                'relative flex flex-col rounded-2xl border p-4 text-left transition-colors',
+                on
+                  ? 'border-foreground/60 bg-foreground/[0.07] ring-1 ring-foreground/60'
+                  : 'border-foreground/10 bg-foreground/[0.03] hover:border-foreground/25',
+              )}
+            >
+              <span className="flex items-center justify-between">
+                <span className="font-semibold">{p.name}</span>
+                <span
+                  className={cn(
+                    'grid size-6 place-items-center rounded-full border transition-colors',
+                    on
+                      ? 'border-transparent bg-primary text-primary-foreground'
+                      : 'border-foreground/20',
+                  )}
+                >
+                  {on && (
+                    <motion.span
+                      initial={{ scale: 0.4 }}
+                      animate={{ scale: 1 }}
+                      transition={SPRING}
+                    >
+                      <Check className="size-3.5" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </span>
+              </span>
+              {/* In the app the store's prices replace "…" after the first
+                  paint, and iOS WebKit repainted only the old, narrower
+                  number: a new price is a new element, painted whole. */}
+              <span key={p.price} className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
+                <span className="text-3xl font-semibold tabular-nums tracking-tight">
+                  {p.price}
+                </span>
+                <span className="text-sm text-muted-foreground">{p.per}</span>
+              </span>
+            </motion.button>
+          )
+        })}
       </div>
-    </Reveal>
+      <p className="mt-3 min-h-10 px-1 text-sm leading-relaxed text-muted-foreground">
+        {PLANS[plan].note}
+      </p>
+
+      <div ref={till} className="mt-3">
+        {ready ? (
+          <Join plan={plan} planName={PLANS[plan].name} currency={currency} />
+        ) : (
+          <>
+            <div
+              aria-disabled
+              className="flex h-14 w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground"
+            >
+              <Lock className="size-4" />
+              Checkout isn’t open yet
+            </div>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              <strong className="font-medium text-foreground">Nobody has paid us anything.</strong>{' '}
+              Everything on this page is built and behind the membership check. The till is not:
+              there is no card form and no way to give us money yet.
+            </p>
+          </>
+        )}
+      </div>
+
+      <ul className="mt-4 grid gap-y-2 border-t border-foreground/[0.07] px-1 pt-4 text-sm text-muted-foreground">
+        {(app
+          ? [
+              'Paid through the store, in your own currency, with tax included.',
+              'Renews until you stop it. Cancel any time in your store’s subscription settings.',
+              'You need a free Pip account to join. You never need one to play.',
+              FREE_REPORT_COPY.offer,
+              DAILY_FREE_GAME,
+            ]
+          : [
+              'Tax is inside the price, and the price is fixed in your currency: the number here is the number that leaves your bank.',
+              'Renews until you stop it. Cancel any time, from Settings, in two clicks.',
+              'You need a free Pip account to join. You never need one to play.',
+              FREE_REPORT_COPY.offer,
+              DAILY_FREE_GAME,
+            ]
+        ).map((line) => (
+          <li key={line} className="flex gap-2.5">
+            <Check className="mt-0.5 size-4 shrink-0 text-pip" />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -1361,77 +1022,6 @@ function StoreJoin({ plan, planName }: { plan: Plan; planName: string }) {
   )
 }
 
-// --- free versus member ---------------------------------------------------------
-
-function FreeVersusMember({ price }: { price: ShownPrice }) {
-  const member = sellableFeatures().map((f) => f.title)
-  return (
-    <div className="grid gap-3 md:grid-cols-2 md:gap-4">
-      <Reveal>
-        <div className="h-full rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5 md:p-7">
-          <h3 className="flex items-center justify-between font-semibold">
-            Free, for everyone
-            <span className="rounded-full bg-foreground/[0.07] px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-              Free
-            </span>
-          </h3>
-          <ul className="mt-4 space-y-2.5 text-sm">
-            {FREE_FOREVER.map((line) => (
-              <li key={line} className="flex gap-2.5">
-                <Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Reveal>
-      <Reveal delay={0.06}>
-        <div className="relative h-full overflow-hidden rounded-3xl border border-pip/40 bg-[color-mix(in_oklch,var(--color-pip)_7%,transparent)] p-5 md:p-7">
-          <h3 className="flex items-center justify-between font-semibold">
-            All of that, plus
-            <span className="rounded-full bg-pip px-2.5 py-0.5 text-xs font-semibold text-white">
-              {price.monthly}/mo
-            </span>
-          </h3>
-          <ul className="mt-4 space-y-2.5 text-sm">
-            {member.map((line) => (
-              <li key={line} className="flex gap-2.5">
-                <Star className="mt-0.5 size-4 shrink-0 fill-pip text-pip" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Reveal>
-    </div>
-  )
-}
-
-// --- the promises ---------------------------------------------------------------
-
-function Promises() {
-  const icons = [ShieldCheck, Hand]
-  return (
-    <div className="grid gap-3 md:grid-cols-2 md:gap-4">
-      {MEMBERSHIP_PROMISES.map((promise, i) => {
-        const Icon = icons[i] ?? ShieldCheck
-        return (
-          <Reveal key={promise} delay={i * 0.06}>
-            <blockquote className="h-full rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5 md:p-7">
-              <span className="grid size-10 place-items-center rounded-xl bg-foreground/[0.07]">
-                <Icon className="size-5 text-foreground" />
-              </span>
-              <p className="mt-4 text-lg font-medium leading-snug tracking-tight md:text-xl">
-                {promise}
-              </p>
-            </blockquote>
-          </Reveal>
-        )
-      })}
-    </div>
-  )
-}
-
 // --- questions ------------------------------------------------------------------
 
 /**
@@ -1469,6 +1059,10 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
           <p>
             The card on the shelf says <em>Free today</em> while it is there. It is the same table a
             member gets.
+          </p>
+          <p>
+            {FREE_REPORT_COPY.offer} It is the same report a member reads, built from your own
+            hands, and it stays open until midnight UTC.
           </p>
         </Question>
         <Question q="How do I cancel?">

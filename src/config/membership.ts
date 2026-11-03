@@ -419,6 +419,27 @@ export function sellableFeatures(): readonly MembershipFeature[] {
 }
 
 /**
+ * What `/membership` leads with: the two things most people join for, each a
+ * group of features from the list above (Will, 2026-11-02). Everything else on
+ * the list is shown below them, smaller. A pillar shows the features in it that
+ * are for sale, and none at all if none are.
+ */
+export const MEMBERSHIP_PILLARS = [
+  {
+    id: 'better',
+    title: 'Get better',
+    lede: 'A report on your own play, every session back on the felt, and the drills and lessons to fix what it finds.',
+    ids: ['coaching', 'review', 'drills', 'lessons'],
+  },
+  {
+    id: 'multiplayer',
+    title: 'Play with friends, no limits',
+    lede: 'Host a room, a quick match or a slow game whenever you like. Your friends join free.',
+    ids: ['multiplayer'],
+  },
+] as const
+
+/**
  * The two promises that bound what the membership may ever contain.
  *
  * Here as strings because they are said out loud on `/membership` rather than
