@@ -64,7 +64,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'poker-night-with-friends-online',
     title: 'A poker night with friends, online, with nothing to settle up',
     description:
-      'One person opens a private room on Pip and sends a link; everyone else joins free with an account. Two to eight seats, camera and voice if you want them, and chips that are not money. What the host sets, and what happens when somebody gets up.',
+      'One person opens a private room on Pip and sends a link; everyone else joins free with an account. Up to four seats free, up to eight with camera and voice in a member’s room, and chips that are not money. What the host sets, and what happens when somebody gets up.',
     date: '2026-10-19',
   },
   {
