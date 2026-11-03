@@ -441,6 +441,27 @@ tabs the till stopped; until 2026-11-02 a required refund-waiver box sat in betw
 Signed-in views are `membership-viewed` minus the signed-out ones; a tab that signs in on the page
 counts as signed out, which is the point.
 
+**The limit cards and the host card (2026-11-02).** When a free player's free one for the day
+is used, the quiet tile is replaced by one card saying so, with a button to the page opened on
+the feature and how long until the free one is back (`LimitCard`, in
+`components/membership`). The member table's card sits above the side-table shelves; the room's
+and quick match's sit on the multiplayer hub in place of the locked button. A guest without the
+membership at a friend's private room sees `HostOwnCard` on the room's end screen, after their
+last hand, with "Open a room" (to the hub) and the page opened on multiplayer. Each sends its own
+event, at most once per tab:
+
+| Event | Sent when |
+|---|---|
+| `limit-card-seen-table` / `limit-card-tapped-table` | today's free member table is spent: the card on Side Tables shown / its button tapped |
+| `limit-card-seen-room` / `limit-card-tapped-room` | today's free private room is spent: the card on the hub shown / tapped |
+| `limit-card-seen-quick` / `limit-card-tapped-quick` | today's free quick match is spent: the card on the hub shown / tapped |
+| `host-card-seen` | a friend's guest without the membership reached the room's end screen |
+| `host-card-open-tapped` | they tapped "Open a room" on it |
+| `host-card-membership-tapped` | they tapped "See the membership" on it |
+
+Tapped over seen is the card's own rate; `checkout-opened` in the same tabs is what it led to.
+Umami events here are names only, so the feature is in the name rather than in event data.
+
 They are counts, not grants: nothing reads them back. Stripe's dashboard stays the count of
 money. Where the funnel undercounts: a blocked Umami tag reports nothing, a player who pays in
 one tab and comes back in another is a new tab, and a webhook slower than ~15 seconds means

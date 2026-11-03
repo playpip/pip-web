@@ -14,13 +14,14 @@ import { MEMBERS_ONLY_NOTE, memberLocked } from './VenueBrowser'
 import { useRequireProfile } from './useRequireProfile'
 import { Splash } from '@/components/Splash'
 import { familiesIn, membershipForFamily, type TableFamily, type Venue } from '@/config/venues'
-import { useEntitlement } from '@/store/entitlement'
+import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
 import { membershipFor } from '@/config/membership'
 import { TASTE_COPY } from '@/lib/membership/taste'
 import { useTaste } from '@/lib/useTaste'
+import { LimitCard } from '@/components/membership/LimitCard'
 
 /**
  * The side tables: one card per thing that is different, with the prices behind
@@ -48,6 +49,9 @@ export function SideTables() {
   const money = useMoney()
   const spendable = useSpendableRoll()
   const taste = useTaste()
+  // Known not to be a member: the store has answered, so a member never sees
+  // the card flash past on load.
+  const freePlayer = useMembership((s) => s.checked && !s.member)
   const [openFamily, setOpenFamily] = useState<TableFamily | null>(null)
 
   // **One member game a day is free** (docs/membership.md). While today's is
@@ -109,6 +113,12 @@ export function SideTables() {
       title="Side Tables"
       subtitle="The games that aren’t Hold’em, and the game you know with one screw turned. All of it comes with the membership."
     >
+      {/* Today's free table spent: one card says so, above the shelf. */}
+      {freePlayer && taste.ready && taste.record && !taste.left && (
+        <div className="mb-8">
+          <LimitCard kind="table" />
+        </div>
+      )}
       {/* Blackjack is not a family — a family is rooms in one price list, and
           blackjack is two lists (what you sit down with, and which house). It
           rides on the games shelf as its own tile, the way the builder rides on

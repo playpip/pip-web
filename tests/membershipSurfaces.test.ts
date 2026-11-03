@@ -103,6 +103,44 @@ test('the end-of-run card mentions the membership only as one real report line',
   t.notRegex(game, /config\/membership|lib\/membership/)
 })
 
+// A multiplayer room is a table too, it just lives in src/components/room. Its
+// hands carry nothing about buying. What it may carry (2026-11-02) is one card
+// on the end screen, after the player's last hand: a guest at a friend's room
+// who is not a member hears they could host their own. Dozens of codes a week
+// are joined by somebody who never hosts, and leaves without hearing it. The
+// card is outside the hands for the same reason the recap is: the game is over
+// for them. The limit cards (today's free one used) sit on lobby screens, the
+// hub and the side tables, never at a table.
+test('a room mentions the membership only on its end screen, to a friend’s guest', (t) => {
+  const room = sources('src/components/room')
+  const table = room.find((f) => f.path === 'src/components/room/RoomTable.tsx')?.code ?? ''
+  // The felt, the lobby, the seats: nothing about buying.
+  for (const { path, code } of room) {
+    if (path === 'src/components/room/MultiplayerHub.tsx') continue
+    t.notRegex(code, /['"`]\/membership|config\/membership/, `${path} links to the membership`)
+    if (path !== 'src/components/room/RoomTable.tsx') {
+      t.notRegex(code, /HostOwnCard|LimitCard/, `${path} shows a membership card`)
+    }
+  }
+  // The host card is drawn by the end card and nowhere else on the table.
+  t.is([...table.matchAll(/<HostOwnCard/g)].length, 1)
+  const endCard = table.slice(table.indexOf('function EndCard'))
+  t.regex(endCard, /<HostOwnCard/, 'the host card is not on the end screen')
+  t.notRegex(table, /LimitCard|useEntitlement|useMembership/)
+  // Offered only to a guest without the membership, at a private room.
+  const screen = room.find((f) => f.path === 'src/components/room/RoomScreen.tsx')?.code ?? ''
+  t.regex(screen, /onHostOwn=\{notMember && view\.kind === 'private' && !view\.isHost/)
+  // And it names no price.
+  const card = readFileSync(
+    new URL('../src/components/membership/HostOwnCard.tsx', import.meta.url),
+    'utf-8',
+  )
+  t.notRegex(card, /checkout|MEMBERSHIP_PRICE/)
+  for (const { path, code } of sources('src/components/table')) {
+    t.notRegex(code, /HostOwnCard|LimitCard/, `${path} shows a membership card in a hand`)
+  }
+})
+
 // The other half: the surfaces that *are* allowed to mention it must point at a
 // page that exists. A dead link on the one page that asks for money is worse
 // than no link.

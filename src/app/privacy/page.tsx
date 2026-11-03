@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy" updated="October 2026">
+    <LegalPage title="Privacy" updated="November 2026">
       <Section title="The short version">
         <p>
           Pip is built to need as little of your data as possible — which turns out to be almost
@@ -164,10 +164,16 @@ export default function PrivacyPage() {
           went to pay, someone came back from paying, and a membership started. Paying needs an
           account, so we also count whether they were signed out when they opened it, and whether
           they tapped to create an account from it. We count whether they scrolled down as far as
-          the join button, and whether they pressed join. That tells us where people stop, not who
-          they are. No cookies, no fingerprinting, no personal data, and never anything you typed or
-          any message we got back. We can’t tie any of it to a person, including you. It exists so
-          we can improve the game, and for nothing else. It’s never sold or shared.
+          the join button, and whether they pressed join. When one of the day’s free games is used
+          up we show a card saying so, and we count that the free table card was shown, that the
+          free table card was tapped, that the free room card was shown, that the free room card was
+          tapped, that the free quick match card was shown and that the free quick match card was
+          tapped. A guest at the end of a friend’s room game sees a card about hosting their own,
+          and we count that the hosting card was shown, that its open a room button was tapped and
+          that its membership button was tapped. That tells us where people stop, not who they are.
+          No cookies, no fingerprinting, no personal data, and never anything you typed or any
+          message we got back. We can’t tie any of it to a person, including you. It exists so we
+          can improve the game, and for nothing else. It’s never sold or shared.
         </p>
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t

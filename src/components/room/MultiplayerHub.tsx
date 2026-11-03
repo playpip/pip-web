@@ -49,6 +49,7 @@ import { useQueue } from '@/store/queue'
 import { useRoom } from '@/store/room'
 import { useSync } from '@/store/sync'
 import { YourGames } from '@/components/menu/YourGames'
+import { LimitCard, type LimitKind } from '@/components/membership/LimitCard'
 import { SettingsList, settingsForPace } from './RoomSettings'
 
 type Mode = 'friends' | 'quick'
@@ -139,6 +140,11 @@ export function MultiplayerHub() {
     !(k === 'quick' && queue.state === 'failed' && queue.error === 'free-quick-used')
   const picked: keyof FreeLeft = mode === 'quick' ? 'quick' : slow ? 'slow' : 'room'
   const host = member || kindLeft(picked)
+  // Today's free room or quick match spent: a card in place of the quiet
+  // button says so (the slow game is one at a time, not one a day, so it keeps
+  // its line).
+  const limit: LimitKind | null =
+    !member && freeLeft !== undefined && picked !== 'slow' && !kindLeft(picked) ? picked : null
   const canPlay = signedIn && host && affords(stake)
 
   const seat = () => {
@@ -358,7 +364,7 @@ export function MultiplayerHub() {
                         setSettings((s) => settingsForPace(s, pace))
                       }}
                     />
-                    {primary}
+                    {limit ? <LimitCard kind={limit} /> : primary}
                     <button
                       onClick={() => {
                         sound.play('tap')
@@ -389,19 +395,20 @@ export function MultiplayerHub() {
                   <Mark icon={<Users className="size-4" />}>{stake.seats} seats</Mark>
                   <Mark icon={<Zap className="size-4" />}>Dealt in fast</Mark>
                 </div>
-                {primary}
+                {limit ? <LimitCard kind={limit} /> : primary}
               </>
             )}
-            {!member && freeLeft !== undefined && !problem && !queueFailed && (
+            {limit && mode === 'friends' && !creating && <LimitCard kind={limit} />}
+            {!member && !limit && freeLeft !== undefined && !problem && !queueFailed && (
               <p className="-mt-2 text-center text-sm text-muted-foreground">
                 {freeLine(picked, kindLeft(picked))}
               </p>
             )}
-            {!member && <HostPanel />}
+            {!member && !limit && <HostPanel />}
           </>
         )}
 
-        {(problem || queueFailed) && (
+        {(problem || queueFailed) && !limit && (
           <p className="-mt-2 text-center text-sm text-suit-red">
             {problem ?? ERRORS[queue.error ?? 'closed'] ?? ERRORS.closed}
           </p>

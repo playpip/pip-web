@@ -41,7 +41,7 @@ import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
 import { useSlowGames } from '@/store/slowGames'
 import { useSync } from '@/store/sync'
-import { useEntitlement } from '@/store/entitlement'
+import { useEntitlement, useMembership } from '@/store/entitlement'
 import { RoomLobby } from './RoomLobby'
 import { RoomTable } from './RoomTable'
 
@@ -68,6 +68,9 @@ export function RoomScreen() {
   const leave = useRoom((s) => s.leave)
   const exit = useRoom((s) => s.exit)
   const member = useEntitlement() || devMember()
+  // Known not to be a member, so the end screen's "host your own" never flashes
+  // past a member while the row loads.
+  const notMember = useMembership((s) => s.checked && !s.member) && !devMember()
 
   const sitting = code !== null && roomCode === code
   const slow = view?.kind === 'slow'
@@ -89,6 +92,13 @@ export function RoomScreen() {
     }
     leave()
     router.push('/game/multiplayer')
+  }
+  /** Out of a finished fast game to another page: the end screen's host card. */
+  const leaveTo = (href: string) => {
+    setLeaving(true)
+    useMedia.getState().stop()
+    leave()
+    router.push(href)
   }
   /** A slow game, given up on purpose: the seat is freed, or folded out once dealt. */
   const leaveGame = () => {
@@ -138,6 +148,7 @@ export function RoomScreen() {
           onLeave={goBack}
           onLeaveGame={leaveGame}
           onReview={member ? review : undefined}
+          onHostOwn={notMember && view.kind === 'private' && !view.isHost ? leaveTo : undefined}
         />
       ) : (
         <Waiting label="Dealing" />

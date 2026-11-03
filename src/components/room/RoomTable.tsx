@@ -47,6 +47,7 @@ import {
   SeatFace,
   TableAudio,
 } from './live'
+import { HostOwnCard } from '@/components/membership/HostOwnCard'
 import { PlayerSheet } from './PlayerSheet'
 import { PreActions } from './PreActions'
 import { RoomRulesDialog } from './RoomSettings'
@@ -63,6 +64,7 @@ export function RoomTable({
   onLeave,
   onLeaveGame,
   onReview,
+  onHostOwn,
 }: {
   view: RoomView
   /** Camera and mic are on offer: a private room, in a browser or app that can. */
@@ -73,6 +75,11 @@ export function RoomTable({
   onLeaveGame?: () => void
   /** The session review of this game, offered once it is over for you. Members only. */
   onReview?: () => void
+  /**
+   * A guest without the membership at a friend's private room: the end screen
+   * tells them they could host their own, and this leaves for where they tap.
+   */
+  onHostOwn?: (href: string) => void
 }) {
   const slow = view.kind === 'slow'
   // At a slow game, what you missed plays first; until it has, the felt shows it.
@@ -514,6 +521,7 @@ export function RoomTable({
                 onLeave={onLeave}
                 onWatch={finished ? undefined : () => setWatching(true)}
                 onReview={onReview}
+                onHostOwn={onHostOwn}
               />
             )}
           </AnimatePresence>
@@ -630,6 +638,7 @@ function EndCard({
   onLeave,
   onWatch,
   onReview,
+  onHostOwn,
 }: {
   won: boolean
   place: number | null
@@ -638,6 +647,7 @@ function EndCard({
   onLeave: () => void
   onWatch?: () => void
   onReview?: () => void
+  onHostOwn?: (href: string) => void
 }) {
   const money = useMoney()
   return (
@@ -698,6 +708,16 @@ function EndCard({
             </button>
           )}
         </div>
+        {onHostOwn && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut', delay: 0.4 }}
+            className="flex w-full justify-center"
+          >
+            <HostOwnCard onGo={onHostOwn} />
+          </motion.div>
+        )}
       </div>
     </motion.div>
   )
