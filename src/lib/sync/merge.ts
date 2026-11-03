@@ -26,6 +26,7 @@ import type { SeatStats } from '@/lib/reads'
 import { emptyReviewStats } from '@/lib/review/stats'
 import { mergeStreaks, streakFromDaily } from '@/lib/streak'
 import { mergeTaste } from '@/lib/membership/taste'
+import { mergeFreeReport } from '@/lib/membership/freeReport'
 import { mergeRewards } from '@/lib/dailyReward'
 import { STARTING_ROLL } from '@/config/venues'
 import { hasPlaceholderName } from '@/lib/newPlayer'
@@ -177,6 +178,9 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // The daily free member game, for the same reason: a spent game stays
     // spent, or signing in on a second device is a way to get another.
     taste: mergeTaste(local.taste, remote.taste),
+    // The free report, for the same reason: an opened one stays opened, and
+    // the earlier day stands so a second device cannot stretch it.
+    freeReport: mergeFreeReport(local.freeReport, remote.freeReport),
     // A claimed reward stays claimed, for the same reason.
     dailyReward: mergeRewards(local.dailyReward, remote.dailyReward),
 
@@ -237,6 +241,7 @@ export function isPristine(p: ProfileData): boolean {
     // A spent free game is not progress, but adopting the account's row over
     // it would hand this device a second one today.
     (p.taste ?? null) === null &&
+    (p.freeReport ?? null) === null &&
     // Drills are reachable without ever sitting down, so a rating is progress
     // even on a profile that has played no hands. Without this clause, signing
     // in on that device adopts the account's row and the rating is gone.
@@ -470,6 +475,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'daily',
     'streak',
     'taste',
+    'freeReport',
     'dailyReward',
     'challengeWins',
     'challengesPlayed',

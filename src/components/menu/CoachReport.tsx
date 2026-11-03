@@ -24,6 +24,9 @@
  * - **Not a member**: the page still exists and still explains itself, with
  *   your own hand count in it and one text link. No button, no CTA, nothing
  *   that follows you.
+ * - **Not a member, free report ready** (2026-11-02): one full report is free,
+ *   once (lib/membership/freeReport). A card says so and a tap opens it; it
+ *   stays open until midnight UTC, under a one-line banner, then locks again.
  * - **Not enough hands yet**: says so, and says how many. A paid screen that
  *   renders nothing is the worst thing on this list, and the easiest one to
  *   ship by accident.
@@ -33,7 +36,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ArrowRight, ChevronRight, Lock } from 'lucide-react'
+import { ArrowRight, ChevronRight, Lock, Sparkles } from 'lucide-react'
 import { PageShell } from '@/components/PageShell'
 import { Reveal } from '@/components/Reveal'
 import { RollGraph } from '@/components/RollGraph'
@@ -49,7 +52,10 @@ import { BET_PACK_ID, DRILL_KINDS, OPEN_PACK_ID, RIVER_PACK_ID } from '@/config/
 import { EvidenceDialog } from '@/components/review/EvidenceDialog'
 import { useProfile, type RollPoint } from '@/store/profile'
 import { useEntitlement } from '@/store/entitlement'
-import { type DeepRead, type Leak, deepRead } from '@/lib/deepCoach'
+import type { DeepRead, Leak } from '@/lib/deepCoach'
+import { FREE_REPORT_COPY } from '@/lib/membership/freeReport'
+import { useFreeReport } from '@/lib/useFreeReport'
+import { sound } from '@/lib/sound'
 import { type EvidenceKey, evidenceFor } from '@/lib/review/stats'
 import { ROLL_RANGES, type RollRange, pointsInRange, rollTrend } from '@/lib/rollRange'
 import { accentFromSwatch } from '@/lib/avatar'
@@ -62,11 +68,16 @@ export function CoachReport() {
   const router = useRouter()
   const ready = useRequireProfile()
   const member = useEntitlement()
-  const { tendencies, stats, venueRecords, rollHistory, reviewStats, avatar } = useProfile()
+  const { tendencies, avatar } = useProfile()
+  const openFree = useProfile((s) => s.openFreeReport)
+  const rollHistory = useProfile((s) => s.rollHistory)
+  const free = useFreeReport()
 
   if (!ready) return <Splash />
 
-  const read = deepRead({ tendencies, stats, venueRecords, rollHistory, reviewStats })
+  const read = free.read
+  // A non-member reads the report itself on the one day their free one is open.
+  const reading = member || free.state === 'open'
   const accent = avatar ? accentFromSwatch(avatar.backgroundColor) : 'var(--color-pip)'
 
   return (
@@ -101,32 +112,80 @@ export function CoachReport() {
           </p>
         </header>
 
-        {!member ? (
-          <Locked hands={tendencies.handsDealt} />
+        {!reading && free.state === 'ready' ? (
+          <FreeReady
+            onOpen={() => {
+              sound.play('call')
+              openFree(free.today)
+            }}
+          />
+        ) : !reading ? (
+          <Locked hands={tendencies.handsDealt} used={free.state === 'used'} />
         ) : read.waitingFor ? (
           <Card>
             <p className="font-medium">Not yet</p>
             <p className="mt-2 text-sm text-muted-foreground">{read.waitingFor}</p>
           </Card>
         ) : (
-          <Report read={read} accent={accent} rollHistory={rollHistory} />
+          <>
+            {!member && <FreeBanner />}
+            <Report read={read} accent={accent} rollHistory={rollHistory} />
+          </>
         )}
       </motion.div>
     </PageShell>
   )
 }
 
-function Locked({ hands }: { hands: number }) {
+/** The one free report, ready and not yet opened: what it is, and the tap that opens it. */
+function FreeReady({ onOpen }: { onOpen: () => void }) {
+  return (
+    <Card className="relative overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_22%,transparent),transparent_70%)]"
+      />
+      <p className="flex items-center gap-2 text-lg font-semibold">
+        <Sparkles className="size-5 text-pip" /> {FREE_REPORT_COPY.ready}
+      </p>
+      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{FREE_REPORT_COPY.note}</p>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-5 inline-flex h-12 items-center justify-center gap-1.5 rounded-2xl bg-primary px-6 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+      >
+        {FREE_REPORT_COPY.action}
+        <ArrowRight className="size-4" />
+      </button>
+    </Card>
+  )
+}
+
+/** Over the report on the day the free one is open. */
+function FreeBanner() {
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-2xl bg-pip/[0.08] px-4 py-3 text-sm ring-1 ring-pip/30 ring-inset">
+      <span className="font-medium">{FREE_REPORT_COPY.banner}</span>
+      <Link
+        href={membershipFor('coaching')}
+        className="text-muted-foreground underline underline-offset-2 hover:text-foreground"
+      >
+        What the membership is
+      </Link>
+    </div>
+  )
+}
+
+function Locked({ hands, used }: { hands: number; used: boolean }) {
   return (
     <Card>
       <p className="flex items-center gap-2 font-medium">
         <Lock className="size-4" /> Your report comes with the membership.
       </p>
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Pip has been counting since your first hand either way — you have played{' '}
-        <span className="font-semibold text-foreground tabular-nums">{hands}</span>, and every one
-        of them is already in here waiting. The read on each hand as you finish it stays free and
-        always will.{' '}
+        {used ? FREE_REPORT_COPY.used : FREE_REPORT_COPY.offer} You have played{' '}
+        <span className="font-semibold text-foreground tabular-nums">{hands}</span>. The read on
+        each hand as you finish it stays free and always will.{' '}
         <Link
           href={membershipFor('coaching')}
           className="underline underline-offset-2 hover:text-foreground"

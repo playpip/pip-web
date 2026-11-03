@@ -450,6 +450,18 @@ test('pristine › a device that only spent today’s free game still merges', (
   t.false(isPristine(pristine({ taste: { date: '2026-10-07', kind: 'table', id: 'omaha-low' } })))
 })
 
+test('merge › the free report opened on either device stays opened, from the earlier day', (t) => {
+  const opened = profile({ freeReport: { date: '2026-11-02' } })
+  const later = profile({ freeReport: { date: '2026-11-05' } })
+  const never = profile({ freeReport: null })
+  for (const side of ['local', 'remote'] as const) {
+    t.is(mergeProfiles(opened, never, side).freeReport?.date, '2026-11-02')
+    t.is(mergeProfiles(never, opened, side).freeReport?.date, '2026-11-02')
+    t.is(mergeProfiles(later, opened, side).freeReport?.date, '2026-11-02')
+  }
+  t.false(isPristine(pristine({ freeReport: { date: '2026-11-02' } })))
+})
+
 // --- when to bother the player --------------------------------------------
 
 test('divergence › identical progress never prompts', (t) => {

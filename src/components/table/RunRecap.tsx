@@ -16,6 +16,8 @@
  * - **One line of the report**, for a non-member whose report has something to
  *   say (2026-10-07). It is the report's own top finding and its sample
  *   (`lib/review/teaser`), never written here, and absent when there is none.
+ *   Since 2026-11-02 its button opens their one free report while that is
+ *   ready (lib/membership/freeReport), and goes to the membership after.
  *   This card is the one place in the game loop allowed to mention the
  *   membership: the run is over and no hand is live
  *   (`tests/membershipSurfaces.test.ts`).
@@ -23,9 +25,13 @@
 
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { ChevronRight } from 'lucide-react'
 import type { Recap } from '@/lib/recap'
 import { deepRead } from '@/lib/deepCoach'
 import { reportTeaser } from '@/lib/review/teaser'
+import { FREE_REPORT_COPY, freeReportState } from '@/lib/membership/freeReport'
+import { dailyDateKey } from '@/lib/daily'
+import { cn } from '@/lib/utils'
 import { AccountOffer } from '@/components/settings/AccountOffer'
 import { membershipFor } from '@/config/membership'
 import { useGame } from '@/store/game'
@@ -68,7 +74,15 @@ export function RunRecap({
   )
 }
 
-/** The top finding of the player's own report, or nothing. */
+/**
+ * The player's own report, at the foot of the card: its top finding, and a
+ * button to the rest.
+ *
+ * While their one free report (lib/membership/freeReport) is ready or open
+ * today, the button opens it. Once it is used, the button goes to the
+ * membership, as it always did. Nothing here is written for the card: the
+ * line is the report's own, and the free report is the report itself.
+ */
 function ReportLine() {
   const router = useRouter()
   const tendencies = useProfile((s) => s.tendencies)
@@ -76,28 +90,44 @@ function ReportLine() {
   const venueRecords = useProfile((s) => s.venueRecords)
   const rollHistory = useProfile((s) => s.rollHistory)
   const reviewStats = useProfile((s) => s.reviewStats)
-  const teaser = useMemo(
-    () => reportTeaser(deepRead({ tendencies, stats, venueRecords, rollHistory, reviewStats })),
-    [tendencies, stats, venueRecords, rollHistory, reviewStats],
-  )
-  if (!teaser) return null
+  const record = useProfile((s) => s.freeReport)
+  const { teaser, free } = useMemo(() => {
+    const read = deepRead({ tendencies, stats, venueRecords, rollHistory, reviewStats })
+    return { teaser: reportTeaser(read), free: freeReportState(record, dailyDateKey(), read) }
+  }, [tendencies, stats, venueRecords, rollHistory, reviewStats, record])
+  const yours = free === 'ready' || free === 'open'
+  if (!teaser && !yours) return null
 
   return (
     <div className="mt-4 border-t border-white/10 pt-4 text-left">
-      <p className="text-2xs uppercase tracking-wider text-white/40">From your report</p>
-      <p className="mt-1 text-sm font-medium text-white">{teaser.title}</p>
-      <p className="mt-0.5 text-xs text-white/60">
-        Counted over {teaser.sample.toLocaleString('en-GB')} {teaser.unit}.
-      </p>
+      {teaser && (
+        <>
+          <p className="text-2xs uppercase tracking-wider text-white/40">From your report</p>
+          <p className="mt-1 text-sm font-medium text-white">{teaser.title}</p>
+          <p className="mt-0.5 text-xs text-white/60">
+            Counted over {teaser.sample.toLocaleString('en-GB')} {teaser.unit}.
+          </p>
+        </>
+      )}
       <button
         type="button"
         onClick={() => {
           useGame.getState().leave()
-          router.push(membershipFor('coaching'))
+          router.push(yours ? '/game/report' : membershipFor('coaching'))
         }}
-        className="mt-2 text-xs font-medium text-white/80 underline underline-offset-2 hover:text-white"
+        className={cn(
+          'mt-3 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm font-medium text-white transition active:scale-[0.98]',
+          yours
+            ? 'bg-white/15 ring-1 ring-white/25 ring-inset hover:bg-white/20'
+            : 'border border-white/20 hover:bg-white/10',
+        )}
       >
-        See your full report
+        {free === 'ready'
+          ? FREE_REPORT_COPY.ready
+          : free === 'open'
+            ? FREE_REPORT_COPY.open
+            : 'See your full report'}
+        <ChevronRight className="size-4" />
       </button>
     </div>
   )

@@ -161,6 +161,42 @@ are left out: neither is one game you sit down to and finish. **Lessons are left
   like a member's, and the dialog says it is today's one. Once spent, the normal lock, with *Your free
   game today is used. Join for every table.* Copy lives in `TASTE_COPY`.
 
+## One free report (2026-11-02)
+
+Every player who is not a member gets **their own full report once** (Will, 2026-11-02). It
+was the locked thing tapped most by far in the week to 1 November (14 of about 22 locked
+taps), and nobody tapping it had seen their own. Will ruled out a free trial; this is the
+free member table's shape applied to the report: one whole thing, never a slice.
+
+- **The rules are pure**, in `lib/membership/freeReport.ts` (`tests/freeReport.test.ts`). The
+  record is `profile.freeReport`, `{ date }`, persisted (v29) and merged on sync
+  (`mergeFreeReport`: the earlier day wins, so a second device can neither hand it back nor
+  stretch it).
+- **It is ready when the report has something to say**, not at a hand count picked for
+  marketing: past `DEEP_MIN_HANDS` (120, under which `deepRead` says nothing at all) and with a
+  finding or a priced cost. Spending the one free look on an empty page would be no gift.
+- **It is opened by a tap** on `/game/report` ("Open my free report"), never by a page view,
+  and stays open until midnight UTC so a refresh or "See the hands" is not a second one. After
+  that day it locks like before.
+- **It is the report itself**, from `deepRead` over their own hands. Nothing is written for it.
+- **The end-of-run card** offers it while it is ready or open ("Your report is ready", a real
+  button to `/game/report`); once used, the same button goes to `/membership?for=coaching`.
+- Copy lives in `FREE_REPORT_COPY`.
+
+## The page and the welcome step (2026-11-02)
+
+In the week to 1 November `/membership` had 28 tabs, 2 scrolled to Join and none pressed it;
+the welcome flow's membership step was seen 69 times and tapped through twice. So:
+
+- **`/membership`** is now the headline with the plans and Join beside it, then what was
+  tapped (`TappedFor`), then two pillars (`MEMBERSHIP_PILLARS`: "Get better" and "Play with
+  friends, no limits"), every other feature as one compact list, free against member row by
+  row (`lib/membership/compare.ts`, counted from the configs), and the questions. Each feature
+  is said once. The funnel events are unchanged.
+- **The welcome step** is two cards of equal size: the membership with its price and three
+  lines (`MEMBER_LINES`, the report first), and Free with what stays free. Free starts picked,
+  as before; nothing is hidden behind either.
+
 ## Double daily rewards (2026-10-25)
 
 Members get **double the chips** from the daily reward (docs/daily-reward.md), every day: six
@@ -339,7 +375,9 @@ for a non-member whose report has a finding, it shows that finding's title and s
 link, *See your full report*, to `/membership?for=coaching`. The line is the report's own top
 leak (`lib/review/teaser.ts` over `deepRead`), never written for the card, and absent when the
 report has nothing to say. The test names `RunRecap.tsx` as the only file allowed, and checks
-it still takes `member` from the table rather than asking.
+it still takes `member` from the table rather than asking. Since 2026-11-02 the link is a button,
+and while the player's one free report is ready or open it reads *Your report is ready* and goes
+to `/game/report` instead (see "One free report").
 
 ## Building your own face
 
@@ -415,6 +453,7 @@ Worth listing, because each was considered:
 | `tests/membership.test.ts` | The page advertising a feature that does not exist; the price disagreeing with itself |
 | `tests/membershipSurfaces.test.ts` | Anything about buying reaching the game loop beyond the end-of-run report line; a dead `/membership` link |
 | `tests/taste.test.ts` | A second free member game in one UTC day; a refresh spending one; a sync handing one back |
+| `tests/freeReport.test.ts` | The free report offered before the report has anything to say; a second one; a sync handing it back |
 | `tests/reportTeaser.test.ts` | The end-of-run line saying something the report does not, or naming the wrong unit |
 | `tests/sitDown.test.ts` | A free table moving behind the membership; a member room paying better than a free one |
 | `tests/customTable.test.ts` | A built table being easier than the ladder at the same price; an invited guest not turning up |

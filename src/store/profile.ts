@@ -22,6 +22,8 @@ import { track } from '@/lib/analytics'
 import { type PlayStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib/streak'
 import { dailyDateKey } from '@/lib/daily'
 import { spendTaste, type TasteRecord, type TasteTarget } from '@/lib/membership/taste'
+import { type FreeReportRecord, openFreeReport } from '@/lib/membership/freeReport'
+import { deepRead } from '@/lib/deepCoach'
 import { claimable, rewardFor, yourTable, type Reward, type RewardRecord } from '@/lib/dailyReward'
 import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
 
@@ -271,6 +273,13 @@ export interface ProfileState {
    */
   taste: TasteRecord | null
   /**
+   * The one free full report, once opened: the UTC day it was opened on
+   * (lib/membership/freeReport). Client-written like `taste`, and for the same
+   * reason that is fine: editing it gets somebody their own report again,
+   * never the membership.
+   */
+  freeReport: FreeReportRecord | null
+  /**
    * The daily reward: the last UTC day one was claimed (lib/dailyReward).
    * Client-written, like the Roll it pays into.
    */
@@ -351,6 +360,11 @@ export interface ProfileState {
    */
   spendTaste: (today: string, target: TasteTarget) => boolean
   /**
+   * Open the one free report today. Returns whether it is open: true if it was
+   * ready (or is already open today), false once used or with nothing in it.
+   */
+  openFreeReport: (today: string) => boolean
+  /**
    * Claim today's daily reward: counts today for the streak, pays the chips
    * into the Roll and hands over a streak item if one is due. Returns what was
    * given, or null if today's was already claimed.
@@ -364,7 +378,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 28
+export const PERSIST_VERSION = 29
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -414,6 +428,7 @@ export const useProfile = create<ProfileState>()(
       reviewStats: emptyReviewStats(),
       blackjack: null,
       taste: null,
+      freeReport: null,
       dailyReward: null,
 
       createProfile: (name, avatar) => {
@@ -605,6 +620,20 @@ export const useProfile = create<ProfileState>()(
         if (next !== get().taste) set({ taste: next })
         return true
       },
+      openFreeReport: (today) => {
+        const s = get()
+        const read = deepRead({
+          tendencies: s.tendencies,
+          stats: s.stats,
+          venueRecords: s.venueRecords,
+          rollHistory: s.rollHistory,
+          reviewStats: s.reviewStats,
+        })
+        const next = openFreeReport(s.freeReport, today, read)
+        if (!next) return false
+        if (next !== s.freeReport) set({ freeReport: next })
+        return true
+      },
       claimDailyReward: (today, member) => {
         const s = get()
         if (!claimable(s.dailyReward, today)) return null
@@ -658,6 +687,7 @@ export const useProfile = create<ProfileState>()(
           reviewStats: emptyReviewStats(),
           blackjack: null,
           taste: null,
+          freeReport: null,
           dailyReward: null,
         }),
     }),
@@ -830,6 +860,8 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // every older avatar already is, so there is nothing to write.
   // v27 → v28: the daily reward (lib/dailyReward). Never claimed.
   if (fromVersion < 28) s.dailyReward = null
+  // v28 → v29: the one free report (lib/membership/freeReport). Never opened.
+  if (fromVersion < 29) s.freeReport = null
   return s
 }
 

@@ -83,7 +83,11 @@ test('the end-of-run card mentions the membership only as one real report line',
   )
   // The line is the report's own finding, computed by the teaser module — not
   // a sentence typed into the card.
-  t.regex(recap, /reportTeaser\(deepRead\(/, 'the recap line is not drawn from the report')
+  t.regex(recap, /deepRead\(\{/, 'the recap does not read the report')
+  t.regex(recap, /reportTeaser\(read\)/, 'the recap line is not drawn from the report')
+  // The free report it offers is the report itself, decided by the pure rules
+  // in lib/membership/freeReport rather than by the card.
+  t.regex(recap, /freeReportState\(record, dailyDateKey\(\), read\)/)
   // Shown to non-members only, and decided from what the table was handed.
   t.regex(
     recap,
