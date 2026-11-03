@@ -1,6 +1,7 @@
 // What the welcome flow's Membership step says the membership adds.
 //
-// Short lines, because the step fits one screen, but each one is tied to the
+// Three short lines on the membership's card, because the step fits one
+// screen and a card says the few things most likely to matter, but each one is tied to the
 // features it summarises and shows only if every one of them is for sale. The
 // list was hand-typed until 2026-10-12 and missed multiplayer the day after it
 // shipped: a new player choosing a plan was not told about the headline.
@@ -14,15 +15,13 @@ interface MemberLine {
 }
 
 export const MEMBER_LINES: readonly MemberLine[] = [
-  { text: 'Private rooms with your friends, who join free', ids: ['multiplayer'] },
+  // The report leads (2026-11-02): it is the locked thing tapped most.
+  { text: 'A report on your own play, and every session to review', ids: ['coaching', 'review'] },
+  { text: 'Host friends and quick matches with no limits', ids: ['multiplayer'] },
   {
-    text: 'Omaha, Short Deck, Hi-Lo and Five-Card Draw',
-    ids: ['omaha', 'shortdeck', 'hilo', 'draw'],
+    text: 'Every drill, lesson and side table, Omaha included',
+    ids: ['drills', 'lessons', 'side-tables', 'omaha'],
   },
-  { text: 'Every side table', ids: ['side-tables', 'rooms'] },
-  { text: 'All of Webb’s lessons and drills', ids: ['lessons', 'drills'] },
-  { text: 'Session review and a report on your own play', ids: ['review', 'coaching'] },
-  { text: 'A face you build feature by feature', ids: ['avatar'] },
 ]
 
 /** The lines this build may show: every feature behind a line is sellable. */

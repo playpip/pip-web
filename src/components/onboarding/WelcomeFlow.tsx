@@ -7,8 +7,9 @@
 //                   Welcome Table (a short heads-up first game). "Skip to lobby"
 //                   skips the game and goes on to step 3.
 //   3. save       — save your player with a free account
-//   4. membership — free or the membership, picked like a plan (Lottie tapped
-//                   "Free" on the old side-by-side lists), then the lobby
+//   4. membership — free or the membership, two cards picked like a plan
+//                   (Lottie tapped "Free" on the old side-by-side lists), then
+//                   the lobby
 //
 // The step lives in the URL (`?step=`) so the Welcome Table can hand back to
 // step 3 and an account's Google or Apple trip comes back to the same screen.
@@ -30,6 +31,7 @@ import { memberLines } from '@/components/onboarding/memberLines'
 import { WELCOME_TABLE } from '@/config/venues'
 import { formatPrice, MEMBERSHIP_PRICES } from '@/config/membership'
 import { detectCurrency } from '@/lib/membership/currency'
+import { FREE_REPORT_COPY } from '@/lib/membership/freeReport'
 import { type ShownPrice, useStorePrices } from '@/lib/membership/store'
 import { appSupports } from '@/lib/nativeApp'
 import { useInApp } from '@/lib/useInApp'
@@ -361,6 +363,13 @@ function AccountCard({ status }: { status: SyncStatus }) {
 
 type Choice = 'free' | 'member'
 
+/** What the Free card says. The report line is the free report's own (lib/membership/freeReport). */
+const FREE_LINES = [
+  'The ladder, the Daily, the Rail and Level 1 of the lessons',
+  'One member table a day',
+  FREE_REPORT_COPY.line,
+]
+
 /** The membership's price as the membership page shows it: the store's in the app, else the website's. */
 function useMembershipPrice(): ShownPrice | null {
   const storeSells = useInApp() && appSupports('purchase')
@@ -373,26 +382,36 @@ function useMembershipPrice(): ShownPrice | null {
   return { ...MEMBERSHIP_PRICES[currency], format: (minor) => formatPrice(minor, currency) }
 }
 
+/**
+ * Free or the membership, as two cards of the same size (2026-11-02). The
+ * membership's card carries its price and the few things most likely to
+ * matter, the report first; Free carries what stays free. Free is picked to
+ * start with because it is what you already have, and both cards say exactly
+ * what they are, so neither is a trap. In the week to 1 November the old
+ * step, a list above two thin radio rows, was seen 69 times and tapped
+ * through twice.
+ */
 function MembershipStep({ status }: { status: SyncStatus }) {
   const router = useRouter()
   const price = useMembershipPrice()
   const [choice, setChoice] = useState<Choice>('free')
   const [account, setAccount] = useState(false)
-  const member = memberLines()
-  const choices: { id: Choice; name: string; detail: string; price: string }[] = [
-    {
-      id: 'free',
-      name: 'Free',
-      detail: 'The ladder, the Daily, the Rail, Level 1 of the lessons, and one member table a day',
-      // In the membership's own currency, so a player priced in yuan doesn't see
-      // "£0" next to "¥58 a month". Blank, like the member row, until it is known.
-      price: price?.format?.(0) ?? '',
-    },
+  const choices: { id: Choice; name: string; lines: string[]; price: string; per: string }[] = [
     {
       id: 'member',
       name: 'Pip membership',
-      detail: 'Everything free, plus all of the above',
-      price: price ? `${price.monthly} a month` : '',
+      lines: memberLines(),
+      price: price?.monthly ?? '',
+      per: price ? 'a month' : '',
+    },
+    {
+      id: 'free',
+      name: 'Free',
+      lines: FREE_LINES,
+      // In the membership's own currency, so a player priced in yuan doesn't see
+      // "£0" next to "¥58 a month". Blank, like the member card, until it is known.
+      price: price?.format?.(0) ?? '',
+      per: price?.format ? 'for good' : '',
     },
   ]
   const signedOut = status === 'signed-out'
@@ -414,21 +433,10 @@ function MembershipStep({ status }: { status: SyncStatus }) {
       <h1 className="text-center text-3xl font-semibold tracking-tight">
         Free to play. More if you want it.
       </h1>
-      <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-pip">
-        <Sparkles className="size-4" />
-        With the membership
-      </p>
-      <ul className="mt-2.5 flex flex-col gap-2 text-sm">
-        {member.map((line) => (
-          <li key={line} className="flex items-start gap-2.5">
-            <Check className="mt-0.5 size-4 shrink-0 text-pip" strokeWidth={3} />
-            {line}
-          </li>
-        ))}
-      </ul>
-      <div role="radiogroup" aria-label="Plan" className="mt-5 flex flex-col gap-2.5">
+      <div role="radiogroup" aria-label="Plan" className="mt-6 flex flex-col gap-3">
         {choices.map((c) => {
           const on = choice === c.id
+          const member = c.id === 'member'
           return (
             <motion.button
               key={c.id}
@@ -439,31 +447,52 @@ function MembershipStep({ status }: { status: SyncStatus }) {
               whileTap={{ scale: 0.98 }}
               transition={{ type: 'spring', stiffness: 420, damping: 30 }}
               className={cn(
-                'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
+                'relative w-full overflow-hidden rounded-3xl border p-5 text-left transition-colors',
                 on
-                  ? c.id === 'member'
-                    ? 'border-pip bg-pip/[0.1] ring-1 ring-pip'
+                  ? member
+                    ? 'border-pip bg-pip/[0.08] ring-1 ring-pip'
                     : 'border-foreground/60 bg-foreground/[0.06] ring-1 ring-foreground/60'
                   : 'border-foreground/10 bg-foreground/[0.03] hover:border-foreground/25',
               )}
             >
-              <span
-                className={cn(
-                  'grid size-6 shrink-0 place-items-center rounded-full border transition-colors',
-                  on
-                    ? c.id === 'member'
-                      ? 'border-transparent bg-pip text-background'
-                      : 'border-transparent bg-primary text-primary-foreground'
-                    : 'border-foreground/20',
-                )}
-              >
-                {on && <Check className="size-3.5" strokeWidth={3} />}
+              <span className="flex items-start gap-3">
+                <span
+                  className={cn(
+                    'mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border transition-colors',
+                    on
+                      ? member
+                        ? 'border-transparent bg-pip text-background'
+                        : 'border-transparent bg-primary text-primary-foreground'
+                      : 'border-foreground/20',
+                  )}
+                >
+                  {on && <Check className="size-3.5" strokeWidth={3} />}
+                </span>
+                <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-lg font-semibold">
+                    {member && <Sparkles className="size-4 text-pip" />}
+                    {c.name}
+                  </span>
+                  <span className="shrink-0 text-right tabular-nums">
+                    <span className="text-lg font-semibold">{c.price}</span>{' '}
+                    <span className="text-sm text-muted-foreground">{c.per}</span>
+                  </span>
+                </span>
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold">{c.name}</span>
-                <span className="block text-sm text-muted-foreground">{c.detail}</span>
-              </span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums">{c.price}</span>
+              <ul className="mt-3 flex flex-col gap-2 pl-9 text-sm">
+                {c.lines.map((line) => (
+                  <li key={line} className="flex items-start gap-2.5">
+                    <Check
+                      className={cn(
+                        'mt-0.5 size-4 shrink-0',
+                        member ? 'text-pip' : 'text-muted-foreground',
+                      )}
+                      strokeWidth={3}
+                    />
+                    <span className={member ? undefined : 'text-muted-foreground'}>{line}</span>
+                  </li>
+                ))}
+              </ul>
             </motion.button>
           )
         })}

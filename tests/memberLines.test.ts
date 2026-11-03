@@ -14,9 +14,10 @@ test('every line names features that exist', (t) => {
   }
 })
 
-test('multiplayer leads the step exactly when the build sells it', (t) => {
+test('the report leads, and the friends line shows exactly when the build sells it', (t) => {
   const rooms = Boolean(process.env.NEXT_PUBLIC_ROOMS_URL)
   const lines = memberLines()
-  t.is(lines[0] === MEMBER_LINES[0].text, rooms)
+  t.regex(lines[0], /report/)
+  t.is(lines.includes('Host friends and quick matches with no limits'), rooms)
   t.is(lines.length, MEMBER_LINES.length - (rooms ? 0 : 1), 'only multiplayer depends on the build')
 })
