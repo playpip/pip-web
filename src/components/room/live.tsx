@@ -4,14 +4,17 @@
 // each other seat's voice, and the two buttons that turn yours on.
 
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Mic, MicOff, Video, VideoOff } from 'lucide-react'
+import { Lock, Mic, MicOff, Video, VideoOff } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import type { AvatarRing } from '@/config/cosmetics'
+import { membershipFor } from '@/config/membership'
 import type { AvatarSpec } from '@/lib/avatar'
 import { voiceMeter } from '@/lib/multiplayer/voice'
 import { cn } from '@/lib/utils'
 import { mediaSupported, useMedia } from '@/store/media'
+import { useRoom } from '@/store/room'
 import type { MediaState } from '@/lib/multiplayer/protocol'
 import { sound } from '@/lib/sound'
 
@@ -260,8 +263,18 @@ export function MediaControls({
   const problem = useMedia((s) => s.problem)
   const toggleCamera = useMedia((s) => s.toggleCamera)
   const toggleMic = useMedia((s) => s.toggleMic)
+  const locked = useLocked()
   if (!mediaSupported()) return null
-  const buttons = (
+  const buttons = locked ? (
+    <>
+      <LockedButton bar={bar} label="Camera" onClick={locked}>
+        <VideoOff className="size-4" />
+      </LockedButton>
+      <LockedButton bar={bar} label="Mic" onClick={locked}>
+        <MicOff className="size-4" />
+      </LockedButton>
+    </>
+  ) : (
     <>
       <MediaButton
         bar={bar}
@@ -304,7 +317,15 @@ export function MediaControls({
 export function CameraToggle() {
   const camera = useMedia((s) => s.camera)
   const toggleCamera = useMedia((s) => s.toggleCamera)
+  const locked = useLocked()
   if (!mediaSupported()) return null
+  if (locked) {
+    return (
+      <LockedButton bar label="Camera" onClick={locked}>
+        <VideoOff className="size-4" />
+      </LockedButton>
+    )
+  }
   return (
     <MediaButton
       bar
@@ -323,7 +344,15 @@ export function CameraToggle() {
 export function MicToggle() {
   const mic = useMedia((s) => s.mic)
   const toggleMic = useMedia((s) => s.toggleMic)
+  const locked = useLocked()
   if (!mediaSupported()) return null
+  if (locked) {
+    return (
+      <LockedButton bar label="Mic" onClick={locked}>
+        <MicOff className="size-4" />
+      </LockedButton>
+    )
+  }
   return (
     <MediaButton
       bar
@@ -347,6 +376,56 @@ export function MediaProblem({ className }: { className?: string }) {
     <p className={cn('max-w-[16rem] text-center text-2xs text-muted-foreground', className)}>
       {PROBLEM_COPY[problem]}
     </p>
+  )
+}
+
+/**
+ * At a room hosted without the membership the camera and mic are locked: the
+ * tap goes to the membership instead. Null at every other table.
+ */
+function useLocked(): (() => void) | null {
+  const router = useRouter()
+  const locked = useRoom((s) => s.view?.media === false)
+  if (!locked) return null
+  return () => {
+    sound.play('tap')
+    router.push(membershipFor('multiplayer'))
+  }
+}
+
+/** A camera or mic button with a padlock on it, for a room without them. */
+function LockedButton({
+  bar,
+  label,
+  onClick,
+  children,
+}: {
+  bar: boolean
+  label: string
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  const text = `${label}, with the membership`
+  return (
+    <button
+      onClick={onClick}
+      aria-label={text}
+      title={text}
+      className={cn(
+        'relative grid place-items-center rounded-full text-muted-foreground/60 transition hover:text-foreground active:scale-95',
+        bar
+          ? 'p-2 hover:bg-foreground/5'
+          : 'size-10 bg-foreground/[0.08] hover:bg-foreground/[0.14]',
+      )}
+    >
+      {children}
+      <span
+        aria-hidden
+        className="absolute -right-0.5 -bottom-0.5 grid size-4 place-items-center rounded-full bg-background ring-1 ring-foreground/15"
+      >
+        <Lock className="size-2.5" />
+      </span>
+    </button>
   )
 }
 

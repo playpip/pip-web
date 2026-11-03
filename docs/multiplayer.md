@@ -10,7 +10,8 @@ There are two ways to a table with people at it:
 
 - **Private rooms.** A member opens a room at a ladder stake and gets a six-character code.
   Friends join with the code and a free account. The host can add regulars from the cast to
-  any empty chair, then deals. **Camera and mic are available here and in slow games.**
+  any empty chair, then deals. **Camera and mic are available here and in slow games, when the
+  host is a member.** A room opened without the membership has 2–4 seats and no camera or mic.
 - **Quick match.** A member picks a ladder stake and joins that stake's queue. A table
   starts the moment it is full. If it hasn't filled once the first person in line has waited
   30 seconds, AI players take the empty chairs. There is no camera or mic.
@@ -37,6 +38,7 @@ table ever sees another player's Roll or rank.
 | Who pays | **Only the host.** Friends join free with an account. | 2026-10-11 |
 | Free room | **One live private room a day for any account**, counted on the room server (`freeRoom.ts`). | 2026-10-23 |
 | Free quick match and slow game | **One quick match a day, and one hosted slow game open at a time**, for any account. | 2026-10-25 |
+| Free tables | **A room or slow game hosted without the membership has at most 4 seats and no camera or voice.** Members host up to 8, with both. Decided when the room opens (`freeHost`); rooms opened before the rule keep what they had. | 2026-11-02 |
 | Empty tables | **A live table nobody has open stops dealing** at the next hand and closes after ten minutes (`EMPTY_HOLD_MS`) unless somebody comes back. Slow games are exempt. | 2026-10-25 |
 | Format | **Sit-and-go**, at ladder venue stakes. | 2026-10-11 |
 | Chips | **The Roll**, and nobody sees anybody else's Roll or rank. | 2026-10-06 |
@@ -154,8 +156,11 @@ The engine is imported unchanged. What runs on the server is what is in the publ
 - **`room.ts`, the `PokerRoom` Durable Object** (one per code):
   - it holds the `RoomState` in SQLite storage and runs the reducer;
   - it sends each socket its own view;
-  - it relays WebRTC signalling and camera/mic state, in private rooms and slow games
-    (`hosted()`: the tables friends share by code), never at quick match.
+  - it relays WebRTC signalling and camera/mic state, in private rooms and slow games a member
+    opened (`mediaAllowed()`: `hosted()` and not `freeHost`), never at quick match.
+  - `index.ts` tells `/init` whether the host is a member (`freeHost: !member`, from the same
+    `isMember` the free-room-a-day check uses); the reducer caps a free host's seats at
+    `FREE_ROOM_SEATS` in `createRoom` and `configure`.
 
   It uses the Hibernation API. Memory is lost when the object sleeps, so the state is read back
   from storage and each socket carries who it is in its attachment.
@@ -196,8 +201,11 @@ Timings live in `room.ts`:
 
 ## Camera and microphone
 
-Camera and mic are for **private rooms and slow games** (the rooms friends share by code,
-`hosted()`), never quick match, and both are **off until the player taps them**. At a slow game
+Camera and mic are for **private rooms and slow games a member opened** (the rooms friends share
+by code, `mediaAllowed()`), never quick match or a room opened without the membership, and both
+are **off until the player taps them**. At a free host's room the view says `media: false`: the
+host sees the camera and mic locked (a tap goes to the membership), everybody else sees none, and
+the server refuses `media` and `signal`. At a slow game
 they connect whoever has the table open at the same moment, so a stretch played live can be
 played face to face (added 2026-10-24). That tap is also what lets iOS and Android play the other seats' audio.
 
@@ -308,7 +316,8 @@ mostly the Workers Paid base. Hibernation removes most of the duration charge.
 TURN is $0.05/GB after the first 1,000 GB a month free, shared with the SFU. Only sessions that
 cannot connect directly use it.
 
-**Camera and voice, per free room (estimate, 2026-10-23, nothing measured).** Media is a
+**Camera and voice, per free room (estimate, 2026-10-23, nothing measured; free rooms have had
+no camera or voice since 2026-11-02, so this now applies to members' rooms only).** Media is a
 peer-to-peer mesh at 320x240, 15 fps (`store/media.ts`), roughly 0.5 Mbps a stream with voice.
 Only relayed streams cost anything. Worst case, all four seats relayed: about 2.7 GB a room-hour.
 At 50 free rooms a day of an hour each that is about 4,000 GB a month, about $150 past the free
@@ -321,7 +330,9 @@ Two browsers, or a phone and a laptop. One should be a member and the other a fr
 
 - [ ] Home shows the **Multiplayer** tile first in "Other ways to play", full width on a phone.
 - [ ] The free account sees the hub's lock note. **Open a room** and **Find a table** are
-      disabled; **Got a code?** works.
+      disabled once today's free ones are used; **Got a code?** works.
+- [ ] The free account's seat picker shows 5–8 locked, and opening their free room gives a
+      table of 4 with the camera and mic locked for them and absent for their friends.
 - [ ] The member opens a room. The code sits on the felt, and **Invite friends** opens the share
       sheet on a phone or copies the link on a desktop.
 - [ ] The friend opens the link and sees the host's name, the stake and the buy-in. Tapping

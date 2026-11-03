@@ -12,7 +12,14 @@
 
 import type { AvatarSpec } from '@/lib/avatar'
 import type { HandState } from '@/lib/poker/engine'
-import type { DueKind, RoomKind, RoomPhase, RoomSettings, RoomState } from './room'
+import {
+  type DueKind,
+  mediaAllowed,
+  type RoomKind,
+  type RoomPhase,
+  type RoomSettings,
+  type RoomState,
+} from './room'
 import type { PreAction, Quiet } from './slow'
 
 export interface SeatView {
@@ -47,6 +54,11 @@ export interface RoomView {
   blindLevel: number
   handIndex: number
   maxSeats: number
+  /**
+   * Whether camera and voice pass at this table. False at a room hosted
+   * without the membership, and at quick match.
+   */
+  media: boolean
   prize: number
   /** The host's table rules. */
   settings: RoomSettings
@@ -111,6 +123,7 @@ export function viewFor(state: RoomState, userId: string | null): RoomView {
     blindLevel: state.blindLevel,
     handIndex: state.handIndex,
     maxSeats: state.maxSeats,
+    media: mediaAllowed(state),
     prize: state.prize,
     startedAt: state.startedAt,
     settings: state.settings,

@@ -187,6 +187,9 @@ async function createRoom(
       host: { userId, name: hello.name, avatar: hello.avatar, ring: hello.ring },
       settings,
       hostBlocks,
+      // The host's membership decides the table: without it, at most four
+      // seats and no camera or voice (Will, 2026-11-02).
+      freeHost: !member,
     }
     const res = await stub.fetch('https://room/init', {
       method: 'POST',

@@ -14,6 +14,7 @@ import {
   join,
   kick,
   leave,
+  mediaAllowed,
   nextButton,
   removeBot,
   start,
@@ -427,6 +428,31 @@ test('the host sets the table before the deal, within range, and nobody else can
   t.is((configure(s, 'user-0', { seats: 9 }) as { error?: string }).error, 'bad-settings')
   s = must(start(s, 'user-0', 0, mulberry32(30)))
   t.is((configure(s, 'user-0', { depth: 3 }) as { error?: string }).error, 'started')
+})
+
+test('a room hosted without the membership has four seats at most and no camera or voice', (t) => {
+  const free = (kind: 'private' | 'slow' | 'quick') =>
+    createRoom({ code: 'FREE01', kind, venue: pub, host: person(0), freeHost: true, now: 0 })
+  let s = free('private')
+  t.is(s.maxSeats, 4)
+  t.false(mediaAllowed(s))
+  t.false(viewFor(s, 'user-0').media)
+  s = must(configure(s, 'user-0', { seats: 3 }))
+  t.is(s.maxSeats, 3)
+  t.is((configure(s, 'user-0', { seats: 5 }) as { error?: string }).error, 'bad-settings')
+  t.is((configure(s, 'user-0', { seats: 8 }) as { error?: string }).error, 'bad-settings')
+  s = must(addBots(s, 'user-0', 10, mulberry32(6)))
+  t.is(s.players.length, 3)
+  // A free slow game is already four at most; it loses camera and voice too.
+  t.false(mediaAllowed(free('slow')))
+  // A member's room, and a room opened before the rule, keep both.
+  t.true(mediaAllowed(room()))
+  t.true(viewFor(room(), 'user-0').media)
+  t.true(must(configure(room(), 'user-0', { seats: 8 })).maxSeats === 8)
+  const { freeHost: _, ...before } = free('private')
+  t.true(mediaAllowed(before))
+  // Quick match is never hosted, so the flag means nothing there.
+  t.is(free('quick').freeHost, undefined)
 })
 
 test('deep stacks start deeper, the prize is unchanged, and the turn clock follows the setting', (t) => {

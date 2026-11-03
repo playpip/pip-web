@@ -18,6 +18,14 @@ export default function PokerNightPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="2 November 2026">
+        <p>
+          Since 2 November a room opened with a free account has up to four seats and no camera or
+          voice. A member’s room has up to eight, with camera and voice. Friends still join any room
+          free.
+        </p>
+      </Correction>
+
       <Correction date="26 October 2026">
         <p>
           Below, this post says hosting needs the membership. Since 25 October anyone with a free

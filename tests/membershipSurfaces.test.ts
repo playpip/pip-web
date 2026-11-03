@@ -117,6 +117,17 @@ test('a room mentions the membership only on its end screen, to a friend’s gue
   // The felt, the lobby, the seats: nothing about buying.
   for (const { path, code } of room) {
     if (path === 'src/components/room/MultiplayerHub.tsx') continue
+    // Two padlocks for a host without the membership (Will, 2026-11-02): the
+    // seats past four as a room is opened (`SettingsList`, editable only on
+    // the hub), and the camera and mic in the lobby (`live.tsx`; RoomScreen
+    // passes them to RoomTable only where they work, so never in a hand).
+    if (
+      path === 'src/components/room/RoomSettings.tsx' ||
+      path === 'src/components/room/live.tsx'
+    ) {
+      t.notRegex(code, /HostOwnCard|LimitCard|checkout|MEMBERSHIP_PRICE/)
+      continue
+    }
     t.notRegex(code, /['"`]\/membership|config\/membership/, `${path} links to the membership`)
     if (path !== 'src/components/room/RoomTable.tsx') {
       t.notRegex(code, /HostOwnCard|LimitCard/, `${path} shows a membership card`)

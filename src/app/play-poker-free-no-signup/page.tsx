@@ -271,7 +271,7 @@ export default function PlayPokerFreeNoSignupPage() {
           <strong className={strong}>The free game is single-player.</strong> You are playing a cast
           of AI regulars, not other people.{' '}
           {process.env.NEXT_PUBLIC_ROOMS_URL
-            ? 'With a free account you can host one room for friends a day, play one quick match a day and run one slow game at a time, and join a friend’s room whenever they ask. Hosting as much as you like comes with the membership.'
+            ? 'With a free account you can host one room for friends a day, up to four seats and without camera or voice, play one quick match a day and run one slow game at a time, and join a friend’s room whenever they ask. Hosting as much as you like comes with the membership.'
             : 'There is no multiplayer yet.'}
         </p>
         <p>

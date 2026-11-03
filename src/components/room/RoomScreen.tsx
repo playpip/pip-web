@@ -133,14 +133,25 @@ export function RoomScreen() {
   }
   if (!view) return <Waiting label="Pulling up a chair" />
 
-  // Camera and mic at the tables friends share by code: a private room or a slow game.
-  const live = hosted(view) && mediaSupported() && (!inApp() || appSupports('media'))
+  // Camera and mic at the tables friends share by code: a private room or a
+  // slow game. A room hosted without the membership has neither: its host
+  // sees them locked in the lobby (a tap leads to the membership), and once
+  // the cards are dealt nobody sees them, so the hands carry nothing about
+  // buying. A view from a server older than the rule has no `media`.
+  const canShow = hosted(view) && mediaSupported() && (!inApp() || appSupports('media'))
+  const media = view.media !== false
+  const live = canShow && media
 
   return (
     <>
       {live && <MeshLink />}
       {view.phase === 'lobby' ? (
-        <RoomLobby view={view} live={live} onLeave={goBack} onLeaveGame={leaveGame} />
+        <RoomLobby
+          view={view}
+          live={live || (canShow && view.isHost)}
+          onLeave={goBack}
+          onLeaveGame={leaveGame}
+        />
       ) : view.hand ? (
         <RoomTable
           view={view}

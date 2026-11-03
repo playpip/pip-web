@@ -34,7 +34,7 @@ import {
   setPre,
   setQuiet,
   start,
-  hosted,
+  mediaAllowed,
   tick,
   type Joiner,
   type Result,
@@ -77,6 +77,8 @@ export interface InitBody {
   settings?: Partial<RoomSettings>
   /** The host's standing blocks, so nobody they blocked can join. */
   hostBlocks?: string[]
+  /** Opened without the membership: at most four seats, and no camera or voice. */
+  freeHost?: boolean
 }
 
 /** Messages a socket may send in a burst before it is told to slow down. */
@@ -212,6 +214,7 @@ export class PokerRoom extends DurableObject<Env> {
         host: body.host,
         reserved: body.reserved,
         hostBlocks: body.hostBlocks,
+        freeHost: body.freeHost,
         now: Date.now(),
       })
       if (body.settings && body.host) {
@@ -409,7 +412,7 @@ export class PokerRoom extends DurableObject<Env> {
       ws.serializeAttachment({ userId, playerId, media: OFF } satisfies Attachment)
       await this.save(result.state)
       this.broadcast(result.state)
-      if (hosted(current)) {
+      if (mediaAllowed(current)) {
         this.broadcastMedia()
         const iceServers = await this.iceServers()
         this.send(ws, { t: 'ice', iceServers })
@@ -459,9 +462,9 @@ export class PokerRoom extends DurableObject<Env> {
       }
       case 'media': {
         // Camera and mic are for friends who invited each other (a private
-        // room or a slow game), never for a table of strangers the matchmaker
-        // put together.
-        if (!hosted(room)) return this.fail(ws, 'illegal')
+        // room or a slow game) at a table a member opened, never for a table
+        // of strangers the matchmaker put together.
+        if (!mediaAllowed(room)) return this.fail(ws, 'illegal')
         ws.serializeAttachment({ ...a, media: msg.media } satisfies Attachment)
         return this.broadcastMedia()
       }
@@ -490,7 +493,7 @@ export class PokerRoom extends DurableObject<Env> {
         return this.send(ws, { t: 'reported' })
       }
       case 'signal': {
-        if (!hosted(room) || !a.playerId) return this.fail(ws, 'illegal')
+        if (!mediaAllowed(room) || !a.playerId) return this.fail(ws, 'illegal')
         for (const other of this.ctx.getWebSockets()) {
           const o = other.deserializeAttachment() as Attachment
           if (o.userId && blockedBetween(room, userId, o.userId)) continue
@@ -524,7 +527,7 @@ export class PokerRoom extends DurableObject<Env> {
     const next = disconnect(room, a.userId, Date.now())
     await this.save(next, ws)
     this.broadcast(next)
-    if (hosted(room)) this.broadcastMedia()
+    if (mediaAllowed(room)) this.broadcastMedia()
   }
 
   async alarm(): Promise<void> {

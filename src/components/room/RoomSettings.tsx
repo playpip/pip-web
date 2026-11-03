@@ -7,7 +7,9 @@
 // the table builder reads. The server checks every value when the room is
 // created; nothing here is the rule.
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { Lock } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   BLIND_CHOICES,
@@ -23,6 +25,7 @@ import {
   type EndingKind,
   type Pace,
 } from '@/config/roomRules'
+import { membershipFor } from '@/config/membership'
 import {
   DEFAULT_ROOM_SEATS,
   type BlindSpeed,
@@ -104,6 +107,7 @@ export function SettingsList({
   stakes,
   slow = false,
   onPace,
+  seatCap,
 }: {
   settings: RoomSettings
   buyIn: number
@@ -115,6 +119,11 @@ export function SettingsList({
   slow?: boolean
   /** Offered while a room is being opened: live or slow. */
   onPace?: (pace: Pace) => void
+  /**
+   * Hosting without the membership: seats past this are shown locked, and a
+   * tap on one goes to the membership.
+   */
+  seatCap?: number
 }) {
   const money = useMoney()
   const editable = onChange !== undefined
@@ -218,6 +227,7 @@ export function SettingsList({
           options={slow ? SLOW_SEAT_CHOICES : SEAT_CHOICES}
           onPick={(seats) => set({ seats })}
           editable={editable}
+          locked={editable && seatCap !== undefined ? (n) => n > seatCap : undefined}
         />
       </Row>
       <Row label="Starting chips">
@@ -275,17 +285,34 @@ function Choice<T extends string | number | boolean>({
   options,
   onPick,
   editable,
+  locked,
 }: {
   value: T
   options: readonly (readonly [T, string])[]
   onPick: (value: T) => void
   editable: boolean
+  /** Choices that come with the membership: drawn with a lock, a tap goes to it. */
+  locked?: (value: T) => boolean
 }) {
   const id = options.map(([v]) => String(v)).join('-')
   return (
     <div className="flex rounded-xl bg-foreground/[0.05] p-0.5">
       {options.map(([v, label]) => {
         const on = v === value
+        if (locked?.(v)) {
+          return (
+            <Link
+              key={String(v)}
+              href={membershipFor('multiplayer')}
+              onClick={() => sound.play('tap')}
+              aria-label={`${label}, with the membership`}
+              className="relative flex flex-1 items-center justify-center gap-0.5 rounded-[10px] px-1 py-2 text-xs font-semibold text-muted-foreground/60 transition-colors hover:text-foreground sm:text-sm"
+            >
+              <Lock aria-hidden className="size-3 shrink-0" />
+              {label}
+            </Link>
+          )
+        }
         return (
           <button
             key={String(v)}

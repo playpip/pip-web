@@ -66,6 +66,11 @@ export const ROOM_SEATS = [2, 3, 4, 5, 6, 7, 8] as const
 export const MAX_ROOM_SEATS = 8
 /** A new private room's seats until the host says otherwise: short-handed, as before. */
 export const DEFAULT_ROOM_SEATS = 6
+/**
+ * The most seats a room hosted without the membership may have (Will,
+ * 2026-11-02). Such a room also has no camera or voice (`mediaAllowed`).
+ */
+export const FREE_ROOM_SEATS = 4
 
 /** How long a connected player has to act. */
 export const TURN_MS = 30_000
@@ -195,6 +200,12 @@ export interface RoomState {
    */
   blocks: Record<string, string[]>
   settings: RoomSettings
+  /**
+   * Hosted without the membership: at most `FREE_ROOM_SEATS` seats, and no
+   * camera or voice. Decided once, when the room is opened. Absent on a room
+   * opened before 2026-11-02, which keeps what it was opened with.
+   */
+  freeHost?: true
   phase: RoomPhase
   players: RoomPlayer[]
   hand: HandState | null
@@ -254,6 +265,19 @@ export function hosted(state: Pick<RoomState, 'kind'>): boolean {
   return state.kind === 'private' || state.kind === 'slow'
 }
 
+/**
+ * Whether camera and voice pass at this table: the rooms friends share by
+ * code, when the host has the membership. Never at quick match.
+ */
+export function mediaAllowed(state: Pick<RoomState, 'kind' | 'freeHost'>): boolean {
+  return hosted(state) && !state.freeHost
+}
+
+/** The most seats this room's host may set. */
+export function seatCap(state: Pick<RoomState, 'freeHost'>): number {
+  return state.freeHost ? FREE_ROOM_SEATS : MAX_ROOM_SEATS
+}
+
 function finishedExpiry(state: RoomState, now: number): number {
   return now + (state.kind === 'slow' ? SLOW_FINISHED_EXPIRE_MS : FINISHED_EXPIRE_MS)
 }
@@ -271,11 +295,21 @@ export function createRoom(opts: {
   reserved?: string[]
   /** Accounts the host has blocked before, from their account. */
   hostBlocks?: string[]
+  /** Hosted without the membership: fewer seats, no camera or voice. */
+  freeHost?: boolean
   now: number
 }): RoomState {
   const { venue, now } = opts
   const slow = opts.kind === 'slow'
-  const seats = opts.kind === 'quick' ? venue.seats : slow ? DEFAULT_SLOW_SEATS : DEFAULT_ROOM_SEATS
+  const freeHost = Boolean(opts.freeHost) && opts.kind !== 'quick'
+  const seats =
+    opts.kind === 'quick'
+      ? venue.seats
+      : slow
+        ? DEFAULT_SLOW_SEATS
+        : freeHost
+          ? Math.min(DEFAULT_ROOM_SEATS, FREE_ROOM_SEATS)
+          : DEFAULT_ROOM_SEATS
   let state: RoomState = {
     code: opts.code,
     kind: opts.kind,
@@ -295,6 +329,7 @@ export function createRoom(opts: {
       seats,
       ...(slow ? { moveHours: DEFAULT_MOVE_HOURS, ending: DEFAULT_ENDING } : {}),
     },
+    ...(freeHost ? { freeHost: true as const } : {}),
     phase: 'lobby',
     players: [],
     hand: null,
@@ -507,7 +542,7 @@ export function configure(state: RoomState, userId: string, patch: Partial<RoomS
   if (
     !Number.isInteger(settings.seats) ||
     settings.seats < Math.max(2, state.players.length) ||
-    settings.seats > MAX_ROOM_SEATS ||
+    settings.seats > seatCap(state) ||
     ![1, 2, 3].includes(settings.depth) ||
     !['slow', 'normal', 'turbo', 'flat'].includes(settings.blinds) ||
     ![15, 30, 60].includes(settings.turnSeconds) ||

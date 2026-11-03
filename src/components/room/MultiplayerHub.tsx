@@ -12,7 +12,10 @@
 // because their friends have not paid (Will, 2026-10-11). And anyone with an
 // account can host one live room a day, one quick match a day and one slow
 // game at a time (Will, 2026-10-23 and 2026-10-25; the server counts them,
-// `lib/multiplayer/freeRoom.ts`), on the same form a member gets. Like the
+// `lib/multiplayer/freeRoom.ts`), on the same form a member gets. A room
+// hosted that way has four seats at most and no camera or voice (Will,
+// 2026-11-02; the server holds it, `FREE_ROOM_SEATS`): the seats past four
+// show locked and lead to the membership. Like the
 // table builder, the page is the same for everybody: you cannot want what you
 // cannot see.
 
@@ -28,7 +31,12 @@ import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { membershipFor } from '@/config/membership'
 import { VENUES, type Venue } from '@/config/venues'
-import { DEFAULT_ROOM_SEATS, DEFAULT_SETTINGS, type RoomSettings } from '@/lib/multiplayer/room'
+import {
+  DEFAULT_ROOM_SEATS,
+  DEFAULT_SETTINGS,
+  FREE_ROOM_SEATS,
+  type RoomSettings,
+} from '@/lib/multiplayer/room'
 import type { FreeLeft } from '@/lib/multiplayer/freeRoom'
 import { CODE_ALPHABET, CODE_LENGTH, normaliseRoomCode } from '@/lib/multiplayer/code'
 import {
@@ -146,6 +154,11 @@ export function MultiplayerHub() {
   const limit: LimitKind | null =
     !member && freeLeft !== undefined && picked !== 'slow' && !kindLeft(picked) ? picked : null
   const canPlay = signedIn && host && affords(stake)
+  // Without the membership a room has four seats at most; a pick past that
+  // (the six it starts on) reads as four.
+  const seatCap = member ? undefined : FREE_ROOM_SEATS
+  const rules: RoomSettings =
+    seatCap !== undefined && settings.seats > seatCap ? { ...settings, seats: seatCap } : settings
 
   const seat = () => {
     const { name, avatar, avatarRing } = useProfile.getState()
@@ -165,7 +178,7 @@ export function MultiplayerHub() {
       return
     }
     setOpening(true)
-    const result = await createRoom(stake.id, seat(), settings, slow ? 'slow' : 'private')
+    const result = await createRoom(stake.id, seat(), rules, slow ? 'slow' : 'private')
     setOpening(false)
     if ('error' in result) {
       if (result.error === 'free-room-used' || result.error === 'free-slow-used') {
@@ -354,7 +367,8 @@ export function MultiplayerHub() {
                     className="flex flex-col gap-5"
                   >
                     <SettingsList
-                      settings={settings}
+                      settings={rules}
+                      seatCap={seatCap}
                       buyIn={stake.buyIn}
                       onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))}
                       stakes={stakePicker}
@@ -471,11 +485,12 @@ function freeLine(kind: keyof FreeLeft, left: boolean): string {
   if (kind === 'slow') {
     return left ? 'One free slow game at a time.' : 'You’re hosting your free slow game.'
   }
-  return left ? 'One free room a day.' : 'Your free room today is used.'
+  return left ? 'One free room a day, up to 4 seats.' : 'Your free room today is used.'
 }
 
 const HOSTING = [
   { icon: Users, text: 'Open a room whenever you like' },
+  { icon: Video, text: 'Up to 8 seats, with camera and voice' },
   { icon: Clock, text: 'Up to ten slow games at once' },
   { icon: Zap, text: 'Quick match as often as you like' },
 ] as const

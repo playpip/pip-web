@@ -110,9 +110,14 @@ room with its code needs a free account and nothing else** (Will, 2026-10-11). A
 should never be short of players because their friends have not paid, and every friend sat at a
 member's table sees what the membership is.
 
-**Anyone with a free account can open one live private room a day** (Will, 2026-10-23, cmo#220):
-the same room a member opens, camera, voice and regulars included, and nothing at the table says
-who paid. **And one quick match a day, and one slow game they host open at a time** (Will,
+**Anyone with a free account can open one live private room a day** (Will, 2026-10-23, cmo#220),
+with regulars, and nothing at the table says who paid. **A room hosted without the membership has
+at most four seats and no camera or voice** (Will, 2026-11-02): since the free room shipped, taps
+on the multiplayer membership link went to zero, and bigger tables with faces and voices are the
+reason to join. The room server holds it (`freeHost` on the room, `FREE_ROOM_SEATS`,
+`mediaAllowed()` in `lib/multiplayer/room.ts`); the hub shows seats past four locked and the room
+shows the host a locked camera and mic, each a tap to `membershipFor('multiplayer')`. Rooms opened
+before the rule keep what they were opened with. **And one quick match a day, and one slow game they host open at a time** (Will,
 2026-10-25), to get more people playing other people. A slow game runs for days, so it is counted
 by what is open, not by day. Joining a friend's slow game was always free. Signed out, you cannot
 host.
