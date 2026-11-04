@@ -177,7 +177,7 @@ export function PlanPicker({
           )
         })}
       </div>
-      <p className="mt-3 min-h-10 px-1 text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-3 min-h-10 px-1 text-center text-sm leading-relaxed text-balance text-muted-foreground">
         {PLANS[plan].note}
       </p>
     </>
