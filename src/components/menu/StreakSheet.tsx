@@ -1,24 +1,23 @@
 'use client'
 
-// The streak sheet (Will, 2026-11-04: "I need to be able to tap the streak
-// button and see my rewards"). Opened from the flame under the Roll
-// (components/StreakBadge). It shows the rules in lib/dailyReward and
-// lib/streak and changes none of them:
+// The streak sheet (Will, 2026-11-04: "I just want to see what i've had and
+// what's coming up so I can see rewards i'm gonna get as well as my current
+// streak"). Opened from the flame under the Roll (components/StreakBadge). It
+// shows the rules in lib/dailyReward and lib/streak and changes none of them.
 //
-// - today: claimed or not, and what today (or tomorrow) pays, with the claim
-//   itself if it is still to do, through the same `claimDailyReward` as the card;
-// - the last seven days, lit where they were played;
-// - every streak unlock in order, ticked once owned, the next one marked with
-//   how many days are left;
-// - how it works, in a few plain lines, and what members get.
+// Three things: the streak, big; then one timeline, oldest at the top, with
+// the days already had, today, and the days still to come.
+//
+// **What is known about the past.** Only the run's length and its last day
+// are stored (`profile.streak`), and the last claim (`profile.dailyReward`).
+// So each past day's chips are worked out from the rules at today's table, and
+// an unlock is ticked only if it is in `owned`. Days at the top rate are one
+// row, so a long streak stays short.
 
-import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { Check, Flame } from 'lucide-react'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { CountUp } from '@/components/CountUp'
-import { membershipFor } from '@/config/membership'
 import { trackOnce } from '@/lib/analytics'
 import {
   LADDER,
@@ -28,31 +27,88 @@ import {
   rewardFor,
   yourTable,
   type Reward,
-  type StreakUnlock,
 } from '@/lib/dailyReward'
 import { dailyDateKey } from '@/lib/daily'
-import { daysBetween, emptyStreak, liveStreak, streakAtRisk } from '@/lib/streak'
+import { emptyStreak, liveStreak } from '@/lib/streak'
 import { useMoney } from '@/lib/useMoney'
-import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useEntitlement } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
-import { Burst, Coin, DoubleBadge, RewardArt, Sheen } from './RewardArt'
+import { Coin, RewardArt } from './RewardArt'
 
 const SPRING = { type: 'spring', stiffness: 380, damping: 26 } as const
 
-/** When the current UTC day ends, in the player's own clock. */
-function endOfDayLocal(): string {
-  const now = new Date()
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
-  return end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
+/** How many days after today get a row of their own. */
+const AHEAD = 5
+
+/** How much of what comes after today the sheet opens showing, in pixels. */
+const SHOW_AFTER_TODAY = 110
 
 /** The UTC day key `n` days after `key` (negative for before). */
 function addDays(key: string, n: number): string {
   const d = new Date(`${key}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + n)
   return d.toISOString().slice(0, 10)
+}
+
+function dateLabel(key: string): string {
+  return new Date(`${key}T00:00:00Z`).toLocaleDateString([], {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+}
+
+type When = 'had' | 'today' | 'coming'
+
+/** One row of the timeline: a single day, or a run of days that pay the same. */
+type Row =
+  | { kind: 'day'; when: When; reward: Reward; key: string; offset: number }
+  | { kind: 'run'; when: When; from: number; to: number; chips: number }
+
+/**
+ * The timeline for a streak whose today lands on `todayDay`. Days 1 to 6 each
+ * pay something different, so they each get a row; from day 7 the chips hold,
+ * so plain days had between unlocks are one row.
+ */
+function timeline(todayDay: number, buyIn: number, member: boolean, today: string): Row[] {
+  const rows: Row[] = []
+  const day = (d: number, when: When) =>
+    rows.push({
+      kind: 'day',
+      when,
+      reward: rewardFor(d, buyIn, member),
+      key: addDays(today, d - todayDay),
+      offset: d - todayDay,
+    })
+  const run = (from: number, to: number, when: When) => {
+    if (to < from) return
+    if (from === to) return day(from, when)
+    rows.push({ kind: 'run', when, from, to, chips: rewardFor(from, buyIn, member).chips })
+  }
+  const flat = LADDER.length
+  const isUnlock = (d: number) => MILESTONES.some((m) => m.day === d)
+
+  // Had: day 1 up to yesterday.
+  let start = 1
+  for (let d = 1; d < todayDay; d++) {
+    if (d < flat || isUnlock(d)) {
+      run(start, d - 1, 'had')
+      day(d, 'had')
+      start = d + 1
+    }
+  }
+  run(start, todayDay - 1, 'had')
+
+  day(todayDay, 'today')
+
+  // Coming: the next few days each, then every unlock still ahead. By then
+  // the chips have held for a while, so the days between need no rows.
+  const near = todayDay + AHEAD
+  for (let d = todayDay + 1; d <= near; d++) day(d, 'coming')
+  for (const m of MILESTONES) if (m.day > near) day(m.day, 'coming')
+  return rows
 }
 
 export function StreakSheet({
@@ -62,6 +118,9 @@ export function StreakSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  // Like an iOS large title: once the big streak scrolls away, the title row
+  // takes it over, so the streak is always in sight.
+  const [heroGone, setHeroGone] = useState(false)
   const streak = useProfile((s) => s.streak)
   const run = streak ? liveStreak(streak, dailyDateKey()) : 0
   return (
@@ -69,415 +128,358 @@ export function StreakSheet({
       <SheetContent
         onClose={() => onOpenChange(false)}
         title={
-          <>
-            <Flame
-              className={cn('size-5', run > 0 ? 'fill-streak/30 text-streak' : 'text-streak/70')}
-              aria-hidden
-            />
-            <span className="tabular-nums">{run > 0 ? `${run}-day streak` : 'No streak yet'}</span>
-          </>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={heroGone ? 'run' : 'name'}
+              className="flex items-center gap-2"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
+            >
+              {heroGone && <Flame className={flameClass(run, 'size-5')} aria-hidden />}
+              <span className="tabular-nums">{heroGone ? runLabel(run) : 'Streak'}</span>
+            </motion.span>
+          </AnimatePresence>
         }
       >
-        <Body onClose={() => onOpenChange(false)} />
+        <Body onHero={setHeroGone} />
       </SheetContent>
     </Sheet>
   )
 }
 
-/** Mounted with the sheet, so a claim made in it plays out once and resets next time. */
-function Body({ onClose }: { onClose: () => void }) {
-  const money = useMoney()
+function runLabel(run: number): string {
+  return run > 0 ? `${run} ${run === 1 ? 'day' : 'days'}` : 'No streak yet'
+}
+
+function flameClass(run: number, size: string): string {
+  return cn(size, run > 0 ? 'fill-streak/35 text-streak' : 'text-streak/60')
+}
+
+function Body({ onHero }: { onHero: (gone: boolean) => void }) {
   const member = useEntitlement()
   const streak = useProfile((s) => s.streak) ?? emptyStreak()
   const record = useProfile((s) => s.dailyReward)
   const owned = useProfile((s) => s.owned)
   const buyIn = yourTable(useProfile((s) => s.venueRecords)).buyIn
-  const claimDailyReward = useProfile((s) => s.claimDailyReward)
-  const [claimed, setClaimed] = useState<Reward | null>(null)
+  const todayRef = useRef<HTMLLIElement>(null)
+  const heroRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => trackOnce('streak-sheet-opened'), [])
+  // Open with today and the next day or two in sight, scrolling no further
+  // than that, so the streak at the top stays up when it can.
+  useEffect(() => {
+    const row = todayRef.current
+    const box = row?.closest<HTMLElement>('.overflow-y-auto')
+    if (!row || !box) return
+    const bottom = row.getBoundingClientRect().bottom - box.getBoundingClientRect().top
+    const over = bottom + SHOW_AFTER_TODAY - box.clientHeight
+    if (over > 0) box.scrollTop = over
+  }, [])
+  useEffect(() => {
+    const hero = heroRef.current
+    if (!hero) return
+    const watch = new IntersectionObserver(([entry]) => onHero(!entry.isIntersecting), {
+      root: hero.closest('.overflow-y-auto'),
+      threshold: 0.35,
+    })
+    watch.observe(hero)
+    return () => watch.disconnect()
+  }, [onHero])
 
   const today = dailyDateKey()
   const run = liveStreak(streak, today)
-  const playedToday = streak.lastDate === today
-  const atRisk = streakAtRisk(streak, today)
-  const best = Math.max(streak.best, run)
-  const due = claimable(record, today)
-  const todayReward = rewardFor(claimDay(streak, today), buyIn, member)
-  const tomorrow = rewardFor(run + 1, buyIn, member)
-
-  const line = !playedToday
-    ? atRisk
-      ? `Claim today's reward or play a hand before ${endOfDayLocal()} to keep it.`
-      : 'Claim the reward or play a hand to start one.'
-    : due
-      ? "Today counts. Today's reward is still to claim."
-      : `Today counts. Come back tomorrow to make it ${run + 1}.`
-
-  // The next thing still to earn: owned ones from an earlier run do not count.
-  const next = MILESTONES.find((m) => m.day > run && !owned.includes(m.id)) ?? null
-
-  const claim = () => {
-    const result = claimDailyReward(today, member)
-    if (!result) return
-    sound.play('win')
-    for (let i = 0; i < 5; i++) setTimeout(() => sound.play('bet'), 220 + i * 70)
-    setClaimed(result)
-  }
+  const todayDay = claimDay(streak, today)
+  const claimed = !claimable(record, today)
+  const rows = timeline(todayDay, buyIn, member, today)
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="flex flex-col gap-5 pb-1">
-        {/* --- the flame and where it stands -------------------------------- */}
-        <div className="relative flex flex-col items-center pt-1 text-center">
+      <div className="flex flex-col pb-1">
+        {/* --- the streak -------------------------------------------------- */}
+        <div ref={heroRef} className="relative flex flex-col items-center pt-1 pb-6 text-center">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-32"
+            className="pointer-events-none absolute inset-x-0 -top-4 h-40"
             style={{
               background:
-                'radial-gradient(45% 60% at 50% 30%, color-mix(in oklab, var(--color-streak) 24%, transparent), transparent 75%)',
+                'radial-gradient(45% 55% at 50% 40%, color-mix(in oklab, var(--color-streak) 26%, transparent), transparent 75%)',
             }}
           />
           <motion.span
             className="relative"
-            animate={claimed ? { scale: [1, 1.3, 1], rotate: [0, -8, 0] } : { scale: [1, 1.05, 1] }}
-            transition={
-              claimed
-                ? { duration: 0.6, ease: 'easeOut' }
-                : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
-            }
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >
             <Flame
               className={cn(
-                'size-14',
-                run > 0
-                  ? 'fill-streak/35 text-streak drop-shadow-[0_6px_18px_rgba(255,138,61,0.45)]'
-                  : 'text-streak/60',
+                flameClass(run, 'size-16'),
+                run > 0 && 'drop-shadow-[0_6px_18px_rgba(255,138,61,0.45)]',
               )}
               aria-hidden
             />
           </motion.span>
-          <p className="relative mt-2 max-w-xs text-sm text-muted-foreground">{line}</p>
-          {best > 0 && (
-            <span className="relative mt-2 rounded-full bg-foreground/[0.06] px-2.5 py-0.5 text-xs text-muted-foreground tabular-nums">
-              Best {best} {best === 1 ? 'day' : 'days'}
-            </span>
-          )}
+          <p className="relative mt-2 text-4xl font-semibold tracking-tight tabular-nums">
+            {runLabel(run)}
+          </p>
         </div>
 
-        <Week streak={streak} today={today} />
-
-        {/* --- today ------------------------------------------------------- */}
-        <AnimatePresence mode="wait" initial={false}>
-          {claimed ? (
-            <motion.div
-              key="paid"
-              className="relative flex flex-col items-center rounded-3xl border border-streak/25 bg-streak/[0.07] px-4 py-5 text-center"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={SPRING}
-            >
-              <Burst />
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-streak">
-                <Check className="size-3.5" strokeWidth={3} aria-hidden />
-                Day {claimed.streakDay} claimed
-              </span>
-              <p className="mt-1 flex items-baseline gap-1.5 text-4xl font-semibold tracking-tight tabular-nums">
-                <CountUp value={claimed.chips} format={(v) => `+${money(v)}`} duration={0.9} />
-                <span className="text-base font-medium text-muted-foreground">chips</span>
-              </p>
-              {member && <p className="mt-1 text-xs text-pip">Doubled for members</p>}
-              {claimed.unlock && (
-                <p className="mt-2 text-sm">
-                  <span className="font-semibold">{claimed.unlock.name}</span> is yours
-                </p>
-              )}
-            </motion.div>
-          ) : due ? (
-            <motion.div
-              key="due"
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.12 }}
-              className="relative overflow-hidden rounded-3xl border border-streak/25 p-3.5 shadow-lg shadow-black/20"
-              style={{
-                background:
-                  'linear-gradient(115deg, color-mix(in oklab, var(--color-streak) 18%, var(--color-card)), color-mix(in oklab, var(--color-streak) 4%, var(--color-card)) 70%)',
-              }}
-            >
-              <Sheen />
-              <RewardLine label="Today" reward={todayReward} member={member} />
-              <motion.button
-                type="button"
-                onClick={claim}
-                whileTap={{ scale: 0.97 }}
-                className="relative mt-3.5 h-13 w-full overflow-hidden rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-lg shadow-black/30"
-              >
-                <Sheen />
-                <span className="relative">Claim {money(todayReward.chips)} chips</span>
-              </motion.button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="done"
-              className="rounded-3xl bg-foreground/[0.04] p-3.5 ring-1 ring-foreground/[0.06]"
-            >
-              <span className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-streak">
-                <span className="grid size-4 place-items-center rounded-full bg-streak text-background">
-                  <Check className="size-2.5" strokeWidth={4} aria-hidden />
-                </span>
-                Today's reward claimed
-              </span>
-              <RewardLine label="Tomorrow" reward={tomorrow} member={member} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* --- the track --------------------------------------------------- */}
-        <section aria-labelledby="streak-track">
-          <h3 id="streak-track" className="mb-2 px-1 text-sm font-semibold">
-            Streak rewards
-          </h3>
-          <ol className="relative flex flex-col gap-1.5">
-            {/* the rail the rewards hang on */}
-            <span
-              aria-hidden
-              className="absolute top-7 bottom-7 left-[1.9rem] w-0.5 rounded-full bg-foreground/[0.08]"
+        {/* --- had, today, coming ----------------------------------------- */}
+        <ol aria-label="Streak rewards" className="flex flex-col">
+          {rows.map((row, i) => (
+            <TimelineRow
+              key={row.kind === 'day' ? row.reward.streakDay : `${row.from}-${row.to}`}
+              row={row}
+              first={i === 0}
+              last={i === rows.length - 1}
+              nextWhen={rows[i + 1]?.when}
+              owned={
+                row.kind === 'day' && !!row.reward.unlock && owned.includes(row.reward.unlock.id)
+              }
+              claimed={claimed}
+              index={i}
+              ref={row.when === 'today' ? todayRef : undefined}
             />
-            {MILESTONES.map((m, i) => (
-              <TrackRow
-                key={m.id}
-                unlock={m}
-                run={run}
-                owned={owned.includes(m.id)}
-                next={next?.id === m.id}
-                todayDay={due ? todayReward.streakDay : null}
-                previous={MILESTONES[i - 1]?.day ?? 0}
-              />
-            ))}
-          </ol>
-        </section>
+          ))}
+        </ol>
 
-        {/* --- how it works ------------------------------------------------- */}
-        <section className="rounded-3xl bg-foreground/[0.03] p-4 text-sm ring-1 ring-foreground/[0.06]">
-          <h3 className="font-semibold">How it works</h3>
-          <p className="mt-1.5 text-muted-foreground">
-            Claim the daily reward or finish a hand at any table, and the day counts. Each day ends
-            at {endOfDayLocal()}.
-          </p>
-          <p className="mt-1.5 text-muted-foreground">
-            Miss a day and the streak goes back to day 1. Rewards you have earned stay yours.
-          </p>
-          <p className="mt-1.5 text-muted-foreground">
-            Chips rise from {money(rewardFor(1, buyIn, member).chips)} on day 1 to{' '}
-            {money(rewardFor(LADDER.length, buyIn, member).chips)} on day {LADDER.length}, then stay
-            at {money(rewardFor(LADDER.length, buyIn, member).chips)}.
-          </p>
-          <div className="mt-3 border-t border-foreground/[0.06] pt-3">
-            {member ? (
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <DoubleBadge />
-                Your chips are doubled as a member.
-              </p>
-            ) : (
-              <p className="text-muted-foreground">
-                Members get double chips.{' '}
-                <Link
-                  href={membershipFor('daily-reward')}
-                  onClick={onClose}
-                  className="font-medium text-foreground underline-offset-2 hover:underline"
-                >
-                  Membership
-                </Link>
-              </p>
-            )}
-          </div>
-        </section>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          Miss a day and it starts again.
+        </p>
       </div>
     </MotionConfig>
   )
 }
 
-/** The last seven days, today on the right, lit where a hand or a claim counted. */
-function Week({ streak, today }: { streak: ReturnType<typeof emptyStreak>; today: string }) {
-  const days = useMemo(
-    () =>
-      Array.from({ length: 7 }, (_, i) => {
-        const key = addDays(today, i - 6)
-        const back = streak.lastDate ? daysBetween(key, streak.lastDate) : -1
-        return {
-          key,
-          played: back >= 0 && back < streak.current,
-          today: key === today,
-          label: new Date(`${key}T00:00:00Z`).toLocaleDateString([], {
-            weekday: 'short',
-            timeZone: 'UTC',
-          }),
-          date: Number(key.slice(8, 10)),
-        }
-      }),
-    [streak.lastDate, streak.current, today],
-  )
-  return (
-    <section
-      aria-label="The last seven days"
-      className="grid grid-cols-7 gap-1 rounded-3xl bg-foreground/[0.04] px-2 py-3 ring-1 ring-foreground/[0.06]"
-    >
-      {days.map((d, i) => (
-        <div key={d.key} className="flex flex-col items-center gap-1.5">
-          <span
-            className={cn(
-              'text-2xs font-medium',
-              d.today ? 'text-foreground' : 'text-muted-foreground',
-            )}
-          >
-            {d.today ? 'Today' : d.label}
-          </span>
-          <motion.span
-            initial={{ scale: 0.6, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ ...SPRING, delay: i * 0.035 }}
-            aria-label={`${d.label} ${d.date}: ${d.played ? 'played' : 'not played'}`}
-            className={cn(
-              'grid size-9 place-items-center rounded-full',
-              d.played
-                ? 'text-background shadow-md shadow-black/30'
-                : d.today
-                  ? 'border-2 border-dashed border-streak/50 text-streak/70'
-                  : 'bg-foreground/[0.06] text-muted-foreground/60',
-            )}
-            style={
-              d.played
-                ? {
-                    background:
-                      'radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--color-streak) 70%, white), var(--color-streak))',
-                  }
-                : undefined
-            }
-          >
-            {d.played ? (
-              <Flame className="size-4 fill-background/25" strokeWidth={2.5} aria-hidden />
-            ) : (
-              <span className="text-xs tabular-nums">{d.date}</span>
-            )}
-          </motion.span>
-        </div>
-      ))}
-    </section>
-  )
-}
-
-/** One day's reward: the chips (or the item), with its day and the members' badge. */
-function RewardLine({ label, reward, member }: { label: string; reward: Reward; member: boolean }) {
-  const money = useMoney()
-  return (
-    <div className="relative flex items-center gap-3">
-      <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-black/20">
-        {reward.unlock ? (
-          <RewardArt unlock={reward.unlock} box={44} />
-        ) : (
-          <Coin size={22 + reward.rate * 3} />
-        )}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs font-semibold text-streak">
-          {label} · Day {reward.streakDay}
-        </span>
-        <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5">
-          <span className="text-xl font-semibold tracking-tight tabular-nums">
-            {money(reward.chips)}
-          </span>
-          <span className="text-sm text-muted-foreground">chips</span>
-          {member && <DoubleBadge />}
-        </span>
-        {reward.unlock && (
-          <span className="block truncate text-xs text-muted-foreground">
-            + {reward.unlock.name}
-          </span>
-        )}
-      </span>
-    </div>
-  )
-}
-
-/** One unlock on the track: owned and ticked, next and counting down, or still to come. */
-function TrackRow({
-  unlock,
-  run,
+function TimelineRow({
+  row,
+  first,
+  last,
+  nextWhen,
   owned,
-  next,
-  todayDay,
-  previous,
+  claimed,
+  index,
+  ref,
 }: {
-  unlock: StreakUnlock
-  run: number
+  row: Row
+  first: boolean
+  last: boolean
+  nextWhen: When | undefined
   owned: boolean
-  next: boolean
-  /** The streak day a claim today lands on, while it is still to claim. */
-  todayDay: number | null
-  previous: number
+  claimed: boolean
+  index: number
+  ref?: React.Ref<HTMLLIElement>
 }) {
-  const left = unlock.day - run
-  const progress = Math.min(1, Math.max(0, (run - previous) / (unlock.day - previous)))
+  const money = useMoney()
+  const { when } = row
+  const unlock = row.kind === 'day' ? row.reward.unlock : null
+  const isToday = when === 'today'
+  const had = when === 'had'
+
+  const tomorrow = row.kind === 'day' && row.offset === 1
+  const title =
+    row.kind === 'run'
+      ? `Days ${row.from} to ${row.to}`
+      : isToday
+        ? 'Today'
+        : unlock
+          ? unlock.name
+          : tomorrow
+            ? 'Tomorrow'
+            : `Day ${row.reward.streakDay}`
+
+  const sub =
+    row.kind === 'run'
+      ? `${row.to - row.from + 1} days`
+      : [
+          isToday || unlock || tomorrow ? `Day ${row.reward.streakDay}` : null,
+          isToday && unlock ? unlock.name : null,
+          isToday
+            ? claimed
+              ? 'Claimed'
+              : 'Not claimed yet'
+            : had
+              ? dateLabel(row.key)
+              : unlock && tomorrow
+                ? 'Tomorrow'
+                : tomorrow
+                  ? null
+                  : `in ${row.offset} days`,
+          unlock && when === 'coming' && owned ? 'Already yours' : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+
+  const chips = row.kind === 'run' ? row.chips : row.reward.chips
+
+  // The rail: solid through the days had, dashed through the days to come.
+  const above = had || isToday
+  const below = nextWhen === 'had' || (isToday ? false : nextWhen === 'today')
+
   return (
-    <li
+    <motion.li
+      ref={ref}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...SPRING, delay: Math.min(index, 12) * 0.025 }}
       className={cn(
-        'relative flex items-center gap-3 rounded-2xl p-2 pr-3',
-        next && 'bg-streak/[0.09] ring-1 ring-streak/40',
+        'relative flex items-center gap-3 rounded-2xl py-1.5 pr-3 pl-1',
+        isToday && 'my-1.5 py-2.5 ring-1 ring-streak/45',
       )}
+      style={
+        isToday
+          ? {
+              background:
+                'linear-gradient(115deg, color-mix(in oklab, var(--color-streak) 16%, var(--color-card)), color-mix(in oklab, var(--color-streak) 4%, var(--color-card)) 70%)',
+            }
+          : undefined
+      }
     >
+      {/* the rail, above and below this row's node */}
+      {!first && (
+        <span
+          aria-hidden
+          className={cn(
+            'absolute top-0 left-[1.6rem] h-1/2 -translate-x-1/2',
+            above ? 'w-0.5 bg-streak/55' : 'border-l-2 border-dashed border-foreground/15',
+            isToday && '-top-1.5 h-[calc(50%+0.375rem)]',
+          )}
+        />
+      )}
+      {!last && (
+        <span
+          aria-hidden
+          className={cn(
+            'absolute bottom-0 left-[1.6rem] h-1/2 -translate-x-1/2',
+            below ? 'w-0.5 bg-streak/55' : 'border-l-2 border-dashed border-foreground/15',
+            isToday && '-bottom-1.5 h-[calc(50%+0.375rem)]',
+          )}
+        />
+      )}
+
+      <span className="relative z-10 grid w-12 shrink-0 place-items-center">
+        <Node row={row} owned={owned} claimed={claimed} />
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            'block truncate font-semibold',
+            isToday ? 'text-base' : 'text-sm',
+            had && 'text-foreground/70',
+          )}
+        >
+          {title}
+        </span>
+        <span
+          className={cn(
+            'block truncate text-xs',
+            isToday ? 'font-medium text-streak' : 'text-muted-foreground',
+          )}
+        >
+          {sub}
+        </span>
+      </span>
+
       <span
         className={cn(
-          'relative grid size-12 shrink-0 place-items-center rounded-xl',
-          next ? 'bg-black/25' : 'bg-popover ring-1 ring-foreground/[0.08]',
+          'flex shrink-0 items-center gap-1.5 text-right tabular-nums',
+          had && 'opacity-70',
         )}
       >
-        <span className={cn('grid place-items-center', !owned && !next && 'opacity-55')}>
+        <span className="flex flex-col items-end">
+          <span
+            className={cn(
+              'font-semibold tracking-tight whitespace-nowrap',
+              isToday ? 'text-lg' : 'text-sm',
+            )}
+          >
+            {money(chips)}
+          </span>
+          <span className="text-2xs text-muted-foreground whitespace-nowrap">
+            {row.kind === 'run' ? 'chips a day' : 'chips'}
+          </span>
+        </span>
+        <Coin size={isToday ? 22 : 16} />
+      </span>
+    </motion.li>
+  )
+}
+
+/** The mark on the rail: a lit flame for a day had, the item art for an unlock. */
+function Node({ row, owned, claimed }: { row: Row; owned: boolean; claimed: boolean }) {
+  const { when } = row
+  const unlock = row.kind === 'day' ? row.reward.unlock : null
+
+  if (unlock) {
+    return (
+      <span
+        className={cn(
+          'relative grid size-12 place-items-center rounded-xl',
+          when === 'coming' ? 'bg-popover ring-1 ring-foreground/[0.1]' : 'bg-black/25',
+        )}
+      >
+        <span
+          className={cn('grid place-items-center', when === 'coming' && !owned && 'opacity-60')}
+        >
           <RewardArt unlock={unlock} box={38} />
         </span>
-        {owned && (
+        {owned && when !== 'coming' && (
           <span className="absolute -top-1 -right-1 grid size-4.5 place-items-center rounded-full bg-streak text-background ring-2 ring-popover">
             <Check className="size-2.5" strokeWidth={4} aria-hidden />
           </span>
         )}
       </span>
-      <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            'block truncate text-sm font-semibold',
-            !owned && !next && 'text-foreground/75',
-          )}
-        >
-          {unlock.name}
-        </span>
-        <span className="block truncate text-xs text-muted-foreground">
-          Day {unlock.day}
-          {unlock.venue && ' · A new table, with Maud'}
-        </span>
-        {next && (
-          <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-foreground/10">
-            <motion.span
-              className="block h-full rounded-full bg-streak"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.max(5, progress * 100)}%` }}
-              transition={{ ...SPRING, delay: 0.2 }}
-            />
-          </span>
-        )}
-      </span>
+    )
+  }
+
+  if (when === 'today') {
+    return (
       <span
         className={cn(
-          'shrink-0 text-right text-xs font-semibold whitespace-nowrap tabular-nums',
-          owned ? 'text-streak' : next ? 'text-streak' : 'text-muted-foreground',
+          'grid size-11 place-items-center rounded-full shadow-md shadow-black/30',
+          claimed ? 'text-background' : 'border-2 border-streak bg-popover text-streak',
         )}
+        style={
+          claimed
+            ? {
+                background:
+                  'radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--color-streak) 70%, white), var(--color-streak))',
+              }
+            : undefined
+        }
       >
-        {owned
-          ? 'Yours'
-          : next
-            ? todayDay === unlock.day
-              ? 'Claim today'
-              : `${left} ${left === 1 ? 'day' : 'days'} to go`
-            : null}
+        {claimed ? (
+          <Check className="size-5" strokeWidth={3.5} aria-hidden />
+        ) : (
+          <Flame className="size-5 fill-streak/30" aria-hidden />
+        )}
       </span>
-    </li>
+    )
+  }
+
+  if (when === 'had') {
+    return (
+      <span
+        className="grid size-8 place-items-center rounded-full text-background shadow-sm shadow-black/30"
+        style={{
+          background:
+            'radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--color-streak) 70%, white), var(--color-streak))',
+        }}
+      >
+        {row.kind === 'run' ? (
+          <span className="text-2xs font-bold tabular-nums">×{row.to - row.from + 1}</span>
+        ) : (
+          <Flame className="size-3.5 fill-background/25" strokeWidth={2.5} aria-hidden />
+        )}
+      </span>
+    )
+  }
+
+  return (
+    <span className="grid size-8 place-items-center rounded-full bg-popover text-xs font-medium text-muted-foreground tabular-nums ring-2 ring-foreground/[0.1]">
+      {row.kind === 'run' ? '…' : row.reward.streakDay}
+    </span>
   )
 }

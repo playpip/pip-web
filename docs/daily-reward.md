@@ -42,20 +42,32 @@ a retention feature, and the one place Pip hands out chips for turning up.
 
 ## Where it shows
 
-- **A card under the Roll**, waiting to be tapped. Never a pop-up. Once claimed, it gives its
-  place back to the streak flame.
+- **A card under the streak flame**, waiting to be tapped. Never a pop-up. Once claimed, it goes,
+  and the flame stays.
 - **The claim dialog**: the week's ladder, the next streak item, the claim, a burst of chips, and
   the item turned over if one is due.
-- **The streak sheet** (2026-11-04, Will: "I need to be able to tap the streak button and see
-  my rewards"). The flame under the Roll (`StreakBadge`) is a button that opens a bottom sheet
-  (`components/menu/StreakSheet.tsx`, on `ui/sheet`), titled with the streak ("7-day streak", or
-  "No streak yet"). It shows today (the claim, through `claimDailyReward`, if it is still to do;
-  otherwise tomorrow's reward), the last seven days lit where they counted (worked out from
-  `streak.current` and `lastDate`), every `MILESTONES` unlock in order with owned ones ticked and
-  the next unowned one marked "N days to go", how the streak works, and members' double chips (a
-  quiet `membershipFor('daily-reward')` link for everyone else). Opening it sends
-  `streak-sheet-opened` once per tab (`trackOnce`). The chip, the sheen and the item art it shares
-  with the card live in `components/menu/RewardArt.tsx`.
+- **The streak sheet** (2026-11-04, Will: "I just want to see what i've had and what's coming up
+  so I can see rewards i'm gonna get as well as my current streak"). The flame under the Roll
+  (`StreakBadge`) is always on Home, claimed or not, and opens a bottom sheet
+  (`components/menu/StreakSheet.tsx`, on `ui/sheet`). It holds three things only:
+  - **the streak**, big: the flame and "N days" (or "No streak yet"). Once it scrolls away the
+    title row shows it instead, like an iOS large title;
+  - **what you've had**: every day of this streak, oldest first, with its date and chips, and each
+    unlock ticked if it is in `owned`. Plain days from day 7 on pay the same, so a run of them
+    between unlocks is one row ("Days 8 to 13, 300 chips a day");
+  - **today**, marked, "Claimed" or "Not claimed yet", then **what's coming**: the next five days
+    each, then every unlock still ahead with its day and "in N days".
+
+  One timeline: a solid rail through the days had, dashed through the days to come. It opens
+  scrolled so today is in sight. Members see doubled chips; there is no other members line. One
+  footnote: "Miss a day and it starts again." Claiming stays on the Home card.
+
+  **What it knows about the past.** No history of claims is stored, only `streak` (its length
+  and last day) and `dailyReward.lastClaim`. So a past day's chips are worked out from the rules
+  at today's table and today's membership; a day kept by playing a hand rather than claiming
+  shows what that day would have paid. Unlocks are ticked from `owned`, so those are exact.
+  Opening it sends `streak-sheet-opened` once per tab (`trackOnce`). The chip and the item art
+  it shares with the card live in `components/menu/RewardArt.tsx`.
 - **The streak reminder email** (docs/email.md) says what today's claim pays, what a member gets,
   and what item is next. The day after a streak ends, it offers day 1.
 

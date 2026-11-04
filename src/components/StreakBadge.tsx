@@ -4,8 +4,9 @@
  * The streak, under the Roll on the home screen: a flame and the days in a row
  * with a hand played. Lit once today has a hand in it; waiting (and pulsing)
  * while the run still needs today; muted at 0, so it is findable before it
- * means anything. Tapping it opens the streak sheet (menu/StreakSheet): today,
- * the week, and every reward the streak hands over.
+ * means anything. Always on Home, above the reward card while today's is still
+ * to claim. Tapping it opens the streak sheet (menu/StreakSheet): the streak,
+ * the rewards had on it, and the rewards to come.
  */
 
 import { motion } from 'framer-motion'

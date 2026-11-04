@@ -4,8 +4,8 @@
 // claim chips, and the chips grow with the streak. The rules are in
 // lib/dailyReward; this is the card and the claim.
 //
-// **A card, not a pop-up.** It waits under the Roll until it is tapped, and
-// once today's is claimed it gives its place back to the streak flame. One
+// **A card, not a pop-up.** It waits under the streak flame until it is
+// tapped, and once today's is claimed it goes, leaving the flame. One
 // flame: claiming counts the day for the streak, so the two never disagree.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -47,8 +47,8 @@ function compact(n: number): string {
 }
 
 /**
- * Under the Roll: the reward card while today's is unclaimed, the streak flame
- * once it is.
+ * Under the Roll: the streak flame, always, and under it the reward card while
+ * today's is unclaimed.
  */
 export function DailyRewardSlot() {
   const hydrated = useHydrated()
@@ -61,11 +61,8 @@ export function DailyRewardSlot() {
   const showCard = open || claimable(record, dailyDateKey())
   return (
     <>
-      {showCard ? (
-        <RewardCard onOpen={() => setOpen(true)} />
-      ) : (
-        <StreakBadge onOpen={() => setSheetOpen(true)} />
-      )}
+      <StreakBadge onOpen={() => setSheetOpen(true)} />
+      {showCard && <RewardCard onOpen={() => setOpen(true)} />}
       <StreakSheet open={sheetOpen} onOpenChange={setSheetOpen} />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false}>
@@ -103,7 +100,7 @@ function RewardCard({ onOpen }: { onOpen: () => void }) {
         animate={{ opacity: 1, y: 0 }}
         whileTap={{ scale: 0.98 }}
         transition={SPRING}
-        className="relative mt-4 flex w-full max-w-md items-center gap-3.5 overflow-hidden rounded-3xl border border-streak/25 py-3 pr-3.5 pl-3 text-left shadow-lg shadow-black/20"
+        className="relative mt-3 flex w-full max-w-md items-center gap-3.5 overflow-hidden rounded-3xl border border-streak/25 py-3 pr-3.5 pl-3 text-left shadow-lg shadow-black/20"
         style={{
           background:
             'linear-gradient(115deg, color-mix(in oklab, var(--color-streak) 20%, var(--color-card)), color-mix(in oklab, var(--color-streak) 5%, var(--color-card)) 65%)',
