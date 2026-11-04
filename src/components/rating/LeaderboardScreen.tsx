@@ -14,6 +14,7 @@ import { trackOnce } from '@/lib/analytics'
 import { devSignedIn } from '@/lib/multiplayer/client'
 import { bandFor, isProvisional, ratingOf, weekStartOf } from '@/lib/rating'
 import { ratingEnabled } from '@/lib/rating/local'
+import { sendRating } from '@/lib/rating/rate'
 import { type Board, type BoardRow, readBoard, watchBoard } from '@/lib/rating/remote'
 import { useHydrated } from '@/lib/useHydrated'
 import { sound } from '@/lib/sound'
@@ -59,6 +60,15 @@ export function LeaderboardScreen() {
     }
   }, [load])
 
+  // Hands still waiting on this device go up first, so your own row is there
+  // when you look, not after the next one. The board reloads once they land.
+  useEffect(() => {
+    if (!ratingEnabled() || !signedIn) return
+    void sendRating()
+      .catch(() => {})
+      .then(load)
+  }, [signedIn, load])
+
   return (
     <PageShell leading="back" backLabel="Back" onBack={() => router.push('/game')}>
       <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
@@ -78,7 +88,14 @@ export function LeaderboardScreen() {
             ) : !board ? (
               <Rows rows={null} />
             ) : tab === 'top' ? (
-              <Rows rows={board.top} />
+              board.top.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nobody is on the board yet. Call or fold in a hand of Hold’em while signed in and
+                  you’ll be the first.
+                </p>
+              ) : (
+                <Rows rows={board.top} />
+              )
             ) : tab === 'climbers' ? (
               board.climbers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nobody has climbed yet this week.</p>
