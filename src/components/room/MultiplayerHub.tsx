@@ -457,8 +457,8 @@ function GuestPanel({ onSignUp, onSignIn }: { onSignUp: () => void; onSignIn: ()
       </span>
       <h2 className="mt-4 text-2xl font-semibold tracking-tight">Sign in to play multiplayer</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-        Play with your friends, cameras and voices on. A free account is all you need to join a
-        friend’s room.
+        Play with your friends at one table. A free account joins any friend’s room and opens one of
+        your own a day. Camera and voice come with a member’s room.
       </p>
       <motion.button
         whileTap={{ scale: 0.98 }}
