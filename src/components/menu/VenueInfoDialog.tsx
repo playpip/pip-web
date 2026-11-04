@@ -17,6 +17,7 @@ import { HANDS_PER_LEVEL } from '@/config/blinds'
 import type { Character } from '@/config/cast'
 import {
   VENUES,
+  houseName,
   seatChoices,
   venueTag,
   withSeats,
@@ -182,10 +183,12 @@ export function VenueInfoDialog({
   const stakes = family && family.rooms.length > 1 ? family.rooms : null
   // What the header describes, and where the cover art comes from.
   const head = {
-    name: family?.name ?? venue.name,
+    // The game first, the same as the card that opened this: "Omaha", with
+    // "The Big Pot" as the tag beside it.
+    name: family?.game ?? venue.name,
     tagline: family?.tagline ?? venue.tagline,
     accent: family?.accent ?? venue.accent,
-    tag: family?.tag ?? venueTag(venue),
+    tag: family ? houseName(family) : venueTag(venue),
     art: family?.art ?? venue.id,
   }
   const difficulty = venueDifficulty(venue)

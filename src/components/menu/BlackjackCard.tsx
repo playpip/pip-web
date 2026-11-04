@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { ExpandableNote } from './ExpandableNote'
 import { VenueArt } from './VenueArt'
-import { VenueTile, type TileVM } from './venueCard'
+import { ShelfCard, type ShelfCardVM } from './ShelfCard'
 import { HOUSE_RULES, BLACKJACK_STACKS, type HouseRules } from '@/lib/blackjack/rules'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
@@ -47,20 +47,21 @@ export function BlackjackCard({ member, index }: { member: boolean; index: numbe
 
   const cheapest = BLACKJACK_STACKS[0]
   const affordable = spendable >= cheapest
-  const model: TileVM = {
-    artId: ART,
+  const model: ShelfCardVM = {
+    art: <VenueArt id={ART} accent={ACCENT} className="size-full" />,
     accent: ACCENT,
-    name: 'Blackjack',
-    tag: 'Not poker',
-    index,
-    line: `${HOUSE_RULES.length} houses · from ${money(cheapest)}`,
-    playable: member && affordable,
-    lockedReason: !member
-      ? 'Comes with the membership'
+    title: 'Blackjack',
+    house: 'Not poker',
+    short: 'Beat the dealer to 21 without going over.',
+    price: `From ${money(cheapest)}`,
+    // Not part of the free table a day: that is one poker table
+    // (lib/membership/taste), so a non-member sees the plain lock here.
+    state: !member
+      ? { kind: 'members' }
       : affordable
-        ? undefined
-        : `Need ${money(cheapest)}`,
-    premium: true,
+        ? { kind: 'play' }
+        : { kind: 'need', amount: money(cheapest) },
+    index,
     onOpen: () => {
       sound.play('tap')
       // Same rule as the family cards: a locked tap goes to the page that
@@ -75,7 +76,7 @@ export function BlackjackCard({ member, index }: { member: boolean; index: numbe
 
   return (
     <>
-      <VenueTile model={model} />
+      <ShelfCard model={model} />
       <BlackjackDialog open={open} onOpenChange={setOpen} member={member} />
     </>
   )

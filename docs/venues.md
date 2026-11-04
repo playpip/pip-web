@@ -80,6 +80,15 @@ the moment you take every chip in a hand that busts an opponent (the same seam a
 The Bouncer chip) and show on the handover banner. Side-table prizes are budgeted
 like the ladder (≈ buy-in × seats, minus the bounty pool on bounty tables).
 
+**The page (`/game/side`) shows families, not venues** (`SIDE_SHELF` in `config/venues.ts`).
+Each card leads with `game`, the game's real name (Omaha, Five-Card Draw), with the house
+`name` (The Big Pot) small above it where it is a different word (`houseName`), then `short`,
+one plain line on what is different, the cheapest buy-in, and one pill that is both the state
+and the action: Play, Play free (today's free member table), Members, or Need N
+(`ShelfCard.tsx`). A non-member with today's free table unspent gets one card at the top with
+a button to the first game their Roll covers. Phone shows the cards as rows, wider screens as a
+grid, so a new family or quick mode is one more entry in `SIDE_SHELF`.
+
 ## What the membership adds
 
 Two cards on the side tables, not a category of their own. This started as five member

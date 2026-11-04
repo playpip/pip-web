@@ -2,18 +2,25 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Lock, Wrench } from 'lucide-react'
+import { ChevronRight, Star } from 'lucide-react'
 import { SectionScreen } from './SectionScreen'
 import { CategoryArt } from './CategoryArt'
+import { VenueArt } from './VenueArt'
 import { VenueInfoDialog } from './VenueInfoDialog'
-import { VenueTile, PremiumStar, type TileVM } from './venueCard'
+import { ShelfCard, type ShelfCardVM } from './ShelfCard'
 import { BlackjackCard } from './BlackjackCard'
 import { MEMBERS_ONLY_NOTE, memberLocked } from './VenueBrowser'
 import { useRequireProfile } from './useRequireProfile'
 import { Splash } from '@/components/Splash'
-import { familiesIn, membershipForFamily, type TableFamily, type Venue } from '@/config/venues'
+import {
+  SIDE_SHELF,
+  familiesIn,
+  houseName,
+  membershipForFamily,
+  type TableFamily,
+  type Venue,
+} from '@/config/venues'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
@@ -39,6 +46,15 @@ import { LimitCard } from '@/components/membership/LimitCard'
  * screw turned. Putting them in one grid was most of what made the old shelf
  * feel arbitrary — the heading does work no card title can.
  *
+ * **Each card leads with the game's real name** (Will, 2026-11-04: "the side
+ * tables need to be clearer and better designed"). In four weeks the page had
+ * 83 views and single-digit sits: "The Parlour" does not say Draw, and a tile
+ * reading "Need 5,000" says neither what the game is nor that one is free
+ * today. A card now says the game, one line on what is different, the price,
+ * and one pill that is both its state and what a tap does (ShelfCard.tsx). A
+ * non-member with today's free table unspent gets one card at the top that
+ * says so, with a button straight to a game they can afford.
+ *
  * Everything here is the membership's, without exception. See docs/membership.md
  * for rule 1 as it now stands and the account of why it was narrowed.
  */
@@ -62,29 +78,34 @@ export function SideTables() {
   const shut = (family: TableFamily) => memberLocked(family, member) && !taste.left
   const shutNote = taste.ready && taste.record ? TASTE_COPY.used : MEMBERS_ONLY_NOTE
 
-  const tile = (family: TableFamily, index: number): TileVM => {
+  const card = (family: TableFamily, index: number): ShelfCardVM => {
     const locked = shut(family)
     const free = tasting(family)
     const cheapest = family.rooms[0]
-    const dearest = family.rooms[family.rooms.length - 1]
     const affordable = spendable >= cheapest.buyIn
     return {
-      artId: family.art,
+      art: <VenueArt id={family.art} accent={family.accent} className="size-full" />,
       accent: family.accent,
-      name: family.name,
-      tag: family.tag,
-      index,
-      // The price of the cheapest way in, and the spread when there is one.
-      // A range is the honest summary of a card that hides five prices; a
-      // single number would be one of them pretending to be the card.
-      line: `${free ? `${TASTE_COPY.tile} · ` : ''}${
+      title: family.game,
+      house: houseName(family),
+      short: family.short,
+      // The cheapest way in. Over several rooms it says "From", and the
+      // dialog's second screen has every price.
+      price:
         family.rooms.length > 1
-          ? `${family.rooms.length} tables · ${money(cheapest.buyIn)} – ${money(dearest.buyIn)}`
-          : `Buy-in ${money(cheapest.buyIn)}${cheapest.prize > 0 ? ` · win ${money(cheapest.prize)}` : ''}`
-      }`,
-      playable: !locked && affordable,
-      lockedReason: locked ? shutNote : affordable ? undefined : `Need ${money(cheapest.buyIn)}`,
-      premium: Boolean(family.membersOnly),
+          ? `From ${money(cheapest.buyIn)}`
+          : `Buy-in ${money(cheapest.buyIn)}`,
+      // The membership lock comes before the Roll: telling a non-member with
+      // 400 chips that a member room needs 3,000 sends them off to win chips
+      // that will not open it.
+      state: locked
+        ? { kind: 'members' }
+        : !affordable
+          ? { kind: 'need', amount: money(cheapest.buyIn) }
+          : free
+            ? { kind: 'free' }
+            : { kind: 'play' },
+      index,
       onOpen: () => {
         sound.play('tap')
         // **Locked goes to the page, not to the dialog** (Will, 2026-09-20).
@@ -92,7 +113,7 @@ export function SideTables() {
         // was a reasonable shape while the shelf was mostly free and is a dead
         // end now that none of it is. Answering a deliberate tap with the page
         // that explains the thing is not the nagging the landing page rules
-        // out — nothing here appears uninvited, over what you were doing, or
+        // out: nothing here appears uninvited, over what you were doing, or
         // twice. See docs/membership.md.
         if (locked) {
           router.push(membershipForFamily(family))
@@ -107,37 +128,48 @@ export function SideTables() {
 
   const games = familiesIn('games')
   const twists = familiesIn('twists')
+  // The free table's featured card leads with the first game the Roll can
+  // cover, games before twists, so its one button always works.
+  const featured = SIDE_SHELF.find((f) => spendable >= f.rooms[0].buyIn) ?? null
+  const cheapestSeat = Math.min(...SIDE_SHELF.map((f) => f.rooms[0].buyIn))
 
   return (
-    <SectionScreen
-      title="Side Tables"
-      subtitle="The games that aren’t Hold’em, and the game you know with one screw turned. All of it comes with the membership."
-    >
+    <SectionScreen title="Side Tables" subtitle="Other games, and Hold’em with a twist.">
+      {/* Today's free table: one card that says so, with one way to sit. */}
+      {freePlayer && taste.left && (
+        <div className="mb-8">
+          <FreeTodayCard
+            featured={featured}
+            cheapest={money(cheapestSeat)}
+            onPlay={(family) => {
+              sound.play('tap')
+              setOpenFamily(family)
+            }}
+          />
+        </div>
+      )}
       {/* Today's free table spent: one card says so, above the shelf. */}
       {freePlayer && taste.ready && taste.record && !taste.left && (
         <div className="mb-8">
           <LimitCard kind="table" />
         </div>
       )}
-      {/* Blackjack is not a family — a family is rooms in one price list, and
+      {/* Blackjack is not a family: a family is rooms in one price list, and
           blackjack is two lists (what you sit down with, and which house). It
-          rides on the games shelf as its own tile, the way the builder rides on
+          rides on the games shelf as its own card, the way the builder rides on
           the twists shelf. */}
-      <Shelf
-        title="The games"
-        hint="A different game entirely"
-        families={games}
-        tile={tile}
-        extraTile={<BlackjackCard member={member} index={games.length} />}
-      />
-      <Shelf
-        title="The twists"
-        hint="Hold’em, changed in exactly one way"
-        families={twists}
-        tile={tile}
-        offset={games.length}
-        extraTile={<BuildTile member={member} delay={0.05 * (games.length + twists.length)} />}
-      />
+      <Shelf title="Other games">
+        {games.map((family, i) => (
+          <ShelfCard key={family.id} model={card(family, i)} />
+        ))}
+        <BlackjackCard member={member} index={games.length} />
+      </Shelf>
+      <Shelf title="Hold’em with a twist">
+        {twists.map((family, i) => (
+          <ShelfCard key={family.id} model={card(family, games.length + 1 + i)} />
+        ))}
+        <BuildCard member={member} index={games.length + twists.length + 1} />
+      </Shelf>
 
       <VenueInfoDialog
         key={openFamily?.id}
@@ -157,95 +189,123 @@ export function SideTables() {
   )
 }
 
-/** One labelled half of the shelf. */
-function Shelf({
-  title,
-  hint,
-  families,
-  tile,
-  offset = 0,
-  extraTile,
-}: {
-  title: string
-  hint: string
-  families: readonly TableFamily[]
-  tile: (family: TableFamily, index: number) => TileVM
-  offset?: number
-  extraTile?: React.ReactNode
-}) {
-  if (families.length === 0 && !extraTile) return null
+/**
+ * One labelled half of the shelf.
+ *
+ * One column of rows on a phone, then two, then three across: a card added to
+ * either half (a new game, a new quick mode) lands in the next slot without
+ * the layout having to know.
+ */
+function Shelf({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-8 last:mb-0">
-      <div className="mb-3 flex items-baseline justify-between gap-3 px-1">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        <p className="truncate text-sm text-muted-foreground">{hint}</p>
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
-        {families.map((family, i) => (
-          <VenueTile key={family.id} model={tile(family, offset + i)} />
-        ))}
-        {extraTile}
+    <section className="mb-10 last:mb-0">
+      <h2 className="mb-3 px-1 text-lg font-semibold tracking-tight">{title}</h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
+        {children}
       </div>
     </section>
   )
 }
 
-/** The builder's tile art has no venue behind it, so its accent lives here. */
-const BUILD_ACCENT = '#8A8F98'
-
 /**
- * The builder, as the last tile on the shelf.
+ * Today's free member table, said once at the top with one button.
  *
- * Not a family, so it cannot be a `VenueTile` — but it is the same size and
- * shape as one, because it is the same kind of thing to a player: a way to get
- * to a table. Locked, it is a plain line and one text link, with nothing
- * clickable on the artwork (the rule every gated surface follows —
- * docs/membership.md).
+ * The cards below each say "Play free" too, but a shelf of nine pills does not
+ * say *one* of them; this does, and it hands over the first game the Roll can
+ * cover so the shortest path to a seat is one tap and a buy-in. When the Roll
+ * covers nothing on the shelf it says what the cheapest seat costs instead of
+ * offering a button that would end in "Need".
  */
-function BuildTile({ member, delay = 0 }: { member: boolean; delay?: number }) {
-  const router = useRouter()
-
+function FreeTodayCard({
+  featured,
+  cheapest,
+  onPlay,
+}: {
+  featured: TableFamily | null
+  cheapest: string
+  onPlay: (family: TableFamily) => void
+}) {
+  const accent = featured?.accent ?? FREE_ACCENT
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(delay, 0.3) }}
-      className="w-full"
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      style={{
+        backgroundImage: `radial-gradient(90% 120% at 100% 0%, ${accent}26, transparent 65%)`,
+      }}
+      className="relative isolate flex w-full flex-col overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03] shadow-xl shadow-black/30 sm:flex-row"
     >
-      <button
-        onClick={() => {
-          sound.play('tap')
-          // Locked taps go to the page, the same as every card beside it. It
-          // used to be a `div` carrying one underlined link, which was the
-          // right shape when this tile was the only locked thing on a free
-          // shelf and is now the odd one out.
-          router.push(member ? '/game/custom' : membershipFor('custom-tables'))
-        }}
-        aria-label={
-          member ? 'Build your own table' : 'Build your own table — what the membership is'
-        }
-        className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
-      >
-        <div className="relative aspect-[16/10] w-full">
-          <CategoryArt id="custom" accent={BUILD_ACCENT} className="absolute inset-0 size-full" />
-          <span className="absolute left-2 top-2">
-            <PremiumStar accent={BUILD_ACCENT} />
-          </span>
-          <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/40 backdrop-blur-sm">
-            {member ? (
-              <Wrench className="size-3.5 text-white/85" />
-            ) : (
-              <Lock className="size-3.5 text-white/85" />
-            )}
-          </span>
+      {featured && (
+        <div className="relative aspect-[2/1] w-full shrink-0 sm:aspect-auto sm:w-[44%]">
+          <VenueArt
+            id={featured.art}
+            accent={featured.accent}
+            className="absolute inset-0 size-full"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 to-transparent sm:bg-gradient-to-r sm:from-transparent sm:to-black/30" />
         </div>
-        <div className="flex flex-1 flex-col p-3">
-          <h3 className="truncate font-semibold">Build your own</h3>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {member ? 'Seats, stakes, depth, speed, company' : 'Comes with the membership'}
+      )}
+      <div className="flex flex-1 flex-col gap-4 p-5 md:p-6">
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-semibold text-foreground">
+            <Star className="size-3 fill-pip text-pip" />
+            {TASTE_COPY.tile}
+          </span>
+          <h2 className="mt-3 text-xl font-semibold md:text-2xl leading-tight tracking-tight">
+            One table is free today
+          </h2>
+          <p className="mt-1 text-muted-foreground">
+            {featured
+              ? 'Pick any game or twist below, or start here.'
+              : `The cheapest seat is ${cheapest} chips. Win some on the ladder first.`}
           </p>
         </div>
-      </button>
+        {featured && (
+          <button
+            type="button"
+            onClick={() => onPlay(featured)}
+            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-primary py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-black/20 transition hover:bg-primary/90 active:scale-[0.98] sm:mt-auto sm:w-auto sm:self-start sm:px-6"
+          >
+            Play {featured.game} free
+            <ChevronRight className="size-4" />
+          </button>
+        )}
+      </div>
     </motion.div>
+  )
+}
+
+/** The free card's wash when there is no featured game to borrow one from. */
+const FREE_ACCENT = '#7C8CF0'
+
+/** The builder's tile art has no venue behind it, so its accent lives here. */
+const BUILD_ACCENT = '#8A8F98'
+
+/**
+ * The builder, as the last card on the twists shelf.
+ *
+ * Not a family, so it has no rooms or price list, but it is the same kind of
+ * thing to a player: a way to get to a table. Locked, a tap goes to the page,
+ * the same as every card beside it.
+ */
+function BuildCard({ member, index }: { member: boolean; index: number }) {
+  const router = useRouter()
+  return (
+    <ShelfCard
+      model={{
+        art: <CategoryArt id="custom" accent={BUILD_ACCENT} className="size-full" />,
+        accent: BUILD_ACCENT,
+        title: 'Build your own',
+        short: 'Pick the seats, stakes, stack depth and speed.',
+        price: 'Any buy-in',
+        state: member ? { kind: 'play' } : { kind: 'members' },
+        index,
+        onOpen: () => {
+          sound.play('tap')
+          router.push(member ? '/game/custom' : membershipFor('custom-tables'))
+        },
+      }}
+    />
   )
 }

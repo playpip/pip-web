@@ -1139,7 +1139,16 @@ export type ShelfSection = 'games' | 'twists'
 /** One card on the side-tables shelf: an idea, and the rooms that price it. */
 export interface TableFamily extends MembersOnly {
   id: string
+  /** The house name: The Big Pot, The Split. Kept second to `game` on the card. */
   name: string
+  /**
+   * What the game is called anywhere else: Omaha, Five-Card Draw. The card
+   * leads with this (Will, 2026-11-04): "The Parlour" does not say Draw, and a
+   * shelf people looked at and did not sit at was mostly names like it.
+   */
+  game: string
+  /** One plain line on what is different, for the card. */
+  short: string
   tagline: string
   /** An existing venue-art id to wear. Families do not have art of their own. */
   art: string
@@ -1176,6 +1185,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'omaha',
     name: 'The Big Pot',
+    game: 'Omaha',
+    short: 'Four cards in your hand. Use exactly two.',
     tagline: 'Pot-Limit Omaha. Four cards, use exactly two.',
     art: 'bigpot',
     accent: '#5B7FC7',
@@ -1188,6 +1199,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'shortdeck',
     name: 'Short Deck',
+    game: 'Short Deck',
+    short: '36 cards. A flush beats a full house.',
     tagline: 'Thirty-six cards. A flush beats a full house.',
     art: 'chopshop',
     accent: '#D95F43',
@@ -1200,6 +1213,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'hilo',
     name: 'The Split',
+    game: 'Omaha Hi-Lo',
+    short: 'The best low hand wins half the pot.',
     tagline: 'Omaha Hi-Lo. Half the pot goes to the worst hand.',
     art: 'vault',
     accent: '#4FB477',
@@ -1212,6 +1227,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'draw',
     name: 'The Parlour',
+    game: 'Five-Card Draw',
+    short: 'No board. Swap your cards once, then show.',
     tagline: 'Five-Card Draw. No board, nothing to read but the discards.',
     art: 'allnighter',
     accent: '#8F6FE8',
@@ -1224,6 +1241,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'fast',
     name: 'Fast',
+    game: 'Turbo',
+    short: 'Blinds go up every two or three hands.',
     tagline: 'The clock is the opponent.',
     art: 'redeye',
     accent: '#E06D8C',
@@ -1236,6 +1255,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'headsup',
     name: 'Heads-Up',
+    game: 'Heads-Up',
+    short: 'Just you and one opponent.',
     tagline: 'One opponent. Every hand contested.',
     art: 'duel',
     accent: '#9A7FD1',
@@ -1248,6 +1269,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'bounty',
     name: 'Bounty',
+    game: 'Bounty',
+    short: 'Knock a player out and win their bounty.',
     tagline: 'A price on every head.',
     art: 'docks',
     accent: '#C9873D',
@@ -1260,6 +1283,8 @@ export const SIDE_SHELF: readonly TableFamily[] = [
   {
     id: 'deep',
     name: 'Deep',
+    game: 'Deep Stack',
+    short: 'Big stacks and slow blinds.',
     tagline: 'More chips than the buy-in, and a slow clock.',
     art: 'study',
     accent: '#B5835A',
@@ -1334,6 +1359,15 @@ export function familyTableNames(family: TableFamily): readonly string[] {
  */
 export function deepStackTwin(table: Venue): Venue | undefined {
   return VENUES.find((rung) => rung.buyIn === table.buyIn)
+}
+
+/**
+ * The house name, when the card should show it under the game: only where it is
+ * a different word from the game. "Short Deck" under "Short Deck" is noise, and
+ * a twist's family name ("Fast") is the twist rather than a room.
+ */
+export function houseName(family: TableFamily): string | null {
+  return family.section === 'games' && family.name !== family.game ? family.name : null
 }
 
 /** The families in one half of the shelf, in order. */
