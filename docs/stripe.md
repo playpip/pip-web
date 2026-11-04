@@ -185,7 +185,7 @@ A 7-day trial would be one line in `checkout`
 even switched off, because it changes what the player agrees to and the legal copy would
 be wrong the moment the flag went on:
 
-- **The join box** (`Join` in `MembershipScreen.tsx`) says a refund is yours within 14 days
+- **The join box** (`Join` in `components/membership/Join.tsx`, shared by the page and the welcome flow's plans sheet) says a refund is yours within 14 days
   of joining. With a trial nothing is charged on day one, so it would need to say what happens
   on day 8 instead: the first charge, its amount, and that cancelling before then costs
   nothing.

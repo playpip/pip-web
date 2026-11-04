@@ -118,7 +118,7 @@ test('the plans section says one member game a day is free', async (t) => {
     new URL('../src/components/membership/MembershipScreen.tsx', import.meta.url),
     'utf-8',
   )
-  const plans = page.slice(page.indexOf('function Plans('), page.indexOf('// --- joining'))
+  const plans = page.slice(page.indexOf('function Plans('), page.indexOf('// --- questions'))
   t.true(plans.includes('DAILY_FREE_GAME'), 'the plans box does not mention the daily free game')
   // And the copy on the cards agrees with the page about how many.
   const { TASTE_COPY } = await import('@/lib/membership/taste')

@@ -72,7 +72,8 @@ test('on the shared account, Pip only touches what it tagged', (t) => {
 // a full refund, so there is no waiver box, and nothing may bring one back
 // without the terms changing too. The session still records which terms.
 test('joining asks for no refund waiver', (t) => {
-  const screen = code('src/components/membership/MembershipScreen.tsx')
+  // The till is shared by the page and the welcome flow's sheet (Join.tsx).
+  const screen = code('src/components/membership/Join.tsx')
   t.notRegex(screen, /right to cancel/i)
   t.notRegex(screen, /type="checkbox"/)
   t.regex(screen, /within 14 days/)
