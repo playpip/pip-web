@@ -1,9 +1,6 @@
 // The rules for the Android install banner (components/InstallBanner.tsx).
 // Pure, so they can be tested without a browser.
 
-/** Days the banner stays away after the close button. */
-export const INSTALL_BANNER_SNOOZE_DAYS = 30
-
 /** The banner shows from this visit on. A first visit is for playing. */
 export const INSTALL_BANNER_FROM_VISIT = 2
 
@@ -32,11 +29,16 @@ export function installBannerRoute(pathname: string): boolean {
   return ALLOWED.some((r) => r.test(pathname))
 }
 
-/** Whether a returning player should see the banner, given what was stored. */
-export function installBannerDue(visits: number, dismissedAt: number | null, now: number): boolean {
-  if (visits < INSTALL_BANNER_FROM_VISIT) return false
-  if (dismissedAt === null) return true
-  return now - dismissedAt >= INSTALL_BANNER_SNOOZE_DAYS * 24 * 60 * 60 * 1000
+/**
+ * Whether a returning player should see the banner, given what was stored.
+ *
+ * Closed is closed for good, and so is answered: the landing page promises no
+ * nagging, ever, and a row that comes back after its close button is the thing
+ * that rules out. Any stored `dismissedAt` counts, including the timestamps
+ * written while the close was a 30-day snooze.
+ */
+export function installBannerDue(visits: number, dismissedAt: number | null): boolean {
+  return visits >= INSTALL_BANNER_FROM_VISIT && dismissedAt === null
 }
 
 /**

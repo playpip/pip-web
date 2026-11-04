@@ -1,11 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'ava'
-import {
-  INSTALL_BANNER_SNOOZE_DAYS,
-  installBannerDue,
-  installBannerRoute,
-} from '@/lib/installBanner'
+import { installBannerDue, installBannerRoute } from '@/lib/installBanner'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -31,14 +27,13 @@ test('the banner never shows at a table, a drill, a lesson or the welcome steps'
 })
 
 test('a first visit never sees it', (t) => {
-  t.false(installBannerDue(1, null, 0))
-  t.true(installBannerDue(2, null, 0))
+  t.false(installBannerDue(1, null))
+  t.true(installBannerDue(2, null))
 })
 
-test('closing it keeps it away for 30 days', (t) => {
-  const now = 100 * DAY
-  t.false(installBannerDue(5, now - (INSTALL_BANNER_SNOOZE_DAYS - 1) * DAY, now))
-  t.true(installBannerDue(5, now - INSTALL_BANNER_SNOOZE_DAYS * DAY, now))
+// "No nagging. Ever." (Landing.tsx): nothing comes back after its close button.
+test('once closed it never comes back, however long ago', (t) => {
+  for (const at of [0, 1, 30 * DAY, 365 * DAY]) t.false(installBannerDue(5, at), String(at))
 })
 
 // Safari's Smart App Banner is opted into per page (APP_BANNER), so it can only

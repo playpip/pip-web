@@ -56,7 +56,7 @@ function eligibleDevice(): boolean {
  * A slim row offering to add Pip to the home screen, on Android only. It is
  * Chrome's own install offer (`beforeinstallprompt`) given the look of the
  * Smart App Banner Safari shows on iPhone. From the second visit, on the
- * lobby and reading pages only, and gone for 30 days once closed.
+ * lobby and reading pages only, and gone for good once closed or answered.
  */
 export function InstallBanner() {
   const event = useSyncExternalStore(subscribe, offer, noOffer)
@@ -71,24 +71,29 @@ export function InstallBanner() {
 
   if (!event || closed || !installBannerRoute(pathname) || !eligibleDevice()) return null
   const visits = readNumber(INSTALL_VISITS_KEY) ?? 0
-  if (!installBannerDue(visits, readNumber(INSTALL_DISMISSED_KEY), Date.now())) return null
+  if (!installBannerDue(visits, readNumber(INSTALL_DISMISSED_KEY))) return null
 
-  const close = () => {
-    sound.play('tap')
+  // Closing it and answering Chrome's offer both put it away for good.
+  const putAway = () => {
     try {
       localStorage.setItem(INSTALL_DISMISSED_KEY, String(Date.now()))
     } catch {
-      // Storage blocked: it stays closed for this page and comes back later.
+      // Storage blocked: the visit count cannot be read either, so it never shows.
     }
     setClosed(true)
+  }
+
+  const close = () => {
+    sound.play('tap')
+    putAway()
   }
 
   const install = async () => {
     sound.play('tap')
     trackOnce('install-banner-tapped')
-    // The offer can be used once. Whatever the answer, drop it.
+    // The offer can be used once. Whatever the answer, drop it, and do not ask again.
     window.__pipInstall = null
-    setClosed(true)
+    putAway()
     try {
       await event.prompt()
     } catch {
