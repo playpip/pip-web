@@ -67,10 +67,13 @@ export function QuickIntro({
   game,
   view,
   options,
+  rules,
 }: {
   game: QuickGame
   view: QuickRoundView
   options: readonly StartOption[]
+  /** How the game goes, a line each, under the card. */
+  rules?: readonly string[]
 }) {
   return (
     <motion.div
@@ -99,6 +102,13 @@ export function QuickIntro({
         </div>
       </div>
       {view.ready && !view.canPlay && <LimitCard kind="round" narrow />}
+      {rules && (
+        <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
+          {rules.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
     </motion.div>
   )
 }
@@ -227,6 +237,24 @@ export function QuickEnd({
         </button>
       </div>
       {view.ready && !view.canPlay && <LimitCard kind="round" narrow />}
+    </motion.div>
+  )
+}
+
+/**
+ * The end card laid over the table a table game (Ten Hands, Mystery Card) was
+ * played at, after a beat on the last hand. Centred between the notch and the
+ * home bar, and scrolls if it is taller than the screen.
+ */
+export function QuickEndOverlay({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 1.6, duration: 0.35 }}
+      className="fixed inset-0 z-50 overflow-y-auto bg-background/75 px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)] backdrop-blur-md"
+    >
+      <div className="flex min-h-full items-center">{children}</div>
     </motion.div>
   )
 }

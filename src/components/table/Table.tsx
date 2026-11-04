@@ -581,6 +581,7 @@ export function Table() {
             freeroll={venue.freeroll === true}
             daily={venue.daily === true}
             cash={venue.cash === true}
+            score={venue.scoreHands !== undefined}
             onConfirm={cashOutAndLeave}
             onReview={canReview ? cashOutAndReview : undefined}
           />

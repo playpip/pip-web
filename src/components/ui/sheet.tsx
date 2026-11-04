@@ -55,7 +55,7 @@ function SheetContent({
       <DialogPrimitive.Popup
         data-slot="sheet-content"
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 flex max-h-[calc(100dvh-1.5rem)] outline-none',
+          'fixed inset-x-0 bottom-0 z-50 flex max-h-[calc(100dvh-1.5rem-env(safe-area-inset-top))] outline-none',
           'duration-300 ease-out data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom data-closed:duration-200 data-closed:fill-mode-forwards',
           'sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[calc(100dvh-4rem)] sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:data-open:slide-in-from-bottom-8 sm:data-open:fade-in-0 sm:data-closed:slide-out-to-bottom-8 sm:data-closed:fade-out-0',
         )}

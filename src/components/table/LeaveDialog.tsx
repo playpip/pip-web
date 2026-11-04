@@ -31,6 +31,7 @@ export function LeaveDialog({
   freeroll = false,
   daily = false,
   cash = false,
+  score = false,
   onConfirm,
   onReview,
 }: {
@@ -43,13 +44,16 @@ export function LeaveDialog({
   /** The Daily: free to enter, so like a freeroll there is nothing to cash out. */
   daily?: boolean
   cash?: boolean
+  /** A quick game played for a score (Ten Hands, Mystery Card): the house's
+   *  chips, so nothing cashes out, and leaving early ends it without a score. */
+  score?: boolean
   onConfirm: () => void
   /** Leave, and open the session review. Absent where there is no review. */
   onReview?: () => void
 }) {
   const money = useMoney()
   // Both deal the house's chips: no P/L to show, nothing to cash out.
-  const free = freeroll || daily
+  const free = freeroll || daily || score
   const converted = cashOut !== stack
   const pnl = cashOut - buyIn
   const up = pnl >= 0
@@ -58,17 +62,21 @@ export function LeaveDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle>{cash ? 'Stand up?' : 'Leave the table?'}</DialogTitle>
+          <DialogTitle>
+            {score ? 'Leave the round?' : cash ? 'Stand up?' : 'Leave the table?'}
+          </DialogTitle>
           <DialogDescription>
-            {daily
-              ? 'The Daily is free to enter, so the chips stay at the table. Leaving now still uses up today’s Daily.'
-              : freeroll
-                ? 'It’s a freeroll — the chips stay at the table. Leave now and you walk away with nothing; only winning pays.'
-                : cash
-                  ? 'Cash out and stand up — every chip in front of you is yours to keep.'
-                  : converted
-                    ? 'You’ll cash out your chips at the rate you bought in, and forfeit a shot at the prize.'
-                    : 'You’ll cash out your chips and forfeit a shot at the prize.'}
+            {score
+              ? 'These chips are the house’s, so none of them come back with you. Your score is the stack after the last hand. Leave now and the round ends without one.'
+              : daily
+                ? 'The Daily is free to enter, so the chips stay at the table. Leaving now still uses up today’s Daily.'
+                : freeroll
+                  ? 'It’s a freeroll — the chips stay at the table. Leave now and you walk away with nothing; only winning pays.'
+                  : cash
+                    ? 'Cash out and stand up — every chip in front of you is yours to keep.'
+                    : converted
+                      ? 'You’ll cash out your chips at the rate you bought in, and forfeit a shot at the prize.'
+                      : 'You’ll cash out your chips and forfeit a shot at the prize.'}
           </DialogDescription>
         </DialogHeader>
 

@@ -10,7 +10,6 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
 import { Splash } from '@/components/Splash'
 import { Table } from '@/components/table/Table'
 import { useRequireProfile } from '@/components/menu/useRequireProfile'
@@ -21,7 +20,7 @@ import { formatChips } from '@/lib/useMoney'
 import { useMembership } from '@/store/entitlement'
 import { loadTableSnapshot, useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
-import { QuickEnd, QuickIntro, QuickPage, type StartOption } from './QuickScreen'
+import { QuickEnd, QuickEndOverlay, QuickIntro, QuickPage, type StartOption } from './QuickScreen'
 
 const START = MYSTERY_TABLE.startingStack ?? 1_000
 
@@ -63,15 +62,17 @@ export function MysteryGame() {
   if (!atTable) {
     return (
       <QuickPage game={game}>
-        <div className="flex flex-col gap-5">
-          <QuickIntro game={game} view={view} options={options} />
-          <ul className="mx-auto w-full max-w-md list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">
-            <li>Hold’em, six at the table, 1,000 chips each.</li>
-            <li>One of your two cards is dealt face down. Nobody sees it, you included.</li>
-            <li>It turns over when the river is dealt. Everyone else’s does too.</li>
-            <li>Ten hands. Your score is the chips you finish with.</li>
-          </ul>
-        </div>
+        <QuickIntro
+          game={game}
+          view={view}
+          options={options}
+          rules={[
+            'Hold’em, six at the table, 1,000 chips each.',
+            'One of your two cards is dealt face down. Nobody sees it, you included.',
+            'It turns over when the river is dealt. Everyone else’s does too.',
+            'Ten hands. Your score is the chips you finish with.',
+          ]}
+        />
       </QuickPage>
     )
   }
@@ -80,13 +81,7 @@ export function MysteryGame() {
     <>
       <Table />
       {score && (
-        // A beat on the last hand's result, then the score over the table.
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.6, duration: 0.35 }}
-          className="fixed inset-0 z-50 overflow-y-auto bg-background/75 px-4 py-10 backdrop-blur-md"
-        >
+        <QuickEndOverlay>
           <QuickEnd
             game={game}
             score={score.chips}
@@ -100,7 +95,7 @@ export function MysteryGame() {
           >
             <Result chips={score.chips} />
           </QuickEnd>
-        </motion.div>
+        </QuickEndOverlay>
       )}
     </>
   )
