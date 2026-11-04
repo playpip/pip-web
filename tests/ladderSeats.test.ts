@@ -20,8 +20,8 @@ import { mulberry32 } from '@/lib/poker/cards'
 // and that nothing below The Riverboat, and nothing that is not the ladder,
 // can be re-sized at all.
 //
-// What this cannot cover: the screen. That the picker shows on the dialog of a
-// top rung and not on a lower one is held below by reading the dialog's source;
+// What this cannot cover: the screen. That the picker shows on the page of a
+// top rung and not on a lower one is held below by reading the page's source;
 // that eight seats fit the felt on a phone is the custom table's layout (#222)
 // and still wants looking at.
 
@@ -212,22 +212,25 @@ test('a busted seat keeps its chair, so the snapshot counts the table it sat dow
   )
 })
 
-test('the dialog offers a size only where `seatChoices` has one', (t) => {
-  const dialog = code('src/components/menu/VenueInfoDialog.tsx')
-  t.regex(dialog, /const choices = seatChoices\(venue\)/)
-  t.regex(dialog, /\{choices \? \(\s*<SeatPicker/)
+test('the table page offers a size only where `seatChoices` has one', (t) => {
+  const page = code('src/components/menu/TableScreen.tsx')
+  t.regex(page, /const choices = seatChoices\(venue\)/)
+  t.regex(page, /\{choices && \(/)
   // The prize row and the button read the table as it will be sat down at.
-  t.regex(dialog, /label="Winner takes" value=\{money\(table\.prize\)\}/)
-  t.regex(dialog, /onClick=\{\(\) => onPlay\(table\)\}/)
+  t.regex(page, /label="Winner takes" value=\{money\(table\.prize\)\}/)
+  t.regex(page, /router\.push\(playPath\(table\)\)/)
 })
 
 test('every way into a ladder rung goes through playPath', (t) => {
+  // Every lobby card opens the table's page, and the page is the one way on
+  // to the felt from there.
   for (const path of [
     'src/components/menu/VenueBrowser.tsx',
     'src/components/menu/NextUpCard.tsx',
   ]) {
-    t.regex(code(path), /router\.push\(playPath\(/, path)
+    t.regex(code(path), /router\.push\(tablePagePath\(/, path)
   }
+  t.regex(code('src/components/menu/TableScreen.tsx'), /router\.push\(playPath\(/)
   t.regex(code('src/app/play/[venue]/PlayClient.tsx'), /sitDown\(withSeats\(venue, seats\)/)
   t.regex(
     code('src/app/play/[venue]/PlayClient.tsx'),

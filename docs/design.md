@@ -110,7 +110,7 @@ holds the primitive to it.)
 
 - **A `max-h-[Nvh]` scroll region inside a dialog wants `min-h-0` beside it.** The vh cap is the
   look at 100%; `min-h-0` is what lets it give way when the type is twice the size.
-- **A dialog that sets its own `overflow-hidden`** (the ones with cover art: `VenueInfoDialog`,
+- **A dialog that sets its own `overflow-hidden`** (the ones with cover art, like
   `ShopDialog`) has opted out of the popup's scroll, so it has to own one inside. Its art header
   needs `shrink-0` or the flex will squash the picture instead of scrolling the words.
 - **Never cap a dialog's body against the viewport by hand** (`max-h-[calc(100dvh-9rem)]`). The

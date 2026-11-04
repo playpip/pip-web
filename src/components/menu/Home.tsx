@@ -27,8 +27,7 @@ import { ResumeTableCard } from './ResumeTableCard'
 import { QuickPlayCard } from './QuickPlayCard'
 import { YourGames } from './YourGames'
 import { RollSparkline } from './RollSparkline'
-import { VenueInfoDialog } from './VenueInfoDialog'
-import { SIDE_SHELF, RING_TABLES, THE_DAILY, dailyFor, venueById } from '@/config/venues'
+import { SIDE_SHELF, RING_TABLES, THE_DAILY, tablePagePath, venueById } from '@/config/venues'
 import { CUSTOM_VENUE_ID, customVenue } from '@/config/customTable'
 import { loadTableSnapshot } from '@/store/game'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
@@ -447,19 +446,17 @@ function GreetingLine({ hour, name }: { hour: number; name: string }) {
 
 /**
  * The Daily as a menu tile — reflects today's state. Not yet played: tap to
- * open the details, where playing is a second tap. It is free, so it never
+ * open its page, where playing is a second tap. It is free, so it never
  * locks. Played: tap copies the share line.
  */
 function DailyTile({ delay }: { delay: number }) {
   const router = useRouter()
   const daily = useProfile((s) => s.daily)
   const streak = useProfile((s) => s.streak)
-  const peakRoll = useProfile((s) => s.peakRoll)
   // Worst of the three #20 sites: 'Copied' sat in place of the finishing
   // position for the rest of the session, so a tile that had real information
   // on it lost it to a confirmation.
   const [copied, copy] = useCopied()
-  const [infoOpen, setInfoOpen] = useState(false)
 
   const today = dailyDateKey()
   const dayNo = dailyNumber(today)
@@ -476,8 +473,8 @@ function DailyTile({ delay }: { delay: number }) {
         : 'Played today'
       : 'Free · same cards for everyone'
 
-  // Played: tap copies the share line. Otherwise: open the details dialog (the
-  // same one the venues use), where playing is a deliberate second tap.
+  // Played: tap copies the share line. Otherwise: open the Daily's own page
+  // (the same kind every table has), where playing is a deliberate second tap.
   const onClick = () => {
     if (playedToday) {
       if (!daily?.place) return
@@ -490,29 +487,18 @@ function DailyTile({ delay }: { delay: number }) {
       return
     }
     sound.play('tap')
-    setInfoOpen(true)
+    router.push(tablePagePath(THE_DAILY, 'home'))
   }
 
   return (
-    <>
-      <CategoryCard
-        art="daily"
-        accent={THE_DAILY.accent}
-        title="The Daily"
-        badge={`#${dayNo}`}
-        subtitle={subtitle}
-        onClick={onClick}
-        delay={delay}
-      />
-      <VenueInfoDialog
-        venue={infoOpen ? dailyFor(peakRoll) : null}
-        playable
-        onOpenChange={(o) => !o && setInfoOpen(false)}
-        onPlay={(venue) => {
-          sound.play('call')
-          router.push(`/play/${venue.id}`)
-        }}
-      />
-    </>
+    <CategoryCard
+      art="daily"
+      accent={THE_DAILY.accent}
+      title="The Daily"
+      badge={`#${dayNo}`}
+      subtitle={subtitle}
+      onClick={onClick}
+      delay={delay}
+    />
   )
 }

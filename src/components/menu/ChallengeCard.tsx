@@ -1,10 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CategoryCard } from './CategoryCard'
 import { ChallengerFace } from './ChallengerFace'
-import { VenueInfoDialog } from './VenueInfoDialog'
+import { tablePagePath } from '@/config/venues'
 import type { Challenge } from '@/lib/challenge'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
@@ -21,8 +20,8 @@ import { sound } from '@/lib/sound'
  * It is a **venue tile** rather than the full-width band it used to be
  * (technology#48). A challenge is a table you sit at, so it belongs in the menu
  * grid next to the other tables, and reading it as a place rather than a banner
- * costs a fifth of the room the band did. Tapping opens the same info dialog
- * every other venue opens — their line gets space there that a half-width tile
+ * costs a fifth of the room the band did. Tapping opens the table's own page, the
+ * way every other table does — their line gets space there that a half-width tile
  * could never give it, and a 2.5x heads-up buy-in is worth a deliberate second
  * tap in the same way the Daily's is.
  *
@@ -32,39 +31,22 @@ import { sound } from '@/lib/sound'
 export function ChallengeCard({ challenge, delay = 0 }: { challenge: Challenge; delay?: number }) {
   const router = useRouter()
   const money = useMoney()
-  const [infoOpen, setInfoOpen] = useState(false)
   const { character, venue, rematch } = challenge
 
   return (
-    <>
-      <CategoryCard
-        artNode={
-          <ChallengerFace character={character} accent={venue.accent} className="size-full" />
-        }
-        title={character.name}
-        // Cleared the band, so this one is a rematch — said plainly, because a
-        // face you have already beaten reappearing without a word reads as the
-        // game losing track.
-        badge={rematch ? 'Rematch' : undefined}
-        subtitle={`Heads-up · ${money(venue.prize)} to win`}
-        onClick={() => {
-          sound.play('tap')
-          setInfoOpen(true)
-        }}
-        delay={delay}
-      />
-      {/* Always playable: a challenge is only offered at a band the Roll can
-          already cover, so there is no locked state to render (lib/challenge). */}
-      <VenueInfoDialog
-        venue={infoOpen ? venue : null}
-        challenger={character}
-        playable
-        onOpenChange={(o) => !o && setInfoOpen(false)}
-        onPlay={(v) => {
-          sound.play('call')
-          router.push(`/play/${v.id}`)
-        }}
-      />
-    </>
+    <CategoryCard
+      artNode={<ChallengerFace character={character} accent={venue.accent} className="size-full" />}
+      title={character.name}
+      // Cleared the band, so this one is a rematch — said plainly, because a
+      // face you have already beaten reappearing without a word reads as the
+      // game losing track.
+      badge={rematch ? 'Rematch' : undefined}
+      subtitle={`Heads-up · ${money(venue.prize)} to win`}
+      onClick={() => {
+        sound.play('tap')
+        router.push(tablePagePath(venue, 'home'))
+      }}
+      delay={delay}
+    />
   )
 }

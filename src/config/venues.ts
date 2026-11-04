@@ -1232,7 +1232,7 @@ export const SIDE_SHELF: readonly TableFamily[] = [
     tag: 'Short Deck',
     section: 'games',
     membersOnly: true,
-    note: 'The deuces through the fives are thrown away before the deal, and two rules come with the thirty-six cards that are left. A flush now beats a full house, because nine of each suit instead of thirteen makes flushes the rarer hand. And the ace plays low under the six, so A-6-7-8-9 is a straight — a nine-high one, not an ace-high one. Everything else is the Hold’em you already know, except that far more of it connects.',
+    note: 'The deuces through the fives are thrown away before the deal, and two rules come with the thirty-six cards that are left. A flush now beats a full house, because nine of each suit instead of thirteen makes flushes the rarer hand. And the ace plays low under the six, so A-6-7-8-9 is a straight: a nine-high one, not an ace-high one. Everything else is the Hold’em you already know, except that far more of it connects.',
     rooms: [...SHORT_DECK_TABLES],
   },
   {
@@ -1246,7 +1246,7 @@ export const SIDE_SHELF: readonly TableFamily[] = [
     tag: 'Hi-Lo',
     section: 'games',
     membersOnly: true,
-    note: 'Omaha, and then every pot is cut in half. One half goes to the best hand as usual; the other goes to the best *low* — five cards of different ranks, all eight or lower, with the ace counting as one. Straights and flushes do not stop a hand being low, so 5-4-3-2-A is both the best low there is and a straight. You still have to use exactly two from your hand for each half, and they are rarely the same two. When nobody makes a qualifying low, which is about half the time, the high hand takes the lot.',
+    note: 'Omaha, and then every pot is cut in half. One half goes to the best hand as usual; the other goes to the best low: five cards of different ranks, all eight or lower, with the ace counting as one. Straights and flushes do not stop a hand being low, so 5-4-3-2-A is both the best low there is and a straight. You still have to use exactly two from your hand for each half, and they are rarely the same two. When nobody makes a qualifying low, which is about half the time, the high hand takes the lot.',
     rooms: [...HI_LO_TABLES],
   },
   {
@@ -1260,7 +1260,7 @@ export const SIDE_SHELF: readonly TableFamily[] = [
     tag: 'Draw',
     section: 'games',
     membersOnly: true,
-    note: 'The oldest game in the room and the least like the rest of this app. Five cards each, all face down, and no board — so there is nothing on the table to read and nothing to share. One round of betting, then everybody throws away as many cards as they like and takes replacements, then one more round, then you show. The only information anybody gets all hand is how many cards you asked for, which is why standing pat on nothing is a real play here rather than a stunt.',
+    note: 'The oldest game in the room and the least like the rest of this app. Five cards each, all face down, and no board, so there is nothing on the table to read and nothing to share. One round of betting, then everybody throws away as many cards as they like and takes replacements, then one more round, then you show. The only information anybody gets all hand is how many cards you asked for, which is why standing pat on nothing is a real play here rather than a stunt.',
     rooms: [...DRAW_TABLES],
   },
   {
@@ -1598,4 +1598,38 @@ export function cashOutValue(venue: Venue, stack: number): number {
   const stackSize = tableStack(venue)
   if (stackSize <= 0 || stackSize === venue.buyIn) return stack
   return Math.round(stack * (venue.buyIn / stackSize))
+}
+
+// --- the table pages ---------------------------------------------------------
+//
+// Every table you can open from the lobby has a page of its own before you sit
+// down (Will, 2026-11-04: "can we new screens for all tables and rails like
+// this? Way better than an alert dialog"). One per ladder rung, Rail room,
+// side-tables family and lobby table; the stakes of a family are options on
+// its page rather than pages of their own.
+
+/** The tables with a page at `/game/table/<id>`. */
+export const TABLE_PAGE_VENUES: readonly Venue[] = [
+  ...VENUES,
+  ...CHALLENGE_TABLES,
+  THE_DAILY,
+  KITCHEN_TABLE,
+  REGULARS_TABLE,
+]
+
+/** Where a table page goes back to when it was opened from somewhere else. */
+export type TablePageFrom = 'home'
+
+const fromQuery = (from?: TablePageFrom) => (from ? `?from=${from}` : '')
+
+/** A table's page: a Rail room under `/game/rail`, everything else under `/game/table`. */
+export function tablePagePath(venue: Venue, from?: TablePageFrom): string {
+  return venue.cash
+    ? `/game/rail/${venue.id}${fromQuery(from)}`
+    : `/game/table/${venue.id}${fromQuery(from)}`
+}
+
+/** A side-tables family's page, with its stakes on it. */
+export function familyPagePath(family: TableFamily): string {
+  return `/game/side/${family.id}`
 }

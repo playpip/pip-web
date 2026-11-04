@@ -1,14 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CategoryArt } from './CategoryArt'
-import { VenueInfoDialog } from './VenueInfoDialog'
 import { WideTableCard } from './wideTableCard'
 import type { Venue } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
 import { sound } from '@/lib/sound'
-import { playPath } from '@/config/venues'
+import { tablePagePath } from '@/config/venues'
 
 /**
  * **Short on time?** — the second question the lobby answers, beside the first.
@@ -28,37 +26,22 @@ import { playPath } from '@/config/venues'
 export function QuickPlayCard({ room, delay = 0 }: { room: Venue; delay?: number }) {
   const router = useRouter()
   const money = useMoney()
-  const [infoOpen, setInfoOpen] = useState(false)
 
   return (
-    <>
-      <WideTableCard
-        eyebrow="Short on time?"
-        title={room.name}
-        // The blinds rather than the prize, because there is no prize: what
-        // matters about a ring table is the stake and that the chips are yours.
-        line={`Cash · sit down for ${money(room.buyIn)} · stand up whenever`}
-        cover={
-          <CategoryArt id={room.id} accent={room.accent} className="absolute inset-0 size-full" />
-        }
-        onOpen={() => {
-          sound.play('tap')
-          setInfoOpen(true)
-        }}
-        delay={delay}
-      />
-
-      {/* Always playable: `quickPlay` only ever returns a room the Roll covers,
-          so there is no locked state to render here. */}
-      <VenueInfoDialog
-        venue={infoOpen ? room : null}
-        playable
-        onOpenChange={(o) => !o && setInfoOpen(false)}
-        onPlay={(v) => {
-          sound.play('call')
-          router.push(playPath(v))
-        }}
-      />
-    </>
+    <WideTableCard
+      eyebrow="Short on time?"
+      title={room.name}
+      // The blinds rather than the prize, because there is no prize: what
+      // matters about a ring table is the stake and that the chips are yours.
+      line={`Cash · sit down for ${money(room.buyIn)} · stand up whenever`}
+      cover={
+        <CategoryArt id={room.id} accent={room.accent} className="absolute inset-0 size-full" />
+      }
+      onOpen={() => {
+        sound.play('tap')
+        router.push(tablePagePath(room, 'home'))
+      }}
+      delay={delay}
+    />
   )
 }

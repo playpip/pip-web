@@ -105,8 +105,8 @@ is not pay-to-win — see [membership.md](./membership.md).
 ### Deep Stack
 
 `DEEP_STACK_TABLES` — **five registered venues wearing one card.** The side-tables page
-shows `DEEP_STACK_DEFAULT` (2,000) and the info dialog swaps between the rest with a stake
-picker.
+shows `DEEP_STACK_DEFAULT` (2,000) and the Deep family's page (`/game/side/deep`, `TableScreen`) lists every
+stake as an option.
 
 | id | Buy-in | Stack | Blinds | Opposition |
 |----|-------:|------:|-------:|------------|

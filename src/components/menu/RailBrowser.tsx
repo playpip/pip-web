@@ -1,30 +1,27 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight, Lock } from 'lucide-react'
 import { Splash } from '@/components/Splash'
-import { RING_TABLES, type Venue, playPath } from '@/config/venues'
+import { RING_TABLES, type Venue, tablePagePath } from '@/config/venues'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { sound } from '@/lib/sound'
 import { SectionScreen } from './SectionScreen'
 import { CategoryArt } from './CategoryArt'
-import { VenueInfoDialog } from './VenueInfoDialog'
 import { useRequireProfile } from './useRequireProfile'
 
 /**
  * The Rail — cash / ring tables. Each stake is a card in its own colour, the
  * chip-stack motif tinted to match, so the page reads like the rest of the
- * lobby rather than a plain list. Tapping a card opens its details (the same
- * dialog the venues use); sitting down happens from there.
+ * lobby rather than a plain list. Tapping a card opens the room's own page
+ * (TableScreen); sitting down happens from there.
  */
 export function RailBrowser() {
   const ready = useRequireProfile()
   const router = useRouter()
   const spendable = useSpendableRoll()
-  const [infoRoom, setInfoRoom] = useState<Venue | null>(null)
 
   if (!ready) return <Splash />
 
@@ -42,7 +39,7 @@ export function RailBrowser() {
             playable={spendable >= room.buyIn}
             onOpen={() => {
               sound.play('tap')
-              setInfoRoom(room)
+              router.push(tablePagePath(room))
             }}
           />
         ))}
@@ -53,16 +50,6 @@ export function RailBrowser() {
         room is 100 big blinds deep and the blinds never move: somewhere to kill ten minutes, not a
         tournament to finish. Bust and you can rebuy or walk. The table doesn’t mind either way.
       </p>
-
-      <VenueInfoDialog
-        venue={infoRoom}
-        playable={infoRoom ? spendable >= infoRoom.buyIn : false}
-        onOpenChange={(o) => !o && setInfoRoom(null)}
-        onPlay={(room) => {
-          sound.play('call')
-          router.push(playPath(room))
-        }}
-      />
     </SectionScreen>
   )
 }

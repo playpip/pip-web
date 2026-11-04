@@ -1,19 +1,18 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Splash } from '@/components/Splash'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
-import { playPath, venueTag, type Venue } from '@/config/venues'
+import { tablePagePath, venueTag, type Venue } from '@/config/venues'
 import { useEntitlement } from '@/store/entitlement'
 import { SectionScreen } from './SectionScreen'
-import { VenueInfoDialog } from './VenueInfoDialog'
 import { VenueTile, type TileVM } from './venueCard'
 import { useRequireProfile } from './useRequireProfile'
 
-/** The one sentence a member-only table is refused in, on the tile and in the dialog. */
+/** The one sentence a member-only table is refused in, on the tile and on its page. */
 export const MEMBERS_ONLY_NOTE = 'Comes with the membership'
 
 /** Shut for the membership rather than for money. */
@@ -22,8 +21,8 @@ export const memberLocked = (thing: { membersOnly?: boolean }, member: boolean) 
 
 /**
  * A full page of venues — the ladder (tiered) or the Rail. Desktop shows a
- * responsive grid, mobile a vertical list; tapping any card opens the info
- * dialog, which is where the buy-in is confirmed and play begins.
+ * responsive grid, mobile a vertical list; tapping any card opens the table's
+ * own page (TableScreen), which is where the buy-in is confirmed and play begins.
  *
  * The side tables do not come through here any more: that shelf is families of
  * rooms rather than venues, and it renders itself (see SideTables.tsx).
@@ -51,7 +50,6 @@ export function VenueBrowser({
   // the other way round. A tile that unlocks is a pleasant surprise; a tile
   // that locks itself as you reach for it is a bug report.
   const member = useEntitlement()
-  const [infoVenue, setInfoVenue] = useState<Venue | null>(null)
 
   const models: TileVM[] = useMemo(
     () =>
@@ -79,11 +77,11 @@ export function VenueBrowser({
           premium: Boolean(venue.membersOnly),
           onOpen: () => {
             sound.play('tap')
-            setInfoVenue(venue)
+            router.push(tablePagePath(venue))
           },
         }
       }),
-    [venues, tiered, spendable, member, money],
+    [venues, tiered, spendable, member, money, router],
   )
 
   if (!ready) return <Splash />
@@ -96,26 +94,6 @@ export function VenueBrowser({
         ))}
         {extraTile}
       </div>
-
-      <VenueInfoDialog
-        // Remount per venue so the dialog's own state resets rather than
-        // leaking from the last table you looked at.
-        key={infoVenue?.id}
-        venue={infoVenue}
-        canAfford={(v) => spendable >= v.buyIn}
-        playable={
-          infoVenue ? !memberLocked(infoVenue, member) && spendable >= infoVenue.buyIn : false
-        }
-        // The tile and the dialog refuse in the same words, from the same
-        // question. They used to refuse in different currencies: the tile said
-        // "Comes with the membership" and the dialog behind it said "Need 750".
-        lockedNote={infoVenue && memberLocked(infoVenue, member) ? MEMBERS_ONLY_NOTE : undefined}
-        onOpenChange={(o) => !o && setInfoVenue(null)}
-        onPlay={(venue) => {
-          sound.play('call')
-          router.push(playPath(venue))
-        }}
-      />
     </SectionScreen>
   )
 }

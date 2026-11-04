@@ -1,25 +1,23 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight, Star } from 'lucide-react'
 import { SectionScreen } from './SectionScreen'
 import { CategoryArt } from './CategoryArt'
 import { VenueArt } from './VenueArt'
-import { VenueInfoDialog } from './VenueInfoDialog'
 import { ShelfCard, type ShelfCardVM } from './ShelfCard'
 import { BlackjackCard } from './BlackjackCard'
-import { MEMBERS_ONLY_NOTE, memberLocked } from './VenueBrowser'
+import { memberLocked } from './VenueBrowser'
 import { useRequireProfile } from './useRequireProfile'
 import { Splash } from '@/components/Splash'
 import {
   SIDE_SHELF,
   familiesIn,
+  familyPagePath,
   houseName,
   membershipForFamily,
   type TableFamily,
-  type Venue,
 } from '@/config/venues'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useMoney } from '@/lib/useMoney'
@@ -41,7 +39,7 @@ import { useQuickRound } from '@/lib/useQuickRound'
  * the two things you needed** (Will, 2026-09-20). "The Docks" does not say
  * *bounty*, and buy-ins running 500 to 25,000 in no order do not say whether any
  * of it is above or below where you play. Now the card is the idea and the
- * second screen of its dialog is the price — the shape Deep Stack already had,
+ * family's own page has the prices — the shape Deep Stack already had,
  * generalised (see config/venues.ts → TABLE_FAMILIES).
  *
  * **Two sections, because there are two kinds of different.** A game that is not
@@ -71,7 +69,6 @@ export function SideTables() {
   // Known not to be a member: the store has answered, so a member never sees
   // the card flash past on load.
   const freePlayer = useMembership((s) => s.checked && !s.member)
-  const [openFamily, setOpenFamily] = useState<TableFamily | null>(null)
 
   // **One member game a day is free** (docs/membership.md). While today's is
   // unspent a locked family opens like a member's would, says "Free today",
@@ -79,7 +76,6 @@ export function SideTables() {
   // the plain lock again, saying so.
   const tasting = (family: TableFamily) => memberLocked(family, member) && taste.left
   const shut = (family: TableFamily) => memberLocked(family, member) && !taste.left
-  const shutNote = taste.ready && taste.record ? TASTE_COPY.used : MEMBERS_ONLY_NOTE
 
   const card = (family: TableFamily, index: number): ShelfCardVM => {
     const locked = shut(family)
@@ -93,7 +89,7 @@ export function SideTables() {
       house: houseName(family),
       short: family.short,
       // The cheapest way in. Over several rooms it says "From", and the
-      // dialog's second screen has every price.
+      // family's page has every price.
       price:
         family.rooms.length > 1
           ? `From ${money(cheapest.buyIn)}`
@@ -111,18 +107,19 @@ export function SideTables() {
       index,
       onOpen: () => {
         sound.play('tap')
-        // **Locked goes to the page, not to the dialog** (Will, 2026-09-20).
-        // The dialog describes a table and then says you cannot play it, which
-        // was a reasonable shape while the shelf was mostly free and is a dead
-        // end now that none of it is. Answering a deliberate tap with the page
-        // that explains the thing is not the nagging the landing page rules
+        // **Locked goes to the membership page, not the table's** (Will,
+        // 2026-09-20). A page that describes a table and then says you cannot
+        // play it is a dead end now that none of the shelf is free; this
+        // answers a deliberate tap with the page that explains the thing,
+        // which is not the nagging the landing page rules
         // out: nothing here appears uninvited, over what you were doing, or
         // twice. See docs/membership.md.
         if (locked) {
           router.push(membershipForFamily(family))
           return
         }
-        setOpenFamily(family)
+        // Everything else opens the family's own page, with its stakes on it.
+        router.push(familyPagePath(family))
       },
     }
   }
@@ -155,7 +152,7 @@ export function SideTables() {
             cheapest={money(cheapestSeat)}
             onPlay={(family) => {
               sound.play('tap')
-              setOpenFamily(family)
+              router.push(familyPagePath(family))
             }}
           />
         </div>
@@ -182,21 +179,6 @@ export function SideTables() {
         ))}
         <BuildCard member={member} index={games.length + twists.length + 1} />
       </Shelf>
-
-      <VenueInfoDialog
-        key={openFamily?.id}
-        family={openFamily}
-        venue={openFamily?.rooms[0] ?? null}
-        canAfford={(v) => spendable >= v.buyIn}
-        playable={openFamily ? !shut(openFamily) : false}
-        lockedNote={openFamily && shut(openFamily) ? shutNote : undefined}
-        freeNote={openFamily && tasting(openFamily) ? TASTE_COPY.note : undefined}
-        onOpenChange={(o) => !o && setOpenFamily(null)}
-        onPlay={(venue: Venue) => {
-          sound.play('call')
-          router.push(`/play/${venue.id}`)
-        }}
-      />
     </SectionScreen>
   )
 }

@@ -179,8 +179,8 @@ tournament bookkeeping (`recordVenueEntry`, `recordVenueResult`, `tournamentsEnt
 stats, tendencies and reads still accrue normally. See [venues.md](./venues.md) for the stakes
 ladder and why difficulty tracks the stake.
 
-**You pick the table size.** Each room has its own number of seats, and its dialog
-(`VenueInfoDialog`) offers 2 to 8 (`RAIL_SEATS`). A size other than the room's own rides in
+**You pick the table size.** Each room has its own number of seats, and its page
+(`/game/rail/<id>`, `TableScreen`) offers 2 to 8 (`RAIL_SEATS`). A size other than the room's own rides in
 the route as `?seats=` (`playPath`) and `PlayClient` applies it with `withSeats`, which does
 nothing to a table whose size is not a choice (`seatChoices`): the only prize tables it
 re-sizes are the top of the ladder (see [venues.md](./venues.md#bigger-tables-at-the-top)).
