@@ -95,7 +95,7 @@ function Body({ price, currency }: { price: ShownPrice; currency: CurrencyCode }
       </div>
       <Till plan={plan} price={price} currency={currency} className="mt-2" />
 
-      <ul className="mt-4 flex flex-col gap-1.5 border-t border-foreground/[0.07] px-1 pt-4 text-xs leading-relaxed text-muted-foreground">
+      <ul className="mt-4 flex flex-col gap-1.5 border-t border-foreground/[0.07] px-1 pt-4 text-center text-xs leading-relaxed text-balance text-muted-foreground">
         {PAYING_LINES[app ? 'app' : 'web'].map((line) => (
           <li key={line}>{line}</li>
         ))}
