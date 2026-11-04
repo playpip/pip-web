@@ -92,7 +92,12 @@ export interface SeatMeta {
   form?: Form
 }
 
-export type GameStatus = 'idle' | 'playing' | 'handover' | 'busted' | 'won' | 'watching'
+/**
+ * `scored`: a quick game played for a score (`Venue.scoreHands`) is over, either
+ * because its hands are dealt or because the player's stack is gone. The page
+ * that seated them shows the score; the table only stops dealing.
+ */
+export type GameStatus = 'idle' | 'playing' | 'handover' | 'busted' | 'won' | 'watching' | 'scored'
 
 // --- hand history ------------------------------------------------------------
 // A lightweight timeline of the previous hand, recorded as it plays so the
@@ -209,6 +214,9 @@ const MAX_REVIEWED_DECISIONS = 8
 // followable), and briskly once the human has folded and is just spectating.
 const AI_DELAY_IN_HAND = 1050
 const AI_DELAY_FOLDED = 450
+/** A quick game's table (`Venue.scoreHands`) deals at Turbo pace: ten hands, not an evening. */
+const AI_DELAY_QUICK = 520
+const AI_DELAY_QUICK_FOLDED = 240
 /**
  * How long a spectator is left on a finished hand before the next is dealt.
  *
@@ -278,6 +286,11 @@ interface GameState {
    * It gates one thing: watching the tournament out after you bust.
    */
   member: boolean
+  /**
+   * A score table's result once it is over (`status: 'scored'`): the chips in
+   * front of the player, and their best before this round (null if none).
+   */
+  score: { chips: number; bestBefore: number | null } | null
 
   sitDown: (venue: Venue, human: { name: string; avatar: AvatarSpec; member: boolean }) => void
   /** Rebuild an interrupted table from its snapshot (no buy-in taken). */
@@ -765,7 +778,14 @@ export const useGame = create<GameState>((set, get) => {
     // AI to act — pause for feel, then decide. Slower while the human is live.
     const hero = hand.players.find((p) => p.id === HUMAN_ID)
     const heroLive = hero?.status === 'active' || hero?.status === 'allin'
-    const delay = heroLive ? AI_DELAY_IN_HAND : AI_DELAY_FOLDED
+    const quick = get().venue?.scoreHands !== undefined
+    const delay = heroLive
+      ? quick
+        ? AI_DELAY_QUICK
+        : AI_DELAY_IN_HAND
+      : quick
+        ? AI_DELAY_QUICK_FOLDED
+        : AI_DELAY_FOLDED
 
     set({ aiThinkingId: toAct.id, heroEquity: null })
     turnTimer = setTimeout(() => {
@@ -1086,6 +1106,29 @@ export const useGame = create<GameState>((set, get) => {
     )
     const newAwards = grantEarnedAwards(hand, venue, heroWon, false, false, 0)
 
+    // A score table: over when its hands are dealt or the stack is gone. The
+    // chips are a score, never the Roll's (`houseStack`), so nothing is paid.
+    if (venue.scoreHands !== undefined && (!humanAlive || get().handIndex >= venue.scoreHands)) {
+      clearTimers()
+      clearTableSnapshot()
+      const chips = stackById.get(HUMAN_ID) ?? 0
+      const bestBefore = useProfile.getState().recordQuickScore(venue.id, chips)
+      sound.play(chips > tableStack ? 'win' : 'lose')
+      set({
+        seats: rebought,
+        hand,
+        status: 'scored',
+        place: null,
+        aiThinkingId: null,
+        message: describeResult(hand),
+        newAwards,
+        lastBounty: 0,
+        talk: null,
+        score: { chips, bestBefore },
+      })
+      return
+    }
+
     if (!humanAlive) {
       clearTimers()
       // Nothing to resume — the buy-in is spent; a refresh re-seats fresh.
@@ -1266,6 +1309,7 @@ export const useGame = create<GameState>((set, get) => {
     talk: null,
     cashInvested: 0,
     member: false,
+    score: null,
 
     sitDown: (venue, human) => {
       clearTimers()
@@ -1368,6 +1412,7 @@ export const useGame = create<GameState>((set, get) => {
         recap: null,
         talk: null,
         cashInvested: venue.buyIn,
+        score: null,
       })
       // Open the session the review will read, or throw away the last one: a
       // table that is not reviewed must not leave the previous table's session
@@ -1570,6 +1615,7 @@ export const useGame = create<GameState>((set, get) => {
         recap: null,
         talk: null,
         cashInvested: 0,
+        score: null,
       })
     },
   }

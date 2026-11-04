@@ -304,6 +304,18 @@ const SCENES: Record<string, Scene> = {
     </>
   ),
 
+  // Ten Hands — ten chips in a row, the run of the round, with the stack you
+  // finished on standing at the end.
+  'ten-hands': (c) => (
+    <>
+      {Array.from({ length: 10 }, (_, i) => (
+        <circle key={i} cx={21 + i * 8.6} cy={22} r="3.2" fill={c} fillOpacity={0.3 + i * 0.07} />
+      ))}
+      {chipTower(c, 48, 76, 4)}
+      {chipTower(c, 74, 80, 7)}
+    </>
+  ),
+
   // The Rail's rooms — chip towers that grow with the stakes. Micro is a couple
   // of modest stacks; the nosebleeds are a skyline.
   'ring-micro': (c) => chipStacks(c, [3, 2], 66),

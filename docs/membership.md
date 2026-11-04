@@ -186,6 +186,11 @@ names each game. That entry is `shipped` exactly while the registry has a game i
 - **Every card on the row opens the game's page**, locked or not: the page shows the best
   and, when the round is used, the limit card with when it comes back.
 - Shared parts: `components/quick/QuickScreen.tsx` (`QuickPage`, `QuickIntro`, `QuickEnd`).
+- **Poker Solitaire** (`lib/quick/solitaire.ts`, `tests/solitaire.test.ts`) scores on the
+  American Poker Squares table; its Daily deal is seeded by the UTC day. **Ten Hands** is the
+  real table: `TEN_HANDS` in `config/venues.ts`, a cash table with `scoreHands: 10`, buy-in 0
+  and a house stack (`houseStack`, so standing up cashes for nothing; `tests/tenHands.test.ts`).
+  The game store stops it with `status: 'scored'` and the page shows the end card over the felt.
 
 | Event | Sent when |
 |---|---|

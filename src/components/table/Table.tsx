@@ -332,6 +332,12 @@ export function Table() {
         Leave
       </button>
     </div>
+  ) : status === 'scored' ? (
+    // A score table is over: the page that seated the player shows the score
+    // over the table in a moment. Until then, the last hand's line.
+    <div className="flex w-full items-center justify-center self-stretch rounded-2xl bg-foreground/[0.03] px-4 py-3 ring-1 ring-foreground/10 ring-inset">
+      <span className="text-sm text-muted-foreground">{message ?? 'That was the last hand.'}</span>
+    </div>
   ) : status === 'handover' ? (
     // Entrance transform lives on the wrapper; the button keeps its own CSS
     // `transition` for hover/press. Animating `y` on the same element that
@@ -422,7 +428,9 @@ export function Table() {
               <>
                 <span className="text-sm font-medium text-muted-foreground">{venue.name}</span>
                 <span className="text-2xs tabular-nums text-muted-foreground/60">
-                  Blinds {smallBlind.toLocaleString()}/{bigBlind.toLocaleString()}
+                  {venue.scoreHands !== undefined
+                    ? `Hand ${Math.min(handIndex, venue.scoreHands)} of ${venue.scoreHands}`
+                    : `Blinds ${smallBlind.toLocaleString()}/${bigBlind.toLocaleString()}`}
                   {blindLevel > 0 && ` · L${blindLevel + 1}`}
                 </span>
               </>

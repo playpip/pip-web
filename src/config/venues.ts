@@ -111,6 +111,14 @@ export interface Venue extends MembersOnly {
    * rather than a cheap one. See config/customTable.ts.
    */
   guests?: readonly string[]
+  /**
+   * A quick game played for a score (config/quickGames): deal this many hands,
+   * then stop, and the stack in front of you is the score. Free to sit, no
+   * prize, and the stack is the house's (`houseStack`), so it never reaches the
+   * Roll and cannot be farmed. Needs `cash`, so a busted opponent rebuys and
+   * the table stays full for every hand.
+   */
+  scoreHands?: number
 }
 
 // Low rungs escalate gently (handsPerLevel 12 → 9) — new players need room to
@@ -1100,7 +1108,12 @@ export function dailyFor(peakRoll: number): Venue {
  * was bought in, so leaving cashes out nothing and there is no session P/L.
  */
 export function houseStack(venue: Venue): boolean {
-  return venue.freeroll === true || venue.daily === true || venue.welcome === true
+  return (
+    venue.freeroll === true ||
+    venue.daily === true ||
+    venue.welcome === true ||
+    venue.scoreHands !== undefined
+  )
 }
 
 /** What finishing in `place` pays onto the Roll (bounties aside). */
@@ -1434,6 +1447,30 @@ export const ALL_VENUES: readonly Venue[] = [
   CUSTOM_TABLE_ROUTE,
   REGULARS_TABLE,
 ]
+
+/**
+ * Ten Hands, a quick game (config/quickGames): ten fast hands of Hold'em
+ * against the regulars from 1,000 chips, and the chips you finish with are the
+ * score. Not on any shelf and not in `ALL_VENUES`: it is sat at from its own
+ * page, which spends the free round, and it pays nothing either way.
+ */
+export const TEN_HANDS: Venue = {
+  id: 'ten-hands',
+  name: 'Ten Hands',
+  tagline: 'Ten hands from 1,000 chips. Finish with as many as you can.',
+  buyIn: 0,
+  startingStack: 1_000,
+  smallBlind: 10,
+  bigBlind: 20,
+  seats: 6,
+  prize: 0,
+  cash: true,
+  escalation: false,
+  scoreHands: 10,
+  membersOnly: true,
+  accent: '#E0A458',
+  ai: { tightness: 0.28, aggression: 0.4, bluff: 0.08, iterations: 550, skill: 0.44 },
+}
 
 export function venueById(id: string): Venue | undefined {
   return ALL_VENUES.find((v) => v.id === id)

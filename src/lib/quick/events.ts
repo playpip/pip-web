@@ -17,4 +17,8 @@ export const QUICK_EVENTS: Readonly<Record<string, QuickEvents>> = {
     started: () => trackOnce('quick-solitaire-started'),
     finished: () => trackOnce('quick-solitaire-finished'),
   },
+  'ten-hands': {
+    started: () => trackOnce('quick-ten-hands-started'),
+    finished: () => trackOnce('quick-ten-hands-finished'),
+  },
 }

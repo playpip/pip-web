@@ -37,7 +37,7 @@ and dates aren't listed on purpose. If something here matters to you,
   played, each one showing the sample it came from
 - **Watching a tournament out after you bust**, with every hand face up
 - **Quick games** — short rounds with a score, at the top of the side tables: Poker
-  Solitaire, with the membership
+  Solitaire and Ten Hands, with the membership
 
 ## Considering next
 
@@ -79,7 +79,7 @@ fold"; the interactive lessons with
 Webb from Level 2 up; four member rooms with three regulars of their own; build-your-own-table;
 a report that reads your play across every hand you have ever played; watching a
 tournament out after you bust; the session review; four member card backs; the quick
-games (Poker Solitaire), with one free round of each a day for everybody; and
+games (Poker Solitaire and Ten Hands), with one free round of each a day for everybody; and
 multiplayer — opening a room for your friends, and quick match. Joining a member's room
 needs only a free account.
 

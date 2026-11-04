@@ -46,6 +46,8 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'limit-card-tapped-quick': 'the free quick match card was tapped',
   'quick-solitaire-started': 'someone started a round of Poker Solitaire',
   'quick-solitaire-finished': 'someone finished a round of Poker Solitaire',
+  'quick-ten-hands-started': 'someone started a round of Ten Hands',
+  'quick-ten-hands-finished': 'someone finished a round of Ten Hands',
   'limit-card-seen-round': 'the free round card was shown',
   'limit-card-tapped-round': 'the free round card was tapped',
   'host-card-seen': 'the hosting card was shown',

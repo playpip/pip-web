@@ -41,6 +41,15 @@ export const QUICK_GAMES: readonly QuickGame[] = [
     unit: 'points',
     membersOnly: true,
   },
+  {
+    id: 'ten-hands',
+    title: 'Ten Hands',
+    short: 'Ten fast hands from 1,000 chips. Finish with as many as you can.',
+    accent: '#E0A458',
+    href: '/game/quick/ten-hands',
+    unit: 'chips',
+    membersOnly: true,
+  },
 ]
 
 /** The membership feature every quick game is sold as. */
