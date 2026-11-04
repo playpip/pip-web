@@ -122,3 +122,7 @@ verify_jwt = false
 
 [functions.unsubscribe]
 verify_jwt = false
+
+# The Pip Rating (docs/rating.md). A signed-in player's own hands only.
+[functions.submit-rating]
+verify_jwt = true

@@ -168,6 +168,10 @@ jobs:
           # the membership's multiplayer entry all hide themselves. Set it once
           # the rooms Worker is deployed and answering, never before.
           NEXT_PUBLIC_ROOMS_URL: ${{ vars.NEXT_PUBLIC_ROOMS_URL }}
+          # `1` shows the Pip Rating and the leaderboard (docs/rating.md). Unset →
+          # neither shows anywhere. Set it once the ratings migration is applied
+          # and submit-rating is deployed, never before.
+          NEXT_PUBLIC_RATING: ${{ vars.NEXT_PUBLIC_RATING }}
         run: pnpm build
 
       # The only place the truth about sync config exists is the emitted bundle. `pnpm build`
