@@ -436,12 +436,14 @@ function MembershipStep({ status }: { status: SyncStatus }) {
                 >
                   {on && <Check className="size-3.5" strokeWidth={3} />}
                 </span>
-                <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-                  <span className="flex items-center gap-1.5 text-lg font-semibold">
-                    {member && <Sparkles className="size-4 text-pip" />}
+                {/* The name never wraps; on a narrow phone the price drops to
+                    its own line under it instead of squeezing the name. */}
+                <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <span className="flex items-center gap-1.5 whitespace-nowrap text-lg font-semibold">
+                    {member && <Sparkles className="size-4 shrink-0 text-pip" />}
                     {c.name}
                   </span>
-                  <span className="shrink-0 text-right tabular-nums">
+                  <span className="whitespace-nowrap tabular-nums">
                     <span className="text-lg font-semibold">{c.price}</span>{' '}
                     <span className="text-sm text-muted-foreground">{c.per}</span>
                   </span>
@@ -465,8 +467,10 @@ function MembershipStep({ status }: { status: SyncStatus }) {
           )
         })}
       </div>
-      {/* Pinned, so the button is on screen however short the phone. */}
-      <div className="sticky bottom-0 -mx-6 mt-5 bg-background px-6 pt-1 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+      {/* Pinned, so the button is on screen however short the phone. Room
+          above it and a short fade, so the cards scroll away under it rather
+          than butting against it. */}
+      <div className="sticky bottom-0 -mx-6 mt-5 bg-background px-6 pt-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] before:pointer-events-none before:absolute before:inset-x-0 before:-top-8 before:h-8 before:bg-gradient-to-t before:from-background before:to-transparent">
         <button type="button" onClick={go} className={primary}>
           {choice === 'member' ? 'See membership plans' : 'Continue for free'}
         </button>
