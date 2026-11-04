@@ -47,6 +47,7 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'host-card-seen': 'the hosting card was shown',
   'host-card-open-tapped': 'its open a room button was tapped',
   'host-card-membership-tapped': 'its membership button was tapped',
+  'room-full-seen': 'a full room turned someone away',
   'free-report-progress-seen': 'the free report card on the lobby was shown',
   'free-report-progress-tapped': 'the free report card on the lobby was tapped',
   'install-banner-seen': 'the install row was shown',

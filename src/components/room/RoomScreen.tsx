@@ -21,6 +21,7 @@ import { HeroTable, riseDelay } from '@/components/marketing/HeroTable'
 import { PlayButton } from '@/components/marketing/PlayButton'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { venueById } from '@/config/venues'
+import { trackOnce } from '@/lib/analytics'
 import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { normaliseRoomCode } from '@/lib/multiplayer/code'
 import {
@@ -79,6 +80,11 @@ export function RoomScreen() {
   // the join gate for a frame before the route changes, and the gate puts you
   // straight back in a slow game you hold a seat at.
   const [leaving, setLeaving] = useState(false)
+
+  // Counted so we know whether rooms fill up; once per tab, so a retry is one.
+  useEffect(() => {
+    if (error === 'full') trackOnce('room-full-seen')
+  }, [error])
 
   const goBack = () => {
     setLeaving(true)

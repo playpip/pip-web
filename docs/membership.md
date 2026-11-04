@@ -520,6 +520,7 @@ event, at most once per tab:
 | `host-card-seen` | a friend's guest without the membership reached the room's end screen |
 | `host-card-open-tapped` | they tapped "Open a room" on it |
 | `host-card-membership-tapped` | they tapped "See the membership" on it |
+| `room-full-seen` | someone was refused a room as full (any host; free hosts seat four since 2 Nov) |
 
 **The free report card (2026-11-04).** Above the lobby's MembershipCard, a non-member sees how
 close their one free report is (`FreeReportCard`, in `components/menu`; the rule is
