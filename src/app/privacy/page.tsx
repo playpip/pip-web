@@ -171,14 +171,15 @@ export default function PrivacyPage() {
           card was shown and that the free quick match card was tapped. A guest at the end of a
           friend’s room game sees a card about hosting their own, and we count that the hosting card
           was shown, that its open a room button was tapped and that its membership button was
-          tapped. Before your first free report opens, the lobby shows how many hands it needs, and
-          we count that the free report card on the lobby was shown and that the free report card on
-          the lobby was tapped. On Android phones a row at the top offers to add Pip to your home
-          screen, and we count that the install row was shown, that its install button was tapped
-          and that Pip was added to a home screen. That tells us where people stop, not who they
-          are. No cookies, no fingerprinting, no personal data, and never anything you typed or any
-          message we got back. We can’t tie any of it to a person, including you. It exists so we
-          can improve the game, and for nothing else. It’s never sold or shared.
+          tapped. When someone tries to join a room with no seats left, we count that a full room
+          turned someone away. Before your first free report opens, the lobby shows how many hands
+          it needs, and we count that the free report card on the lobby was shown and that the free
+          report card on the lobby was tapped. On Android phones a row at the top offers to add Pip
+          to your home screen, and we count that the install row was shown, that its install button
+          was tapped and that Pip was added to a home screen. That tells us where people stop, not
+          who they are. No cookies, no fingerprinting, no personal data, and never anything you
+          typed or any message we got back. We can’t tie any of it to a person, including you. It
+          exists so we can improve the game, and for nothing else. It’s never sold or shared.
         </p>
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t
