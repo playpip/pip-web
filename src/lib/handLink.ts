@@ -198,6 +198,10 @@ export function encodeHand(
  * would be confidently wrong, which is worse than a plain replay.
  */
 export function reviewable(record: HandRecord): boolean {
+  // A Mystery Card hand is reviewed at the table it was played at, where the
+  // face-down cards stay face down until the river; the link format has no
+  // way to say so, so it goes out as a plain replay.
+  if (record.mystery) return false
   if (!record.seats?.length || !record.hole?.length) return false
   if (!record.hole.every((h) => h.cards.length === 2)) return false
   return record.events.some((ev) => ev.kind === 'action' && ev.committed !== undefined)

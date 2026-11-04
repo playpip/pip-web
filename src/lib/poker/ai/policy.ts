@@ -314,13 +314,24 @@ function sizedRaise(
  */
 export function decideAction(
   state: HandState,
-  profile: AiProfile,
+  baseProfile: AiProfile,
   rng: Rng = Math.random,
   memory?: TableMemory,
 ): Action {
   const legal = legalActions(state)
   const player = state.players[state.toActIndex]
   if (!legal || !player) throw new Error('decideAction: no player to act')
+
+  // Mystery Card before the river: the seat holds one card it can see, and
+  // `hole` is only that card (the other waits on `player.mystery`, which this
+  // file never reads). Every read below takes the one card: equity deals the
+  // other from the unseen deck on each run-out, and the preflop gates average
+  // over what it could be. The range experiments are built on two known cards,
+  // so they stand down for the hand.
+  const profile: AiProfile =
+    player.hole.length < 2 && baseProfile.experiment
+      ? { ...baseProfile, experiment: undefined }
+      : baseProfile
 
   const opponents = liveOpponents(state, player.id)
   if (opponents.length === 0) {

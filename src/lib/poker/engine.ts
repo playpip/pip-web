@@ -65,6 +65,16 @@ export interface Player {
   committedThisHand: number
   /** Has acted since the last aggressive action this street. */
   hasActed: boolean
+  /**
+   * Mystery Card: the hole card nobody has seen yet, its owner included.
+   *
+   * Kept off `hole` on purpose. Everything that reads a hand (the AI, the win
+   * %, the coach, the hand record, the felt) reads `hole`, so a card that is
+   * not there cannot leak through any of them. It moves into `hole` when the
+   * river is dealt (`flipMysteryCards`), and a hand that ends before then
+   * never shows it to anybody.
+   */
+  mystery?: Card
 }
 
 export interface PotAward {
@@ -117,6 +127,11 @@ export interface HandState {
    * older build has none, so readers treat a missing log as empty.
    */
   actions: ActionRecord[]
+  /**
+   * Mystery Card: every player's second hole card is dealt face down, even to
+   * them, and turns over when the river is dealt. Absent on every other table.
+   */
+  mystery?: boolean
 }
 
 export interface SeatConfig {
@@ -136,6 +151,8 @@ export interface StartHandOptions {
   deck?: Card[]
   /** Defaults to Hold'em, so every existing caller is unchanged. */
   variant?: Variant
+  /** Deal Mystery Card (Hold'em only): one hole card each stays face down until the river. */
+  mystery?: boolean
 }
 
 // --- seat iteration helpers ------------------------------------------------
@@ -194,6 +211,15 @@ export function startHand(opts: StartHandOptions): HandState {
     }
   }
 
+  // Mystery Card: the second card each player was dealt goes face down, set
+  // aside where nothing that reads a hand can see it until the river.
+  const mystery = !!opts.mystery && variant === 'holdem'
+  if (mystery) {
+    for (const p of players) {
+      if (p.status !== 'out') p.mystery = p.hole.pop()
+    }
+  }
+
   const state: HandState = {
     players,
     buttonIndex,
@@ -209,6 +235,7 @@ export function startHand(opts: StartHandOptions): HandState {
     result: null,
     variant,
     actions: [],
+    ...(mystery ? { mystery: true } : {}),
   }
 
   const dealt = players.filter((p) => p.status !== 'out').length
@@ -568,6 +595,7 @@ function advanceStreet(state: HandState): HandState {
 
     if (street === 'flop') dealCommunity(state, 3)
     else if (street === 'turn' || street === 'river') dealCommunity(state, 1)
+    if (street === 'river') flipMysteryCards(state)
 
     if (street === 'showdown') {
       state.street = 'showdown'
@@ -600,7 +628,22 @@ function resolveNoShowdown(state: HandState, winner: Player): HandState {
   return state
 }
 
+/**
+ * Mystery Card: turn every live player's face-down card over, into `hole`.
+ * Called as the river lands, so a showdown always reads two cards each. A
+ * folded hand keeps its card face down: nobody saw it, so nobody gets to.
+ */
+function flipMysteryCards(state: HandState): void {
+  for (const p of state.players) {
+    if (p.mystery && inHand(p)) {
+      p.hole.push(p.mystery)
+      delete p.mystery
+    }
+  }
+}
+
 function resolveShowdown(state: HandState): HandState {
+  flipMysteryCards(state)
   const pots = buildPots(
     state.players
       .filter((p) => p.committedThisHand > 0)

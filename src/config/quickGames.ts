@@ -50,6 +50,17 @@ export const QUICK_GAMES: readonly QuickGame[] = [
     unit: 'chips',
     membersOnly: true,
   },
+  {
+    // Hold'em with one hole card face down, even to you, until the river
+    // (MYSTERY_TABLE in config/venues). Ten hands against five regulars.
+    id: 'mystery',
+    title: 'Mystery Card',
+    short: 'One of your cards stays face down until the river.',
+    accent: '#B08BE0',
+    href: '/game/quick/mystery',
+    unit: 'chips',
+    membersOnly: true,
+  },
 ]
 
 /** The membership feature every quick game is sold as. */

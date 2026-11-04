@@ -50,6 +50,8 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'quick-ten-hands-finished': 'someone finished a round of Ten Hands',
   'limit-card-seen-round': 'the free round card was shown',
   'limit-card-tapped-round': 'the free round card was tapped',
+  'quick-mystery-started': 'someone started a round of Mystery Card',
+  'quick-mystery-finished': 'someone finished a round of Mystery Card',
   'host-card-seen': 'the hosting card was shown',
   'host-card-open-tapped': 'its open a room button was tapped',
   'host-card-membership-tapped': 'its membership button was tapped',

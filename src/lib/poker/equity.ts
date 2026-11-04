@@ -79,6 +79,17 @@ export interface EquityOptions {
   opponentTopShare?: readonly (number | undefined)[]
 }
 
+/**
+ * How many of the hero's own hole cards are unknown to whoever is asking: a
+ * Mystery Card hand before the river holds one card of two. Each run-out deals
+ * the missing card from the unseen deck, after the opponents, so the estimate
+ * averages over every card it could be and never assumes the real one.
+ * Hold'em only; every other game is always dealt in full.
+ */
+function heroMissing(hole: readonly Card[], variant: Variant): number {
+  return variant === 'holdem' ? Math.max(0, HOLE_CARDS.holdem - hole.length) : 0
+}
+
 function cardKey(c: Card): string {
   return `${c.rank}${c.suit}`
 }
@@ -338,7 +349,9 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
   // against a fifty-two-card runout answers a different question than the one
   // on screen, and answers it confidently.
   const base = remainingDeck([...opts.hole, ...community], DECK_RANKS[variant])
-  const boardNeeded = 5 - community.length
+  const missing = heroMissing(opts.hole, variant)
+  // The hero's unknown cards ride on the end of the board draw, then split off.
+  const boardNeeded = 5 - community.length + missing
   const holeSize = HOLE_CARDS[variant]
   const selectivity = opts.opponentSelectivity
   // Ranged at Hold'em and Omaha, each with its own idea of a strong holding.
@@ -368,7 +381,7 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     dead: Uint8Array
     samplers: (RangeSampler | null)[]
   } | null = null
-  if (variant === 'holdem' && opts.opponentRanges) {
+  if (variant === 'holdem' && opts.opponentRanges && missing === 0) {
     const dead = new Uint8Array(52)
     for (const c of [...opts.hole, ...community]) dead[cardIndex(c)] = 1
     const live: number[] = []
@@ -422,11 +435,13 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
       }
       board = [...community, ...drawn.slice(opponents * holeSize)]
     }
+    const heroHole =
+      missing > 0 ? [...opts.hole, ...board.splice(board.length - missing)] : opts.hole
 
     if (fast) {
       // The same tally as below, off one number per hand: the hero is among
       // the winners when nobody ranks above them, and splits with every equal.
-      const mine = rankHoldem(opts.hole, board)
+      const mine = rankHoldem(heroHole, board)
       let beaten = false
       let sharing = 1
       for (const hole of oppHoles) {
@@ -450,7 +465,7 @@ export function estimateEquity(opts: EquityOptions): EquityResult {
     }
 
     const contenders = [
-      { id: 'hero', hole: opts.hole },
+      { id: 'hero', hole: heroHole },
       ...oppHoles.map((hole, i) => ({ id: `opp${i}`, hole })),
     ]
     const { winners } = determineWinners(contenders, board, variant)

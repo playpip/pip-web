@@ -113,11 +113,15 @@ export function handStateAt(record: HandRecord, step: number): ReplayStep {
   if (lastBoardAt >= 0 && !actedSinceBoard) committed = null
 
   const seats = seatsOf(record)
+  const street = streetOf(community)
+  // Mystery Card: before the river every hand was one card its owner could see,
+  // and the review shows the table as it was, not as it turned out.
+  const faceDown = !!record.mystery && street !== 'river'
   const players: Player[] = seats.map((seat) => ({
     id: seat.id,
     name: seat.name,
     stack: stacks?.[seat.id] ?? 0,
-    hole: holeOf(record, seat.id),
+    hole: faceDown ? holeOf(record, seat.id).slice(0, 1) : holeOf(record, seat.id),
     status: folded.has(seat.id) ? 'folded' : 'active',
     committedThisStreet: committed?.[seat.id] ?? 0,
     committedThisHand: 0,
@@ -135,7 +139,7 @@ export function handStateAt(record: HandRecord, step: number): ReplayStep {
       buttonIndex,
       smallBlind: record.smallBlind,
       bigBlind: record.bigBlind,
-      street: streetOf(community),
+      street,
       community: [...community],
       deck: [],
       currentBet: 0,
@@ -146,6 +150,7 @@ export function handStateAt(record: HandRecord, step: number): ReplayStep {
       variant: 'holdem',
       // A picture of the table for the replay, not a hand anybody plays on.
       actions: [],
+      ...(record.mystery ? { mystery: true } : {}),
     },
     seats,
     pot,

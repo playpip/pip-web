@@ -19,6 +19,8 @@ import { createContext, useContext, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { DealtCard, PlayingCard, type CardSize } from '@/components/PlayingCard'
+import type { CardBackDesign } from '@/config/cardBacks'
+import { MysteryCard } from './MysteryCard'
 import { evaluateHand } from '@/lib/poker/handEval'
 import type { HandState, Player } from '@/lib/poker/engine'
 import { nicknameFor } from '@/config/handNames'
@@ -243,10 +245,16 @@ export function HeroCards({
   discarding,
   marked,
   onToggle,
+  back,
+  flipMystery = true,
 }: {
   hero: Player
   hand: HandState
   size: CardSize
+  /** The player's card back, for a Mystery Card still face down. */
+  back?: CardBackDesign
+  /** Mystery Card: turn the card over as it arrives (false: just show it). */
+  flipMystery?: boolean
   fanned?: boolean
   /**
    * The live table's: the cards lift under the pointer and give under a
@@ -261,6 +269,26 @@ export function HeroCards({
 }) {
   const folded = hero.status === 'folded'
   const nickname = nicknameFor(hero.hole)
+  // Mystery Card: before the river the second card is not on `hero` at all, so
+  // it is drawn face down in its place; from the river it is `hole[1]`, and it
+  // arrives turning over.
+  const mysteryHidden = !!hand.mystery && hero.hole.length === 1
+  const fan = (i: number) =>
+    fanned && !discarding && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2')
+  const lift = (node: React.ReactNode, key: string) =>
+    tactile && !folded ? (
+      <motion.div
+        key={key}
+        className="relative"
+        whileHover={{ y: -8, zIndex: 1 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+      >
+        {node}
+      </motion.div>
+    ) : (
+      node
+    )
   return (
     <div className={cn('flex flex-col items-center gap-1.5', folded && 'opacity-40')}>
       {/* Not fanned while you are choosing: overlapping cards are lovely to
@@ -268,6 +296,20 @@ export function HeroCards({
       <div className={cn('flex items-end', fanned && !discarding ? '-space-x-6' : 'gap-2')}>
         {hero.hole.map((card, i) => {
           const isMarked = discarding && marked?.includes(i)
+          if (hand.mystery && i === 1) {
+            const key = `${card.rank}${card.suit}`
+            return lift(
+              <MysteryCard
+                key={key}
+                card={card}
+                size={size}
+                back={back}
+                flip={flipMystery}
+                className={cn(fan(i))}
+              />,
+              key,
+            )
+          }
           // Key by the card so a new deal re-mounts and replays the animation.
           const dealt = (
             <DealtCard
@@ -276,7 +318,7 @@ export function HeroCards({
               card={card}
               size={size}
               className={cn(
-                fanned && !discarding && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2'),
+                fan(i),
                 // A dimmed (opacity-40) rounded card with a drop shadow renders a
                 // bright halo along its bottom edge on iOS Safari — the shadow
                 // inverts under fractional opacity. Folded cards don't need a
@@ -288,19 +330,7 @@ export function HeroCards({
               )}
             />
           )
-          if (!discarding && tactile && !folded)
-            return (
-              <motion.div
-                key={`${card.rank}${card.suit}`}
-                className="relative"
-                whileHover={{ y: -8, zIndex: 1 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-              >
-                {dealt}
-              </motion.div>
-            )
-          if (!discarding) return dealt
+          if (!discarding) return lift(dealt, `${card.rank}${card.suit}`)
           return (
             <button
               key={`${card.rank}${card.suit}`}
@@ -314,6 +344,16 @@ export function HeroCards({
             </button>
           )
         })}
+        {mysteryHidden &&
+          lift(
+            <MysteryCard
+              key="mystery"
+              size={size}
+              back={back}
+              className={cn(fan(1), folded && 'shadow-none')}
+            />,
+            'mystery',
+          )}
         <span className="sr-only">{hand.street}</span>
       </div>
       {/* The nickname's line is always there, empty for a hand without one.

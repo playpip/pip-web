@@ -316,6 +316,47 @@ const SCENES: Record<string, Scene> = {
     </>
   ),
 
+  // Mystery Card — two hole cards, one face up, one face down with a "?".
+  mystery: (c) => (
+    <>
+      <rect
+        x="36"
+        y="28"
+        width="26"
+        height="38"
+        rx="3.5"
+        fill="#fafafa"
+        fillOpacity={0.9}
+        transform="rotate(-9 49 47)"
+      />
+      <text x="42" y="44" fontSize="11" fontWeight="700" fill={c} transform="rotate(-9 49 47)">
+        A
+      </text>
+      <rect
+        x="58"
+        y="27"
+        width="26"
+        height="38"
+        rx="3.5"
+        fill={c}
+        fillOpacity={0.85}
+        transform="rotate(8 71 46)"
+      />
+      <text
+        x="71"
+        y="52"
+        fontSize="17"
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#fafafa"
+        fillOpacity={0.85}
+        transform="rotate(8 71 46)"
+      >
+        ?
+      </text>
+    </>
+  ),
+
   // The Rail's rooms — chip towers that grow with the stakes. Micro is a couple
   // of modest stacks; the nosebleeds are a skyline.
   'ring-micro': (c) => chipStacks(c, [3, 2], 66),

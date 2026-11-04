@@ -18,6 +18,7 @@ type Buzz =
   | 'tap'
   | 'deal'
   | 'draw'
+  | 'flip'
   | 'check'
   | 'call'
   | 'bet'
@@ -97,6 +98,7 @@ const PLAY: Record<Buzz, () => Promise<void>> = {
   tap: () => Haptics.selectionAsync(),
   deal: impact(Impact.Soft),
   draw: () => Haptics.selectionAsync(),
+  flip: sequence(impact(Impact.Soft), 50, impact(Impact.Light)),
   check: impact(Impact.Soft),
   call: impact(Impact.Light),
   bet: sequence(impact(Impact.Light), 50, impact(Impact.Medium)),

@@ -57,6 +57,8 @@ export const PATTERNS: Record<Buzz, number | number[]> = {
   deal: 8,
   /** Cards going away and coming back. `deal`, shorter. */
   draw: 6,
+  /** A Mystery Card turning over: two taps, rising. */
+  flip: [8, 40, 14],
   /** A knock on the table. */
   check: 8,
   /** Chips in, one push. */

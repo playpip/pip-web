@@ -18,6 +18,7 @@ export type Cue =
   | 'tap'
   | 'turn'
   | 'draw'
+  | 'flip'
 
 interface Voice {
   freq: number
@@ -43,15 +44,18 @@ const VOICES: Record<Cue, Voice> = {
   // Cards going away and coming back: `deal`'s shape, a touch shorter, so a
   // draw round of five players does not turn into a drum solo.
   draw: { freq: 340, type: 'triangle', duration: 0.06, gain: 0.11, sweepTo: 240 },
+  // Mystery Card turning over on the river: `deal` played upwards and held a
+  // little longer, so it reads as a card being lifted rather than landing.
+  flip: { freq: 380, type: 'triangle', duration: 0.22, gain: 0.16, sweepTo: 780 },
 }
 
 /**
- * A sound pack, as a transform of the twelve voices above rather than a second
+ * A sound pack, as a transform of the voices above rather than a second
  * copy of them.
  *
  * **The cues were tuned against each other** — `fold` sits under `check`, `win`
  * answers `lose`, `draw` is `deal` shortened so a five-player draw round is not
- * a drum solo — and a pack that re-authored all twelve would let one of those
+ * a drum solo — and a pack that re-authored every one would let one of those
  * relationships drift on an afternoon nobody was listening carefully. Scaling
  * the whole set preserves the shape by construction, and it means a pack is
  * four numbers, which is the reason there can be six of them.

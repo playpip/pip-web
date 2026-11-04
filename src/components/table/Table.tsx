@@ -488,6 +488,7 @@ export function Table() {
                 <div className="relative z-20 flex flex-col gap-2 px-3 pt-1">
                   <div className="flex justify-center">
                     <HeroCards
+                      back={cardBack}
                       hero={hero}
                       hand={hand}
                       size="drill"
@@ -516,6 +517,7 @@ export function Table() {
                   the first card's tilt so its corner doesn't poke past) */}
                   <div className="flex flex-1 basis-0 items-end justify-center pl-2">
                     <HeroCards
+                      back={cardBack}
                       hero={hero}
                       hand={hand}
                       size="hero"
@@ -542,6 +544,7 @@ export function Table() {
             ) : (
               <div className="relative z-20 flex items-stretch justify-center gap-6 px-6">
                 <HeroCards
+                  back={cardBack}
                   hero={hero}
                   hand={hand}
                   size="board"

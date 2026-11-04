@@ -172,9 +172,10 @@ export default function PrivacyPage() {
           tapped, that the free round card was shown and that the free round card was tapped. For
           each quick game we count that a round of it was started and finished: that someone started
           a round of Poker Solitaire, that someone finished a round of Poker Solitaire, that someone
-          started a round of Ten Hands and that someone finished a round of Ten Hands. A guest at
-          the end of a friend’s room game sees a card about hosting their own, and we count that the
-          hosting card was shown, that its open a room button was tapped and that its membership
+          started a round of Ten Hands, that someone finished a round of Ten Hands, that someone
+          started a round of Mystery Card and that someone finished a round of Mystery Card. A guest
+          at the end of a friend’s room game sees a card about hosting their own, and we count that
+          the hosting card was shown, that its open a room button was tapped and that its membership
           button was tapped. When someone tries to join a room with no seats left, we count that a
           full room turned someone away. Before your first free report opens, the lobby shows how
           many hands it needs, and we count that the free report card on the lobby was shown and

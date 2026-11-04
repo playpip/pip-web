@@ -190,6 +190,34 @@
 .foil-sweep {
   animation: foil-sweep 7s ease-in-out infinite;
 }
+/* --- Mystery Card ------------------------------------------------------------
+   The face-down hole card (components/table/MysteryCard.tsx): a sheen that
+   crosses it now and then and a "?" that breathes, slowly, so it reads as a
+   card waiting to be turned rather than something flashing at you. */
+@keyframes mystery-shimmer {
+  0% {
+    transform: translateX(0);
+  }
+  30%,
+  100% {
+    transform: translateX(200%);
+  }
+}
+.mystery-shimmer {
+  animation: mystery-shimmer 4.5s ease-in-out infinite;
+}
+@keyframes mystery-mark {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.mystery-mark {
+  animation: mystery-mark 3s ease-in-out infinite;
+}
 /* --- the hero rise ----------------------------------------------------------
    Above-the-fold copy on the marketing pages. CSS, not Framer: a Framer
    `initial` is written into the static HTML as `opacity:0` and only lifted once
@@ -262,6 +290,8 @@
   .venue-breathe,
   .venue-flicker,
   .foil-sweep,
+  .mystery-shimmer,
+  .mystery-mark,
   .rise-in {
     animation: none;
   }

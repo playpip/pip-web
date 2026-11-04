@@ -12,7 +12,10 @@ import type { Rng } from './cards'
 
 export function heroEquity(hand: HandState, heroId: string, rng?: Rng): number | null {
   const hero = hand.players.find((p) => p.id === heroId)
-  if (!hero || hero.hole.length < 2) return null
+  // A Mystery Card hand before the river holds one card you can see, and the
+  // number is read off that one: the face-down card is dealt from the unseen
+  // deck on every run-out, so it is the chance you can actually know.
+  if (!hero || hero.hole.length < (hand.mystery && hero.mystery ? 1 : 2)) return null
   // **No number at all at Five-Card Draw**, which is better than a wrong one.
   // `estimateEquity` works by running out a board, and a draw hand has none:
   // asked anyway it deals five community cards onto five hole cards and

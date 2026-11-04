@@ -180,6 +180,12 @@ export interface HandRecord {
    * hand, so a v2 `/hand` link carries these too; a plain v1 link does not.
    */
   hole?: { playerId: string; cards: Card[] }[]
+  /**
+   * A Mystery Card hand: before the river each hand was one card its owner
+   * could see, so the review draws it that way (`handStateAt`) and grades
+   * nothing it could not have known.
+   */
+  mystery?: boolean
   /** Who had the button. Optional for the same reason `seats` is. */
   buttonId?: string
   /** The table as the cards landed: stacks and blinds before anybody acted. */
@@ -595,6 +601,11 @@ const READ_TALK_BELOW = 0.6
 
 /** Who has voluntarily put chips in this hand already (VPIP counts once per hand). */
 let vpipThisHand = new Set<string>()
+/**
+ * Mystery Card: whether this hand's flip has had its sound. Starts true so a
+ * hand resumed from a snapshot does not chime on arrival; every deal clears it.
+ */
+let mysteryFlipped = true
 
 const statsFor = (id: string): SeatStats => (seatStatsLive[id] ??= emptySeatStats())
 
@@ -719,7 +730,10 @@ export const useGame = create<GameState>((set, get) => {
       // Four cards and pot-limit at an Omaha table. Absent everywhere else, so
       // every existing table deals exactly what it always did.
       variant: venue!.variant,
+      // Mystery Card: one hole card each stays face down until the river.
+      mystery: venue!.mystery,
     })
+    mysteryFlipped = false
     // The opponents get their own stream off the same per-hand seed as the deck.
     armDailyHand(handIndex)
     sound.play('deal')
@@ -760,6 +774,17 @@ export const useGame = create<GameState>((set, get) => {
   function progress() {
     const { hand } = get()
     if (!hand) return
+
+    // Mystery Card: the player's face-down card has just turned over with the
+    // river. The sound waits for the felt's flip (MYSTERY_FLIP_DELAY) so the
+    // two land together.
+    if (hand.mystery && !mysteryFlipped) {
+      const hero = hand.players.find((p) => p.id === HUMAN_ID)
+      if (hero && hero.hole.length >= 2) {
+        mysteryFlipped = true
+        setTimeout(() => sound.play('flip'), 600)
+      }
+    }
 
     if (isHandComplete(hand)) {
       finishHand()
@@ -1719,9 +1744,12 @@ function buildHandRecord(
     seats: ctx.seats.map((s) => ({ id: s.id, name: s.name, avatar: s.avatar })),
     buttonId: hand.players[hand.buttonIndex]?.id,
     start: handStart,
+    // A Mystery Card that never turned over stays off the record: nobody saw
+    // it. The player's one visible card is still theirs to see again.
     hole: hand.players
-      .filter((p) => p.hole.length >= 2)
+      .filter((p) => p.hole.length >= 2 || (hand.mystery && p.id === HUMAN_ID && p.hole.length > 0))
       .map((p) => ({ playerId: p.id, cards: p.hole.slice() })),
+    ...(hand.mystery ? { mystery: true } : {}),
     summary: describeResult(hand),
     heroDelta:
       (hand.players.find((p) => p.id === HUMAN_ID)?.stack ?? ctx.heroStackBefore) -

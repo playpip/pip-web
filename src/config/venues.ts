@@ -100,6 +100,12 @@ export interface Venue extends MembersOnly {
    */
   variant?: Variant
   /**
+   * Mystery Card: Hold'em where one of each player's two hole cards stays face
+   * down, to its owner too, until the river is dealt. A rule on top of the
+   * deal rather than a different game, so it is a flag beside `variant`.
+   */
+  mystery?: boolean
+  /**
    * Named characters who sit at this table, and who **bring their own game with
    * them** — a guest plays the profile of the cheapest rung they are a regular
    * at, whenever that is harder than this venue's (`profileFor` in
@@ -1469,6 +1475,32 @@ export const TEN_HANDS: Venue = {
   scoreHands: 10,
   membersOnly: true,
   accent: '#E0A458',
+  ai: { tightness: 0.28, aggression: 0.4, bluff: 0.08, iterations: 550, skill: 0.44 },
+}
+
+/**
+ * Mystery Card, a quick game (config/quickGames): Hold'em where each player's
+ * second hole card is dealt face down, to its owner too, and turns over when
+ * the river lands (`mystery`, lib/poker/engine). Ten hands against the
+ * regulars from 1,000 chips, on the same score-table rules as Ten Hands: the
+ * chips are the house's and the stack you finish with is the score.
+ */
+export const MYSTERY_TABLE: Venue = {
+  id: 'mystery',
+  name: 'Mystery Card',
+  tagline: 'One of your cards stays face down until the river.',
+  buyIn: 0,
+  startingStack: 1_000,
+  smallBlind: 10,
+  bigBlind: 20,
+  seats: 6,
+  prize: 0,
+  cash: true,
+  escalation: false,
+  scoreHands: 10,
+  membersOnly: true,
+  mystery: true,
+  accent: '#B08BE0',
   ai: { tightness: 0.28, aggression: 0.4, bluff: 0.08, iterations: 550, skill: 0.44 },
 }
 

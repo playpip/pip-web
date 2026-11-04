@@ -84,7 +84,8 @@ export function FeltSeat({
   const button = useContext(TableStyleContext).button
   const folded = player.status === 'folded'
   const out = player.status === 'out'
-  const cards = held ?? player.hole.length
+  // A Mystery Card is still a card in their hand, face down like the other.
+  const cards = held ?? player.hole.length + (player.mystery ? 1 : 0)
   const holding = !folded && !out && cards > 0
   const size = compact ? (crowded ? 40 : 46) : 64
   const towardMiddle = side === 'right' ? 'left' : 'right'

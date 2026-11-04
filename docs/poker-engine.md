@@ -329,6 +329,20 @@ everywhere else. Their equity reading is genuinely Omaha, but their tightness, a
 and bluff numbers were banded against two cards. It is the table most in need of a tuning
 pass, and it is on the roadmap as such.
 
+**Mystery Card is a rule on Hold'em, not a variant** (`HandState.mystery`, set from
+`Venue.mystery`; the quick game `MYSTERY_TABLE`). Each player's second hole card is dealt into
+`Player.mystery` instead of `hole`, face down to its owner too, and moves into `hole` as the
+river is dealt (`flipMysteryCards`, also called at showdown for an all-in run-out). A hand that
+folds before then keeps it face down for good. **Off `hole` is the whole design**: the AI, the
+win %, the coach, the hand record and the felt all read `hole`, so none of them can see a card
+that is not there. To play one card honestly, `estimateEquity` deals a short Hold'em hole's
+missing card from the unseen deck on every run-out, `holeStrength`/`preflopPercentile` average
+a lone card over every card it could be paired with, the push/fold chart stands down, and the
+range experiments switch off for the hand. `tests/mystery.test.ts` swaps the face-down card for
+another and asserts every AI decision and the win % come out identical, draw for draw. The
+review masks every hand to its first card before the river (`HandRecord.mystery`) and a
+Mystery hand never goes out as a review link.
+
 **Adding a third variant** would mean: a `Variant` member, an entry in `HOLE_CARDS`, a
 branch in `evaluateHand`, whatever betting rule it needs in `legalActions`, and the
 `variant` threaded into `estimateEquity`. Nothing else — the store, the table and the

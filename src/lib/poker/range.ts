@@ -105,6 +105,7 @@ function madeStrength(cards: readonly Card[]): number {
  * draw potential. Only meaningful for comparing holdings on the *same* board.
  */
 export function holeStrength(hole: readonly Card[], community: readonly Card[]): number {
+  if (hole.length === 1 && community.length === 0) return oneCardStrength(hole[0])
   if (hole.length < 2) return 0
   if (community.length === 0) return preflopStrength(hole[0], hole[1])
   return madeStrength([...hole, ...community])
@@ -140,6 +141,27 @@ export function omahaStrength(hole: readonly Card[], community: readonly Card[])
   return Math.min(1, ((pairs[0] + pairs[1]) / 2) * 0.8 + mean * 0.2)
 }
 
+const ALL_CARDS: readonly Card[] = (Object.keys(RANK_VALUE) as Rank[]).flatMap((rank) =>
+  (['c', 'd', 'h', 's'] as Suit[]).map((suit) => ({ rank, suit })),
+)
+
+/**
+ * Mystery Card, before the flop: what one card is worth when the other is face
+ * down. The average of `preflopStrength` over every card the other could be,
+ * because that is all its owner can honestly know. An ace averages out near a
+ * good suited king; a deuce near the bottom of the range.
+ */
+function oneCardStrength(card: Card): number {
+  let sum = 0
+  let n = 0
+  for (const other of ALL_CARDS) {
+    if (other.rank === card.rank && other.suit === card.suit) continue
+    sum += preflopStrength(card, other)
+    n++
+  }
+  return sum / n
+}
+
 let preflopTable: Float64Array | null = null
 
 /**
@@ -149,10 +171,7 @@ let preflopTable: Float64Array | null = null
  */
 export function preflopPercentile(hole: readonly Card[]): number {
   if (!preflopTable) {
-    const deck: Card[] = []
-    for (const rank of Object.keys(RANK_VALUE) as Rank[]) {
-      for (const suit of ['c', 'd', 'h', 's'] as Suit[]) deck.push({ rank, suit })
-    }
+    const deck = ALL_CARDS
     const all: number[] = []
     for (let i = 0; i < deck.length; i++) {
       for (let j = i + 1; j < deck.length; j++) all.push(preflopStrength(deck[i], deck[j]))
@@ -160,7 +179,7 @@ export function preflopPercentile(hole: readonly Card[]): number {
     preflopTable = Float64Array.from(all.sort((a, b) => a - b))
   }
   const table = preflopTable
-  const mine = preflopStrength(hole[0], hole[1])
+  const mine = hole.length === 1 ? oneCardStrength(hole[0]) : preflopStrength(hole[0], hole[1])
   let lo = 0
   let hi = table.length
   while (lo < hi) {

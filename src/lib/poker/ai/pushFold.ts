@@ -73,7 +73,8 @@ export function pushFoldAction(state: HandState, rng: Rng): Action | null {
   if (state.street !== 'preflop' || state.variant !== 'holdem') return null
   const legal = legalActions(state)
   const me = state.players[state.toActIndex]
-  if (!legal || !me) return null
+  // The chart is for two known cards; a Mystery Card seat plays it by feel.
+  if (!legal || !me || me.hole.length < 2) return null
   const bb = Math.max(state.bigBlind, 1)
   const order = preflopOrder(state)
   const others = order.filter((p) => p.id !== me.id && p.status !== 'folded')
