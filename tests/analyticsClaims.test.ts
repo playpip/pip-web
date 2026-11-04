@@ -47,6 +47,8 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'host-card-seen': 'the hosting card was shown',
   'host-card-open-tapped': 'its open a room button was tapped',
   'host-card-membership-tapped': 'its membership button was tapped',
+  'free-report-progress-seen': 'the free report card on the lobby was shown',
+  'free-report-progress-tapped': 'the free report card on the lobby was tapped',
 }
 
 /** `track('x')` and `trackOnce('x')`, single or double quoted, literals only. */

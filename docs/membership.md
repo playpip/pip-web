@@ -521,6 +521,18 @@ event, at most once per tab:
 | `host-card-open-tapped` | they tapped "Open a room" on it |
 | `host-card-membership-tapped` | they tapped "See the membership" on it |
 
+**The free report card (2026-11-04).** Above the lobby's MembershipCard, a non-member sees how
+close their one free report is (`FreeReportCard`, in `components/menu`; the rule is
+`freeReportProgress` in `lib/membership/freeReport`): "62 of 120 hands" with a dial while
+waiting, "A few more hands" once past 120 with nothing to say yet, and "Your report is ready"
+once it is. The count is `tendencies.handsDealt`, the number `deepRead` waits on. Nothing before
+the first hand, nothing for members, nothing once it is open or used. It links to the report page.
+
+| Event | Sent when |
+|---|---|
+| `free-report-progress-seen` | the free report card was shown on the lobby |
+| `free-report-progress-tapped` | it was tapped |
+
 Tapped over seen is the card's own rate; `checkout-opened` in the same tabs is what it led to.
 Umami events here are names only, so the feature is in the name rather than in event data.
 

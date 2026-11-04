@@ -14,6 +14,8 @@ export interface FreeReportView {
   /** The report as it stands, from their own hands. */
   read: DeepRead
   state: FreeReportState
+  /** Hands counted towards it: `tendencies.handsDealt`, what `deepRead` waits on. */
+  hands: number
   /** The UTC day key it was answered against. */
   today: string
 }
@@ -37,5 +39,11 @@ export function useFreeReport(): FreeReportView {
     [tendencies, stats, venueRecords, rollHistory, reviewStats],
   )
   const today = dailyDateKey()
-  return { ready: hydrated, read, state: freeReportState(record, today, read), today }
+  return {
+    ready: hydrated,
+    read,
+    hands: tendencies.handsDealt,
+    state: freeReportState(record, today, read),
+    today,
+  }
 }

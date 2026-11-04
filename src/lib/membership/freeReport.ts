@@ -94,6 +94,32 @@ export function isFreeReportRecord(value: unknown): value is FreeReportRecord {
   return typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date)
 }
 
+/**
+ * What the lobby's progress card shows (2026-11-04), or `null` for nothing.
+ *
+ * Counted in `tendencies.handsDealt`, the number `deepRead` itself waits on,
+ * so the card and the report page can never disagree about how far along a
+ * player is. Nothing before the first hand: a brand-new player's lobby is busy
+ * enough. Past the line with nothing to say yet, it says so rather than draw
+ * progress towards a number that has already been passed. Once it is open or
+ * used, the card has nothing new to tell them.
+ */
+export type FreeReportProgress =
+  | { kind: 'counting'; hands: number; of: number }
+  | { kind: 'almost' }
+  | { kind: 'ready' }
+
+export function freeReportProgress(
+  state: FreeReportState,
+  hands: number,
+): FreeReportProgress | null {
+  if (state === 'ready') return { kind: 'ready' }
+  if (state !== 'waiting' || hands <= 0) return null
+  return hands < DEEP_MIN_HANDS
+    ? { kind: 'counting', hands, of: DEEP_MIN_HANDS }
+    : { kind: 'almost' }
+}
+
 /** What the free report is called everywhere it is offered. One place so they agree. */
 export const FREE_REPORT_COPY = {
   /** The membership page and the comparison: what a free player gets. */
@@ -112,6 +138,12 @@ export const FREE_REPORT_COPY = {
   open: 'See your report',
   /** Over the report while it is open. */
   banner: 'Your free report. It is open until midnight UTC.',
+  /** The lobby's progress card: its label. */
+  progress: 'Your free report',
+  /** The lobby's progress card, past the hand count with nothing to say yet. */
+  almost: 'A few more hands',
+  /** Under that: why, in one line. */
+  almostLine: 'It opens once it has found something in your play.',
   /** Once it has been used. */
   used: 'You have had your free report.',
 } as const

@@ -13,6 +13,7 @@ import { AccountOffer } from '@/components/settings/AccountOffer'
 import { GettingStarted } from '@/components/menu/GettingStarted'
 import { LobbySaveOnce } from '@/components/onboarding/SavePlayer'
 import { MembershipCard } from './MembershipCard'
+import { FreeReportCard } from './FreeReportCard'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { hasPlaceholderName } from '@/lib/newPlayer'
 import { useProfile } from '@/store/profile'
@@ -224,6 +225,9 @@ export function Home() {
 
         {/* The one place the lobby says the membership exists: under the
             Ladder, the way the account offer sits under the Roll. */}
+        {/* Hands towards the one free report, above the card that names the
+            membership: absent for members and once it is open or used. */}
+        <FreeReportCard delay={0.18} />
         <MembershipCard delay={0.2} />
 
         {/* The detours: the same game somewhere else, picked by mood rather

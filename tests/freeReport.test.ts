@@ -2,6 +2,7 @@ import test from 'ava'
 import { DEEP_MIN_HANDS, type DeepCoachInput, deepRead } from '@/lib/deepCoach'
 import {
   FREE_REPORT_COPY,
+  freeReportProgress,
   freeReportState,
   isFreeReportRecord,
   mergeFreeReport,
@@ -106,4 +107,18 @@ test('a profile from before it existed has never opened one', (t) => {
 test('the copy names the report’s own minimum and no em-dash', (t) => {
   t.true(FREE_REPORT_COPY.offer.includes(String(DEEP_MIN_HANDS)))
   for (const line of Object.values(FREE_REPORT_COPY)) t.false(line.includes('—'), line)
+})
+
+test('the lobby card counts the same hands the report waits on, and only while it means something', (t) => {
+  t.is(freeReportProgress('waiting', 0), null, 'nothing before the first hand')
+  t.deepEqual(freeReportProgress('waiting', 62), {
+    kind: 'counting',
+    hands: 62,
+    of: DEEP_MIN_HANDS,
+  })
+  t.deepEqual(freeReportProgress('waiting', DEEP_MIN_HANDS), { kind: 'almost' })
+  t.deepEqual(freeReportProgress('waiting', 400), { kind: 'almost' }, 'no progress past the line')
+  t.deepEqual(freeReportProgress('ready', 340), { kind: 'ready' })
+  t.is(freeReportProgress('open', 340), null)
+  t.is(freeReportProgress('used', 340), null)
 })
