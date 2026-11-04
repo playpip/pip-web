@@ -40,8 +40,8 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
    `MEMBERSHIP_PRICES` in `src/config/membership.ts`; nothing writes one by hand.
 
    **What "pay-to-win" means here, since the membership made it a live question**
-   (Will, 2026-09-16): buying an advantage *over another player*. Pip is single-player,
-   there is no leaderboard, and there is nobody to overtake — so there is no contest a
+   (Will, 2026-09-16): buying an advantage *over another player*. The Roll has no
+   leaderboard and nobody to overtake on it — so there is no contest a
    member can buy their way to the front of. Member rooms are ranked and a member does
    reach a rank sooner for having more tables to win at, but that is pace through
    single-player content, which is what every game with paid content sells. If somebody
@@ -59,8 +59,8 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
 
    **The Pip Rating is public (Will, 2026-11-04).** A rating of decision quality with a
    leaderboard (docs/rating.md). It cannot be bought or ground up, so it is not a contest a
-   member can buy their way to the front of. The Roll and its titles stay private. Until
-   `NEXT_PUBLIC_RATING` is set in production, "there is no leaderboard" is still true.
+   member can buy their way to the front of. The Roll and its titles stay private. Live in
+   production since 2026-11-04.
 2. **Clean over decorated.** Flat, black-first, one accent at a time. The table is drawn as
    a table (a quiet cloth, a dark rail), but never as a casino: no baize texture, no
    leather, no neon, no gold.

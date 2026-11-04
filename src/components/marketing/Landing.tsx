@@ -247,8 +247,9 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       // Briefly replaced when member rooms were ruled ranked, on the reasoning
       // that a member reaching a rank sooner made "pay-to-win" false at the
       // edges. Restored (Will, 2026-09-16): pay-to-win means buying an
-      // advantage over other players, and there is no leaderboard and nobody to
-      // overtake, so there is no contest for a member to win. Made again for
+      // advantage over other players, and the Roll has no leaderboard and nobody
+      // to overtake, so there is no contest for a member to win. The Pip Rating's
+      // leaderboard (2026-11-04) rates decisions, which nothing bought changes. Made again for
       // multiplayer (2026-10-11, docs/membership.md rule 3): nobody at a table
       // sees anybody's Roll or rank, everyone sits with the same stack, and the
       // membership changes nothing once the cards are dealt.

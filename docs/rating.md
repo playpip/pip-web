@@ -1,8 +1,8 @@
 # The Pip Rating
 
-> **Status: built, not live.** The migration and the `submit-rating` Edge Function are in the
-> repo and have not been applied or deployed. Everything on screen that needs them is behind
-> `NEXT_PUBLIC_RATING`, which production does not set. See [To go live](#to-go-live).
+> **Status: live since 2026-11-04.** The migration is applied, `submit-rating` is deployed, and
+> the repo Variable `NEXT_PUBLIC_RATING=1` is set. [To go live](#to-go-live) is kept as the
+> record of how, and for a fresh project.
 
 A number on a chess-like scale for **how well you decide**, not how much you win (Will,
 2026-11-04). It is called the **Pip Rating**, never "Elo". It is public, with a live

@@ -101,8 +101,9 @@ this paragraph is written from, and a test stops it advertising anything unbuilt
 out.** Rank comes from the highest Roll you have ever reached, so a member with more tables
 to win at reaches a rank sooner. We thought hard about whether that makes "no pay-to-win"
 false and decided it does not: pay-to-win means buying an advantage over another player, and
-Pip is single-player with no leaderboard and nobody to overtake. There is no contest to buy
-your way to the front of, and if somebody wants to farm chips all evening, that is their
+the Roll has no leaderboard and nobody to overtake. There is no contest to buy your way to
+the front of (the one public leaderboard, the Pip Rating, measures how well you decide, which
+nothing you can buy changes: [docs/rating.md](docs/rating.md)), and if somebody wants to farm chips all evening, that is their
 evening. **The promise that holds absolutely, in every case, is that nothing you can buy
 changes a hand** — not the cards, the odds, what you are shown, or a rebuy.
 

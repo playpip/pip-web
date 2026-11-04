@@ -104,8 +104,8 @@ the rest of the drills and practice packs, Lessons with Webb from Level 2, a rep
 your own play across every hand, the session review, and spectating after you bust. It's a real fence and we'd
 rather call it one than pretend otherwise. One member game a day is free without joining:
 any one poker table on the side tables shelf. **It is not pay-to-win.** Nobody at a
-table sees another player's Roll or rank, there is no leaderboard, and the membership
-changes nothing once the cards are dealt. Nothing you can buy changes a hand: not the cards, the odds, what
+table sees another player's Roll, the only leaderboard is the Pip Rating (how well you decide,
+which nothing you can buy changes), and the membership changes nothing once the cards are dealt. Nothing you can buy changes a hand: not the cards, the odds, what
 you're shown, or a rebuy. See [ROADMAP → How Pip pays for itself](ROADMAP.md).
 
 Checkout, billing and cancelling run through Stripe — see [docs/stripe.md](docs/stripe.md).
