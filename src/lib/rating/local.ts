@@ -9,7 +9,7 @@ import {
   type RatingKind,
   emptyCore,
   ratingOf,
-} from '../../../supabase/functions/_shared/rating'
+} from './maths'
 
 /** Is the rating on screen in this build? Off until the backend is live. */
 export function ratingEnabled(): boolean {

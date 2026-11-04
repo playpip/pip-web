@@ -2,7 +2,11 @@
 //
 // Plain TypeScript with no imports at all, so the same file runs in the browser
 // (src/lib/rating), under Node in the tests, and under Deno in the
-// `submit-rating` Edge Function. The function does not take the client's number:
+// `submit-rating` Edge Function, which keeps an exact copy in its own
+// `_shared/rating.ts` because nothing the browser loads may import from the
+// functions folder (tests/billing.test.ts). tests/rating.test.ts fails the
+// build if the two copies differ by a single character, so edit this one and
+// copy it across. The function does not take the client's number:
 // it replays the decisions it is sent through these functions from its own
 // stored state, so there is one rule and nobody can bring their own.
 //

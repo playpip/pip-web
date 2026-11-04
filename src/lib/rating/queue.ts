@@ -4,8 +4,8 @@
 // `localStorage` `pip.ratingQueue`, never synced: each device sends its own.
 // Collected only while signed in, so a guest's hands never leave the device.
 
-import type { SubmittedHand } from '../../../supabase/functions/_shared/rating'
-import { MAX_HANDS_PER_SUBMIT } from '../../../supabase/functions/_shared/rating'
+import type { SubmittedHand } from './maths'
+import { MAX_HANDS_PER_SUBMIT } from './maths'
 
 const KEY = 'pip.ratingQueue'
 

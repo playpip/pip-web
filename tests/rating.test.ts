@@ -356,3 +356,16 @@ test('only Hold’em the player could fully see is rated', async (t) => {
   }
   t.true(ratedVenue(ALL_VENUES.find((v) => v.id === 'garage')!))
 })
+
+test('the Edge Function runs exactly the rule the device runs', (t) => {
+  // The browser may not import from supabase/functions (tests/billing.test.ts),
+  // so the function keeps a copy. Byte for byte, or the board and the device
+  // disagree about the same decisions.
+  const device = readFileSync(new URL('../src/lib/rating/maths.ts', import.meta.url), 'utf-8')
+  const server = readFileSync(
+    new URL('../supabase/functions/_shared/rating.ts', import.meta.url),
+    'utf-8',
+  )
+  t.is(server, device, 'copy src/lib/rating/maths.ts to supabase/functions/_shared/rating.ts')
+  t.notRegex(device, /^import /m, 'the shared rule must stay import-free to run under Deno')
+})

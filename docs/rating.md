@@ -20,8 +20,10 @@ changes a hand. What a member gets is the breakdown, which is coaching about the
 
 ## The maths
 
-All of it is `supabase/functions/_shared/rating.ts`, one file with no imports, run by the
-browser (`src/lib/rating`), the tests and the Edge Function alike.
+All of it is `src/lib/rating/maths.ts`, one file with no imports and no secret, run by the
+browser and the tests. The Edge Function runs an exact copy, `supabase/functions/_shared/rating.ts`
+(the browser may not import from that folder), and `tests/rating.test.ts` fails if the two differ.
+Edit `maths.ts` and copy it across.
 
 1. **What a decision cost.** Every priced call or fold the hero makes, as `finishHand` in
    `store/game.ts` already scores it for the read (`scoreDecisions` then `gradeDecision`). The

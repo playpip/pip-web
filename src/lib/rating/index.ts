@@ -1,15 +1,15 @@
 // The Pip Rating on the device (docs/rating.md).
 //
-// The arithmetic is `supabase/functions/_shared/rating.ts`, shared with the
+// The arithmetic is `./maths`, copied exactly into the
 // `submit-rating` Edge Function so the number on the device and the number on
 // the board come from one rule. This file is the bridge from Pip's existing
 // pricing to that rule: which decisions count, what each one cost, and which
 // kind it was.
 
 import type { GradedDecision } from '@/lib/review/grade'
-import { decisionLoss, type RatingKind } from '../../../supabase/functions/_shared/rating'
+import { decisionLoss, type RatingKind } from './maths'
 
-export * from '../../../supabase/functions/_shared/rating'
+export * from './maths'
 
 /**
  * What one priced call or fold cost the rating, in big blinds.
