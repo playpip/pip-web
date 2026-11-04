@@ -534,6 +534,18 @@ the first hand, nothing for members, nothing once it is open or used. It links t
 | `free-report-progress-tapped` | it was tapped |
 
 Tapped over seen is the card's own rate; `checkout-opened` in the same tabs is what it led to.
+
+**The Android install row (2026-11-04).** Not a sale, but the same funnel's first step: a
+player who comes back. On Android Chrome, from the second visit, a slim row at the top of the
+lobby and reading pages offers to add Pip to the home screen (`InstallBanner`; rules in
+`lib/installBanner.ts`, see [data-and-offline.md](./data-and-offline.md#the-android-install-row)).
+
+| Event | Sent when |
+|---|---|
+| `install-banner-seen` | the install row was shown |
+| `install-banner-tapped` | its Install button was tapped (Chrome's own dialog opens) |
+| `app-installed` | Chrome reported Pip installed, from the row or from Chrome's own menu |
+
 Umami events here are names only, so the feature is in the name rather than in event data.
 
 They are counts, not grants: nothing reads them back. Stripe's dashboard stays the count of

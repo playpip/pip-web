@@ -37,6 +37,24 @@ both wired in `AppBoot`:
   script-storage eviction is an installed web app — which is also why `manifest.ts`
   exists and the app is installable.
 
+## The Android install row
+
+There is no Play listing, so on Android the installed app is the PWA. Chrome offers it through
+`beforeinstallprompt`; `INSTALL_BOOT_SCRIPT` (inline in the root layout, so it runs before
+hydration) calls `preventDefault`, which stops Chrome's own mini-infobar from appearing mid-hand,
+keeps the event on `window.__pipInstall`, and counts one visit per tab session in
+`localStorage` (`pip.install.visits`). `components/InstallBanner.tsx`, mounted in the root
+layout, draws a row in the style of Safari's Smart App Banner (icon, "Pip: Poker", "Add Pip to
+your home screen", Install, close) and Install calls `prompt()` on the saved event.
+
+It shows only when all of these hold: Android user agent, not in the store app (`inApp()`),
+not already installed (`display-mode: standalone`, `appinstalled`), from the second visit, not
+closed in the last 30 days (`pip.install.dismissedAt`), and on an allowed route (the landing
+page, `/game`, `/learn`, `/blog`, and the other reading pages). It is an allowlist in
+`lib/installBanner.ts`, so tables, drills, lessons and the welcome steps never show it. iPhone
+gets Safari's own banner instead (see `itunes` in `app/layout.tsx`). Events are listed in
+[membership.md](./membership.md).
+
 ## Moving a profile between devices
 
 Since no account is needed to play, the player gets explicit, low-friction ways to

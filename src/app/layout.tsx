@@ -6,6 +6,8 @@ import { TEXT_SCALE_BOOT_SCRIPT, TextScaleProvider } from '@/components/text-sca
 import { AppBoot } from '@/components/AppBoot'
 import { SyncConflictDialog } from '@/components/settings/SyncConflictDialog'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
+import { InstallBanner } from '@/components/InstallBanner'
+import { INSTALL_BOOT_SCRIPT } from '@/lib/installBanner'
 import { APP_STORE_ID } from '@/config/site'
 
 const geistSans = Geist({
@@ -94,7 +96,12 @@ export default function RootLayout({
             paint, or every rem in the app reflows after hydration. */}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}
         <script dangerouslySetInnerHTML={{ __html: TEXT_SCALE_BOOT_SCRIPT }} />
+        {/* Android's install offer can fire before hydration; this holds it
+            for InstallBanner and counts the visit. */}
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_BOOT_SCRIPT }} />
         <FeltBackdrop />
+        <InstallBanner />
         <TextScaleProvider>{children}</TextScaleProvider>
         <AppBoot />
         <SyncConflictDialog />
