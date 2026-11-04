@@ -29,6 +29,9 @@ import { membershipFor } from '@/config/membership'
 import { TASTE_COPY } from '@/lib/membership/taste'
 import { useTaste } from '@/lib/useTaste'
 import { LimitCard } from '@/components/membership/LimitCard'
+import { QUICK_GAMES, type QuickGame } from '@/config/quickGames'
+import { formatScore } from '@/components/quick/QuickScreen'
+import { useQuickRound } from '@/lib/useQuickRound'
 
 /**
  * The side tables: one card per thing that is different, with the prices behind
@@ -135,6 +138,15 @@ export function SideTables() {
 
   return (
     <SectionScreen title="Side Tables" subtitle="Other games, and Hold’em with a twist.">
+      {/* Quick games first: a round of a minute or two, and the quickest way
+          to play anything here (config/quickGames). */}
+      {QUICK_GAMES.length > 0 && (
+        <Shelf title="Quick games">
+          {QUICK_GAMES.map((game, i) => (
+            <QuickCard key={game.id} game={game} index={i} />
+          ))}
+        </Shelf>
+      )}
       {/* Today's free table: one card that says so, with one way to sit. */}
       {freePlayer && taste.left && (
         <div className="mb-8">
@@ -273,6 +285,37 @@ function FreeTodayCard({
         )}
       </div>
     </motion.div>
+  )
+}
+
+/**
+ * One quick game on the shelf. Every tap goes to the game's page, locked or
+ * not: the page shows the best and, once today's free round is used, the
+ * limit card that says when it is back.
+ */
+function QuickCard({ game, index }: { game: QuickGame; index: number }) {
+  const router = useRouter()
+  const view = useQuickRound(game.id)
+  return (
+    <ShelfCard
+      model={{
+        art: <CategoryArt id={game.id} accent={game.accent} className="size-full" />,
+        accent: game.accent,
+        title: game.title,
+        short: game.short,
+        price: view.best !== null ? `Best ${formatScore(game, view.best)}` : '',
+        state: view.member
+          ? { kind: 'play' }
+          : view.freeLeft || !view.ready
+            ? { kind: 'free' }
+            : { kind: 'members' },
+        index,
+        onOpen: () => {
+          sound.play('tap')
+          router.push(game.href)
+        },
+      }}
+    />
   )
 }
 

@@ -44,6 +44,8 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'limit-card-tapped-room': 'the free room card was tapped',
   'limit-card-seen-quick': 'the free quick match card was shown',
   'limit-card-tapped-quick': 'the free quick match card was tapped',
+  'limit-card-seen-round': 'the free round card was shown',
+  'limit-card-tapped-round': 'the free round card was tapped',
   'host-card-seen': 'the hosting card was shown',
   'host-card-open-tapped': 'its open a room button was tapped',
   'host-card-membership-tapped': 'its membership button was tapped',

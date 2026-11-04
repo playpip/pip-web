@@ -23,6 +23,7 @@ import { type PlayStreak, emptyStreak, recordPlay, streakFromDaily } from '@/lib
 import { dailyDateKey } from '@/lib/daily'
 import { spendTaste, type TasteRecord, type TasteTarget } from '@/lib/membership/taste'
 import { type FreeReportRecord, openFreeReport } from '@/lib/membership/freeReport'
+import { type QuickBests, type QuickRounds, recordBest, spendFreeRound } from '@/lib/quick/rounds'
 import { deepRead } from '@/lib/deepCoach'
 import { claimable, rewardFor, yourTable, type Reward, type RewardRecord } from '@/lib/dailyReward'
 import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
@@ -280,6 +281,15 @@ export interface ProfileState {
    */
   freeReport: FreeReportRecord | null
   /**
+   * Quick games: the UTC day each one's free round was last spent
+   * (lib/quick/rounds). Client-written like `taste`, and for the same reason
+   * that is fine: editing it gets somebody a round they could have had
+   * tomorrow, never the membership.
+   */
+  quickRounds: QuickRounds
+  /** Quick games: the best score ever at each, by its id. Private: nobody else sees it. */
+  quickBests: QuickBests
+  /**
    * The daily reward: the last UTC day one was claimed (lib/dailyReward).
    * Client-written, like the Roll it pays into.
    */
@@ -364,6 +374,13 @@ export interface ProfileState {
    * ready (or is already open today), false once used or with nothing in it.
    */
   openFreeReport: (today: string) => boolean
+  /** Spend today's free round of a quick game. False if it was already spent today. */
+  spendQuickRound: (id: string, today: string) => boolean
+  /**
+   * A quick game's round is over: keep the score if it is a best. Returns the
+   * best before this round (null if there was none), for "New best".
+   */
+  recordQuickScore: (id: string, score: number) => number | null
   /**
    * Claim today's daily reward: counts today for the streak, pays the chips
    * into the Roll and hands over a streak item if one is due. Returns what was
@@ -378,7 +395,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 29
+export const PERSIST_VERSION = 30
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -429,6 +446,8 @@ export const useProfile = create<ProfileState>()(
       blackjack: null,
       taste: null,
       freeReport: null,
+      quickRounds: {},
+      quickBests: {},
       dailyReward: null,
 
       createProfile: (name, avatar) => {
@@ -634,6 +653,19 @@ export const useProfile = create<ProfileState>()(
         if (next !== s.freeReport) set({ freeReport: next })
         return true
       },
+      spendQuickRound: (id, today) => {
+        const next = spendFreeRound(get().quickRounds, id, today)
+        if (!next) return false
+        set({ quickRounds: next })
+        return true
+      },
+      recordQuickScore: (id, score) => {
+        const bests = get().quickBests ?? {}
+        const before = bests[id] ?? null
+        const next = recordBest(bests, id, score)
+        if (next !== bests) set({ quickBests: next })
+        return before
+      },
       claimDailyReward: (today, member) => {
         const s = get()
         if (!claimable(s.dailyReward, today)) return null
@@ -688,6 +720,8 @@ export const useProfile = create<ProfileState>()(
           blackjack: null,
           taste: null,
           freeReport: null,
+          quickRounds: {},
+          quickBests: {},
           dailyReward: null,
         }),
     }),
@@ -862,6 +896,11 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   if (fromVersion < 28) s.dailyReward = null
   // v28 → v29: the one free report (lib/membership/freeReport). Never opened.
   if (fromVersion < 29) s.freeReport = null
+  // v29 → v30: quick games (lib/quick/rounds). No round spent, no best yet.
+  if (fromVersion < 30) {
+    s.quickRounds = {}
+    s.quickBests = {}
+  }
   return s
 }
 

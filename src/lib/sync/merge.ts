@@ -27,6 +27,7 @@ import { emptyReviewStats } from '@/lib/review/stats'
 import { mergeStreaks, streakFromDaily } from '@/lib/streak'
 import { mergeTaste } from '@/lib/membership/taste'
 import { mergeFreeReport } from '@/lib/membership/freeReport'
+import { mergeBests, mergeFreeRounds } from '@/lib/quick/rounds'
 import { mergeRewards } from '@/lib/dailyReward'
 import { STARTING_ROLL } from '@/config/venues'
 import { hasPlaceholderName } from '@/lib/newPlayer'
@@ -183,6 +184,10 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     freeReport: mergeFreeReport(local.freeReport, remote.freeReport),
     // A claimed reward stays claimed, for the same reason.
     dailyReward: mergeRewards(local.dailyReward, remote.dailyReward),
+    // A quick game's free round stays spent, for the same reason; a best only
+    // grows, so the higher one stands whichever side is chosen.
+    quickRounds: mergeFreeRounds(local.quickRounds, remote.quickRounds),
+    quickBests: mergeBests(local.quickBests, remote.quickBests),
 
     // Anything added to ProfileState since this was written follows the chosen
     // side rather than silently vanishing on first sync.
@@ -242,6 +247,9 @@ export function isPristine(p: ProfileData): boolean {
     // it would hand this device a second one today.
     (p.taste ?? null) === null &&
     (p.freeReport ?? null) === null &&
+    // Same for a spent free round, and a best is progress.
+    Object.keys(p.quickRounds ?? {}).length === 0 &&
+    Object.keys(p.quickBests ?? {}).length === 0 &&
     // Drills are reachable without ever sitting down, so a rating is progress
     // even on a profile that has played no hands. Without this clause, signing
     // in on that device adopts the account's row and the rating is gone.
@@ -477,6 +485,8 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'taste',
     'freeReport',
     'dailyReward',
+    'quickRounds',
+    'quickBests',
     'challengeWins',
     'challengesPlayed',
     'drills',

@@ -17,11 +17,15 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Star } from 'lucide-react'
 import { membershipFor } from '@/config/membership'
+import { QUICK_GAMES_FEATURE } from '@/config/quickGames'
 import { trackOnce } from '@/lib/analytics'
 import { sound } from '@/lib/sound'
 
-/** What today's free one was. */
-export type LimitKind = 'table' | 'room' | 'quick'
+/**
+ * What today's free one was. `quick` is the multiplayer quick match; `round`
+ * is a quick game's free round (config/quickGames), one per game.
+ */
+export type LimitKind = 'table' | 'room' | 'quick' | 'round'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -49,6 +53,13 @@ const CARD: Record<
     href: membershipFor('multiplayer'),
     seen: () => trackOnce('limit-card-seen-quick'),
     tapped: () => trackOnce('limit-card-tapped-quick'),
+  },
+  round: {
+    title: 'You’ve had today’s free round.',
+    line: 'Members play as much as they like.',
+    href: membershipFor(QUICK_GAMES_FEATURE),
+    seen: () => trackOnce('limit-card-seen-round'),
+    tapped: () => trackOnce('limit-card-tapped-round'),
   },
 }
 

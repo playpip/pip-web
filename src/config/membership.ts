@@ -340,6 +340,18 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     place: { href: '/game/side', name: 'the side tables' },
   },
   {
+    // Quick games (2026-11-04): short single-player rounds with a score, in
+    // their own row at the top of the side tables (config/quickGames). One
+    // free round of each a day for everybody else (lib/quick/rounds). The
+    // blurb names every game in QUICK_GAMES; add one, name it here.
+    id: 'quick-games',
+    title: 'Quick games',
+    blurb:
+      'Short games for a spare minute, each a round with a score at the end. Play as many rounds as you like; without the membership it is one free round of each a day. Your best is yours alone: no leaderboard, and nothing touches your Roll.',
+    shipped: false,
+    place: { href: '/game/side', name: 'the side tables' },
+  },
+  {
     id: 'blackjack',
     title: 'Blackjack',
     blurb:

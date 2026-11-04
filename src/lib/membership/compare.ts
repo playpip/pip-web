@@ -78,6 +78,12 @@ export function comparisonRows(): CompareRow[] {
       member: 'Every table',
       ids: ['side-tables', 'omaha'],
     },
+    {
+      thing: 'Quick games',
+      free: 'One round of each a day',
+      member: 'No limit',
+      ids: ['quick-games'],
+    },
     { thing: 'Daily reward', free: true, member: 'Double', ids: ['daily-reward'] },
   ]
   const sellable = new Set(sellableFeatures().map((f) => f.id))

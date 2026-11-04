@@ -462,6 +462,26 @@ test('merge › the free report opened on either device stays opened, from the e
   t.false(isPristine(pristine({ freeReport: { date: '2026-11-02' } })))
 })
 
+test('merge › a quick game’s free round stays spent, and the higher best stands', (t) => {
+  const phone = profile({
+    quickRounds: { solitaire: '2026-11-04' },
+    quickBests: { solitaire: 310, 'ten-hands': 1_800 },
+  })
+  const laptop = profile({
+    quickRounds: { 'ten-hands': '2026-11-04' },
+    quickBests: { solitaire: 450 },
+  })
+  for (const side of ['local', 'remote'] as const) {
+    const merged = mergeProfiles(phone, laptop, side)
+    t.deepEqual(merged.quickRounds, { solitaire: '2026-11-04', 'ten-hands': '2026-11-04' })
+    t.deepEqual(merged.quickBests, { solitaire: 450, 'ten-hands': 1_800 })
+  }
+  // A profile from before v30 has no fields at all.
+  t.deepEqual(mergeProfiles(profile({}), phone, 'local').quickBests, phone.quickBests)
+  t.false(isPristine(pristine({ quickRounds: { solitaire: '2026-11-04' } })))
+  t.false(isPristine(pristine({ quickBests: { solitaire: 12 } })))
+})
+
 // --- when to bother the player --------------------------------------------
 
 test('divergence › identical progress never prompts', (t) => {

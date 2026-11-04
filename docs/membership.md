@@ -161,6 +161,38 @@ are left out: neither is one game you sit down to and finish. **Lessons are left
   like a member's, and the dialog says it is today's one. Once spent, the normal lock, with *Your free
   game today is used. Join for every table.* Copy lives in `TASTE_COPY`.
 
+## Quick games (2026-11-04)
+
+**Short single-player games with a score, in their own row at the top of the side tables**
+(Will, 2026-11-04: "Quick, fast, toilet games essentially, a lot of fun", "only gonna be in the
+membership"). The registry is `QUICK_GAMES` in `config/quickGames.ts`; every entry carries
+`membersOnly` and is sold as the one `quick-games` entry in `MEMBERSHIP_FEATURES`, whose blurb
+names each game. That entry is `shipped` exactly while the registry has a game in it
+(`tests/quickGames.test.ts`).
+
+- **One free round of each, every UTC day**, for a player without the membership. The rules
+  are pure, in `lib/quick/rounds.ts` (`tests/quickRounds.test.ts`): `profile.quickRounds`
+  maps a game's id to the day its free round was spent, persisted (v30) and merged on sync
+  per game, the later day winning, so a spent round stays spent. One game's round never
+  spends another's, and none of them is the free member table, room or quick match.
+- **It is spent at the tap** that starts the round (`useQuickRound().begin()`), never on a
+  page view. Once used, the game's page shows `LimitCard kind="round"` ("You’ve had today’s
+  free round. Members play as much as they like.") in place of the Play button, on the start
+  card and on the end card.
+- **A score is private and play money.** A round never takes from or pays into the Roll, so
+  it cannot be farmed, and nobody sees anybody else's. The only number kept is the player's
+  own best, `profile.quickBests` (merged on sync as the higher one), shown on the shelf card
+  and the end card. No leaderboard.
+- **Every card on the row opens the game's page**, locked or not: the page shows the best
+  and, when the round is used, the limit card with when it comes back.
+- Shared parts: `components/quick/QuickScreen.tsx` (`QuickPage`, `QuickIntro`, `QuickEnd`).
+
+| Event | Sent when |
+|---|---|
+| `quick-<id>-started` | a round of that game was started (`QUICK_EVENTS` in `lib/quick/events.ts`) |
+| `quick-<id>-finished` | a round of it reached its end card |
+| `limit-card-seen-round` / `limit-card-tapped-round` | a quick game's free round today is used: the card shown / its button tapped |
+
 ## One free report (2026-11-02)
 
 Every player who is not a member gets **their own full report once** (Will, 2026-11-02). It
@@ -466,6 +498,8 @@ Worth listing, because each was considered:
 | `tests/membership.test.ts` | The page advertising a feature that does not exist; the price disagreeing with itself |
 | `tests/membershipSurfaces.test.ts` | Anything about buying reaching the game loop beyond the end-of-run report line; a dead `/membership` link |
 | `tests/taste.test.ts` | A second free member game in one UTC day; a refresh spending one; a sync handing one back |
+| `tests/quickRounds.test.ts` | A second free round of a quick game in one UTC day; a sync handing one back; a best going down |
+| `tests/quickGames.test.ts` | A quick game shipping free, unnamed on the roadmap or the page, or without its events |
 | `tests/freeReport.test.ts` | The free report offered before the report has anything to say; a second one; a sync handing it back |
 | `tests/reportTeaser.test.ts` | The end-of-run line saying something the report does not, or naming the wrong unit |
 | `tests/sitDown.test.ts` | A free table moving behind the membership; a member room paying better than a free one |
