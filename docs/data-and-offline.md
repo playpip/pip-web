@@ -48,9 +48,9 @@ layout, draws a row in the style of Safari's Smart App Banner (icon, "Pip: Poker
 your home screen", Install, close) and Install calls `prompt()` on the saved event.
 
 It shows only when all of these hold: Android user agent, not in the store app (`inApp()`),
-not already installed (`display-mode: standalone`, `appinstalled`), from the second visit, not
-closed in the last 30 days (`pip.install.dismissedAt`), and on an allowed route (the landing
-page, `/game`, `/learn`, `/blog`, and the other reading pages). It is an allowlist in
+not already installed (`display-mode: standalone`, `appinstalled`), from the second visit, never
+closed and never answered (`pip.install.dismissedAt`: closed is for good), and on an allowed
+route (the landing page, `/game`, `/learn`, `/blog`, and the other reading pages). It is an allowlist in
 `lib/installBanner.ts`, so tables, drills, lessons and the welcome steps never show it. iPhone
 gets Safari's own banner instead (see `itunes` in `app/layout.tsx`). Events are listed in
 [membership.md](./membership.md).
