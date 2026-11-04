@@ -79,7 +79,7 @@ function Body() {
           className="pointer-events-none absolute inset-x-0 top-0 h-32"
           style={{
             background:
-              'radial-gradient(45% 60% at 50% 35%, color-mix(in oklab, var(--color-pip) 22%, transparent), transparent 75%)',
+              'radial-gradient(45% 40% at 50% 45%, color-mix(in oklab, var(--color-pip) 22%, transparent), transparent 75%)',
           }}
         />
         <p className="relative text-6xl font-semibold tracking-tight tabular-nums">

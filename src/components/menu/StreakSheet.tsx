@@ -201,10 +201,12 @@ function Body({ onHero }: { onHero: (gone: boolean) => void }) {
         <div ref={heroRef} className="relative flex flex-col items-center pt-1 pb-6 text-center">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 -top-4 h-40"
+            className="pointer-events-none absolute inset-x-0 top-0 h-40"
             style={{
+              // Fades out before the box's top edge, which the sheet's scroll
+              // area cuts off: a glow still lit there shows as a hard line.
               background:
-                'radial-gradient(45% 55% at 50% 40%, color-mix(in oklab, var(--color-streak) 26%, transparent), transparent 75%)',
+                'radial-gradient(45% 40% at 50% 40%, color-mix(in oklab, var(--color-streak) 26%, transparent), transparent 75%)',
             }}
           />
           <motion.span
