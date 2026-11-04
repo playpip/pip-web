@@ -147,7 +147,7 @@ function GuestCard() {
   const rating = useProfile((s) => s.rating)
   const value = ratingOf(rating.core)
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-4">
+    <div className="flex flex-col gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div>
         <p className="text-xs text-muted-foreground">Your Pip Rating, on this device</p>
         <p className="text-2xl font-semibold tabular-nums">
@@ -159,7 +159,7 @@ function GuestCard() {
       </div>
       <Link
         href="/game?account=new"
-        className="shrink-0 rounded-xl border border-foreground/15 px-3 py-2.5 text-center text-sm font-medium transition hover:bg-foreground/[0.06]"
+        className="rounded-xl border border-foreground/15 px-3 py-2.5 text-center text-sm font-medium transition hover:bg-foreground/[0.06] sm:shrink-0"
       >
         Make an account to join the leaderboard
       </Link>

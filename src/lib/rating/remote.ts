@@ -162,8 +162,11 @@ export async function readBoard(weekStart: string): Promise<Board | null> {
 export async function watchBoard(onChange: () => void): Promise<() => void> {
   const sb = await client()
   if (!sb) return () => {}
+  // A name of its own each time: the client keeps channels by name, and a
+  // second watcher (a remount, or React running an effect twice) reusing one
+  // that is already subscribed throws instead of listening.
   const channel = sb
-    .channel('ratings-board')
+    .channel(`ratings-board-${Math.random().toString(36).slice(2)}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'ratings' }, onChange)
     .subscribe()
   return () => {
