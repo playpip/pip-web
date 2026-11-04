@@ -218,9 +218,10 @@ export interface MembershipFeature {
    * Built, but only usable where something outside the static site is
    * switched on. `rooms`: the multiplayer server, which a build reaches through
    * NEXT_PUBLIC_ROOMS_URL. A build without it has no tables to sit at, so it
-   * sells nothing that needs them.
+   * sells nothing that needs them. `rating`: the Pip Rating's server
+   * (docs/rating.md), switched on with NEXT_PUBLIC_RATING once it is live.
    */
-  needs?: 'rooms'
+  needs?: 'rooms' | 'rating'
 }
 
 /**
@@ -368,6 +369,17 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     place: { href: '/game/report', name: 'your report' },
   },
   {
+    // The Pip Rating (Will, 2026-11-04): the number is free for everyone and
+    // public on the leaderboard; members get the breakdown. Only for sale in
+    // a build that has the rating switched on: see `needs`.
+    id: 'rating',
+    title: 'Your Pip Rating, in full',
+    blurb:
+      'Everyone gets a Pip Rating, from how close each call and fold is to the best play, and a place on the leaderboard. Members also see it drawn day by day, and which kinds of decision are moving it, so you know what to work on.',
+    shipped: true,
+    needs: 'rating',
+  },
+  {
     id: 'progress',
     title: 'A rating on every drill that prices a hand',
     blurb:
@@ -426,7 +438,9 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
 export function sellableFeatures(): readonly MembershipFeature[] {
   return MEMBERSHIP_FEATURES.filter(
     (feature) =>
-      feature.shipped && (feature.needs !== 'rooms' || Boolean(process.env.NEXT_PUBLIC_ROOMS_URL)),
+      feature.shipped &&
+      (feature.needs !== 'rooms' || Boolean(process.env.NEXT_PUBLIC_ROOMS_URL)) &&
+      (feature.needs !== 'rating' || process.env.NEXT_PUBLIC_RATING === '1'),
   )
 }
 

@@ -308,3 +308,51 @@ test('bands are plain names that do not reuse the Roll titles', async (t) => {
   t.is(bandFor(2600), 'Master')
   t.is(bandFor(100), 'Learning')
 })
+
+// --- on the device ---------------------------------------------------------------
+
+test('a hand moves the device rating, its day, its peak and its graph', async (t) => {
+  const { emptyRating, recordRatedHand, ratingToday } = await import('@/lib/rating/local')
+  let r = emptyRating()
+  for (let i = 0; i < PROVISIONAL_DECISIONS; i++) {
+    r = recordRatedHand(r, [{ kind: 'flop-fold', loss: 0, stake: 10 }], '2026-11-03')
+  }
+  t.truthy(r.peak)
+  r = recordRatedHand(r, [{ kind: 'river-call', loss: 8, stake: 30 }], '2026-11-04')
+  t.true(ratingToday(r, '2026-11-04') < 0)
+  t.is(ratingToday(r, '2026-11-05'), 0)
+  t.deepEqual(
+    r.history.map((p) => p.date),
+    ['2026-11-03', '2026-11-04'],
+  )
+  t.true((r.peak ?? 0) > ratingOf(r.core))
+  t.is(recordRatedHand(r, [], '2026-11-04'), r)
+})
+
+test('two devices: the busier rating wins whole, and hiding sticks', async (t) => {
+  const { emptyRating, mergeRatings, recordRatedHand } = await import('@/lib/rating/local')
+  const busy = recordRatedHand(
+    emptyRating(),
+    [
+      { kind: 'flop-call', loss: 0, stake: 5 },
+      { kind: 'flop-call', loss: 0, stake: 5 },
+    ],
+    '2026-11-04',
+  )
+  const hidden = { ...emptyRating(), hidden: true }
+  const merged = mergeRatings(hidden, busy)
+  t.is(merged.core.decisions, 2)
+  t.true(merged.hidden)
+  t.is(mergeRatings(null, undefined).core.decisions, 0)
+  t.is(mergeRatings({ junk: true } as never, busy).core.decisions, 2)
+})
+
+test('only Hold’em the player could fully see is rated', async (t) => {
+  const { ALL_VENUES, MYSTERY_TABLE, ratedVenue } = await import('@/config/venues')
+  t.false(ratedVenue(MYSTERY_TABLE), 'Mystery Card hides one of your own cards')
+  for (const v of ALL_VENUES) {
+    if (v.mystery) t.false(ratedVenue(v), `${v.id} hides a card and must not be rated`)
+    if (v.variant && v.variant !== 'holdem') t.false(ratedVenue(v), v.id)
+  }
+  t.true(ratedVenue(ALL_VENUES.find((v) => v.id === 'garage')!))
+})

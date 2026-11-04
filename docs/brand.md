@@ -56,6 +56,11 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
    pace; everyone at a table sits with the same stack, sees the same things and has the
    same clock; and the membership changes nothing once the cards are dealt. See
    [multiplayer.md](./multiplayer.md) and `docs/membership.md` rule 3.
+
+   **The Pip Rating is public (Will, 2026-11-04).** A rating of decision quality with a
+   leaderboard (docs/rating.md). It cannot be bought or ground up, so it is not a contest a
+   member can buy their way to the front of. The Roll and its titles stay private. Until
+   `NEXT_PUBLIC_RATING` is set in production, "there is no leaderboard" is still true.
 2. **Clean over decorated.** Flat, black-first, one accent at a time. The table is drawn as
    a table (a quiet cloth, a dark rail), but never as a casino: no baize texture, no
    leather, no neon, no gold.

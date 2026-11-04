@@ -26,6 +26,7 @@
 // **No `<table>`**: the mirror's Turndown pass has shipped a broken one before.
 // The free-versus-member comparison is a grid of rows.
 
+import { ratingEnabled } from '@/lib/rating/local'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -680,11 +681,13 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
           </p>
           <p>
             We do not think that is pay-to-win, and here is the reasoning so you can disagree with
-            it. Pay-to-win means buying an advantage over another player. There is no leaderboard,
-            and at a multiplayer table nobody can see anybody else’s Roll or rank, so there is
-            nobody to overtake. Everyone at a table sits with the same stack, sees the same things
-            and has the same clock; the membership does not change any of it. What we will not do,
-            at any price, is sell you something that changes a hand. The{' '}
+            it. Pay-to-win means buying an advantage over another player.{' '}
+            {ratingEnabled()
+              ? 'Nobody can see anybody else’s Roll or rank. The leaderboard is by Pip Rating, which comes from how well you decide, so more tables or chips cannot raise it.'
+              : 'There is no leaderboard, and at a multiplayer table nobody can see anybody else’s Roll or rank, so there is nobody to overtake.'}{' '}
+            Everyone at a table sits with the same stack, sees the same things and has the same
+            clock; the membership does not change any of it. What we will not do, at any price, is
+            sell you something that changes a hand. The{' '}
             <a
               href="https://github.com/playpip/pip-web/blob/main/ROADMAP.md"
               target="_blank"

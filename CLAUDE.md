@@ -19,6 +19,7 @@ work. This file is the quick-start and the non-negotiables.
 | Blackjack | `src/lib/blackjack/` — its own engine, deliberately outside `src/lib/poker/` |
 | Coaching / review / the report | [docs/review.md](./docs/review.md) |
 | Anything paid / gated | [docs/membership.md](./docs/membership.md) |
+| The Pip Rating / leaderboard | [docs/rating.md](./docs/rating.md) |
 | Persistence / backup / offline PWA | [docs/data-and-offline.md](./docs/data-and-offline.md) |
 | Setup / testing / conventions / deploy | [docs/development.md](./docs/development.md) |
 
@@ -46,6 +47,9 @@ Rules change → engine (+ tests). Pacing/money → game store. Looks → compon
   `src/store/profile.ts`.
 - **`set-state-in-effect`** (React 19 rule, enforced by convention) — use the patterns in
   docs/development.md (`useHydrated`, mount-form-while-open), not `setState` in `useEffect`.
+- **The Pip Rating is public; the Roll is not.** Nobody sees anybody else's Roll or Roll
+  title. The Pip Rating (decision quality, docs/rating.md) is public with a leaderboard, by
+  Will's decision of 2026-11-04, behind `NEXT_PUBLIC_RATING` until the backend is live.
 - **Releases are automatic.** Pushing to `main` deploys *and* cuts a release: the version
   auto-bumps (patch by default; `#minor`/`#major` in the commit **subject line** to bump
   harder — the body is ignored), tags, and publishes a GitHub Release. Don't bump

@@ -62,6 +62,8 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'install-banner-tapped': 'its install button was tapped',
   'app-installed': 'Pip was added to a home screen',
   'streak-sheet-opened': 'someone opened their streak rewards',
+  'rating-sheet-opened': 'someone opened their rating',
+  'leaderboard-opened': 'someone opened the leaderboard',
 }
 
 /** `track('x')` and `trackOnce('x')`, single or double quoted, literals only. */

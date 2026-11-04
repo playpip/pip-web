@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { LegalPage, Section, List, Item, A } from '@/components/marketing/LegalPage'
 import { contentAlternates } from '@/config/site'
+import { ratingEnabled } from '@/lib/rating/local'
 
 export const metadata: Metadata = {
   title: 'Privacy · Pip',
@@ -88,6 +89,25 @@ export default function PrivacyPage() {
           set aside, nothing to come back later and find.
         </p>
       </Section>
+
+      {ratingEnabled() && (
+        <Section title="The Pip Rating and the leaderboard">
+          <p>
+            Your Pip Rating is worked out on your device from the calls and folds you make at a
+            Hold’em table. With an account, the game sends our server, for each hand, when it
+            finished and what each of those decisions cost, and nothing else about the hand: no
+            cards, no Roll. The server keeps the arithmetic behind your rating and when you last
+            sent one, so the same hand is never counted twice.
+          </p>
+          <p>
+            <strong className="font-medium text-foreground">The leaderboard is public.</strong>{' '}
+            Anyone can see your rating there with your name and your avatar, the same ones your
+            account already syncs. Your Roll is never on it. “Hide me from the leaderboard” in your
+            rating takes you off it straight away, and deleting your account deletes your rating
+            with it. Without an account your rating stays on your device and is never sent.
+          </p>
+        </Section>
+      )}
 
       <Section title="Email">
         <p>
@@ -181,11 +201,13 @@ export default function PrivacyPage() {
           many hands it needs, and we count that the free report card on the lobby was shown and
           that the free report card on the lobby was tapped. On Android phones a row at the top
           offers to add Pip to your home screen, and we count that the install row was shown, that
-          its install button was tapped and that Pip was added to a home screen. That tells us where
-          people stop, not who they are. No cookies, no fingerprinting, no personal data, and never
-          anything you typed or any message we got back. We can’t tie any of it to a person,
-          including you. It exists so we can improve the game, and for nothing else. It’s never sold
-          or shared.
+          its install button was tapped and that Pip was added to a home screen.{' '}
+          {ratingEnabled() &&
+            'For the Pip Rating we count that someone opened their rating and that someone opened the leaderboard. '}{' '}
+          That tells us where people stop, not who they are. No cookies, no fingerprinting, no
+          personal data, and never anything you typed or any message we got back. We can’t tie any
+          of it to a person, including you. It exists so we can improve the game, and for nothing
+          else. It’s never sold or shared.
         </p>
         <p>
           The counts are held by Umami on our behalf and roll off after about six months. We don’t

@@ -48,6 +48,11 @@ of the seven play, how many cards win it, what the pot is charging — is the me
    clock; and the membership changes nothing once the cards are dealt. A private room's
    host is the member only in that they could open it, and quick match is members against
    members and the cast. See `docs/brand.md` principle 1 and [multiplayer.md](./multiplayer.md).
+   **The Pip Rating (2026-11-04):** Will ruled the Pip Rating public, with a leaderboard
+   ([rating.md](./rating.md), live once `NEXT_PUBLIC_RATING` is set). It measures how close each
+   call and fold is to the best play, so more tables, hands or chips cannot raise it, and nothing
+   you can buy changes a hand. The number is free; members get the breakdown (the graph and
+   what is moving it), which is coaching about their own play. The Roll stays private.
 4. **Nothing free is metered, and nothing paid is sliced.** A thing is the membership's or it
    is free. The one third shape is **one whole member game a day** for a non-member (below):
    a whole table, never part of one, never a trial that ends mid-session,
@@ -512,6 +517,7 @@ Worth listing, because each was considered:
 | `tests/spectate.test.ts` | The spectator view answering while a hand is live |
 | `tests/challenge.test.ts` | Member content enlarging a free player's denominator |
 | `tests/roadmapDrills.test.ts` | The public roadmap going stale about which drills are paid, or dropping the daily free game |
+| `tests/rating.test.ts` | The ratings tables gaining a client write; the rating taking an impossible value |
 | `tests/review.test.ts` | A free table being kept for review; the grading reaching for a card the player could not see |
 
 ## Counting the funnel

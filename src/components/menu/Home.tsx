@@ -35,6 +35,7 @@ import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { liveStreak } from '@/lib/streak'
 import { roomsConfigured } from '@/lib/multiplayer/client'
 import { DailyRewardSlot } from './DailyReward'
+import { RatingLine } from '@/components/rating/RatingLine'
 import { RegularsCard } from './RegularsCard'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
@@ -145,6 +146,9 @@ export function Home() {
             )}
           </div>
         )}
+        {/* The Pip Rating (docs/rating.md), in a build that has it on. Above
+            the streak flame, which it leaves alone. */}
+        <RatingLine />
         <DailyRewardSlot />
         {/* A first visit deals you in as "Player" with a random face
             (onboarding/firstSeat). This is where you change that: furniture

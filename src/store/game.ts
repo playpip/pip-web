@@ -14,7 +14,15 @@ import { draftCast, formFor, profileFor, characterById, type Form } from '@/conf
 import { styleFor, randomBankroll } from '@/config/opponents'
 import type { AiProfile } from '@/lib/poker/ai/policy'
 import { blindsAt } from '@/config/blinds'
-import { cashOutValue, freerollOpen, prizeFor, reviewableVenue, type Venue } from '@/config/venues'
+import {
+  cashOutValue,
+  freerollOpen,
+  prizeFor,
+  ratedVenue,
+  reviewableVenue,
+  type Venue,
+} from '@/config/venues'
+import { rateHand } from '@/lib/rating/rate'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
@@ -863,9 +871,10 @@ export const useGame = create<GameState>((set, get) => {
     const scored = scoreDecisions(record, { max: MAX_REVIEWED_DECISIONS })
     // The read prices bets and raises too; the review grades calls and folds.
     const priced = scored.filter(isGraded)
+    const graded = priced.map((s) => gradeDecision(s, record.bigBlind))
     set({
       lastHand: record,
-      lastDecisions: priced.map((s) => gradeDecision(s, record.bigBlind)),
+      lastDecisions: graded,
       lastRead: useProfile.getState().handCoaching ? readFrom(scored, record) : null,
       seatStats: { ...seatStatsLive },
     })
@@ -876,6 +885,9 @@ export const useGame = create<GameState>((set, get) => {
     // The career table behind the report. Same rule: written at reviewed tables
     // only, for everybody, and the screen that reads it is the gated one.
     if (reviewed) useProfile.getState().recordReviewHand(reviewed)
+    // The Pip Rating (docs/rating.md): the same graded calls and folds, at every
+    // Hold'em table. Decisions, not results: nothing here reads who won.
+    if (ratedVenue(venue)) rateHand(graded, record.bigBlind)
     const heroWon = !!result && (result.payouts[HUMAN_ID] ?? 0) > 0
     const pot = potSize(hand)
 

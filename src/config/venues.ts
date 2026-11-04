@@ -106,6 +106,12 @@ export interface Venue extends MembersOnly {
    */
   mystery?: boolean
   /**
+   * Leave this table out of the Pip Rating (docs/rating.md). For a format
+   * that hides from the player a card the decision snapshot would otherwise
+   * carry; the rating may only ever price what the player could see.
+   */
+  unrated?: boolean
+  /**
    * Named characters who sit at this table, and who **bring their own game with
    * them** — a guest plays the profile of the cheapest rung they are a regular
    * at, whenever that is harder than this venue's (`profileFor` in
@@ -1548,6 +1554,19 @@ export function canAfford(venue: Venue, roll: number): boolean {
 const REVIEWED_VENUE_IDS: ReadonlySet<string> = new Set(
   [...VENUES, ...RING_TABLES, THE_DAILY, KITCHEN_TABLE].map((v) => v.id),
 )
+
+/**
+ * Does this table count towards the Pip Rating? Every Hold'em table dealt
+ * through the game store, ladder or not, unless it says otherwise: the
+ * pricing is two-card equity, so other variants are out for the reason the
+ * review gives (docs/rating.md).
+ */
+export function ratedVenue(venue: Venue): boolean {
+  // Mystery Card hides one of the hero's own cards until the river, and the
+  // pricing reads both: rating it would price a card the player could not see.
+  if (venue.unrated || venue.mystery) return false
+  return !venue.variant || venue.variant === 'holdem'
+}
 
 /** Is this a table whose session the review keeps? */
 export function reviewableVenue(venue: Venue): boolean {

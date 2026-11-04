@@ -27,6 +27,7 @@ import { emptyReviewStats } from '@/lib/review/stats'
 import { mergeStreaks, streakFromDaily } from '@/lib/streak'
 import { mergeTaste } from '@/lib/membership/taste'
 import { mergeFreeReport } from '@/lib/membership/freeReport'
+import { mergeRatings } from '@/lib/rating/local'
 import { mergeBests, mergeFreeRounds } from '@/lib/quick/rounds'
 import { mergeRewards } from '@/lib/dailyReward'
 import { STARTING_ROLL } from '@/config/venues'
@@ -188,6 +189,9 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // grows, so the higher one stands whichever side is chosen.
     quickRounds: mergeFreeRounds(local.quickRounds, remote.quickRounds),
     quickBests: mergeBests(local.quickBests, remote.quickBests),
+    // The Pip Rating follows the side that rated more decisions, like a drill
+    // rating: a mean of two would be a number neither device earned.
+    rating: mergeRatings(local.rating, remote.rating),
 
     // Anything added to ProfileState since this was written follows the chosen
     // side rather than silently vanishing on first sync.
@@ -250,6 +254,8 @@ export function isPristine(p: ProfileData): boolean {
     // Same for a spent free round, and a best is progress.
     Object.keys(p.quickRounds ?? {}).length === 0 &&
     Object.keys(p.quickBests ?? {}).length === 0 &&
+    // Rated decisions are progress too.
+    (p.rating?.core.decisions ?? 0) === 0 &&
     // Drills are reachable without ever sitting down, so a rating is progress
     // even on a profile that has played no hands. Without this clause, signing
     // in on that device adopts the account's row and the rating is gone.
@@ -487,6 +493,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'dailyReward',
     'quickRounds',
     'quickBests',
+    'rating',
     'challengeWins',
     'challengesPlayed',
     'drills',

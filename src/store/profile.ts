@@ -27,6 +27,12 @@ import { type QuickBests, type QuickRounds, recordBest, spendFreeRound } from '@
 import { deepRead } from '@/lib/deepCoach'
 import { claimable, rewardFor, yourTable, type Reward, type RewardRecord } from '@/lib/dailyReward'
 import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
+import {
+  emptyRating,
+  type PipRating,
+  type RatedDecision,
+  recordRatedHand,
+} from '@/lib/rating/local'
 
 export interface LifetimeStats {
   handsPlayed: number
@@ -290,6 +296,12 @@ export interface ProfileState {
   /** Quick games: the best score ever at each, by its id. Private: nobody else sees it. */
   quickBests: QuickBests
   /**
+   * The Pip Rating (docs/rating.md): decision quality from the priced calls
+   * and folds of every rated hand. Public on the board once signed in; this
+   * copy is the device's, and the server's answer replaces it after each send.
+   */
+  rating: PipRating
+  /**
    * The daily reward: the last UTC day one was claimed (lib/dailyReward).
    * Client-written, like the Roll it pays into.
    */
@@ -389,13 +401,17 @@ export interface ProfileState {
   claimDailyReward: (today: string, member: boolean) => Reward | null
   /** Fold one reviewed hand into the career table of priced decisions. */
   recordReviewHand: (hand: ReviewHand) => void
+  /** One hand's rated decisions into the Pip Rating. */
+  recordRatedDecisions: (decisions: readonly RatedDecision[], today: string) => void
+  /** Replace the Pip Rating wholesale (the server's answer, "Hide me"). */
+  setRating: (rating: PipRating) => void
   reset: () => void
 }
 
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 30
+export const PERSIST_VERSION = 31
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -448,6 +464,7 @@ export const useProfile = create<ProfileState>()(
       freeReport: null,
       quickRounds: {},
       quickBests: {},
+      rating: emptyRating(),
       dailyReward: null,
 
       createProfile: (name, avatar) => {
@@ -683,6 +700,9 @@ export const useProfile = create<ProfileState>()(
         return reward
       },
       recordReviewHand: (hand) => set((s) => ({ reviewStats: foldHand(s.reviewStats, hand) })),
+      recordRatedDecisions: (decisions, today) =>
+        set((s) => ({ rating: recordRatedHand(s.rating ?? emptyRating(), decisions, today) })),
+      setRating: (rating) => set({ rating }),
       reset: () =>
         set({
           created: false,
@@ -722,6 +742,7 @@ export const useProfile = create<ProfileState>()(
           freeReport: null,
           quickRounds: {},
           quickBests: {},
+          rating: emptyRating(),
           dailyReward: null,
         }),
     }),
@@ -901,6 +922,8 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
     s.quickRounds = {}
     s.quickBests = {}
   }
+  // v30 → v31: the Pip Rating (docs/rating.md). Starts at the prior, provisional.
+  if (fromVersion < 31) s.rating = emptyRating()
   return s
 }
 
