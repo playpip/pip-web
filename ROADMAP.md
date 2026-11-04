@@ -30,8 +30,9 @@ and dates aren't listed on purpose. If something here matters to you,
 - **Member rooms** — four more tables and three regulars you only meet in them
 - **Multiplayer** — open a room of up to eight, send your friends the code, and play at a
   real table with your camera in your seat and your mic on. Friends join free with an
-  account. Or quick match at any ladder stake, with the regulars filling any empty chair.
-  A free account hosts one room a day of up to four seats, without camera or voice
+  account. Or quick match at any ladder stake, with AI players, tagged as AI, filling any
+  empty chair. A free account hosts one room a day of up to four seats, without camera or
+  voice
 - **A report on your own play** — leaks and strengths drawn from every hand you have
   played, each one showing the sample it came from
 - **Watching a tournament out after you bust**, with every hand face up
