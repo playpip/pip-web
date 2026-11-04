@@ -284,11 +284,11 @@ const SCENES: Record<string, Scene> = {
           />
         )
       })}
-      {/* the lit row's glow */}
+      {/* the lit row's glow: 2.5 clear of the cards (x 27 to 87) on both sides */}
       <rect
         x="24.5"
         y="37.5"
-        width="62"
+        width="65"
         height="18.5"
         rx="4"
         fill="none"
