@@ -46,6 +46,16 @@ a retention feature, and the one place Pip hands out chips for turning up.
   place back to the streak flame.
 - **The claim dialog**: the week's ladder, the next streak item, the claim, a burst of chips, and
   the item turned over if one is due.
+- **The streak sheet** (2026-11-04, Will: "I need to be able to tap the streak button and see
+  my rewards"). The flame under the Roll (`StreakBadge`) is a button that opens a bottom sheet
+  (`components/menu/StreakSheet.tsx`, on `ui/sheet`), titled with the streak ("7-day streak", or
+  "No streak yet"). It shows today (the claim, through `claimDailyReward`, if it is still to do;
+  otherwise tomorrow's reward), the last seven days lit where they counted (worked out from
+  `streak.current` and `lastDate`), every `MILESTONES` unlock in order with owned ones ticked and
+  the next unowned one marked "N days to go", how the streak works, and members' double chips (a
+  quiet `membershipFor('daily-reward')` link for everyone else). Opening it sends
+  `streak-sheet-opened` once per tab (`trackOnce`). The chip, the sheen and the item art it shares
+  with the card live in `components/menu/RewardArt.tsx`.
 - **The streak reminder email** (docs/email.md) says what today's claim pays, what a member gets,
   and what item is next. The day after a streak ends, it offers day 1.
 
