@@ -22,6 +22,7 @@ import { PlayerDialog } from './PlayerDialog'
 import { RunRecap } from './RunRecap'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
+import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
@@ -154,6 +155,11 @@ export function Table() {
   const toggleMark = (i: number) =>
     setMarked((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]))
 
+  // The Welcome Table's end button says what is next for a signed-out player
+  // (2026-11-04): 107 reached the first game in the week to 1 November and 71
+  // the save step, and "Continue" did not say that saving came next.
+  const signedOut = useSync((s) => s.ready && s.status === 'signed-out')
+
   if (!hand || !venue) return <div className="min-h-dvh" />
 
   const buttonPlayerId = hand.players[hand.buttonIndex]?.id
@@ -204,7 +210,7 @@ export function Table() {
       : null
   const endPrimary: { label: string; go: () => void } | null = venue.welcome
     ? {
-        label: 'Continue',
+        label: signedOut ? 'Save your player' : 'Continue',
         go: () => {
           sound.play('call')
           leave()

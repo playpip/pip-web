@@ -15,3 +15,48 @@ export function hasPlaceholderName(name: string): boolean {
   const trimmed = name.trim()
   return trimmed === '' || trimmed === DEFAULT_PLAYER_NAME
 }
+
+// The name the welcome flow fills in (2026-11-04). In the week to 1 November
+// 167 tabs opened "Make your player" and 113 made one: an empty name box held
+// the only button shut. Now the step arrives with a face and one of these, so
+// one tap carries on, and both can be changed there or later. Two words that
+// read as a nickname, so nobody mistakes a newcomer for one of the regulars,
+// who all have first names (config/cast).
+const NAME_FIRST = [
+  'Lucky',
+  'Quiet',
+  'Steady',
+  'Bold',
+  'Sunny',
+  'Clever',
+  'Calm',
+  'Brave',
+  'Sly',
+  'Merry',
+  'Swift',
+  'Patient',
+] as const
+const NAME_SECOND = [
+  'Otter',
+  'Heron',
+  'Fox',
+  'Badger',
+  'Owl',
+  'Hare',
+  'Robin',
+  'Moth',
+  'Wren',
+  'Toad',
+  'Seal',
+  'Lynx',
+] as const
+
+/** Every name `suggestName` can give, for the tests. */
+export const SUGGESTED_NAMES: readonly string[] = NAME_FIRST.flatMap((a) =>
+  NAME_SECOND.map((b) => `${a} ${b}`),
+)
+
+/** A name to start with, chosen at random. `random` is there for the tests. */
+export function suggestName(random: () => number = Math.random): string {
+  return SUGGESTED_NAMES[Math.floor(random() * SUGGESTED_NAMES.length)] ?? SUGGESTED_NAMES[0]
+}

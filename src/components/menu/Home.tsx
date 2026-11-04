@@ -11,6 +11,7 @@ import { CountUp } from '@/components/CountUp'
 import { PageShell } from '@/components/PageShell'
 import { AccountOffer } from '@/components/settings/AccountOffer'
 import { GettingStarted } from '@/components/menu/GettingStarted'
+import { LobbySaveOnce } from '@/components/onboarding/SavePlayer'
 import { MembershipCard } from './MembershipCard'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { hasPlaceholderName } from '@/lib/newPlayer'
@@ -172,7 +173,9 @@ export function Home() {
             been checked. */}
         {/* A newcomer's checklist carries the account offer as one of its
             steps; once it is put away the plain offer takes its place. */}
-        {gettingStartedDismissed ? <AccountOffer /> : <GettingStarted />}
+        {/* Once, for a newcomer who skipped the save step: the step itself
+            (onboarding/SavePlayer). */}
+        <LobbySaveOnce fallback={gettingStartedDismissed ? <AccountOffer /> : <GettingStarted />} />
       </motion.div>
 
       {/* the main menu — one recommendation, the spine, the detours, the rooms */}

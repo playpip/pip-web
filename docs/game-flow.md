@@ -195,21 +195,27 @@ regulars, so `draftCast` tops it up from the rest of the cast, at the room's own
 A new player's way in (Will, 2026-10-07), `/welcome`, four steps with a progress bar
 (`components/onboarding/WelcomeFlow`):
 
-1. **Make your player**: a face and a name. "Already have an account? Sign in" restores one.
+1. **Make your player**: a face and a name, both filled in to start with (a random face and a
+   suggested name, `suggestName` in `lib/newPlayer`), so Next is one tap; "You can change this
+   later". "Already have an account? Sign in" restores one.
 2. **Do you know how to play?** "Yes, deal me in" goes to the Welcome Table; "No, teach me
    first" goes to Webb's tour, whose "Take a seat" goes to the same table (`firstSeatHref`).
 3. **The Welcome Table**: heads-up against one soft regular, 8 big blinds, blinds up every 3
    hands, on the house's chips (`WELCOME_TABLE` in `config/venues`). Played once. Its end card
-   has one button, Continue.
+   has one button: "Save your player" when signed out, else Continue, both to the save step.
 4. **Save your player**: the account, as a whole screen ("Not now" moves on), then **the
-   membership**: what is free, what it adds, and the account again if still not made, above
-   "Go to the lobby".
+   membership**: Free or the membership as two cards, Free picked to start with. "See
+   membership plans" opens the plans in a sheet over the step (`MembershipSheet`,
+   docs/membership.md); "Continue for free" goes to the lobby.
 
 Anything that needs a player and has none (`/game`, `/play/*`, the lobby's sub-pages) goes to
 `/welcome`; a scanned transfer QR is the one exception. In the lobby, a **Getting started**
 checklist (`menu/GettingStarted`) ticks off player, first game, account, today's Daily and a
 Friends' Garage win, until done or put away (`gettingStartedDismissed`, profile v25; players
-from before v25 have it put away).
+from before v25 have it put away). A newcomer who reaches the lobby signed out without having
+seen the save step (left the Welcome Table part-way, or closed the tab) gets the save step's
+card in its place on that first lobby visit only (`LobbySaveOnce` in
+`onboarding/SavePlayer`); seeing the step or the card spends it, on this device.
 
 ## The Daily Deal
 

@@ -82,9 +82,10 @@ const NOT_A_TAP = new Set([
 ])
 
 // Single links that are not a tap, in a file that may still grow one: the
-// welcome flow's last step, where the player picked the membership as a plan.
+// welcome flow's plans sheet, opened after the player picked the membership as
+// a plan, links to the whole page.
 const NOT_A_TAP_LINK = new Map([
-  ['src/components/onboarding/WelcomeFlow.tsx', "'/membership?from=welcome#plans'"],
+  ['src/components/membership/MembershipSheet.tsx', '"/membership?from=welcome"'],
 ])
 
 test('every locked surface says what was tapped', (t) => {

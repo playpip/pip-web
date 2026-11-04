@@ -2,14 +2,16 @@
 
 // The welcome flow (Will, 2026-10-07): four steps, in order, each one screen.
 //
-//   1. player     — make your player: a face and a name
+//   1. player     — make your player: a face and a name, both filled in to
+//                   start with, so Next is one tap
 //   2. ready      — "Do you know how to play?": Webb's tour, or straight to the
 //                   Welcome Table (a short heads-up first game). "Skip to lobby"
 //                   skips the game and goes on to step 3.
 //   3. save       — save your player with a free account
 //   4. membership — free or the membership, two cards picked like a plan
 //                   (Lottie tapped "Free" on the old side-by-side lists), then
-//                   the lobby
+//                   the lobby; the membership's plans open in a sheet over
+//                   the step (MembershipSheet)
 //
 // The step lives in the URL (`?step=`) so the Welcome Table can hand back to
 // step 3 and an account's Google or Apple trip comes back to the same screen.
@@ -25,17 +27,19 @@ import { Check, GraduationCap, Sparkles, Spade } from 'lucide-react'
 import { AvatarEditor } from '@/components/profile/AvatarEditor'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { AccountDialog } from '@/components/settings/AccountDialog'
-import { signupFact } from '@/components/settings/AccountOffer'
+import { AccountCard, useMarkSaveOffered } from '@/components/onboarding/SavePlayer'
 import { playedWelcome } from '@/components/onboarding/firstSeat'
 import { memberLines } from '@/components/onboarding/memberLines'
 import { WELCOME_TABLE } from '@/config/venues'
-import { formatPrice, MEMBERSHIP_PRICES } from '@/config/membership'
+import { type CurrencyCode, formatPrice, MEMBERSHIP_PRICES } from '@/config/membership'
+import { useTillPrice } from '@/components/membership/Join'
+import { MembershipSheet } from '@/components/membership/MembershipSheet'
+import { trackOnce } from '@/lib/analytics'
 import { detectCurrency } from '@/lib/membership/currency'
 import { FREE_REPORT_COPY } from '@/lib/membership/freeReport'
-import { type ShownPrice, useStorePrices } from '@/lib/membership/store'
-import { appSupports } from '@/lib/nativeApp'
-import { useInApp } from '@/lib/useInApp'
-import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
+import type { ShownPrice } from '@/lib/membership/store'
+import { randomAvatar, type AvatarSpec } from '@/lib/avatar'
+import { suggestName } from '@/lib/newPlayer'
 import { cn } from '@/lib/utils'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
@@ -138,18 +142,19 @@ function PlayerStep({
 }) {
   const createProfile = useProfile((s) => s.createProfile)
   const accountsOn = useSync((s) => s.status !== 'off')
-  const [spec, setSpec] = useState<AvatarSpec>(() => ({
-    seed: freshSeed(),
-    backgroundColor: AVATAR_BG_SWATCHES[1],
-  }))
-  const [name, setName] = useState('')
+  // Arrives made (2026-11-04): a random face and a suggested name, so one tap
+  // on Next carries on. 167 opened this step in the week to 1 November and 113
+  // got past it, with Next shut until a name was typed. Both stay editable
+  // here, and on the profile later. A name cleared to nothing is the
+  // placeholder, which the lobby then offers to change (lib/newPlayer).
+  const [spec, setSpec] = useState<AvatarSpec>(randomAvatar)
+  const [name, setName] = useState(suggestName)
   // The landing page's "Sign in" link arrives with `?account=signin` and opens
   // it. "Create a free account" makes the player first: the account is offered
   // on step 3, where there is a player to save.
   const [dialog, setDialog] = useState<'signin' | null>(account === 'signin' ? 'signin' : null)
 
   const enter = () => {
-    if (!name.trim()) return
     sound.play('call')
     createProfile(name, spec)
     onCreated()
@@ -159,7 +164,7 @@ function PlayerStep({
     <>
       <h1 className="text-center text-3xl font-semibold tracking-tight">Make your player</h1>
       <p className="mt-2 text-center text-muted-foreground">
-        Pick a face and a name. This is who sits at the table.
+        This is who sits at the table. You can change this later.
       </p>
       <div className="mt-8 rounded-3xl border border-foreground/10 bg-foreground/[0.02] p-6">
         <AvatarEditor
@@ -170,7 +175,7 @@ function PlayerStep({
           onSubmit={enter}
         />
       </div>
-      <button type="button" onClick={enter} disabled={!name.trim()} className={cn(primary, 'mt-6')}>
+      <button type="button" onClick={enter} className={cn(primary, 'mt-6')}>
         Next
       </button>
       {accountsOn && (
@@ -261,13 +266,6 @@ function ReadyStep({ onSkip }: { onSkip: () => void }) {
   )
 }
 
-/** Why an account, in three lines. Shared by the save step and the last step. */
-const ACCOUNT_REASONS = [
-  'Your Roll and your player on every device',
-  'Keep your streak, with a reminder if you want one',
-  'Needed for the membership, if you ever join',
-]
-
 function SaveStep({ status, onNext }: { status: SyncStatus; onNext: () => void }) {
   const money = useMoney()
   const name = useProfile((s) => s.name)
@@ -276,6 +274,7 @@ function SaveStep({ status, onNext }: { status: SyncStatus; onNext: () => void }
   const won = useProfile((s) => (s.venueRecords[WELCOME_TABLE.id]?.won ?? 0) > 0)
   const played = useProfile((s) => playedWelcome(s.venueRecords))
   const signedIn = status === 'signed-in'
+  useMarkSaveOffered()
 
   return (
     <>
@@ -306,7 +305,7 @@ function SaveStep({ status, onNext }: { status: SyncStatus; onNext: () => void }
         </>
       ) : (
         <>
-          <AccountCard status={status} />
+          <AccountCard status={status} className="mt-8" />
           <button
             type="button"
             onClick={() => {
@@ -323,44 +322,6 @@ function SaveStep({ status, onNext }: { status: SyncStatus; onNext: () => void }
   )
 }
 
-/** The account, offered: where the player lives now, why an account, and the button. */
-function AccountCard({ status }: { status: SyncStatus }) {
-  const [open, setOpen] = useState(false)
-  const accountsOn = status !== 'off'
-  return (
-    <div className="mt-8 rounded-3xl border border-foreground/10 bg-foreground/[0.02] p-6">
-      <p className="text-lg font-semibold">Save your player</p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Right now your player lives in this browser only. A free account keeps it safe and on every
-        device. It takes a few seconds.
-      </p>
-      <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
-        {ACCOUNT_REASONS.map((line) => (
-          <li key={line} className="flex items-start gap-2">
-            <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-            {line}
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        disabled={!accountsOn}
-        onClick={() => {
-          sound.play('tap')
-          setOpen(true)
-        }}
-        className={cn(primary, 'mt-6')}
-      >
-        Create a free account
-      </button>
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        {accountsOn ? signupFact() : 'Accounts are not set up in this build.'}
-      </p>
-      <AccountDialog open={open} mode="signup" onOpenChange={setOpen} />
-    </div>
-  )
-}
-
 type Choice = 'free' | 'member'
 
 /** What the Free card says. The report line is the free report's own (lib/membership/freeReport). */
@@ -371,15 +332,16 @@ const FREE_LINES = [
 ]
 
 /** The membership's price as the membership page shows it: the store's in the app, else the website's. */
-function useMembershipPrice(): ShownPrice | null {
-  const storeSells = useInApp() && appSupports('purchase')
-  const store = useStorePrices(storeSells)
-  if (storeSells) return store
+function useMembershipPrice(): { price: ShownPrice; currency: CurrencyCode } {
   const currency = detectCurrency(
     navigator.languages?.length ? navigator.languages : [navigator.language],
     Intl.DateTimeFormat().resolvedOptions().timeZone ?? '',
   )
-  return { ...MEMBERSHIP_PRICES[currency], format: (minor) => formatPrice(minor, currency) }
+  const price = useTillPrice({
+    ...MEMBERSHIP_PRICES[currency],
+    format: (minor) => formatPrice(minor, currency),
+  })
+  return { price, currency }
 }
 
 /**
@@ -393,16 +355,17 @@ function useMembershipPrice(): ShownPrice | null {
  */
 function MembershipStep({ status }: { status: SyncStatus }) {
   const router = useRouter()
-  const price = useMembershipPrice()
+  const { price, currency } = useMembershipPrice()
   const [choice, setChoice] = useState<Choice>('free')
   const [account, setAccount] = useState(false)
+  const [plans, setPlans] = useState(false)
   const choices: { id: Choice; name: string; lines: string[]; price: string; per: string }[] = [
     {
       id: 'member',
       name: 'Pip membership',
       lines: memberLines(),
-      price: price?.monthly ?? '',
-      per: price ? 'a month' : '',
+      price: price.monthly,
+      per: 'a month',
     },
     {
       id: 'free',
@@ -410,8 +373,8 @@ function MembershipStep({ status }: { status: SyncStatus }) {
       lines: FREE_LINES,
       // In the membership's own currency, so a player priced in yuan doesn't see
       // "£0" next to "¥58 a month". Blank, like the member card, until it is known.
-      price: price?.format?.(0) ?? '',
-      per: price?.format ? 'for good' : '',
+      price: price.format?.(0) ?? '',
+      per: price.format ? 'for good' : '',
     },
   ]
   const signedOut = status === 'signed-out'
@@ -423,9 +386,14 @@ function MembershipStep({ status }: { status: SyncStatus }) {
   }
   const go = () => {
     sound.play('call')
-    // `from=welcome`: Umami drops the `#`, so without it these views can't be
-    // told from anyone else's (the blog's links say `from=blog` the same way).
-    router.push(choice === 'member' ? '/membership?from=welcome#plans' : '/game')
+    if (choice === 'free') {
+      router.push('/game')
+      return
+    }
+    // The plans open over the step rather than on `/membership` (2026-11-04),
+    // so closing them leaves the player where they were (MembershipSheet).
+    trackOnce('welcome-plans-opened')
+    setPlans(true)
   }
 
   return (
@@ -517,6 +485,7 @@ function MembershipStep({ status }: { status: SyncStatus }) {
         )}
       </div>
       <AccountDialog open={account} mode="signup" onOpenChange={setAccount} />
+      <MembershipSheet open={plans} onOpenChange={setPlans} price={price} currency={currency} />
     </>
   )
 }

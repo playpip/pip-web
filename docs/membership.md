@@ -197,6 +197,19 @@ the welcome flow's membership step was seen 69 times and tapped through twice. S
   lines (`MEMBER_LINES`, the report first), and Free with what stays free. Free starts picked,
   as before; nothing is hidden behind either.
 
+## The plans sheet in the welcome flow (2026-11-04)
+
+"See membership plans" on the welcome flow's last step used to go to `/membership`, which took
+the player out of onboarding (2 of 69 in the week to 1 November tapped it). It now opens
+`MembershipSheet` over the step: the two pillars, Yearly or Monthly at the page's prices (the
+store's in the app), and the page's own till. The plan picker and the till (`PlanPicker`,
+`Till`, `Join`, `StoreJoin`) live in `components/membership/Join.tsx`, shared by the page and
+the sheet, so joining from either asks the same things, says the same 14-day refund, terms and
+statement lines, and goes account first and then straight on to checkout. "Everything in the
+membership" links to `/membership?from=welcome`. Closing the sheet (tap outside, the close
+button, Escape or dragging the handle down; `components/ui/sheet.tsx`) leaves the step as it
+was, and "Continue for free" still finishes the flow. Free stays the card picked to start with.
+
 ## Double daily rewards (2026-10-25)
 
 Members get **double the chips** from the daily reward (docs/daily-reward.md), every day: six
@@ -471,17 +484,22 @@ over them counts tabs rather than clicks:
 |---|---|---|
 | `membership-viewed` | `/membership` renders | `MembershipScreen` |
 | `checkout-opened` | the `checkout` function hands back a Stripe URL, just before the redirect; in the store app, just before the store's sheet opens | `lib/membership/billing.ts`, `lib/membership/store.ts` |
-| `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL; in the store app, the store reports the payment | `Join` in `MembershipScreen`, `lib/membership/store.ts` |
-| `membership-active` | `awaitMembership()` sees the row a webhook wrote | `Join` in `MembershipScreen`, `lib/membership/store.ts` |
+| `checkout-completed` | the player lands back on `/membership?joined=1`, Stripe's success URL; in the store app, the store reports the payment | `MemberWelcome`, `lib/membership/store.ts` |
+| `membership-active` | `awaitMembership()` sees the row a webhook wrote | `MemberWelcome`, `lib/membership/store.ts` |
 
 Two more sit beside the four, for the account step a signed-out tab meets before checkout:
 `membership-viewed-signed-out` (the page settled on signed out, not on the way back from Stripe)
-and `membership-signup-tapped` ("Create a free account to join" tapped). Both are in `Join`.
+and `membership-signup-tapped` ("Create a free account to join" tapped). Both are in `Join`
+(`components/membership/Join.tsx`).
 Two more sit between the page view and checkout: `membership-join-seen` (half of the till, the
 box with the Join button, scrolled into view; members and signed-out tabs count too) and
 `membership-join-tapped` (a signed-in player pressed Join, or was carried on to checkout after
 making an account from the Join box, so `membership-join-tapped` minus `checkout-opened` is the
-tabs the till stopped; until 2026-11-02 a required refund-waiver box sat in between). Both are in `MembershipScreen`; neither fires in the store app's own join.
+tabs the till stopped; until 2026-11-02 a required refund-waiver box sat in between). Both are in `Till` and `Join` (`components/membership/Join.tsx`); `membership-join-tapped` does not fire in the store app's own join.
+The till is the same in the welcome flow's plans sheet, so these count joins from the sheet
+too. The sheet's own event is `welcome-plans-opened` ("See membership plans" tapped on the
+welcome flow's last step, which opens the sheet); a sheet tab has no `membership-viewed`, so
+the welcome funnel is `welcome-plans-opened`, then the till's events, then `checkout-opened`.
 Signed-in views are `membership-viewed` minus the signed-out ones; a tab that signs in on the page
 counts as signed out, which is the point.
 
