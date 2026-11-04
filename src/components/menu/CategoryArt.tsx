@@ -246,6 +246,64 @@ const SCENES: Record<string, Scene> = {
     </>
   ),
 
+  // Poker Solitaire — the five by five grid, filling up. One row is done and
+  // lit; the last few spaces are still empty, and the next card is on its way.
+  solitaire: (c) => (
+    <>
+      {Array.from({ length: 25 }, (_, i) => {
+        const r = Math.floor(i / 5)
+        const col = i % 5
+        const x = 27 + col * 12.5
+        const y = 8 + r * 16
+        const empty = [19, 23, 24].includes(i)
+        const lit = r === 2
+        return empty ? (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width="10"
+            height="13.5"
+            rx="2"
+            fill="none"
+            stroke={c}
+            strokeOpacity={0.45}
+            strokeWidth={0.9}
+            strokeDasharray="2 1.6"
+          />
+        ) : (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width="10"
+            height="13.5"
+            rx="2"
+            fill={lit ? '#fafafa' : c}
+            fillOpacity={lit ? 0.92 : 0.38 + ((i * 7) % 5) * 0.09}
+          />
+        )
+      })}
+      {/* the lit row's glow */}
+      <rect
+        x="24.5"
+        y="37.5"
+        width="62"
+        height="18.5"
+        rx="4"
+        fill="none"
+        stroke={c}
+        strokeOpacity={0.9}
+        strokeWidth={1.4}
+      />
+      {/* the next card, tilted, coming in from the right */}
+      <g transform="rotate(12 99 70)">
+        <rect x="93" y="61" width="13" height="18" rx="2.4" fill={c} fillOpacity={0.95} />
+        <rect x="95.5" y="63.5" width="4" height="4" rx="0.8" fill="#0a0a0b" fillOpacity={0.3} />
+      </g>
+    </>
+  ),
+
   // The Rail's rooms — chip towers that grow with the stakes. Micro is a couple
   // of modest stacks; the nosebleeds are a skyline.
   'ring-micro': (c) => chipStacks(c, [3, 2], 66),

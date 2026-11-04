@@ -347,8 +347,8 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'quick-games',
     title: 'Quick games',
     blurb:
-      'Short games for a spare minute, each a round with a score at the end. Play as many rounds as you like; without the membership it is one free round of each a day. Your best is yours alone: no leaderboard, and nothing touches your Roll.',
-    shipped: false,
+      'Short games for a spare minute, each a round with a score at the end. Poker Solitaire: 25 cards dealt one at a time onto a five by five grid, and every row and column scores as a poker hand, with a Daily deal that is the same 25 cards for everyone. Play as many rounds as you like; without the membership it is one free round of each a day. Your best is yours alone: no leaderboard, and nothing touches your Roll.',
+    shipped: true,
     place: { href: '/game/side', name: 'the side tables' },
   },
   {

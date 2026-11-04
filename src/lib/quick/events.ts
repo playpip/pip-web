@@ -4,10 +4,17 @@
 // /privacy has to say them. At most once per tab, like the funnel, so a report
 // over them counts tabs rather than rounds. Names only: no scores.
 
+import { trackOnce } from '@/lib/analytics'
+
 export interface QuickEvents {
   started: () => void
   finished: () => void
 }
 
 /** By quick game id (config/quickGames). */
-export const QUICK_EVENTS: Readonly<Record<string, QuickEvents>> = {}
+export const QUICK_EVENTS: Readonly<Record<string, QuickEvents>> = {
+  solitaire: {
+    started: () => trackOnce('quick-solitaire-started'),
+    finished: () => trackOnce('quick-solitaire-finished'),
+  },
+}

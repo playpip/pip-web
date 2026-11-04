@@ -31,14 +31,23 @@ export interface QuickGame extends MembersOnly {
 }
 
 /** The quick games, in the order the shelf shows them. */
-export const QUICK_GAMES: readonly QuickGame[] = []
+export const QUICK_GAMES: readonly QuickGame[] = [
+  {
+    id: 'solitaire',
+    title: 'Poker Solitaire',
+    short: 'Place 25 cards on a grid. Every row and column is a hand.',
+    accent: '#4FB4A6',
+    href: '/game/quick/solitaire',
+    unit: 'points',
+    membersOnly: true,
+  },
+]
 
 /** The membership feature every quick game is sold as. */
 export const QUICK_GAMES_FEATURE = 'quick-games'
 
 /**
  * A quick game by id. Throws on an id that is not one: a page names its own game.
- * @public until the first game's page uses it.
  */
 export function quickGame(id: string): QuickGame {
   const game = QUICK_GAMES.find((g) => g.id === id)

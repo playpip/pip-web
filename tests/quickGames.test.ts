@@ -26,7 +26,6 @@ test('the page sells quick games exactly when there are some', (t) => {
 })
 
 test('every quick game is the membership’s, and says so where a reader checks', (t) => {
-  t.pass()
   for (const game of QUICK_GAMES) {
     t.true(game.membersOnly === true, `${game.id} ships free by accident`)
     t.true(ROADMAP.includes(game.title), `ROADMAP.md does not name ${game.title}`)
@@ -44,7 +43,7 @@ test('every quick game is the membership’s, and says so where a reader checks'
 })
 
 test('every quick game has art, a page and its two events', (t) => {
-  t.pass()
+  t.true(QUICK_GAMES.length > 0)
   const ids = new Set<string>()
   for (const game of QUICK_GAMES) {
     t.false(ids.has(game.id), `${game.id} twice`)

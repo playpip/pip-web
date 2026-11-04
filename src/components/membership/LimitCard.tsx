@@ -17,7 +17,6 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Star } from 'lucide-react'
 import { membershipFor } from '@/config/membership'
-import { QUICK_GAMES_FEATURE } from '@/config/quickGames'
 import { trackOnce } from '@/lib/analytics'
 import { sound } from '@/lib/sound'
 
@@ -57,7 +56,7 @@ const CARD: Record<
   round: {
     title: 'You’ve had today’s free round.',
     line: 'Members play as much as they like.',
-    href: membershipFor(QUICK_GAMES_FEATURE),
+    href: membershipFor('quick-games'),
     seen: () => trackOnce('limit-card-seen-round'),
     tapped: () => trackOnce('limit-card-tapped-round'),
   },
@@ -69,7 +68,14 @@ function freeAgain(now: number): string {
   return hours <= 1 ? 'Free again in under an hour' : `Free again in ${hours} hours`
 }
 
-export function LimitCard({ kind }: { kind: LimitKind }) {
+export function LimitCard({
+  kind,
+  narrow = false,
+}: {
+  kind: LimitKind
+  /** In a column too narrow for the side-by-side layout at any screen width. */
+  narrow?: boolean
+}) {
   const card = CARD[kind]
   const [now] = useState(() => Date.now())
   useEffect(() => card.seen(), [card])
@@ -87,7 +93,13 @@ export function LimitCard({ kind }: { kind: LimitKind }) {
         aria-hidden
         className="pointer-events-none absolute -left-16 -top-20 -z-10 size-72 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_20%,transparent),transparent_65%)] blur-2xl"
       />
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
+      <div
+        className={
+          narrow
+            ? 'flex flex-col gap-5'
+            : 'flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6'
+        }
+      >
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <DayDial through={through} />
           <div className="min-w-0 flex-1 text-left">
@@ -99,7 +111,13 @@ export function LimitCard({ kind }: { kind: LimitKind }) {
             <p className="mt-0.5 text-sm text-muted-foreground">{card.line}</p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-center gap-2.5 sm:w-52">
+        <div
+          className={
+            narrow
+              ? 'flex shrink-0 flex-col items-center gap-2.5'
+              : 'flex shrink-0 flex-col items-center gap-2.5 sm:w-52'
+          }
+        >
           <Link
             href={card.href}
             onClick={() => {

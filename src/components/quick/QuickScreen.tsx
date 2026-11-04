@@ -26,7 +26,6 @@ export function formatScore(game: QuickGame, score: number): string {
 
 /**
  * The page: back to the side tables, and the game's name in the bar.
- * @public until the first game's page uses it.
  */
 export function QuickPage({
   game,
@@ -63,7 +62,6 @@ export interface StartOption {
 /**
  * Before a round: the art, the name, the best, and the way in. Once a free
  * player's round today is used, the way in is the limit card.
- * @public until the first game's page uses it.
  */
 export function QuickIntro({
   game,
@@ -100,7 +98,7 @@ export function QuickIntro({
           {view.ready && view.canPlay && <StartButtons game={game} view={view} options={options} />}
         </div>
       </div>
-      {view.ready && !view.canPlay && <LimitCard kind="round" />}
+      {view.ready && !view.canPlay && <LimitCard kind="round" narrow />}
     </motion.div>
   )
 }
@@ -144,7 +142,6 @@ function StartButtons({
 /**
  * After a round: the score counting up, the best, the game's own breakdown,
  * and Play again (or the limit card, for a free player whose round it was).
- * @public until the first game's page uses it.
  */
 export function QuickEnd({
   game,
@@ -152,6 +149,7 @@ export function QuickEnd({
   bestBefore,
   view,
   again,
+  onBack,
   children,
 }: {
   game: QuickGame
@@ -161,6 +159,8 @@ export function QuickEnd({
   view: QuickRoundView
   /** How to play again: the same buttons the start card has. */
   again: readonly StartOption[]
+  /** Leaving for the side tables, for a game with something to put away first. */
+  onBack?: () => void
   children?: React.ReactNode
 }) {
   const router = useRouter()
@@ -217,7 +217,8 @@ export function QuickEnd({
           type="button"
           onClick={() => {
             sound.play('tap')
-            router.push('/game/side')
+            if (onBack) onBack()
+            else router.push('/game/side')
           }}
           className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl py-3 text-sm font-medium text-muted-foreground transition hover:text-foreground"
         >
@@ -225,7 +226,7 @@ export function QuickEnd({
           Back to the side tables
         </button>
       </div>
-      {view.ready && !view.canPlay && <LimitCard kind="round" />}
+      {view.ready && !view.canPlay && <LimitCard kind="round" narrow />}
     </motion.div>
   )
 }
