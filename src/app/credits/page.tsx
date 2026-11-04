@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import { A, LegalPage, Section } from '@/components/marketing/LegalPage'
 import contributors from '@/data/contributors.json'
-import { contentAlternates, contentSocial } from '@/config/site'
+import { contentAlternates, contentSocial, APP_BANNER } from '@/config/site'
 
 const DESCRIPTION = 'The people who build Pip. Open source, so the list writes itself.'
 
 export const metadata: Metadata = {
+  ...APP_BANNER,
   title: 'Credits · Pip',
   description: DESCRIPTION,
   alternates: contentAlternates('/credits'),

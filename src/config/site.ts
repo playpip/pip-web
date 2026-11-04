@@ -115,3 +115,12 @@ export const SITE_CARD: SocialImage = {
  */
 export const APP_STORE_ID = '6819732662'
 export const APP_STORE_URL = `https://apps.apple.com/app/pip-poker/id${APP_STORE_ID}`
+
+/**
+ * Safari's Smart App Banner on iPhone, spread into a page's or layout's
+ * metadata. Only on the pages where the Android install banner may show
+ * (`installBannerRoute` in lib/installBanner.ts): the landing page, the lobby
+ * and the reading pages, never a table or the welcome steps. Opt-in per page
+ * rather than site-wide, so a new table route never carries it by accident.
+ */
+export const APP_BANNER: Pick<Metadata, 'itunes'> = { itunes: { appId: APP_STORE_ID } }

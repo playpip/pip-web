@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Lead } from '@/components/learn/Guide'
 import { LegalPage, Section } from '@/components/marketing/LegalPage'
 import { OddsCalculator } from '@/components/marketing/OddsCalculator'
-import { SITE_URL, contentAlternates, contentSocial } from '@/config/site'
+import { SITE_URL, contentAlternates, contentSocial, APP_BANNER } from '@/config/site'
 
 // A tool, not a guide and not a landing page.
 //
@@ -30,6 +30,7 @@ const DESCRIPTION =
   'Texas Hold’em odds, worked out in your browser. Pick your cards, add a board, choose how many opponents. Free, no signup, no ads, nothing to install.'
 
 export const metadata: Metadata = {
+  ...APP_BANNER,
   title: 'Poker odds calculator - free, no signup | Pip',
   description: DESCRIPTION,
   alternates: contentAlternates(PATH),

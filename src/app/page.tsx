@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Landing } from '@/components/marketing/Landing'
-import { contentAlternates } from '@/config/site'
+import { contentAlternates, APP_BANNER } from '@/config/site'
 
 // "/" is the marketing landing page. The app itself lives at "/game".
 
@@ -9,6 +9,7 @@ import { contentAlternates } from '@/config/site'
 // page is the one directories link to most, and so the one most likely to be
 // listed with a tracking parameter stuck on the end.
 export const metadata: Metadata = {
+  ...APP_BANNER,
   alternates: contentAlternates(''),
 }
 

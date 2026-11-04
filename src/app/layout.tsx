@@ -8,7 +8,6 @@ import { SyncConflictDialog } from '@/components/settings/SyncConflictDialog'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { InstallBanner } from '@/components/InstallBanner'
 import { INSTALL_BOOT_SCRIPT } from '@/lib/installBanner'
-import { APP_STORE_ID } from '@/config/site'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -33,10 +32,8 @@ export const metadata: Metadata = {
   alternates: { types: { 'application/rss+xml': 'https://playpip.io/rss.xml' } },
   title: 'Pip — clean poker',
   description: "Casual Texas Hold'em, redesigned. No fake felt, no neon.",
-  // Safari's own Smart App Banner on iPhone: a row above the page that Safari
-  // draws and the visitor can close, offering Open once the app is installed.
-  // Nothing of ours runs for it, and the store app's web view never shows it.
-  itunes: { appId: APP_STORE_ID },
+  // Safari's Smart App Banner is not set here: pages opt in with APP_BANNER
+  // (config/site.ts), so it never shows at a table or in the welcome steps.
   appleWebApp: {
     capable: true,
     title: 'pip',

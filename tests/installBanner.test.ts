@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import test from 'ava'
 import {
   INSTALL_BANNER_SNOOZE_DAYS,
@@ -37,4 +39,35 @@ test('closing it keeps it away for 30 days', (t) => {
   const now = 100 * DAY
   t.false(installBannerDue(5, now - (INSTALL_BANNER_SNOOZE_DAYS - 1) * DAY, now))
   t.true(installBannerDue(5, now - INSTALL_BANNER_SNOOZE_DAYS * DAY, now))
+})
+
+// Safari's Smart App Banner is opted into per page (APP_BANNER), so it can only
+// show where the Android banner may. Each file that carries it must sit on an
+// allowed route, and the root layout must not set it for the whole site.
+test("Safari's app banner is only on pages the Android banner allows", (t) => {
+  const root = 'src/app'
+  const carriers: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) walk(full)
+      else if (
+        /^(page|layout)\.tsx$/.test(name) &&
+        readFileSync(full, 'utf8').includes('APP_BANNER')
+      )
+        carriers.push(full)
+    }
+  }
+  walk(root)
+  t.true(carriers.length > 0)
+  for (const file of carriers) {
+    // src/app/game/(lobby)/page.tsx -> /game ; route groups and dynamic segments
+    const route =
+      `/${file
+        .slice(root.length + 1)
+        .replace(/(^|\/)(page|layout)\.tsx$/, '')
+        .replace(/\([^)]*\)\/?/g, '')}`.replace(/\/$/, '') || '/'
+    t.true(installBannerRoute(route), `${file} (${route}) carries the app banner`)
+  }
+  t.notRegex(readFileSync(join(root, 'layout.tsx'), 'utf8'), /itunes:|\.\.\.APP_BANNER/)
 })

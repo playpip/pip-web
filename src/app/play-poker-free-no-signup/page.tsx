@@ -4,7 +4,7 @@ import { GuideTable, Lead } from '@/components/learn/Guide'
 import { LegalPage, Section } from '@/components/marketing/LegalPage'
 import { PlayCta } from '@/components/marketing/PlayCta'
 import { ACCOUNT_OFFER } from '@/config/account'
-import { SITE_URL, contentAlternates } from '@/config/site'
+import { SITE_URL, contentAlternates, APP_BANNER } from '@/config/site'
 
 // A landing page, not a guide.
 //
@@ -42,6 +42,7 @@ const SITE_CARD = {
 }
 
 export const metadata: Metadata = {
+  ...APP_BANNER,
   title: 'Play poker free, no signup: Texas Hold’em in your browser · Pip',
   description: DESCRIPTION,
   alternates: contentAlternates(PATH),

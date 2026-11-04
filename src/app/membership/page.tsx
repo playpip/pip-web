@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { MarketingFrame } from '@/components/marketing/LegalPage'
 import { MembershipScreen } from '@/components/membership/MembershipScreen'
-import { contentAlternates, contentSocial } from '@/config/site'
+import { contentAlternates, contentSocial, APP_BANNER } from '@/config/site'
 
 // The membership page.
 //
@@ -24,6 +24,7 @@ const DESCRIPTION =
   'What the Pip membership includes, what it costs, and how to cancel it. The game itself stays free.'
 
 export const metadata: Metadata = {
+  ...APP_BANNER,
   title: 'Membership · Pip',
   description: DESCRIPTION,
   alternates: contentAlternates('/membership'),

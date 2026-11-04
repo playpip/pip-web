@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
 import { A, Item, LegalPage, List, Section } from '@/components/marketing/LegalPage'
-import { contentAlternates, contentSocial } from '@/config/site'
+import { contentAlternates, contentSocial, APP_BANNER } from '@/config/site'
 
 const DESCRIPTION =
   'How to reach us, manage or cancel a membership, move your progress and delete an account.'
 
 export const metadata: Metadata = {
+  ...APP_BANNER,
   title: 'Support · Pip',
   description: DESCRIPTION,
   alternates: contentAlternates('/support'),
