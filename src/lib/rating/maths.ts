@@ -85,7 +85,7 @@ export const RATING_CEILING = 3000
  * price), both exponentially weighted. A call that gave away 2 blinds in a
  * 20-blind pot is a loss of 0.1.
  *
- * `rating = ANCHOR_RATING − STEP × log2(loss / ANCHOR_LOSS)`, clamped to
+ * `rating = ANCHOR_RATING - STEP * log2(loss / ANCHOR_LOSS)`, clamped to
  * 100..3000, and then held under the experience cap (`experienceCap`).
  *
  * So `ANCHOR_RATING` is a player who gives away `ANCHOR_LOSS` of what is at
@@ -537,7 +537,7 @@ export function decideSubmission(
 export function cleanName(value: unknown): string {
   if (typeof value !== 'string') return 'Player'
   // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping them is the point
-  const name = value.replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮]/g, '').trim()
+  const name = value.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e]/g, '').trim()
   return name.length > 0 ? name.slice(0, 24) : 'Player'
 }
 
