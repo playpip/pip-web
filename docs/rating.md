@@ -181,7 +181,7 @@ derived from it changed.
 
 - **Device**: `PERSIST_VERSION` 32 keeps `core` and clears the peak, the graph and today's
   start, which were numbers on the old scale.
-- **Server**: `20261105090000_ratings_v2_scale.sql` works every board row out again from
+- **Server**: `20261105010808_ratings_v2_scale.sql` works every board row out again from
   `rating_state.core` by the same rule as `ratingOf`, and resets the peak and this week's
   start to it.
 - **The two new kinds** (`preflop-open`, `preflop-shove`) are new values the server must
@@ -190,8 +190,11 @@ derived from it changed.
 
 **Order to ship it**, from `pip-web/`: deploy the function first
 (`supabase functions deploy submit-rating`), then apply the migration
-(`pnpm supabase:db:push:dry-run`, check it lists only `20261105090000_ratings_v2_scale.sql`,
+(`pnpm supabase:db:push:dry-run`, check it lists only `20261105010808_ratings_v2_scale.sql`,
 then `pnpm supabase:db:push`), then push the app to main.
+
+Done 2026-11-05 in that order: `submit-rating` version 2 deployed, the migration applied (the
+three rows on the board then went from 1681 / 1590 / 1385 to 1043 / 998 / 896), then the app.
 
 ## To go live
 
