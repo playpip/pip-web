@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { BookOpen, Moon, MoonStar, Pencil, Play, Store, Sun, Sunrise, Target } from 'lucide-react'
+import { BookOpen, Pencil, Play, Store, Target } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
@@ -35,6 +35,7 @@ import { liveStreak } from '@/lib/streak'
 import { roomsConfigured } from '@/lib/multiplayer/client'
 import { DailyRewardSlot } from './DailyReward'
 import { RatingLine } from '@/components/rating/RatingLine'
+import { StreakBadge } from '@/components/StreakBadge'
 import { RegularsCard } from './RegularsCard'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
@@ -42,19 +43,11 @@ import { deviceId } from '@/lib/sync/client'
 import { characterById } from '@/config/cast'
 import { accentFromSwatch } from '@/lib/avatar'
 import { useMoney } from '@/lib/useMoney'
-import { greetingFor, periodFor, type DayPeriod } from '@/lib/timeOfDay'
+import { greetingFor } from '@/lib/timeOfDay'
 import { useHydrated } from '@/lib/useHydrated'
 import { useCopied } from '@/lib/useCopied'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
-
-/** The sky outside, in one small glyph — a moon for the evening, and so on. */
-const PERIOD_ICONS: Record<DayPeriod, LucideIcon> = {
-  late: MoonStar,
-  morning: Sunrise,
-  afternoon: Sun,
-  evening: Moon,
-}
 
 export function Home() {
   const router = useRouter()
@@ -117,37 +110,44 @@ export function Home() {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-start py-10 text-left"
       >
-        {/* the greeting IS the label — one line, so it reads as part of the Roll */}
+        {/* Three levels and no more (Will, 2026-11-05): the greeting, the Roll
+            with its day, then one quiet row of secondary stats. */}
         <p className="text-sm text-muted-foreground">
-          {hydrated ? <GreetingLine hour={hour} name={name} /> : 'Your Roll'}
+          {hydrated ? `${greetingFor(hour)}, ${name}` : 'Your Roll'}
         </p>
-        <div className="mt-1 flex items-baseline gap-2">
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
           <CountUp
             value={roll}
             format={money}
             className="text-4xl font-semibold tracking-tight tabular-nums md:text-5xl"
           />
           <span className="text-lg font-medium text-muted-foreground">chips</span>
+          {hydrated && todayDelta !== 0 && (
+            <span
+              className={cn(
+                'ml-1 text-sm font-medium tabular-nums',
+                todayDelta > 0 ? 'text-emerald-500' : 'text-suit-red',
+              )}
+            >
+              {todayDelta > 0 ? '+' : '−'}
+              {money(Math.abs(todayDelta))} today
+            </span>
+          )}
         </div>
+        {/* the pulse — faint, unlabelled; the number above does the talking */}
         {hydrated && rollHistory.length >= 2 && (
-          <div className="mt-3 flex items-center gap-3">
-            <RollSparkline points={rollHistory} accent={accent} className="h-7 w-28" />
-            {todayDelta !== 0 && (
-              <span
-                className={cn(
-                  'text-sm font-medium tabular-nums',
-                  todayDelta > 0 ? 'text-emerald-500' : 'text-suit-red',
-                )}
-              >
-                {todayDelta > 0 ? '+' : '−'}
-                {money(Math.abs(todayDelta))} today
-              </span>
-            )}
-          </div>
+          <RollSparkline
+            points={rollHistory}
+            accent={accent}
+            className="mt-3 h-6 w-full max-w-xs opacity-60"
+          />
         )}
-        {/* The Pip Rating (docs/rating.md), in a build that has it on. Above
-            the streak flame, which it leaves alone. */}
-        <RatingLine />
+        {/* The Pip Rating (docs/rating.md) and the streak, side by side and
+            the same weight: both secondary, both tappable. */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-5">
+          <RatingLine />
+          <StreakBadge />
+        </div>
         <DailyRewardSlot />
         {/* A first visit deals you in as "Player" with a random face
             (onboarding/firstSeat). This is where you change that: furniture
@@ -431,17 +431,6 @@ function rollToday(history: RollPoint[], roll: number): number {
   }
   // No sample from before today — measure from the oldest we have.
   return roll - history[0].roll
-}
-
-/** "Evening, Will 🌙 — your Roll": the little sky-glyph follows the name. */
-function GreetingLine({ hour, name }: { hour: number; name: string }) {
-  const Icon = PERIOD_ICONS[periodFor(hour)]
-  return (
-    <>
-      {greetingFor(hour)}, {name} <Icon className="mb-0.5 inline size-3.5" aria-hidden /> — your
-      Roll
-    </>
-  )
 }
 
 /**

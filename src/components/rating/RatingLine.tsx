@@ -6,7 +6,6 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronRight } from 'lucide-react'
 import { dailyDateKey } from '@/lib/daily'
 import { isProvisional, ratingOf } from '@/lib/rating'
 import { ratingEnabled, ratingToday } from '@/lib/rating/local'
@@ -50,7 +49,7 @@ export function RatingLine() {
         }}
         whileTap={{ scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 500, damping: 28 }}
-        className="-ml-1 mt-2 inline-flex min-h-11 touch-manipulation items-center gap-2 rounded-full px-1 text-sm select-none"
+        className="-ml-1 inline-flex min-h-11 touch-manipulation items-center gap-2 rounded-full px-1 text-sm select-none"
       >
         <span className="text-muted-foreground">Pip Rating</span>
         <span className="font-semibold tabular-nums">{value.toLocaleString('en-GB')}</span>
@@ -71,7 +70,6 @@ export function RatingLine() {
             </span>
           )
         )}
-        <ChevronRight className="size-4 text-muted-foreground/70" aria-hidden />
       </motion.button>
       <RatingSheet open={open} onOpenChange={setOpen} />
     </>

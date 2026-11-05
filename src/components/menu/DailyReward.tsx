@@ -14,11 +14,9 @@ import { useRouter } from 'next/navigation'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { Check, Flame } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { StreakBadge } from '@/components/StreakBadge'
 import { CountUp } from '@/components/CountUp'
 import { membershipFor } from '@/config/membership'
 import { Burst, Coin, DoubleBadge, RewardArt, Sheen } from './RewardArt'
-import { StreakSheet } from './StreakSheet'
 import {
   MILESTONES,
   claimDay,
@@ -47,23 +45,20 @@ function compact(n: number): string {
 }
 
 /**
- * Under the Roll: the streak flame, always, and under it the reward card while
- * today's is unclaimed.
+ * Under the Roll and the streak flame (components/StreakBadge): the reward card
+ * while today's is unclaimed.
  */
 export function DailyRewardSlot() {
   const hydrated = useHydrated()
   const created = useProfile((s) => s.created)
   const record = useProfile((s) => s.dailyReward)
   const [open, setOpen] = useState(false)
-  const [sheetOpen, setSheetOpen] = useState(false)
   if (!hydrated || !created) return null
   // Kept up while the dialog is open, so the claim plays out in front of it.
   const showCard = open || claimable(record, dailyDateKey())
   return (
     <>
-      <StreakBadge onOpen={() => setSheetOpen(true)} />
       {showCard && <RewardCard onOpen={() => setOpen(true)} />}
-      <StreakSheet open={sheetOpen} onOpenChange={setSheetOpen} />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false}>
           {open && <Claim onDone={() => setOpen(false)} />}
