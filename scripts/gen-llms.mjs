@@ -28,26 +28,36 @@ const OUT = join(process.cwd(), 'out')
 // page index follows it.
 const PREAMBLE = `# Pip
 
-> Real single-player Texas Hold'em against AI — no account needed, no real money, open
-> source. A calm, anti-casino poker web app: play money only, no ads, no pop-ups, no
-> dark patterns. Play in the browser at https://playpip.io — no signup, nothing to
-> install.
+> Texas Hold'em against AI and with friends — no account needed to play, no real
+> money, open source. A calm, anti-casino poker game: play money only, no ads, no
+> pop-ups, no dark patterns. Play in the browser at https://playpip.io, or in the
+> iPhone app at https://apps.apple.com/app/pip-poker/id6819732662.
 
-Pip is a front-end app (static export, no game server). Your profile lives in your
-browser. The poker engine is a pure, deterministic, unit-tested TypeScript module, so
-you can read exactly how every hand is shuffled and dealt rather than take our word for
-it. An ordinary hand shuffles with Math.random; the Daily Deal passes a date-derived
-seed, which is what makes one tournament a day identical for everyone in the world and
+Single-player Pip runs in your browser, and your profile lives on your device. The
+poker engine is a pure, deterministic, unit-tested TypeScript module, so you can read
+exactly how every hand is shuffled and dealt rather than take our word for it. An
+ordinary hand shuffles with Math.random; the Daily Deal passes a date-derived seed,
+which is what makes one tournament a day identical for everyone in the world and
 checkable against the source.
 
-There is one optional account, and its only job is carrying your progress to a second
-device. It is off unless you turn it on: with no account Pip makes no request to a
-server, holds no identity and stores no row.
+Multiplayer tables are dealt by our server instead, which sends each player only the
+cards they may see, so nobody can read another player's hand from their browser.
 
-Privacy: no account needed, no cookies, no personal data. An account stores your email
-and the same profile that was already on your device, and nothing else. The only
-analytics are anonymous and cookieless (Umami); the privacy page lists exactly what is
-counted.
+The account is optional. It carries your progress to another device, it is what a
+membership belongs to, and it is what you need to play multiplayer or appear on the
+Pip Rating leaderboard. Without one, the only thing Pip sends us is an anonymous count
+of hands played: it holds no identity for you and stores no row with your name on it.
+
+Privacy: no cookies, no cross-site tracking. An account stores your email and a copy
+of the profile that was already on your device; signing in with Google or Apple adds
+what they send, and a membership adds a record that it is live. The only analytics are
+anonymous and cookieless (Umami); the privacy page lists exactly what is counted.
+
+Membership: £5.99 a month or £49 a year (also $7.99, €6.99 or ¥58 a month), for
+hosting as many multiplayer games as you like, the lessons, every drill, the other
+games and side tables, coaching reports and more. The ladder, the Rail, the Daily and
+the freeroll stay free, and so does joining a friend's room. Chips are never for sale,
+and nothing bought changes what happens once the cards are dealt.
 
 Every link under Pages, Guides and Blog points to the page's raw Markdown mirror, so the
 content can be fetched and parsed directly without HTML rendering.`
@@ -60,13 +70,17 @@ const FOOTER = `## Project
 
 ## What it is
 
-- Single-player Texas Hold'em against a fixed cast of AI opponents with faces and personalities.
-- A ladder of ten sit-and-go tournaments, from Friends' Garage to The Main Event, plus side formats.
-- Play money only — nothing costs real money, ever. Cosmetics are style, never edge (no pay-to-win).
+- Texas Hold'em against a fixed cast of AI opponents with faces and personalities.
+- A ladder of ten winner-take-all tournaments, from Friends' Garage to The Main Event, plus the Rail (cash tables that never end) and the Daily Deal.
+- Multiplayer with friends: open a private room and send the code, with camera and voice if you want them, or a slow game with an hour to a day for each move. Or quick match at any ladder stake, with AI players in empty seats. With a free account you can join any friend's room, and host one room a day (up to four seats, no camera or voice), one quick match a day and one slow game at a time; members host as many as they like.
+- More games for members: Pot-Limit Omaha, Omaha Hi-Lo, Short Deck and Five-Card Draw, plus side tables (Fast, Heads-Up, Bounty, Deep Stack) and Blackjack.
+- The Pip Rating: a public rating of your decisions at a Hold'em table, not your results, with a live leaderboard. Needs an account to appear on it, and you can hide yourself.
+- Learn poker: a three-minute interactive tour at https://playpip.io/tutorial (app, not prose, so no Markdown mirror), lessons with Webb on a real table (Level 1 free), drills graded by the engine, and the written guides listed above. https://playpip.io/learn indexes them.
+- Daily rewards: chips counted in buy-ins at your table for coming back each day.
+- Play money only. Chips are never for sale, and cosmetics are style, never edge (no pay-to-win).
 - Hand permalinks: share any hand as a URL that replays step by step, with no server or account.
 - Ambient help: live win-% equity, hand strength, plain-English opponent reads.
-- Learn poker in three minutes: an interactive tutorial at https://playpip.io/tutorial (app, not prose, so no Markdown mirror). The written guides are listed under Guides above, and https://playpip.io/learn indexes both.
-- Installable PWA; light and dark themes; works offline once loaded.`
+- Installable PWA and an iPhone app; light and dark themes; single-player works offline once loaded.`
 
 // Content pages with a Markdown mirror. Blog posts are appended automatically.
 const PAGES = [
