@@ -126,7 +126,10 @@ player (Mystery Card) must leave it out of the snapshot or mark the venue `unrat
 
 - On the device: `profile.rating` (persisted, synced; the side with more rated decisions wins
   the merge, like a drill rating) and a queue of unsent hands in `localStorage`
-  `pip.ratingQueue` (signed in only, at most 200 hands).
+  `pip.ratingQueue` (at most 200 hands). A guest's hands queue too and go up only once they
+  sign in, so the server replays them rather than starting the account at one hand. Before a
+  send, hands within an hour of the 14-day limit are dropped and only the oldest that fit
+  under the hourly limit go, because one refused hand refuses the whole submission.
 - On the server: `public.ratings`, the board (name, face, rating, peak, rated decisions,
   week start, hidden, flagged), readable by anyone where not hidden or flagged, and always by
   its owner; `public.rating_state`, the arithmetic and rate limits, readable by nobody. Only
