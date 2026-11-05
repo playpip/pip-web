@@ -15,12 +15,18 @@ import { submitRating } from './remote'
 const SEND_AFTER_MS = 20_000
 let timer: ReturnType<typeof setTimeout> | null = null
 
-/** One finished hand's rated decisions in (`ratedDecisionsOf`): the device's rating moves, and a signed-in one is queued. */
+/**
+ * One finished hand's rated decisions in (`ratedDecisionsOf`): the device's
+ * rating moves and the hand is queued. A guest's queue waits on the device
+ * until they sign in; without it, the server would start them again from one
+ * hand and the device would adopt that.
+ */
 export function rateHand(decisions: readonly RatedDecision[]): void {
   if (decisions.length === 0) return
   useProfile.getState().recordRatedDecisions([...decisions], dailyDateKey())
-  if (!ratingEnabled() || useSync.getState().status !== 'signed-in') return
+  if (!ratingEnabled()) return
   enqueue({ at: Date.now(), decisions: [...decisions] })
+  if (useSync.getState().status !== 'signed-in') return
   if (!timer) timer = setTimeout(() => void sendRating(), SEND_AFTER_MS)
 }
 

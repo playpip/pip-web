@@ -7,7 +7,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AvatarSpec } from '@/lib/avatar'
 import { getSupabase } from '@/lib/sync/client'
-import { dropThrough, readQueue } from './queue'
+import { dropStale, dropThrough, readQueue, sendable } from './queue'
 
 /** The untyped client: the ratings tables are newer than the generated types. */
 async function client(): Promise<SupabaseClient | null> {
@@ -41,7 +41,8 @@ export async function submitRating(who: {
   if (!session.session) return null
   sending = true
   try {
-    const hands = readQueue()
+    dropStale(Date.now())
+    const hands = sendable(readQueue(), Date.now())
     const { data, error } = await sb.functions.invoke<ServerRating & { error?: string }>(
       'submit-rating',
       { body: { hands, name: who.name, avatar: who.avatar, hidden: who.hidden } },
