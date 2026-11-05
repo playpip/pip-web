@@ -66,6 +66,34 @@ const total = (p: Player) => p.stack + p.committedThisHand
 const inChart = (bb: number) => Math.min(MAX_STACK, Math.max(MIN_STACK, Math.round(bb)))
 
 /**
+ * When the action folds round to `id` before the flop (nobody has limped or
+ * raised, the blinds are the only bets): how many players are left to act
+ * behind them, and the effective stack in big blinds (their stack against the
+ * biggest stack behind). Null otherwise, and for the big blind, who is never
+ * first in. The Pip Rating grades these spots off the charts (lib/rating/preflop).
+ */
+export function firstInSpot(
+  state: HandState,
+  id: string,
+): { behind: number; effectiveBb: number; totalChips: number } | null {
+  if (state.street !== 'preflop' || state.variant !== 'holdem') return null
+  const order = preflopOrder(state)
+  const me = order.find((p) => p.id === id)
+  if (!me) return null
+  const others = order.filter((p) => p.id !== id && p.status !== 'folded')
+  if (state.currentBet !== state.bigBlind || others.some((p) => p.hasActed)) return null
+  const after = order.length - 1 - order.indexOf(me)
+  if (after <= 0) return null
+  const biggestBehind = Math.max(0, ...others.map(total))
+  const bb = Math.max(state.bigBlind, 1)
+  return {
+    behind: after,
+    effectiveBb: Math.min(total(me), biggestBehind) / bb,
+    totalChips: total(me),
+  }
+}
+
+/**
  * The chart's move for this spot, or null when the spot is not one the chart
  * answers (deep stacks, a limp or raise in front, Omaha, postflop).
  */

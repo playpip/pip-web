@@ -29,6 +29,7 @@ import { claimable, rewardFor, yourTable, type Reward, type RewardRecord } from 
 import { DEFAULT_PLAYER_NAME } from '@/lib/newPlayer'
 import {
   emptyRating,
+  parseRating,
   type PipRating,
   type RatedDecision,
   recordRatedHand,
@@ -411,7 +412,7 @@ export interface ProfileState {
 /** The dealer button everybody starts with — free, and the one already on the table. */
 const DEFAULT_DEALER_BUTTON = DEALER_BUTTONS[0].id
 
-export const PERSIST_VERSION = 31
+export const PERSIST_VERSION = 32
 const PERSIST_KEY = 'pip.profile'
 
 /** A kind you have never answered a spot from. */
@@ -924,6 +925,13 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   }
   // v30 → v31: the Pip Rating (docs/rating.md). Starts at the prior, provisional.
   if (fromVersion < 31) s.rating = emptyRating()
+  // v31 → v32: the rating's second scale (docs/rating.md → "The scale, v2"):
+  // steeper, capped by experience, and with first moves graded off the
+  // charts. The play behind it (`core`) carries over; the peak, the graph and
+  // today's start were numbers on the old scale, so they start again.
+  if (fromVersion < 32) {
+    s.rating = { ...parseRating(s.rating), peak: null, history: [], dayStart: null }
+  }
   return s
 }
 

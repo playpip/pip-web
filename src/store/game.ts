@@ -23,6 +23,7 @@ import {
   type Venue,
 } from '@/config/venues'
 import { rateHand } from '@/lib/rating/rate'
+import { ratedDecisionsOf } from '@/lib/rating/hand'
 import { detectAwards, type AwardDef } from '@/lib/awards'
 import { challengerFor, isChallengeTable } from '@/lib/challenge'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
@@ -887,7 +888,7 @@ export const useGame = create<GameState>((set, get) => {
     if (reviewed) useProfile.getState().recordReviewHand(reviewed)
     // The Pip Rating (docs/rating.md): the same graded calls and folds, at every
     // Hold'em table. Decisions, not results: nothing here reads who won.
-    if (ratedVenue(venue)) rateHand(graded, record.bigBlind)
+    if (ratedVenue(venue)) rateHand(ratedDecisionsOf(record, graded))
     const heroWon = !!result && (result.payouts[HUMAN_ID] ?? 0) > 0
     const pot = potSize(hand)
 

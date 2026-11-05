@@ -15,6 +15,8 @@ import { trackOnce } from '@/lib/analytics'
 import { devMember, devSignedIn } from '@/lib/multiplayer/client'
 import {
   bandFor,
+  EXPERIENCE_CAPS,
+  isCapped,
   isProvisional,
   kindCosts,
   PROVISIONAL_DECISIONS,
@@ -37,6 +39,8 @@ const KIND_LABELS: Record<RatingKind, string> = {
   'turn-fold': 'Folds on the turn',
   'river-call': 'Calls on the river',
   'river-fold': 'Folds on the river',
+  'preflop-open': 'Opening when it folds to you',
+  'preflop-shove': 'Short-stack shoves and folds',
 }
 
 export function RatingSheet({
@@ -70,6 +74,10 @@ function Body() {
   const provisional = isProvisional(decisions)
   const left = PROVISIONAL_DECISIONS - decisions
   const costs = kindCosts(rating.core).slice(0, 4)
+  // Held under a band until enough decisions are in (EXPERIENCE_CAPS).
+  const nextCap = isCapped(rating.core)
+    ? EXPERIENCE_CAPS.find((c) => decisions < c.before)
+    : undefined
 
   return (
     <div className="flex flex-col gap-5 pb-1">
@@ -89,16 +97,20 @@ function Body() {
         <p className="relative mt-1 text-sm text-muted-foreground">
           {provisional
             ? `Provisional. Rated after ${left} more ${left === 1 ? 'hand' : 'hands'}.`
-            : rating.peak
-              ? `Peak ${rating.peak.toLocaleString('en-GB')} · ${decisions.toLocaleString('en-GB')} decisions`
-              : `${decisions.toLocaleString('en-GB')} decisions`}
+            : nextCap
+              ? `Your play is past ${bandFor(value)}. ${bandFor(nextCap.cap + 1)} opens after ${(nextCap.before - decisions).toLocaleString('en-GB')} more decisions.`
+              : rating.peak
+                ? `Peak ${rating.peak.toLocaleString('en-GB')} · ${decisions.toLocaleString('en-GB')} decisions`
+                : `${decisions.toLocaleString('en-GB')} decisions`}
         </p>
       </div>
 
       <div className="rounded-2xl bg-foreground/[0.03] p-4 text-sm leading-relaxed text-muted-foreground">
-        Your rating comes from every call and fold at a Hold’em table: how much each one gave away
-        against the best choice, from the cards you could see. Winning or losing the hand does not
-        change it. Recent hands count most.
+        Your rating comes from your decisions at a Hold’em table: every call and fold facing a bet,
+        and your first move when it folds to you, checked against the opening and short-stack
+        charts. Each is marked by how much it gave away against the best choice, from the cards you
+        could see. Winning or losing the hand does not change it. Recent hands count most, and the
+        top bands open only after enough decisions.
       </div>
 
       {member ? (

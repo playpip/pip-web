@@ -375,7 +375,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'rating',
     title: 'Your Pip Rating, in full',
     blurb:
-      'Everyone gets a Pip Rating, from how close each call and fold is to the best play, and a place on the leaderboard. Members also see it drawn day by day, and which kinds of decision are moving it, so you know what to work on.',
+      'Everyone gets a Pip Rating, from how close each call, fold and opening move is to the best play, and a place on the leaderboard. Members also see it drawn day by day, and which kinds of decision are moving it, so you know what to work on.',
     shipped: true,
     needs: 'rating',
   },

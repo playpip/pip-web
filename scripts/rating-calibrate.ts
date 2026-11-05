@@ -31,15 +31,8 @@ import {
 import { mulberry32, type Rng } from '@/lib/poker/cards'
 import type { HandState } from '@/lib/poker/engine'
 import { gradeDecision, isGraded } from '@/lib/review/grade'
-import {
-  applyDecision,
-  emptyCore,
-  ratedLoss,
-  ratedStake,
-  ratingFromLoss,
-  ratingKindOf,
-  ratingOf,
-} from '@/lib/rating'
+import { applyDecision, emptyCore, ratingFromLoss, rawRatingOf } from '@/lib/rating'
+import { ratedDecisionsOf } from '@/lib/rating/hand'
 import type { HandEvent, HandRecord } from '@/store/game'
 
 const HERO_ID = 'hero'
@@ -175,13 +168,13 @@ function measure(venue: Venue, hero: Hero, hands: number, seed: number) {
         rng,
       )
       dealt++
-      for (const s of scoreDecisions(record, { max: 8 }).filter(isGraded)) {
-        const graded = gradeDecision(s, record.bigBlind)
-        const loss = ratedLoss(graded)
-        losses.push(loss)
-        const stake = ratedStake(graded, record.bigBlind)
-        potBb += stake
-        core = applyDecision(core, ratingKindOf(graded), loss, stake)
+      const graded = scoreDecisions(record, { max: 8 })
+        .filter(isGraded)
+        .map((s) => gradeDecision(s, record.bigBlind))
+      for (const d of ratedDecisionsOf(record, graded)) {
+        losses.push(d.loss)
+        potBb += d.stake
+        core = applyDecision(core, d.kind, d.loss, d.stake)
       }
       for (const p of finished) {
         const seat = seats.find((s) => s.id === p.id)
@@ -197,7 +190,8 @@ function measure(venue: Venue, hero: Hero, hands: number, seed: number) {
     mean,
     perHand: total / Math.max(1, dealt),
     perPot: total / Math.max(1, potBb),
-    ewRating: ratingOf(core),
+    // The play's own number: the experience cap is about time, not skill.
+    ewRating: rawRatingOf(core),
   }
 }
 

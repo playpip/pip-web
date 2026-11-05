@@ -4,11 +4,9 @@
 // game store with the hand's graded calls and folds; the store never learns
 // who is signed in or whether the rating is on screen.
 
-import type { GradedDecision } from '@/lib/review/grade'
 import { dailyDateKey } from '@/lib/daily'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
-import { ratedLoss, ratedStake, ratingKindOf } from './index'
 import { adoptServer, ratingEnabled, type RatedDecision } from './local'
 import { enqueue } from './queue'
 import { submitRating } from './remote'
@@ -17,15 +15,12 @@ import { submitRating } from './remote'
 const SEND_AFTER_MS = 20_000
 let timer: ReturnType<typeof setTimeout> | null = null
 
-/** One finished hand's graded decisions in: the device's rating moves, and a signed-in one is queued. */
-export function rateHand(graded: readonly GradedDecision[], bigBlind: number): void {
-  const decisions: RatedDecision[] = graded
-    .map((d) => ({ kind: ratingKindOf(d), loss: ratedLoss(d), stake: ratedStake(d, bigBlind) }))
-    .filter((d) => d.stake >= 1)
+/** One finished hand's rated decisions in (`ratedDecisionsOf`): the device's rating moves, and a signed-in one is queued. */
+export function rateHand(decisions: readonly RatedDecision[]): void {
   if (decisions.length === 0) return
-  useProfile.getState().recordRatedDecisions(decisions, dailyDateKey())
+  useProfile.getState().recordRatedDecisions([...decisions], dailyDateKey())
   if (!ratingEnabled() || useSync.getState().status !== 'signed-in') return
-  enqueue({ at: Date.now(), decisions })
+  enqueue({ at: Date.now(), decisions: [...decisions] })
   if (!timer) timer = setTimeout(() => void sendRating(), SEND_AFTER_MS)
 }
 

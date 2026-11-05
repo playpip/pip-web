@@ -63,6 +63,7 @@ import { mulberry32 } from '@/lib/poker/cards'
 import { estimateEquity } from '@/lib/poker/equity'
 import { type HandState, potSize } from '@/lib/poker/engine'
 import { opponentSelectivity } from '@/lib/poker/ai/policy'
+import { firstInSpot } from '@/lib/poker/ai/pushFold'
 import { formatChips } from '@/lib/useMoney'
 
 /**
@@ -93,6 +94,14 @@ export interface HeroDecision {
    * slower to call a raise good.
    */
   committed?: number
+  /**
+   * Set when it folded round to the hero before the flop: players left to act
+   * behind, the effective stack in big blinds, and the hero's whole stack in
+   * chips (so a raise can be told from a shove). The Pip Rating grades these
+   * spots off the opening and shove charts (lib/rating/preflop), not off the
+   * call-or-fold arithmetic here. Absent on older records.
+   */
+  firstIn?: { behind: number; effectiveBb: number; totalChips: number }
 }
 
 /**
@@ -123,6 +132,7 @@ export function heroDecision(
     (sum, p) => sum + (p.id === heroId ? 0 : Math.max(0, p.committedThisStreet - reach)),
     0,
   )
+  const firstIn = firstInSpot(state, heroId)
   return {
     pot: potSize(state) - uncalled,
     toCall,
@@ -130,6 +140,7 @@ export function heroDecision(
     selectivity: opponents.map((p) => opponentSelectivity(state, p)),
     board: state.community.slice(),
     committed: hero.committedThisStreet,
+    ...(firstIn ? { firstIn } : {}),
   }
 }
 

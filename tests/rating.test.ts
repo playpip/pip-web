@@ -7,7 +7,10 @@ import {
   cleanName,
   decideSubmission,
   emptyCore,
+  EXPERIENCE_CAPS,
+  experienceCap,
   FLAG_AFTER,
+  isCapped,
   freshState,
   isProvisional,
   kindCosts,
@@ -25,6 +28,7 @@ import {
   ratingFromLoss,
   ratingKindOf,
   ratingOf,
+  rawRatingOf,
   type RatingCore,
   type Rejection,
   type SubmittedHand,
@@ -72,12 +76,13 @@ test('the scale runs one way, from the ceiling down to the floor', (t) => {
   }
 })
 
-test('halving what you give away is worth 700 points, and the anchors hold', (t) => {
-  t.is(ratingFromLoss(0.045), 1000)
-  t.is(ratingFromLoss(0.0225), 1700)
-  t.is(ratingFromLoss(0.09), 300)
-  // The calibration's strongest proxy gives away about 1.6% of the stake.
-  t.true(Math.abs(ratingFromLoss(0.016) - 2044) <= 1)
+test('halving what you give away is worth 350 points, and the anchors hold', (t) => {
+  t.is(ratingFromLoss(0.025), 1000)
+  t.is(ratingFromLoss(0.0125), 1350)
+  t.is(ratingFromLoss(0.05), 650)
+  // The calibration's strongest proxy gives away about 0.45% of the stake:
+  // just under 2000, so Expert is past the best Pip plays.
+  t.true(Math.abs(ratingFromLoss(0.0045) - 1866) <= 1)
   for (const r of [500, 1000, 1500, 2000, 2500]) t.is(ratingFromLoss(lossForRating(r)), r)
 })
 
@@ -125,6 +130,32 @@ test('the kinds that cost points are named, largest first', (t) => {
   t.is(costs[0].kind, 'river-call')
   t.is(costs[1].kind, 'preflop-fold')
   t.false(costs.some((k) => k.kind === 'flop-fold'))
+})
+
+test('the top bands open only after enough decisions', (t) => {
+  t.is(experienceCap(0), 1599)
+  t.is(experienceCap(299), 1599)
+  t.is(experienceCap(300), 1999)
+  t.is(experienceCap(999), 1999)
+  t.is(experienceCap(1_000), 2399)
+  t.is(experienceCap(2_500), RATING_CEILING)
+  // Flawless play is held under each band until its count, then let through.
+  const short = play(emptyCore(), 100, 0)
+  t.is(ratingOf(short), 1599)
+  t.true(isCapped(short))
+  t.true(rawRatingOf(short) > 1599)
+  const long = play(emptyCore(), EXPERIENCE_CAPS[EXPERIENCE_CAPS.length - 1].before, 0.05)
+  t.false(isCapped(long))
+  t.is(ratingOf(long), rawRatingOf(long))
+})
+
+test('a cap lifting is not a jump the server clamps', (t) => {
+  // 299 strong decisions: shown at 1599, earned well above it.
+  const strong = play(emptyCore(), 299, 0.05)
+  t.is(ratingOf(strong), 1599)
+  const { rating, clamped } = applySubmission(strong, hands(1, 0.05))
+  t.false(clamped)
+  t.is(rating, Math.min(1999, rawRatingOf(play(strong, 1, 0.05))))
 })
 
 // --- what the server accepts ----------------------------------------------------
@@ -315,7 +346,8 @@ test('a hand moves the device rating, its day, its peak and its graph', async (t
   const { emptyRating, recordRatedHand, ratingToday } = await import('@/lib/rating/local')
   let r = emptyRating()
   for (let i = 0; i < PROVISIONAL_DECISIONS; i++) {
-    r = recordRatedHand(r, [{ kind: 'flop-fold', loss: 0, stake: 10 }], '2026-11-03')
+    // Ordinary play, well under the experience cap, so one bad call shows.
+    r = recordRatedHand(r, [{ kind: 'flop-fold', loss: 0.3, stake: 10 }], '2026-11-03')
   }
   t.truthy(r.peak)
   r = recordRatedHand(r, [{ kind: 'river-call', loss: 8, stake: 30 }], '2026-11-04')

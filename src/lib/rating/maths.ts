@@ -16,7 +16,12 @@
 // cards the player could see when they made it. A call that was right and lost
 // to a two-outer costs nothing here, because the river is not in the arithmetic.
 
-/** The eight kinds of decision a rating is made of: a call or a fold, by street. */
+/**
+ * The kinds of decision a rating is made of: a call or a fold facing a bet, by
+ * street, and the first move when it folds round to you before the flop, graded
+ * off the opening chart (`preflop-open`) or, at 15 big blinds or fewer, the
+ * shove chart (`preflop-shove`). See src/lib/rating/preflop.ts.
+ */
 export const RATING_KINDS = [
   'preflop-call',
   'preflop-fold',
@@ -26,6 +31,8 @@ export const RATING_KINDS = [
   'turn-fold',
   'river-call',
   'river-fold',
+  'preflop-open',
+  'preflop-shove',
 ] as const
 
 export type RatingKind = (typeof RATING_KINDS)[number]
@@ -78,17 +85,18 @@ export const RATING_CEILING = 3000
  * price), both exponentially weighted. A call that gave away 2 blinds in a
  * 20-blind pot is a loss of 0.1.
  *
- * `rating = 1000 − 700 × log2(loss / 0.045)`, clamped to 100..3000.
+ * `rating = ANCHOR_RATING − STEP × log2(loss / ANCHOR_LOSS)`, clamped to
+ * 100..3000, and then held under the experience cap (`experienceCap`).
  *
- * So 1000 is a player who gives away 4.5% of what is at stake, and every
- * halving of that is 700 points. It is measured, not chosen
- * (`pnpm rating-calibrate`, docs/rating.md): Friends' Garage's own regulars
- * give away about 5%, a proxy that calls whatever it is charged 7%, one that
- * flips a coin 8%, and the strongest proxy Pip has about 1.6%, which is 2000.
+ * So `ANCHOR_RATING` is a player who gives away `ANCHOR_LOSS` of what is at
+ * stake, and every halving of that is `STEP` points. The numbers are measured
+ * (`pnpm rating-calibrate`, docs/rating.md), and set so that 2000 sits above
+ * the strongest proxy Pip has: like 2000 in chess, most players never get
+ * there.
  */
 export const ANCHOR_RATING = 1000
-export const ANCHOR_LOSS = 0.045
-export const STEP = 700
+export const ANCHOR_LOSS = 0.025
+export const STEP = 350
 
 export function ratingFromLoss(loss: number): number {
   if (!Number.isFinite(loss) || loss <= 0) return RATING_CEILING
@@ -177,8 +185,38 @@ export function lossOf(core: RatingCore): number {
   return core.weight > 0 ? core.sum / core.weight : PRIOR_LOSS
 }
 
-export function ratingOf(core: RatingCore): number {
+/**
+ * How high a rating can be until it has been earned over enough decisions:
+ * under 300 rated decisions it stays under Strong, under 1,000 under Expert,
+ * under 2,500 under Master. A good week is not a career, and in chess nobody
+ * reaches 2000 in a month either. The play underneath still counts in full,
+ * so the number catches up the moment the cap lifts.
+ */
+export const EXPERIENCE_CAPS: readonly { before: number; cap: number }[] = [
+  { before: 300, cap: 1599 },
+  { before: 1_000, cap: 1999 },
+  { before: 2_500, cap: 2399 },
+]
+
+/** The highest rating `decisions` rated decisions can show. */
+export function experienceCap(decisions: number): number {
+  for (const step of EXPERIENCE_CAPS) if (decisions < step.before) return step.cap
+  return RATING_CEILING
+}
+
+/** The rating the play alone earns, before the experience cap. */
+export function rawRatingOf(core: RatingCore): number {
   return ratingFromLoss(lossOf(core))
+}
+
+/** The rating: what the play earns, held under the experience cap. */
+export function ratingOf(core: RatingCore): number {
+  return Math.min(rawRatingOf(core), experienceCap(core.decisions))
+}
+
+/** Is the rating being held down by the experience cap right now? */
+export function isCapped(core: RatingCore): boolean {
+  return rawRatingOf(core) > experienceCap(core.decisions)
 }
 
 export function isProvisional(decisions: number): boolean {
@@ -191,7 +229,7 @@ export function isProvisional(decisions: number): boolean {
  * nothing are left out.
  */
 export function kindCosts(core: RatingCore): { kind: RatingKind; points: number }[] {
-  const now = ratingOf(core)
+  const now = rawRatingOf(core)
   return RATING_KINDS.map((kind) => ({
     kind,
     points: ratingFromLoss((core.sum - core.kinds[kind]) / core.weight) - now,
@@ -244,11 +282,13 @@ export const MAX_DECISIONS_PER_HOUR = 900
 export const MAX_CHANGE_PER_SUBMIT = 60
 
 /**
- * Below this share given away (about 2850), over at least `FLAG_AFTER` decisions, a record
- * is better than any player Pip has measured (docs/rating.md). It is flagged:
+ * Below this share given away (what 2600 is), over at least `FLAG_AFTER`
+ * decisions, a record is better than any player Pip has measured: the best
+ * proxy rates about 2150 at its best table (docs/rating.md). It is flagged:
  * kept, rated, and left off the leaderboard until somebody looks at it.
  */
-export const IMPLAUSIBLE_LOSS = 0.006
+export const IMPLAUSIBLE_RATING = 2600
+export const IMPLAUSIBLE_LOSS = lossForRating(IMPLAUSIBLE_RATING)
 export const FLAG_AFTER = 200
 
 export type Rejection =
@@ -338,13 +378,15 @@ export function applySubmission(
   core: RatingCore,
   hands: readonly SubmittedHand[],
 ): { core: RatingCore; rating: number; clamped: boolean } {
-  const before = ratingOf(core)
+  // Held on the rating the play earns, not the capped one: a cap lifting is
+  // not a jump the play made, and clamping it would rewrite the play.
+  const before = rawRatingOf(core)
   let next = core
   for (const hand of hands)
     for (const d of hand.decisions) next = applyDecision(next, d.kind, d.loss, d.stake)
-  const after = ratingOf(next)
+  const after = rawRatingOf(next)
   if (isProvisional(core.decisions) || Math.abs(after - before) <= MAX_CHANGE_PER_SUBMIT) {
-    return { core: next, rating: after, clamped: false }
+    return { core: next, rating: ratingOf(next), clamped: false }
   }
   const target = before + Math.sign(after - before) * MAX_CHANGE_PER_SUBMIT
   const loss = lossForRating(target)
