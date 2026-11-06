@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ANCHOR_LOSS, ANCHOR_RATING, STEP } from '@/lib/rating/maths'
 import { MEMBERSHIP_PRICE } from './membership'
 import { contentAlternates, contentSocial } from './site'
 
@@ -18,6 +19,12 @@ export interface BlogPost {
 
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
+  {
+    slug: 'pip-rating-grades-decisions',
+    title: 'A poker rating that ignores whether you won the hand',
+    description: `The Pip Rating grades each call, fold and opening move on the cards you could see, so a bad beat costs nothing. ${ANCHOR_RATING.toLocaleString('en-GB')} gives away ${ANCHOR_LOSS * 100}% of what was at stake, and every halving is ${STEP} points. Calling everything and folding everything both rate about 400. What the server checks, and what it cannot.`,
+    date: '2026-11-05',
+  },
   {
     slug: 'deep-stack-set-mining',
     title: 'Set mining needs a deep stack. How long each table gives you one',
