@@ -540,7 +540,7 @@ Two more sit between the page view and checkout: `membership-join-seen` (half of
 box with the Join button, scrolled into view; members and signed-out tabs count too) and
 `membership-join-tapped` (a signed-in player pressed Join, or was carried on to checkout after
 making an account from the Join box, so `membership-join-tapped` minus `checkout-opened` is the
-tabs the till stopped; until 2026-11-02 a required refund-waiver box sat in between). Both are in `Till` and `Join` (`components/membership/Join.tsx`); `membership-join-tapped` does not fire in the store app's own join.
+tabs the till stopped; until 2026-11-02 a required refund-waiver box sat in between). Both are in `Till` and `Join` (`components/membership/Join.tsx`); in the store app, `membership-join-tapped` fires when Join opens the store's sheet (from 2026-11-06; before then it did not, so an app sale read as a checkout nobody tapped).
 The till is the same in the welcome flow's plans sheet, so these count joins from the sheet
 too. The sheet's own event is `welcome-plans-opened` ("See membership plans" tapped on the
 welcome flow's last step, which opens the sheet); a sheet tab has no `membership-viewed`, so

@@ -516,12 +516,15 @@ function StoreJoin({ plan, planName }: { plan: Plan; planName: string }) {
     <>
       <button
         disabled={busy || !price}
-        onClick={() =>
+        onClick={() => {
+          // The same count as the web's Join, so an app sale is not a checkout
+          // that nobody tapped.
+          trackOnce('membership-join-tapped')
           void act(
             () => buyInStore(plan),
             `${store === 'Google Play' ? 'Google Play' : 'The App Store'} has your payment. It can take a minute to show here.`,
           )
-        }
+        }}
         className={joinButton}
       >
         {busy
