@@ -192,7 +192,9 @@ names each game. That entry is `shipped` exactly while the registry has a game i
   and, when the round is used, the limit card with when it comes back.
 - Shared parts: `components/quick/QuickScreen.tsx` (`QuickPage`, `QuickIntro`, `QuickEnd`).
 - **Poker Solitaire** (`lib/quick/solitaire.ts`, `tests/solitaire.test.ts`) scores on the
-  American Poker Squares table; its Daily deal is seeded by the UTC day. **Ten Hands** is the
+  American Poker Squares table. Its Puzzle (`lib/quick/solitairePuzzle.ts`) deals all 25 face
+  up to swap, with a target of 90% of a grid Pip found, so it can always be solved; the Daily
+  puzzle is seeded by the UTC day. **Ten Hands** is the
   real table: `TEN_HANDS` in `config/venues.ts`, a cash table with `scoreHands: 10`, buy-in 0
   and a house stack (`houseStack`, so standing up cashes for nothing; `tests/tenHands.test.ts`).
   The game store stops it with `status: 'scored'` and the page shows the end card over the felt.

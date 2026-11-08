@@ -2,17 +2,17 @@
 //
 // A 5×5 grid and a shuffled deck. Cards come one at a time and each goes in an
 // empty cell, for good. When all 25 are down, the five rows and five columns
-// are each a poker hand, and each hand scores from one table. Pure and seeded:
-// the Daily deal is the same 25 cards for everybody on a UTC day.
+// are each a poker hand, and each hand scores from one table. Pure and seeded.
+// The Daily is a puzzle (lib/quick/solitairePuzzle): luck is no way to share a
+// day's deal.
 //
 // **The American table**, the classic Poker Squares one, because its order is
 // the order of the hands: a better hand always scores more. The English table
 // pays a straight over a full house, which is right for its odds and wrong for
 // a one-thumb game where nobody should have to learn a second ranking.
 
-import { type Card, mulberry32, type Rng, shuffledDeck } from '@/lib/poker/cards'
+import { type Card, type Rng, shuffledDeck } from '@/lib/poker/cards'
 import { evaluateHand } from '@/lib/poker/handEval'
-import { dailySeed } from '@/lib/daily'
 
 export const GRID_SIZE = 5
 export const CELLS = GRID_SIZE * GRID_SIZE
@@ -112,9 +112,4 @@ export function place(grid: Grid, cell: number, card: Card): (Card | null)[] | n
 /** The 25 cards of a round, in the order they come. */
 export function dealSolitaire(rng: Rng): Card[] {
   return shuffledDeck(rng).slice(0, CELLS)
-}
-
-/** Today's deal: the same 25 for everybody on a UTC day, not the Daily tournament's shuffle. */
-export function dailySolitaire(dateKey: string): Card[] {
-  return dealSolitaire(mulberry32(dailySeed(dateKey) ^ 0x5017a1e))
 }

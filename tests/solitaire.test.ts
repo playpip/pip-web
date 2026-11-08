@@ -2,7 +2,6 @@ import test from 'ava'
 import { cardFromString, cardToString, mulberry32 } from '@/lib/poker/cards'
 import {
   CELLS,
-  dailySolitaire,
   dealSolitaire,
   emptyGrid,
   LINES,
@@ -111,11 +110,8 @@ test('a full grid scores all ten lines', (t) => {
   )
 })
 
-test('a deal is 25 different cards, and the Daily deal is the same for everyone that day', (t) => {
+test('a deal is 25 different cards', (t) => {
   const deal = dealSolitaire(mulberry32(42))
   t.is(deal.length, 25)
   t.is(new Set(deal.map(cardToString)).size, 25)
-  const today = dailySolitaire('2026-11-04').map(cardToString)
-  t.deepEqual(dailySolitaire('2026-11-04').map(cardToString), today)
-  t.notDeepEqual(dailySolitaire('2026-11-05').map(cardToString), today)
 })

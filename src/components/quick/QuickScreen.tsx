@@ -160,6 +160,7 @@ export function QuickEnd({
   view,
   again,
   onBack,
+  result,
   children,
 }: {
   game: QuickGame
@@ -171,6 +172,8 @@ export function QuickEnd({
   again: readonly StartOption[]
   /** Leaving for the side tables, for a game with something to put away first. */
   onBack?: () => void
+  /** Said under the score in place of the best, for a round that keeps no best. */
+  result?: React.ReactNode
   children?: React.ReactNode
 }) {
   const router = useRouter()
@@ -194,22 +197,23 @@ export function QuickEnd({
         <div className="flex flex-col items-center gap-1 py-3 text-center">
           <span className="text-sm font-medium text-muted-foreground">{game.title}</span>
           <ScoreCount value={score} unit={game.unit} />
-          {newBest && score > 0 ? (
-            <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.9, type: 'spring', stiffness: 400, damping: 18 }}
-              className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold"
-            >
-              <Star className="size-3.5 fill-pip text-pip" />
-              New best
-            </motion.span>
-          ) : (
-            <span className="mt-1 inline-flex items-center gap-1.5 text-sm tabular-nums text-muted-foreground">
-              <Star className="size-3.5 fill-pip text-pip" />
-              Best {formatScore(game, best)}
-            </span>
-          )}
+          {result ??
+            (newBest && score > 0 ? (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.9, type: 'spring', stiffness: 400, damping: 18 }}
+                className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-sm font-semibold"
+              >
+                <Star className="size-3.5 fill-pip text-pip" />
+                New best
+              </motion.span>
+            ) : (
+              <span className="mt-1 inline-flex items-center gap-1.5 text-sm tabular-nums text-muted-foreground">
+                <Star className="size-3.5 fill-pip text-pip" />
+                Best {formatScore(game, best)}
+              </span>
+            ))}
         </div>
         {children && <div className="mt-4">{children}</div>}
         {view.ready && view.canPlay && (
