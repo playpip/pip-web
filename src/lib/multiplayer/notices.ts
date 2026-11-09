@@ -21,6 +21,12 @@ export interface PlayPrefs {
   quietTo: number
   push: boolean
   email: boolean
+  /** Push when it is your move in a slow game, or one ends. Under `push`, like the two below. */
+  slow: boolean
+  /** Push when somebody passes you on the Pip Rating board (`nudges.ts`). */
+  rating: boolean
+  /** Push when your streak is about to end, or has (`nudges.ts`). */
+  streak: boolean
 }
 
 export const DEFAULT_PREFS: PlayPrefs = {
@@ -29,6 +35,9 @@ export const DEFAULT_PREFS: PlayPrefs = {
   quietTo: DEFAULT_QUIET.to,
   push: true,
   email: true,
+  slow: true,
+  rating: true,
+  streak: true,
 }
 
 /** With no device to push to, the email waits this long, in case they are on their way. */
@@ -71,7 +80,7 @@ export function planNotice(
 ): Notice | undefined {
   if (card.yourTurn && card.turnKey) {
     if (prev?.key === card.turnKey) return prev
-    const pushing = prefs.push && hasDevices
+    const pushing = prefs.push && prefs.slow && hasDevices
     const moveMs = card.moveHours * 60 * 60 * 1000
     return {
       code: card.code,
@@ -87,7 +96,7 @@ export function planNotice(
     return {
       code: card.code,
       key: 'end',
-      pushAt: prefs.push && hasDevices ? awake(now, prefs) : null,
+      pushAt: prefs.push && prefs.slow && hasDevices ? awake(now, prefs) : null,
       emailAt: null,
     }
   }
@@ -137,7 +146,18 @@ export function parsePrefs(v: unknown): PlayPrefs | null {
   if (!isObj(v)) return null
   if (!validTimeZone(v.tz) || !isMinute(v.quietFrom) || !isMinute(v.quietTo)) return null
   if (typeof v.push !== 'boolean' || typeof v.email !== 'boolean') return null
-  return { tz: v.tz, quietFrom: v.quietFrom, quietTo: v.quietTo, push: v.push, email: v.email }
+  // A page from before 2026-11-09 sends none of these: on, as for everybody.
+  const on = (x: unknown) => (typeof x === 'boolean' ? x : true)
+  return {
+    tz: v.tz,
+    quietFrom: v.quietFrom,
+    quietTo: v.quietTo,
+    push: v.push,
+    email: v.email,
+    slow: on(v.slow),
+    rating: on(v.rating),
+    streak: on(v.streak),
+  }
 }
 
 /**

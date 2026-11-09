@@ -1,7 +1,8 @@
 'use client'
 
-// Settings → Slow games: how Pip tells you it is your move, and the hours it
-// leaves you alone. Kept on the room server with your account
+// Settings → Notifications: what Pip pushes (your move in a slow game,
+// somebody passing you on the board, your streak ending), the slow games'
+// email, and the hours it leaves you alone. Kept on the room server with your account
 // (`rooms/src/player.ts`), so the same on every device, and a game's clock
 // follows a change straight away.
 
@@ -76,20 +77,42 @@ function SlowGamesSwitches() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Slow games</p>
+      <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Notifications</p>
       <ToggleRow
         label="Push notifications"
         hint={
           support === 'install'
             ? 'On iPhone, add Pip to your Home Screen to get these.'
-            : 'When it’s your move.'
+            : 'On every device you’ve allowed.'
         }
         checked={prefs?.push ?? false}
         disabled={!prefs || support === 'none' || support === 'install'}
         onChange={() => void flipPush()}
       />
+      {/* What is pushed, each under the main switch. */}
+      <div className="flex flex-col gap-4 border-l border-foreground/10 pl-4">
+        {(
+          [
+            ['slow', 'Slow games', 'When it’s your move.'],
+            ['rating', 'Leaderboard', 'When someone passes you on the Pip Rating.'],
+            ['streak', 'Streak', 'When your streak is about to end.'],
+          ] as const
+        ).map(([key, label, hint]) => (
+          <ToggleRow
+            key={key}
+            label={label}
+            hint={hint}
+            checked={(prefs?.push && prefs[key]) ?? false}
+            disabled={!prefs?.push}
+            onChange={() => {
+              sound.play('tap')
+              void save({ [key]: !prefs?.[key] })
+            }}
+          />
+        ))}
+      </div>
       <ToggleRow
-        label="Email"
+        label="Slow game emails"
         hint="When a move is still waiting. One at most every 12 hours."
         checked={prefs?.email ?? false}
         disabled={!prefs}
@@ -101,7 +124,9 @@ function SlowGamesSwitches() {
       <div className="flex flex-col gap-2">
         <div>
           <p className="text-sm font-medium">Quiet hours</p>
-          <p className="text-xs text-muted-foreground">Your clock stops and nothing is sent.</p>
+          <p className="text-xs text-muted-foreground">
+            Slow game clocks stop and nothing is sent.
+          </p>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <input

@@ -104,15 +104,29 @@ const REPLY_TO = 'hello@playpip.io'
 /** The address on the account, read with the service role. */
 export async function emailOf(env: Env, userId: string): Promise<string | null> {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return null
-  const key = env.SUPABASE_SERVICE_ROLE_KEY
   const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
-    headers: key.startsWith('eyJ')
-      ? { apikey: key, Authorization: `Bearer ${key}` }
-      : { apikey: key },
+    headers: serviceHeaders(env.SUPABASE_SERVICE_ROLE_KEY),
   })
   if (!res.ok) return null
   const user = (await res.json()) as { email?: unknown }
   return typeof user.email === 'string' ? user.email : null
+}
+
+/** A legacy service-role JWT goes as a bearer too; a `sb_secret_` key only as the apikey. */
+export function serviceHeaders(key: string): Record<string, string> {
+  return key.startsWith('eyJ') ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key }
+}
+
+/** The account's synced profile (`profiles.state`), read with the service role. */
+export async function profileStateOf(env: Env, userId: string): Promise<unknown> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return null
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}&select=state`,
+    { headers: serviceHeaders(env.SUPABASE_SERVICE_ROLE_KEY) },
+  )
+  if (!res.ok) return null
+  const rows = (await res.json()) as { state?: unknown }[]
+  return rows[0]?.state ?? null
 }
 
 export function gameUrl(code: string): string {

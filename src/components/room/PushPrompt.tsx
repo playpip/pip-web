@@ -1,8 +1,10 @@
 'use client'
 
-// The one time Pip asks to send notifications: at the first slow game's table,
-// where it is obvious what they are for. Never on first load, and never again
-// once answered either way.
+// Pip's own question before a browser's, asked once and never again once
+// answered either way: in the lobby (`menu/LobbyPush`), or at the first slow
+// game's table for anyone who skipped it there. A browser only shows its
+// prompt from a tap, so this card is the tap. The app asks the system
+// straight away instead (LobbyPush).
 //
 // It also records this device's timezone for your quiet hours, the first time,
 // so a slow clock stops at your night rather than at UTC's.
@@ -11,44 +13,29 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Bell } from 'lucide-react'
 import { deviceTimeZone } from '@/components/settings/SlowGamesSection'
-import { fetchNotifySettings, saveNotifyPrefs } from '@/lib/multiplayer/client'
-import { enablePush, pushSupport } from '@/lib/push'
+import {
+  enablePush,
+  markPushAsked,
+  pushAskedBefore,
+  pushSupport,
+  saveTimeZoneOnce,
+} from '@/lib/push'
 import { sound } from '@/lib/sound'
-
-const ASKED = 'pip.pushAsked'
-
-function askedBefore(): boolean {
-  try {
-    return localStorage.getItem(ASKED) === '1'
-  } catch {
-    return true
-  }
-}
-
-function markAsked(): void {
-  try {
-    localStorage.setItem(ASKED, '1')
-  } catch {
-    // Private mode: asked again next time, which is no worse than now.
-  }
-}
 
 /** Whether this device could be asked, and has not been. */
 function askable(): boolean {
   const support = pushSupport()
-  if (support === 'web') return Notification.permission === 'default' && !askedBefore()
-  return support === 'app' && !askedBefore()
+  if (support === 'web') return Notification.permission === 'default' && !pushAskedBefore()
+  return support === 'app' && !pushAskedBefore()
 }
 
-export function PushPrompt() {
+export function PushPrompt({ question = 'Tell you when it’s your move?' }: { question?: string }) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
     let live = true
-    void fetchNotifySettings().then((got) => {
-      if (!live || !got) return
-      if (!got.set) void saveNotifyPrefs({ ...got.prefs, tz: deviceTimeZone() })
-      if (got.prefs.push && askable()) setOpen(true)
+    void saveTimeZoneOnce(deviceTimeZone()).then((got) => {
+      if (live && got?.push && askable()) setOpen(true)
     })
     return () => {
       live = false
@@ -57,7 +44,7 @@ export function PushPrompt() {
 
   const answer = async (yes: boolean) => {
     sound.play('tap')
-    markAsked()
+    markPushAsked()
     setOpen(false)
     if (yes) await enablePush()
   }
@@ -74,7 +61,7 @@ export function PushPrompt() {
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
             <Bell className="size-4" />
           </span>
-          <p className="min-w-0 flex-1 text-sm font-medium">Tell you when it’s your move?</p>
+          <p className="min-w-0 flex-1 text-sm font-medium">{question}</p>
           <button
             onClick={() => void answer(false)}
             className="shrink-0 px-2 py-2 text-sm text-muted-foreground transition hover:text-foreground"

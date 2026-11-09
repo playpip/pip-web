@@ -16,6 +16,10 @@
 //   GET  /hands               the hands-played count (the landing page reads it)
 //   POST /hands               the game's hands against the cast, a batch at a time
 //
+// And on a schedule (wrangler.jsonc `triggers`): drain `push_outbox`, the
+// pushes Supabase has queued for players (somebody passed them on the Pip
+// Rating board), into each player's index, which decides when to send them.
+//
 // Every socket and every create is refused from an origin that is not the
 // site's (ALLOWED_ORIGINS), so a page somewhere else cannot drive a table with
 // a visitor's session.
@@ -31,7 +35,7 @@ import { identify, isMember } from './auth'
 import { claimFree, freeLeft, releaseFree } from './free'
 import { blocksOf } from './safety'
 import { corsHeaders, json, originAllowed, playerStub, type Env } from './env'
-import { offLinkValid } from './notify'
+import { offLinkValid, serviceHeaders } from './notify'
 import type { InitBody } from './room'
 import { tallyStub } from './tally'
 
@@ -119,7 +123,54 @@ export default {
 
     return json({ error: 'not-found' }, 404, cors)
   },
+
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(drainOutbox(env))
+  },
 } satisfies ExportedHandler<Env>
+
+/** Outbox rows older than this are dropped unsent: the news is stale. */
+const OUTBOX_STALE_MS = 6 * 60 * 60 * 1000
+
+/**
+ * Hand each queued push to its player's index, then delete the rows. A row the
+ * index refuses stays for the next run; one that has waited too long goes.
+ */
+async function drainOutbox(env: Env): Promise<void> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return
+  const base = `${env.SUPABASE_URL}/rest/v1/push_outbox`
+  const headers = serviceHeaders(env.SUPABASE_SERVICE_ROLE_KEY)
+  const res = await fetch(`${base}?select=id,user_id,kind,payload,created_at&order=id&limit=200`, {
+    headers,
+  })
+  if (!res.ok) {
+    console.error('outbox read failed', { status: res.status })
+    return
+  }
+  const rows = (await res.json()) as {
+    id: number
+    user_id: string
+    kind: string
+    payload: unknown
+    created_at: string
+  }[]
+  if (rows.length === 0) return
+  const now = Date.now()
+  const done: number[] = []
+  await Promise.all(
+    rows.map(async (row) => {
+      if (now - Date.parse(row.created_at) > OUTBOX_STALE_MS || row.kind !== 'passed') {
+        done.push(row.id)
+        return
+      }
+      const r = await player(env, row.user_id, 'nudge/passed', row.payload).catch(() => null)
+      if (r?.ok) done.push(row.id)
+    }),
+  )
+  if (done.length === 0) return
+  const del = await fetch(`${base}?id=in.(${done.join(',')})`, { method: 'DELETE', headers })
+  if (!del.ok) console.error('outbox delete failed', { status: del.status })
+}
 
 /**
  * A member, or somebody spending a free one, opens a room or a slow game. The host is

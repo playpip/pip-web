@@ -10,6 +10,11 @@
 // switches (Settings → Notifications) and the devices they allowed pushes on.
 // All of it is keyed by the account, so it works the same on every device.
 //
+// And the pushes that are not about a game (`lib/multiplayer/nudges.ts`):
+// somebody passing them on the Pip Rating board, and their streak ending.
+// The streak is checked once a day from the synced profile, for as long as
+// they have a device to push to.
+//
 // And the days their free room and free quick match were last spent
 // (`lib/multiplayer/freeRoom.ts`), so the one-a-day allowances hold on every
 // device and cannot be reset from the browser.
@@ -17,6 +22,7 @@
 import { DurableObject } from 'cloudflare:workers'
 import {
   DEFAULT_PREFS,
+  awake,
   emailSlot,
   nextDue,
   deviceId,
@@ -25,11 +31,20 @@ import {
   type PlayPrefs,
   type PushDevice,
 } from '@/lib/multiplayer/notices'
+import {
+  nextStreakCheck,
+  nextUtcMidnight,
+  passedCopy,
+  ratingPushAllowed,
+  readPlayStreak,
+  streakCopy,
+  type PushCopy,
+} from '@/lib/multiplayer/nudges'
 import { noticeCopy, type SlowCard } from '@/lib/multiplayer/slowCard'
 import { MAX_SLOW_GAMES } from '@/lib/multiplayer/slow'
 import { FREE_SLOW_GAMES, spentToday, utcDay, type FreeLeft } from '@/lib/multiplayer/freeRoom'
 import { json, type Env } from './env'
-import { emailOf, gameUrl, offLink, pushAll, sendEmail, turnEmail } from './notify'
+import { emailOf, gameUrl, offLink, profileStateOf, pushAll, sendEmail, turnEmail } from './notify'
 
 /** The daily free tables, and where the day each was last spent is kept. */
 export type FreeDaily = 'room' | 'quick'
@@ -37,6 +52,18 @@ const FREE_KEYS: Record<FreeDaily, string> = { room: 'freeRoomDay', quick: 'free
 
 /** Devices one account may register. The oldest is dropped past this. */
 const MAX_DEVICES = 10
+
+/** The pushes that are not about a game, and when each is next due. */
+interface Nudges {
+  /** The next streak check, or null while there is no device to push to. */
+  streakAt: number | null
+  /** A "passed you" waiting out the quiet hours; a newer one replaces it. */
+  passed: { copy: PushCopy; at: number } | null
+  /** When the last "passed you" went, for the twelve-hour gap. */
+  passedLastAt: number | null
+}
+
+const NO_NUDGES: Nudges = { streakAt: null, passed: null, passedLastAt: null }
 
 export class Player extends DurableObject<Env> {
   private async get<T>(key: string, fallback: T): Promise<T> {
@@ -59,8 +86,22 @@ export class Player extends DurableObject<Env> {
     return this.get<Record<string, Notice>>('notices', {})
   }
 
-  private async arm(notices: Record<string, Notice>): Promise<void> {
-    const at = nextDue(Object.values(notices))
+  private async nudges(): Promise<Nudges> {
+    return { ...NO_NUDGES, ...(await this.get<Partial<Nudges>>('nudges', {})) }
+  }
+
+  /** One alarm for everything: the soonest of the game notices and the nudges. */
+  private async arm(notices?: Record<string, Notice>): Promise<void> {
+    const n = await this.nudges()
+    const due = [
+      nextDue(Object.values(notices ?? (await this.notices()))),
+      n.streakAt,
+      n.passed?.at,
+    ]
+    const at = due.reduce<number | null>(
+      (min, t) => (t == null ? min : min === null || t < min ? t : min),
+      null,
+    )
     if (at === null) await this.ctx.storage.deleteAlarm()
     else await this.ctx.storage.setAlarm(at)
   }
@@ -143,12 +184,49 @@ export class Player extends DurableObject<Env> {
       case 'POST /prefs': {
         const next = (await request.json()) as PlayPrefs
         await this.ctx.storage.put('prefs', next)
+        // New quiet hours can move the streak check.
+        const n = await this.nudges()
+        if (n.streakAt !== null) {
+          await this.ctx.storage.put('nudges', {
+            ...n,
+            streakAt: nextStreakCheck(Date.now(), next),
+          })
+          await this.arm()
+        }
         return json({ prefs: next, rooms: await this.liveCodes() }, 200)
       }
       case 'POST /devices': {
         const device = (await request.json()) as PushDevice
         const others = (await this.devices()).filter((d) => deviceId(d) !== deviceId(device))
         await this.ctx.storage.put('devices', [...others, device].slice(-MAX_DEVICES))
+        // Somebody to push to: the daily streak check starts.
+        const n = await this.nudges()
+        if (n.streakAt === null) {
+          await this.ctx.storage.put('nudges', {
+            ...n,
+            streakAt: nextStreakCheck(Date.now(), await this.prefs()),
+          })
+          await this.arm()
+        }
+        return json({ ok: true }, 200)
+      }
+      case 'POST /nudge/passed': {
+        // From the outbox drain (index.ts `scheduled`), never from a client.
+        const { name, rank } = (await request.json()) as { name?: string; rank?: number | null }
+        const prefs = await this.prefs()
+        const n = await this.nudges()
+        const now = Date.now()
+        if (
+          typeof name === 'string' &&
+          prefs.push &&
+          prefs.rating &&
+          (await this.devices()).length > 0 &&
+          ratingPushAllowed(n.passedLastAt, now)
+        ) {
+          const copy = passedCopy(name, typeof rank === 'number' ? rank : null)
+          await this.ctx.storage.put('nudges', { ...n, passed: { copy, at: awake(now, prefs) } })
+          await this.arm()
+        }
         return json({ ok: true }, 200)
       }
       case 'POST /devices/remove': {
@@ -208,10 +286,58 @@ export class Player extends DurableObject<Env> {
 
   async alarm(): Promise<void> {
     try {
+      await this.deliverNudges()
+    } catch (e) {
+      console.error('nudges failed', { error: String(e) })
+    }
+    try {
       await this.deliver()
     } catch (e) {
       console.error('notices failed', { error: String(e) })
     }
+  }
+
+  /** The board and the streak, whichever is due. Re-arms through `deliver`. */
+  private async deliverNudges(): Promise<void> {
+    const now = Date.now()
+    const n = await this.nudges()
+    const prefs = await this.prefs()
+    let devices = await this.devices()
+    const send = async (copy: PushCopy, url: string, tag: string) => {
+      const gone = await pushAll(this.env, devices, { ...copy, url, tag })
+      if (gone.length) devices = devices.filter((d) => !gone.includes(deviceId(d)))
+    }
+
+    if (n.passed && n.passed.at <= now) {
+      if (prefs.push && prefs.rating) {
+        await send(n.passed.copy, '/game/leaderboard', 'pip-rating')
+        n.passedLastAt = now
+      }
+      n.passed = null
+    }
+
+    if (n.streakAt !== null && n.streakAt <= now) {
+      if (awake(now, prefs) !== now) {
+        // Quiet through every check time: it waits for them to wake.
+        n.streakAt = awake(now, prefs)
+      } else if (devices.length === 0) {
+        // Nobody to tell: the check stops until a device is allowed again.
+        n.streakAt = null
+      } else {
+        if (prefs.push && prefs.streak) {
+          const userId = await this.get<string>('user', '')
+          const copy = userId
+            ? streakCopy(readPlayStreak(await profileStateOf(this.env, userId)), now)
+            : null
+          if (copy) await send(copy, '/game', 'pip-streak')
+        }
+        // Tomorrow's: today's has just been.
+        n.streakAt = nextStreakCheck(nextUtcMidnight(now), prefs)
+      }
+    }
+
+    await this.ctx.storage.put('devices', devices)
+    await this.ctx.storage.put('nudges', n)
   }
 
   private async deliver(): Promise<void> {
@@ -228,7 +354,7 @@ export class Player extends DurableObject<Env> {
       const card = games[n.code]
       const copy = card && noticeCopy(card, now)
       // Nothing to say, or they are looking at the table already.
-      if (!card || !copy || card.watching || !prefs.push) continue
+      if (!card || !copy || card.watching || !prefs.push || !prefs.slow) continue
       const gone = await pushAll(this.env, devices, {
         ...copy,
         url: gameUrl(card.code),

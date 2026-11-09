@@ -146,6 +146,13 @@ Deno.serve(async (req) => {
     console.error(`submit-rating: row for ${userId} failed:`, rowError)
     return json({ error: 'unavailable', retry: true }, 503)
   }
+  // Whoever this climbed past hears about it (the room server sends it).
+  // Never allowed to fail the submission.
+  if (!hidden && !numbers.flagged && row && numbers.rating > row.rating) {
+    await notePassed(userId, cleanName(body.name), row.rating, numbers.rating).catch((e) =>
+      console.error('submit-rating: passed notices failed:', e),
+    )
+  }
   return json({
     rating: numbers.rating,
     peak: numbers.peak,
@@ -155,3 +162,41 @@ Deno.serve(async (req) => {
     clamped: result.clamped,
   })
 })
+
+/** At most this many players are told about one climb: the nearest ones. */
+const PASSED_MAX = 10
+
+/**
+ * Queue a `passed` push for everyone on the board at or above `from` and now
+ * below `to`, each with the place it leaves them in.
+ */
+async function notePassed(userId: string, name: string, from: number, to: number): Promise<void> {
+  const { data: passed } = await admin
+    .from('ratings')
+    .select('user_id, rating')
+    .eq('hidden', false)
+    .eq('flagged', false)
+    .neq('user_id', userId)
+    .gte('rating', from)
+    .lt('rating', to)
+    .order('rating', { ascending: false })
+    .limit(PASSED_MAX)
+  if (!passed?.length) return
+  const rows = await Promise.all(
+    passed.map(async (p) => {
+      const { count } = await admin
+        .from('ratings')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('hidden', false)
+        .eq('flagged', false)
+        .gt('rating', p.rating)
+      return {
+        user_id: p.user_id,
+        kind: 'passed',
+        payload: { name, rank: count === null ? null : count + 1 },
+      }
+    }),
+  )
+  const { error } = await admin.from('push_outbox').insert(rows)
+  if (error) throw error
+}

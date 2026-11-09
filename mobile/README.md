@@ -116,14 +116,14 @@ the app leaves it out of `supports` and the website hides it.
 5. Add `EXPO_PUBLIC_REVENUECAT_IOS_KEY` (RevenueCat's public iOS SDK key) to `eas.json` →
    `build.base.env`, and build again.
 
-**Push notifications (slow games)**
+**Push notifications (slow games, the leaderboard, the streak)**
 1. `npx eas-cli@latest credentials` → iOS → production → Push Notifications: let EAS make
    and keep an APNs key (or upload one from developer.apple.com → Keys, with Apple Push
    Notifications service on). Expo's push service needs it to reach iPhones.
 2. Build again: `expo-notifications` is native code, so it needs a store build, not an
    over-the-air update. The build reports `push` in `PipApp.supports`; the web asks for
-   permission at the first slow game's table (`pushToken` in `src/bridge.ts`), and a tapped
-   notification opens its game (`App.tsx`).
+   permission on the first visit to the lobby (`pushToken` in `src/bridge.ts`), and a tapped
+   notification opens its page (`App.tsx`). New kinds of push need no new build.
 
 **Builds**
 ```bash

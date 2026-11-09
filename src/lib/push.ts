@@ -1,6 +1,7 @@
 'use client'
 
-// Allowing notifications on this device, for slow games.
+// Allowing notifications on this device: slow games, the leaderboard and the
+// streak (rooms/src/player.ts decides what is sent).
 //
 // Two ways, depending on where Pip is running:
 //
@@ -14,7 +15,12 @@
 // account (`rooms/src/player.ts`), so a notice reaches every device you allowed.
 
 import { appSupports, askApp, inApp } from './nativeApp'
-import { registerDevice, vapidKey } from './multiplayer/client'
+import {
+  fetchNotifySettings,
+  registerDevice,
+  saveNotifyPrefs,
+  vapidKey,
+} from './multiplayer/client'
 
 export type PushSupport = 'app' | 'web' | 'install' | 'none'
 
@@ -71,4 +77,51 @@ export async function enablePush(): Promise<'on' | 'denied' | 'unsupported' | 'f
   } catch {
     return 'failed'
   }
+}
+
+const ASKED = 'pip.pushAsked'
+
+/** Whether this device has been asked before, by the lobby or a slow game's table. */
+export function pushAskedBefore(): boolean {
+  try {
+    return localStorage.getItem(ASKED) === '1'
+  } catch {
+    return true
+  }
+}
+
+export function markPushAsked(): void {
+  try {
+    localStorage.setItem(ASKED, '1')
+  } catch {
+    // Private mode: asked again next time, which is no worse than now.
+  }
+}
+
+/** The first time an account is seen here: quiet hours start in this device's timezone. */
+export async function saveTimeZoneOnce(tz: string): Promise<{ push: boolean } | null> {
+  const got = await fetchNotifySettings()
+  if (!got) return null
+  if (!got.set) await saveNotifyPrefs({ ...got.prefs, tz })
+  return { push: got.prefs.push }
+}
+
+let refreshed = false
+
+/**
+ * Register this device again, once a session, where it is already allowed:
+ * a browser that granted it, or the app after its one question (where asking
+ * again shows nothing). Picks up a new token, and an account signed into
+ * after the question was answered.
+ */
+export async function refreshPush(): Promise<void> {
+  if (refreshed) return
+  const support = pushSupport()
+  const allowed =
+    support === 'app'
+      ? pushAskedBefore()
+      : support === 'web' && Notification.permission === 'granted'
+  if (!allowed) return
+  refreshed = true
+  if ((await enablePush()) === 'failed') refreshed = false
 }

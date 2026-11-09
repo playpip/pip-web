@@ -34,6 +34,7 @@ import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { liveStreak } from '@/lib/streak'
 import { roomsConfigured } from '@/lib/multiplayer/client'
 import { DailyRewardSlot } from './DailyReward'
+import { LobbyPush } from './LobbyPush'
 import { RatingLine } from '@/components/rating/RatingLine'
 import { StreakBadge } from '@/components/StreakBadge'
 import { RegularsCard } from './RegularsCard'
@@ -149,6 +150,8 @@ export function Home() {
           <StreakBadge />
         </div>
         <DailyRewardSlot />
+        {/* The one ask for notifications: the system's in the app, a card in a browser. */}
+        <LobbyPush />
         {/* A first visit deals you in as "Player" with a random face
             (onboarding/firstSeat). This is where you change that: furniture
             under the Roll, gone once you have a name. */}

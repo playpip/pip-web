@@ -107,6 +107,10 @@ test('switches off mean nothing is planned that way', (t) => {
   const n = planNotice(undefined, card, { ...prefs, push: false, email: false }, true, 0)!
   t.is(n.pushAt, null)
   t.is(n.emailAt, null)
+  // Slow games off under push: emailed, not pushed, and soon, as with no device.
+  const quiet = planNotice(undefined, card, { ...prefs, slow: false }, true, 0)!
+  t.is(quiet.pushAt, null)
+  t.not(quiet.emailAt, null)
 })
 
 test('once it is somebody else’s move there is nothing to tell you', (t) => {

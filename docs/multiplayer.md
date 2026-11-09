@@ -86,9 +86,31 @@ The rules are `src/lib/multiplayer/notices.ts`; `Player` keeps the prefs, device
   with a signed one-click off link (`/notify/off`).
 - **Nothing in quiet hours** (it waits for them to end), and nothing while the table is open.
 - A finished game is a push, never an email.
-- **Settings → Slow games:** Push notifications, Email, Quiet hours (default 23:00–08:00). The
-  permission is asked once, at the first slow game's table (`PushPrompt`). On an iPhone, web push
-  needs Pip on the Home Screen; the app needs a build with `expo-notifications` (`mobile/README.md`).
+- **Settings → Notifications:** Push notifications (the main switch; turning it on asks this
+  device and registers it), and under it Slow games, Leaderboard and Streak; then Slow game
+  emails and Quiet hours (default 23:00–08:00). The main switch and the three under it are the
+  account's, so they apply to every device.
+- **Asked once, on the first visit to the lobby** (`menu/LobbyPush`, Will 2026-11-09): the app puts
+  up the system's question straight away; a browser gets Pip's card (`PushPrompt`) because it may
+  only ask from a tap, and only when signed in. A slow game's table still asks anyone who skipped
+  it. A device already allowed registers again once a session. On an iPhone, web push needs Pip on
+  the Home Screen; the app needs a build with `expo-notifications` (`mobile/README.md`).
+
+### Pushes that are not about a game
+
+The rules are `src/lib/multiplayer/nudges.ts`; `Player` sends them, through the same devices,
+switch and quiet hours.
+
+- **Passed on the Pip Rating board.** `submit-rating` writes a `push_outbox` row (migration
+  `20261109180433_push_outbox.sql`) for each of up to 10 players a climb passed, with the place it
+  leaves them. The Worker's cron (`*/2 * * * *`, `scheduled` in `index.ts`) drains it into each
+  player's index. At most one every 12 hours; rows older than 6 hours are dropped. Opens
+  `/game/leaderboard`.
+- **Streak.** Once a day per account with a device, at the latest of 20:00, 18:00, 16:00 or 13:00
+  UTC outside their quiet hours (the streak's day is a UTC day), the index reads the synced
+  profile's `state.streak` with the service role. Played yesterday and not today: "Your 6-day
+  streak ends in 4 hours". Missed yesterday after 2 or more days: "Your streak ended at 6 days",
+  once. Opens `/game`. Accounts with a device from before this start on their next lobby visit.
 
 Secrets on the Worker: `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (`node scripts/vapid-keys.mjs`;
 rotating them unsubscribes every browser), `RESEND_API_KEY`, and optionally `NOTIFY_SECRET`.
