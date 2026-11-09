@@ -77,6 +77,13 @@ export type Plan = 'annual' | 'monthly'
 
 export const PLAN_ORDER: readonly Plan[] = ['annual', 'monthly']
 
+/**
+ * The plan the page and the plans sheet open on. Monthly from 9 November 2026:
+ * in the week before, 25 tabs had Join on screen with Yearly picked and none
+ * pressed it, so the first ask is now a month rather than a year up front.
+ */
+export const OPENING_PLAN: Plan = 'monthly'
+
 /** The two plans in one currency. The sums come from minor units, never the display strings. */
 export function plansIn(
   price: ShownPrice,

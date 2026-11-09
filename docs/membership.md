@@ -246,7 +246,8 @@ the welcome flow's membership step was seen 69 times and tapped through twice. S
 "See membership plans" on the welcome flow's last step used to go to `/membership`, which took
 the player out of onboarding (2 of 69 in the week to 1 November tapped it). It now opens
 `MembershipSheet` over the step: the two pillars, Yearly or Monthly at the page's prices (the
-store's in the app), and the page's own till. The plan picker and the till (`PlanPicker`,
+store's in the app; both open on Monthly, `OPENING_PLAN`, since 2026-11-09, after 25 tabs had
+Join on screen with Yearly picked and none pressed it), and the page's own till. The plan picker and the till (`PlanPicker`,
 `Till`, `Join`, `StoreJoin`) live in `components/membership/Join.tsx`, shared by the page and
 the sheet, so joining from either asks the same things, says the same 14-day refund, terms and
 statement lines, and goes account first and then straight on to checkout. "Everything in the
