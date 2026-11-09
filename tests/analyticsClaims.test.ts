@@ -24,6 +24,8 @@ import test from 'ava'
 const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'profile-created': 'someone made a profile',
   'first-hand': 'someone played their first hand',
+  'played-this-week': 'a device played a hand in a new week',
+  'played-again-next-week': 'whether it had also played the week before',
   'sync-signed-up': 'someone created an account',
   'sync-conflict': 'two devices disagreed about a Roll',
   'daily-reward-claimed': 'someone claimed a daily reward',
