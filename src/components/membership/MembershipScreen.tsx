@@ -70,6 +70,7 @@ import {
   sellableFeatures,
 } from '@/config/membership'
 import {
+  OPENING_PLAN,
   PAYING_LINES,
   type Plan,
   PlanPicker,
@@ -518,7 +519,7 @@ function Plans({
   /** Absent in the store app, where the store picks the currency. */
   onCurrency?: (next: CurrencyCode) => void
 }) {
-  const [plan, setPlan] = useState<Plan>('annual')
+  const [plan, setPlan] = useState<Plan>(OPENING_PLAN)
   // In the store app it is paid and cancelled through the store, so the notes
   // about Stripe's checkout and cancelling from Settings don't apply.
   const app = useInApp()

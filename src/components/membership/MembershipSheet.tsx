@@ -10,7 +10,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ChevronRight, Sparkles, TrendingUp, Users } from 'lucide-react'
-import { PAYING_LINES, type Plan, PlanPicker, Till } from '@/components/membership/Join'
+import {
+  OPENING_PLAN,
+  PAYING_LINES,
+  type Plan,
+  PlanPicker,
+  Till,
+} from '@/components/membership/Join'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { type CurrencyCode, MEMBERSHIP_PILLARS, sellableFeatures } from '@/config/membership'
 import type { ShownPrice } from '@/lib/membership/store'
@@ -54,9 +60,9 @@ export function MembershipSheet({
   )
 }
 
-/** Mounted while open, so each opening starts on Yearly, as the page does. */
+/** Mounted while open, so each opening starts on the page's plan. */
 function Body({ price, currency }: { price: ShownPrice; currency: CurrencyCode }) {
-  const [plan, setPlan] = useState<Plan>('annual')
+  const [plan, setPlan] = useState<Plan>(OPENING_PLAN)
   const app = useInApp()
   const sellable = new Set(sellableFeatures().map((f) => f.id))
   // A pillar shows if anything in it is for sale, as on the page.
