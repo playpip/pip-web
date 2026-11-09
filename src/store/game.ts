@@ -80,6 +80,7 @@ import {
 } from '@/lib/daily'
 import { formatChips } from '@/lib/useMoney'
 import { countHand } from '@/lib/handTally'
+import { notePlayedThisWeek } from '@/lib/returning'
 import { useProfile } from './profile'
 
 export interface SeatMeta {
@@ -749,6 +750,8 @@ export const useGame = create<GameState>((set, get) => {
     // Engagement — someone actually started playing. Once per tab session so a
     // busy session doesn't drown the signal; anonymous.
     trackOnce('first-hand')
+    // And whether this device played last week too (lib/returning). Once a week.
+    notePlayedThisWeek()
     currentEvents = []
     // The table as the cards land, before anybody has acted: stacks after the
     // blinds, and the blinds themselves sitting in front. The review's first
