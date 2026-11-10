@@ -30,19 +30,23 @@ export function RailBrowser() {
       title="The Rail"
       subtitle="Cash tables. Sit down, stand up when you like — the chips in front of you are yours."
     >
-      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        {RING_TABLES.map((room, i) => (
-          <RailCard
-            key={room.id}
-            room={room}
-            index={i}
-            playable={spendable >= room.buyIn}
-            onOpen={() => {
-              sound.play('tap')
-              router.push(tablePagePath(room))
-            }}
-          />
-        ))}
+      {/* Columns by the room in rem, so a bigger text size drops to one card
+          a row rather than squeezing the names (see Home's tile row). */}
+      <div className="@container">
+        <div className="grid grid-cols-1 gap-3 @[19rem]:grid-cols-2 @[59rem]:grid-cols-4 md:gap-4">
+          {RING_TABLES.map((room, i) => (
+            <RailCard
+              key={room.id}
+              room={room}
+              index={i}
+              playable={spendable >= room.buyIn}
+              onOpen={() => {
+                sound.play('tap')
+                router.push(tablePagePath(room))
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       <p className="mt-5 max-w-2xl px-1 text-sm leading-relaxed text-muted-foreground">

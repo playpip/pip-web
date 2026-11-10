@@ -41,6 +41,7 @@ export function QuickPage({
   return (
     <PageShell
       leading="back"
+      settings="sheet"
       backLabel="Side Tables"
       title={<span className="text-sm font-semibold">{game.title}</span>}
       onBack={onBack ?? (() => router.push('/game/side'))}

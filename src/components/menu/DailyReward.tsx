@@ -85,62 +85,67 @@ function RewardCard({ onOpen }: { onOpen: () => void }) {
   const reward = useToday()
   return (
     <MotionConfig reducedMotion="user">
-      <motion.button
-        type="button"
-        onClick={() => {
-          sound.play('tap')
-          onOpen()
-        }}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileTap={{ scale: 0.98 }}
-        transition={SPRING}
-        className="relative mt-3 flex w-full max-w-md items-center gap-3.5 overflow-hidden rounded-3xl border border-streak/25 py-3 pr-3.5 pl-3 text-left shadow-lg shadow-black/20"
-        style={{
-          background:
-            'linear-gradient(115deg, color-mix(in oklab, var(--color-streak) 20%, var(--color-card)), color-mix(in oklab, var(--color-streak) 5%, var(--color-card)) 65%)',
-        }}
-      >
-        <Sheen />
-        <span className="relative grid size-14 shrink-0 place-items-center rounded-2xl bg-black/15">
-          {reward.unlock ? (
-            <motion.span
-              animate={{ rotate: [0, -6, 6, 0] }}
-              transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.4 }}
-              className="grid place-items-center"
-            >
-              <RewardArt unlock={reward.unlock} box={44} />
-            </motion.span>
-          ) : (
-            <CoinStack count={Math.min(5, 2 + Math.floor(reward.ladderDay / 2))} />
-          )}
-        </span>
-        <span className="relative min-w-0 flex-1">
-          <span className="flex items-center gap-1 text-xs font-semibold text-streak">
-            <Flame className="size-3.5 fill-streak/30" aria-hidden />
-            Day {reward.streakDay} reward
+      {/* A container, so the card can make room once it is under 20rem wide
+          (a phone at 125% text and up): the art goes and Claim drops to its
+          own row, rather than sliding over the reward. */}
+      <div className="@container mt-3 w-full max-w-md">
+        <motion.button
+          type="button"
+          onClick={() => {
+            sound.play('tap')
+            onOpen()
+          }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileTap={{ scale: 0.98 }}
+          transition={SPRING}
+          className="relative flex w-full flex-wrap items-center gap-3.5 overflow-hidden @[20rem]:flex-nowrap rounded-3xl border border-streak/25 py-3 pr-3.5 pl-3 text-left shadow-lg shadow-black/20"
+          style={{
+            background:
+              'linear-gradient(115deg, color-mix(in oklab, var(--color-streak) 20%, var(--color-card)), color-mix(in oklab, var(--color-streak) 5%, var(--color-card)) 65%)',
+          }}
+        >
+          <Sheen />
+          <span className="relative hidden size-14 shrink-0 place-items-center rounded-2xl bg-black/15 @[20rem]:grid">
+            {reward.unlock ? (
+              <motion.span
+                animate={{ rotate: [0, -6, 6, 0] }}
+                transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.4 }}
+                className="grid place-items-center"
+              >
+                <RewardArt unlock={reward.unlock} box={44} />
+              </motion.span>
+            ) : (
+              <CoinStack count={Math.min(5, 2 + Math.floor(reward.ladderDay / 2))} />
+            )}
           </span>
-          <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-            <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-              <span className="text-xl font-semibold tracking-tight tabular-nums">
-                {money(reward.chips)}
+          <span className="relative min-w-0 flex-1">
+            <span className="flex items-center gap-1 text-xs font-semibold text-streak">
+              <Flame className="size-3.5 fill-streak/30" aria-hidden />
+              Day {reward.streakDay} reward
+            </span>
+            <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+              <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                <span className="text-xl font-semibold tracking-tight tabular-nums">
+                  {money(reward.chips)}
+                </span>
+                <span className="text-sm text-muted-foreground">chips</span>
               </span>
-              <span className="text-sm text-muted-foreground">chips</span>
+              {member && <DoubleBadge />}
             </span>
-            {member && <DoubleBadge />}
+            {reward.unlock ? (
+              <span className="block truncate text-xs text-muted-foreground">
+                + {reward.unlock.name}
+              </span>
+            ) : (
+              <WeekDots day={reward.ladderDay} />
+            )}
           </span>
-          {reward.unlock ? (
-            <span className="block truncate text-xs text-muted-foreground">
-              + {reward.unlock.name}
-            </span>
-          ) : (
-            <WeekDots day={reward.ladderDay} />
-          )}
-        </span>
-        <span className="relative shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-md shadow-black/25">
-          Claim
-        </span>
-      </motion.button>
+          <span className="relative shrink-0 basis-full rounded-full bg-primary px-4 py-2 text-center text-sm @[20rem]:basis-auto font-semibold text-primary-foreground shadow-md shadow-black/25">
+            Claim
+          </span>
+        </motion.button>
+      </div>
     </MotionConfig>
   )
 }

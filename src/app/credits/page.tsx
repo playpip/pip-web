@@ -39,8 +39,10 @@ export default function CreditsPage() {
         </p>
       </Section>
 
-      <section className="mt-9">
-        <ul className="mt-1 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
+      {/* A container, so the columns count in rem: at 200% text on a phone two
+          of them leave each name about one letter wide. */}
+      <section className="@container mt-9">
+        <ul className="mt-1 grid grid-cols-1 gap-x-4 gap-y-5 @[18rem]:grid-cols-2 @[34rem]:grid-cols-3">
           {people.map((p) => (
             <li key={p.login}>
               <a

@@ -134,7 +134,7 @@ export function StatsPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05, duration: 0.4, ease: 'easeOut' }}
-        className="grid gap-4 lg:grid-cols-3"
+        className="grid grid-cols-1 gap-4 lg:grid-cols-3"
       >
         {/* play style — the centrepiece, full-height on the left */}
         <Card className="flex flex-col lg:col-span-1">
@@ -248,25 +248,29 @@ export function StatsPage() {
             )}
           </Card>
 
-          <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3">
-            <Stat label="Hands played" value={stats.handsPlayed.toLocaleString()} />
-            <Stat
-              label="Hands won"
-              value={stats.handsWon.toLocaleString()}
-              detail={winRate !== null ? `${winRate}%` : undefined}
-            />
-            <Stat
-              label="Showdowns won"
-              value={stats.showdownsWon.toLocaleString()}
-              detail={showdownRate !== null ? `${showdownRate}%` : undefined}
-            />
-            <Stat label="Biggest pot" value={money(stats.biggestPot)} />
-            <Stat
-              label="Tournaments won"
-              value={stats.tournamentsWon.toLocaleString()}
-              detail={tourneyRate !== null ? `${tourneyRate}%` : undefined}
-            />
-            <Stat label="Best rank" value={rank.name} />
+          {/* Columns by the room in rem rather than the viewport, so the
+              labels keep their tiles at a bigger text size. */}
+          <div className="@container flex flex-1 flex-col">
+            <div className="grid flex-1 grid-cols-1 gap-4 @[19rem]:grid-cols-2 @[37rem]:grid-cols-3">
+              <Stat label="Hands played" value={stats.handsPlayed.toLocaleString()} />
+              <Stat
+                label="Hands won"
+                value={stats.handsWon.toLocaleString()}
+                detail={winRate !== null ? `${winRate}%` : undefined}
+              />
+              <Stat
+                label="Showdowns won"
+                value={stats.showdownsWon.toLocaleString()}
+                detail={showdownRate !== null ? `${showdownRate}%` : undefined}
+              />
+              <Stat label="Biggest pot" value={money(stats.biggestPot)} />
+              <Stat
+                label="Tournaments won"
+                value={stats.tournamentsWon.toLocaleString()}
+                detail={tourneyRate !== null ? `${tourneyRate}%` : undefined}
+              />
+              <Stat label="Best rank" value={rank.name} />
+            </div>
           </div>
         </div>
       </motion.div>
@@ -285,7 +289,7 @@ export function StatsPage() {
                 </p>
               )}
             </div>
-            <div className="grid gap-x-8 gap-y-1 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
               {playedVenues.map((venue) => {
                 const rec = venueRecords[venue.id]!
                 return (
@@ -321,7 +325,7 @@ export function StatsPage() {
             <p className="text-xs text-muted-foreground/70">Yours. None of it expires</p>
           </div>
           {playedDrills.length > 0 ? (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {playedDrills.map((kind) => (
                 <DrillStanding key={kind.id} kindId={kind.id} title={kind.title} accent={accent} />
               ))}

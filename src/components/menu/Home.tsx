@@ -259,13 +259,17 @@ export function Home() {
             one screen reads as the app repeating itself. The grid keeps its
             column count either way, so the tiles never resize — a short row
             ends in a gap instead. */}
-        <div>
+        {/* Columns by the room the row has in rem, not by the viewport, so a
+            bigger text size takes the tiles to one per row on a phone rather
+            than halving titles that no longer fit. 19rem and 43rem land where
+            the old breakpoints did at 100%. */}
+        <div className="@container">
           <h2 className="mb-2 px-1 text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Other ways to play
           </h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
+          <div className="grid grid-cols-1 gap-3 @[19rem]:grid-cols-2 @[43rem]:grid-cols-5 md:gap-4">
             {roomsConfigured() && (
-              <div className="col-span-2 flex md:col-span-1">
+              <div className="flex @[19rem]:col-span-2 @[43rem]:col-span-1">
                 <CategoryCard
                   art="multiplayer"
                   accent="#F0B44C"
@@ -307,39 +311,43 @@ export function Home() {
             read as a shelf. Three across at every width — on a phone that is
             one row of faces rather than three bands, which is what keeps them
             from competing with the tables. */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
-          <RoomCard
-            title="Pearl’s counter"
-            blurb="Card backs, rings, sounds and souvenirs."
-            verb="Browse"
-            icon={Store}
-            face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
-            onClick={() => {
-              sound.play('tap')
-              setShopOpen(true)
-            }}
-            delay={0.3}
-          />
-          <RoomCard
-            title="Learn with Webb"
-            blurb="Lessons at the table, a tour, and the guides."
-            verb="Open"
-            icon={BookOpen}
-            face={webb && <PlayerAvatar spec={webb.avatar} size={44} />}
-            href="/learn"
-            delay={0.34}
-          />
-          <RoomCard
-            title="Drills"
-            blurb="Short spots with a right answer."
-            verb="Play"
-            icon={Play}
-            // No face on this one: the shop is Pearl's and Learn is Webb's, and
-            // a drill is nobody's.
-            face={<Target className="size-5 text-muted-foreground md:size-6" />}
-            href="/game/drills"
-            delay={0.38}
-          />
+        {/* Three across while three faces fit (15rem); one a row past that,
+            at 150% text and up on a phone, where a third is narrower than a face. */}
+        <div className="@container">
+          <div className="grid grid-cols-1 gap-3 @[15rem]:grid-cols-3 md:gap-4">
+            <RoomCard
+              title="Pearl’s counter"
+              blurb="Card backs, rings, sounds and souvenirs."
+              verb="Browse"
+              icon={Store}
+              face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
+              onClick={() => {
+                sound.play('tap')
+                setShopOpen(true)
+              }}
+              delay={0.3}
+            />
+            <RoomCard
+              title="Learn with Webb"
+              blurb="Lessons at the table, a tour, and the guides."
+              verb="Open"
+              icon={BookOpen}
+              face={webb && <PlayerAvatar spec={webb.avatar} size={44} />}
+              href="/learn"
+              delay={0.34}
+            />
+            <RoomCard
+              title="Drills"
+              blurb="Short spots with a right answer."
+              verb="Play"
+              icon={Play}
+              // No face on this one: the shop is Pearl's and Learn is Webb's, and
+              // a drill is nobody's.
+              face={<Target className="size-5 text-muted-foreground md:size-6" />}
+              href="/game/drills"
+              delay={0.38}
+            />
+          </div>
         </div>
       </div>
 

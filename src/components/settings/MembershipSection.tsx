@@ -12,7 +12,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { ChevronRight, Loader2, Star } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import { SettingsGroup, SettingsRow } from '@/components/settings/group'
 import { checkoutReady } from '@/config/membership'
 import { type BillingError, openPortal } from '@/lib/membership/billing'
 import { isTableRoute } from '@/lib/textScale'
@@ -22,8 +24,8 @@ import { useInApp } from '@/lib/useInApp'
 import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
 
-const button =
-  'flex min-h-11 w-full items-center justify-center rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12] disabled:opacity-60'
+const rowButton =
+  'block w-full text-left transition hover:bg-foreground/[0.04] active:bg-foreground/[0.06] disabled:opacity-60'
 
 function endsOn(periodEnd: number | null): string {
   if (!periodEnd) return 'the end of the period'
@@ -61,45 +63,54 @@ export function MembershipSection() {
     }
   }
 
-  return (
-    <div>
-      <p className="mb-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">Membership</p>
-      <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
-        {member
-          ? cancelAtPeriodEnd
-            ? `Cancelled. You stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
-            : `You’re a member. It renews on ${endsOn(periodEnd)}.`
-          : failed
-            ? 'Your last payment didn’t go through, so the membership is paused until it does.'
-            : 'The side tables, the other games, the drills that price a hand and the lessons past Level 1.'}
-      </p>
+  const summary = member
+    ? cancelAtPeriodEnd
+      ? `Cancelled. You stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
+      : `You’re a member. It renews on ${endsOn(periodEnd)}.`
+    : failed
+      ? 'Your last payment didn’t go through, so the membership is paused until it does.'
+      : 'The side tables, the other games, the drills that price a hand and the lessons past Level 1.'
+  const chevron = <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+  const row = (label: string) => (
+    <SettingsRow
+      icon={Star}
+      tint="streak"
+      label={label}
+      hint={summary}
+      control={busy ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : chevron}
+    />
+  )
 
+  return (
+    <SettingsGroup label="Membership">
       {/* In the store app, a membership bought there is managed in the store.
           One bought on the web gets no button: the portal is Stripe's, and the
           stores reject a link out to other billing. */}
       {hasBilling && app ? (
-        storeManage && (
-          <a href={storeManage.href} className={button}>
-            {storeManage.label}
+        storeManage ? (
+          <a href={storeManage.href} className={rowButton}>
+            {row(storeManage.label)}
           </a>
+        ) : (
+          <SettingsRow icon={Star} tint="streak" label="Member" hint={summary} />
         )
       ) : hasBilling ? (
-        <button disabled={busy} onClick={() => void manage()} className={button}>
-          {failed ? 'Update payment details' : 'Manage'}
+        <button type="button" disabled={busy} onClick={() => void manage()} className={rowButton}>
+          {row(failed ? 'Update payment details' : 'Manage')}
         </button>
       ) : (
-        <Link href="/membership" onClick={() => sound.play('tap')} className={button}>
-          What the membership is
+        <Link href="/membership" onClick={() => sound.play('tap')} className={rowButton}>
+          {row('What the membership is')}
         </Link>
       )}
 
       {error && (
-        <p className="mt-2 text-xs leading-relaxed text-suit-red">
+        <p className="px-4 py-3 text-xs leading-relaxed text-suit-red">
           {error === 'unavailable'
             ? 'Couldn’t reach Stripe just now. Try again in a moment.'
             : 'Couldn’t open the portal. Sign out and back in, then try again.'}
         </p>
       )}
-    </div>
+    </SettingsGroup>
   )
 }

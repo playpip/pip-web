@@ -88,11 +88,15 @@ export function VenueBrowser({
 
   return (
     <SectionScreen title={title} subtitle={subtitle}>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
-        {models.map((m, i) => (
-          <VenueTile key={venues[i].id} model={m} />
-        ))}
-        {extraTile}
+      {/* Columns by the room in rem, so a bigger text size drops to one card
+          a row rather than squeezing the names (see Home's tile row). */}
+      <div className="@container">
+        <div className="grid grid-cols-1 gap-3 @[19rem]:grid-cols-2 @[37rem]:grid-cols-3 @[59rem]:grid-cols-4 md:gap-4">
+          {models.map((m, i) => (
+            <VenueTile key={venues[i].id} model={m} />
+          ))}
+          {extraTile}
+        </div>
       </div>
     </SectionScreen>
   )

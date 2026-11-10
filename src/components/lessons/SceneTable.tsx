@@ -189,22 +189,30 @@ export function SceneTable({
           )}
         >
           {compact ? (
-            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col justify-evenly gap-2 px-2 pb-1">
-              <div className="flex items-start justify-evenly">
-                {opponents.map((p) => (
-                  <div key={p.id}>{seat(p, 'row', 'right')}</div>
-                ))}
+            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-2 px-2 pb-1">
+              {/* The seats and the board give way first, by scrolling. At 150%
+                  text on a phone (the felt's cap) the names, the stacks and the
+                  talk outgrow the room above your hand, and the column used to
+                  spill down over your cards. The question and your hand are
+                  what a decision needs, so they stay put. */}
+              <div className="flex min-h-0 flex-1 flex-col justify-evenly gap-2 overflow-y-auto overscroll-contain">
+                <div className="flex items-start justify-evenly">
+                  {opponents.map((p) => (
+                    <div key={p.id}>{seat(p, 'row', 'right')}</div>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {board}
+                  <div className="flex justify-center">{potLine}</div>
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                {board}
-                <div className="flex justify-center">{potLine}</div>
+              {/* The talk keeps a floor and a ceiling. A long answer and its
+                  aside on a laptop-height window used to be taller than the
+                  room left for it and pushed the seats up into the progress
+                  bar; past 45% of the column it scrolls instead. */}
+              <div className="max-h-[45%] min-h-[4.5rem] shrink-0 overflow-y-auto overscroll-contain">
+                {talk}
               </div>
-              {/* The talk gives way before anything else does. A long answer
-                  and its aside on a laptop-height window used to be taller than
-                  the room left for it, and the column, centred, spilled both
-                  ways: seats up into the progress bar, words down over your
-                  cards. Now it keeps its floor and scrolls past it. */}
-              <div className="min-h-[4.5rem] overflow-y-auto overscroll-contain">{talk}</div>
             </div>
           ) : (
             // The arc holds the board and the pot and nothing else, at the live

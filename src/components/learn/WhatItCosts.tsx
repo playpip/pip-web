@@ -38,9 +38,9 @@ export function WhatItCosts() {
       // Interactive, so gen-llms.mjs keeps it out of the Markdown mirrors: the
       // table above it is the same six prices in a form that reads as text.
       data-mirror="skip"
-      className="mt-9 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 sm:p-6"
+      className="@container mt-9 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 sm:p-6"
     >
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 className="text-base font-semibold tracking-tight">What it costs to call</h3>
         <span className="text-xs text-muted-foreground tabular-nums">Pot {POT}</span>
       </div>
@@ -49,7 +49,8 @@ export function WhatItCosts() {
         Six prices, and they never change. Tap one.
       </p>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {/* Columns counted in rem, so a big text size gets fewer of them. */}
+      <div className="mt-4 grid grid-cols-1 gap-2 @[16rem]:grid-cols-2 @[30rem]:grid-cols-3">
         {SIZES.map((option) => (
           <button
             key={option.id}
@@ -84,7 +85,7 @@ export function WhatItCosts() {
           <Segment share={bet / finalPot} className="bg-foreground/30" />
           <Segment share={bet / finalPot} className="bg-primary" />
         </div>
-        <dl className="mt-3 grid grid-cols-3 gap-3">
+        <dl className="mt-3 grid grid-cols-1 gap-3 @[14rem]:grid-cols-3">
           <Figure term="In the pot" value={POT} />
           <Figure term="They bet" value={bet} />
           <Figure term="You call" value={bet} lit />

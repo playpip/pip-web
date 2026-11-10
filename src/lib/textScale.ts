@@ -64,8 +64,15 @@ export function textScaleLabel(scale: TextScale): string {
 /** The table's ceiling. Above this the seats and the board stop fitting on a phone. */
 export const TABLE_MAX_TEXT_SCALE = 150 satisfies TextScale
 
-/** Route prefix for the ladder's felt. The lobby, Learn and the rest are not capped. */
-export const TABLE_ROUTE_PREFIX = '/play/'
+/**
+ * Every screen drawn on a felt stops at the table's size: the ladder's table
+ * (`/play/kitchen`), a drill (`/game/drills/pot-odds`) and a lesson
+ * (`/game/lessons/position`). The drills and the lessons are deliberately the
+ * real table, seats and board and all, so they break at 200% exactly the way
+ * the table does. The pages that list them (`/game/drills`) are not felts and
+ * are not capped, so a prefix only counts with something after it.
+ */
+export const FELT_ROUTE_PREFIXES = ['/play/', '/game/drills/', '/game/lessons/'] as const
 
 /**
  * A multiplayer room (`/game/room?code=…`). Its table has the same seats, board
@@ -73,11 +80,14 @@ export const TABLE_ROUTE_PREFIX = '/play/'
  */
 export const ROOM_ROUTE = '/game/room'
 
-/** Is this path a table? `/play/kitchen` or `/game/room`, with or without a trailing slash. */
+/** Is this path a felt? With or without a trailing slash. */
 export function isTableRoute(pathname: string | null | undefined): boolean {
   if (typeof pathname !== 'string') return false
   return (
-    pathname.startsWith(TABLE_ROUTE_PREFIX) ||
+    FELT_ROUTE_PREFIXES.some(
+      (prefix) =>
+        pathname.startsWith(prefix) && pathname.replace(/\/$/, '').length >= prefix.length,
+    ) ||
     pathname === ROOM_ROUTE ||
     pathname.startsWith(`${ROOM_ROUTE}/`)
   )

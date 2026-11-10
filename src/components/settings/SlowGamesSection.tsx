@@ -7,7 +7,8 @@
 // follows a change straight away.
 
 import { useEffect, useState } from 'react'
-import { ToggleRow } from '@/components/settings/ToggleRow'
+import { Bell, Mail, Moon } from 'lucide-react'
+import { SettingsGroup, SettingsRow, SwitchRow } from '@/components/settings/group'
 import {
   devSignedIn,
   fetchNotifySettings,
@@ -75,10 +76,14 @@ function SlowGamesSwitches() {
     await save({ push: true })
   }
 
+  const clock =
+    'rounded-lg bg-foreground/[0.06] px-2 py-1.5 text-sm tabular-nums [color-scheme:dark] disabled:opacity-40'
+
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">Notifications</p>
-      <ToggleRow
+    <SettingsGroup label="Notifications">
+      <SwitchRow
+        icon={Bell}
+        tint="coral"
         label="Push notifications"
         hint={
           support === 'install'
@@ -89,17 +94,16 @@ function SlowGamesSwitches() {
         disabled={!prefs || support === 'none' || support === 'install'}
         onChange={() => void flipPush()}
       />
-      {/* What is pushed, each under the main switch. */}
-      <div className="flex flex-col gap-4 border-l border-foreground/10 pl-4">
-        {(
-          [
-            ['slow', 'Slow games', 'When it’s your move.'],
-            ['rating', 'Leaderboard', 'When someone passes you on the Pip Rating.'],
-            ['streak', 'Streak', 'When your streak is about to end.'],
-          ] as const
-        ).map(([key, label, hint]) => (
-          <ToggleRow
-            key={key}
+      {/* What is pushed, each under the main switch, set in under its label. */}
+      {(
+        [
+          ['slow', 'Slow games', 'When it’s your move.'],
+          ['rating', 'Leaderboard', 'When someone passes you on the Pip Rating.'],
+          ['streak', 'Streak', 'When your streak is about to end.'],
+        ] as const
+      ).map(([key, label, hint]) => (
+        <div key={key} className="@[16rem]:pl-11">
+          <SwitchRow
             label={label}
             hint={hint}
             checked={(prefs?.push && prefs[key]) ?? false}
@@ -109,9 +113,11 @@ function SlowGamesSwitches() {
               void save({ [key]: !prefs?.[key] })
             }}
           />
-        ))}
-      </div>
-      <ToggleRow
+        </div>
+      ))}
+      <SwitchRow
+        icon={Mail}
+        tint="blue"
         label="Slow game emails"
         hint="When a move is still waiting. One at most every 12 hours."
         checked={prefs?.email ?? false}
@@ -121,14 +127,13 @@ function SlowGamesSwitches() {
           void save({ email: !prefs?.email })
         }}
       />
-      <div className="flex flex-col gap-2">
-        <div>
-          <p className="text-sm font-medium">Quiet hours</p>
-          <p className="text-xs text-muted-foreground">
-            Slow game clocks stop and nothing is sent.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
+      <SettingsRow
+        icon={Moon}
+        tint="pip"
+        label="Quiet hours"
+        hint="Slow game clocks stop and nothing is sent."
+      >
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm @[16rem]:pl-11">
           <input
             type="time"
             aria-label="Quiet hours start"
@@ -138,7 +143,7 @@ function SlowGamesSwitches() {
               const v = fromClock(e.target.value)
               if (v !== null) void save({ quietFrom: v })
             }}
-            className="rounded-lg bg-foreground/[0.06] px-2 py-1.5 tabular-nums [color-scheme:dark] disabled:opacity-40"
+            className={clock}
           />
           <span className="text-muted-foreground">to</span>
           <input
@@ -150,11 +155,11 @@ function SlowGamesSwitches() {
               const v = fromClock(e.target.value)
               if (v !== null) void save({ quietTo: v })
             }}
-            className="rounded-lg bg-foreground/[0.06] px-2 py-1.5 tabular-nums [color-scheme:dark] disabled:opacity-40"
+            className={clock}
           />
         </div>
-      </div>
-      {problem && <p className="text-xs leading-relaxed text-suit-red">{problem}</p>}
-    </div>
+      </SettingsRow>
+      {problem && <p className="px-4 py-3 text-xs leading-relaxed text-suit-red">{problem}</p>}
+    </SettingsGroup>
   )
 }

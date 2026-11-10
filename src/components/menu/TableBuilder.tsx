@@ -278,7 +278,7 @@ export function TableBuilder() {
                       <h3 className="text-sm font-semibold">{title}</h3>
                       <p className="truncate text-sm text-muted-foreground">{hint}</p>
                     </div>
-                    <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 2xl:grid-cols-3">
                       {people.map((ch) => (
                         <GuestCard
                           key={ch.id}
@@ -301,11 +301,13 @@ export function TableBuilder() {
             with the table that gets dealt. Sticky on a desktop, because it is
             the answer to every control to the left of it. */}
         <aside className="lg:sticky lg:top-6 lg:w-80 lg:shrink-0">
-          <div className="rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5">
+          {/* A container, so the facts go one to a row once the receipt is under
+              16rem inside (a phone at 150% text and up). */}
+          <div className="@container rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-5">
             <h2 className="text-sm font-semibold">Your table</h2>
             <SeatStrip spec={spec} />
 
-            <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3">
+            <dl className="mt-4 grid grid-cols-1 gap-x-3 gap-y-3 @[16rem]:grid-cols-2">
               <Fact label="Buy-in" value={money(spec.buyIn)} />
               <Fact label="You sit with" value={money(spec.buyIn * spec.depth)} />
               <Fact label="Winner takes" value={money(customPrize(spec))} />
@@ -313,7 +315,7 @@ export function TableBuilder() {
             </dl>
 
             <div className="mt-4 border-t border-foreground/10 pt-4">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                 <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
                   Difficulty
                 </p>
@@ -450,7 +452,7 @@ function GuestCard({
         <span className="block truncate text-[0.9375rem] font-semibold leading-tight">
           {character.name}
         </span>
-        <span className="mt-1 block text-[0.8125rem] leading-snug text-muted-foreground">
+        <span className="mt-1 block hyphens-auto break-words text-[0.8125rem] leading-snug text-muted-foreground">
           {character.bio}
         </span>
         {/* One metadata line rather than a row of pills: what they are, and how

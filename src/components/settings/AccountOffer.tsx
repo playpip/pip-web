@@ -159,7 +159,7 @@ export function AccountBarButton() {
           sound.play('tap')
           setOpen(true)
         }}
-        className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+        className="rounded-full p-1.5 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground @[20rem]:p-2"
         aria-label="Create a free account"
       >
         <UserPlus className="size-4" />

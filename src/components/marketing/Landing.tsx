@@ -156,8 +156,9 @@ function Hero() {
       <GhostSuits />
 
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 px-6 pt-14 pb-20 md:px-10 md:pt-20 md:pb-28 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
-        {/* copy */}
-        <div className="max-w-xl">
+        {/* copy — a container, so the headline can cap itself to the column
+            (`cqi`): at 200% text on a phone "without" alone is wider than it. */}
+        <div className="@container max-w-xl">
           <div className="rise-in" style={riseDelay(0)}>
             <span className="inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground">
               <Spade className="size-3.5 fill-current text-pip" />
@@ -167,7 +168,7 @@ function Hero() {
 
           <h1
             style={riseDelay(1)}
-            className="rise-in mt-6 text-5xl font-semibold leading-[1.02] tracking-tight text-balance md:text-6xl"
+            className="rise-in mt-6 text-[min(3rem,18cqi)] font-semibold leading-[1.02] tracking-tight text-balance md:text-[min(3.75rem,18cqi)]"
           >
             Poker without
             <br />
@@ -440,25 +441,31 @@ function Features() {
           </Reveal>
 
           {/* the regulars — the actual cast, faces and bios straight from the game */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-            {REGULARS.map((r, i) => (
-              <Reveal
-                key={r.id}
-                className="flex min-w-0 items-center gap-3 rounded-2xl border border-foreground/10 bg-background p-4"
-                delay={i * 0.05}
-              >
-                <PlayerAvatar spec={r.avatar} size={48} className="shrink-0" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{r.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{r.bio}</p>
-                </div>
-              </Reveal>
-            ))}
+          {/* Two across while a bio has room beside its face; one at a big
+              text size, where two left each bio a few letters wide. */}
+          <div className="@container">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 @[20rem]:grid-cols-2">
+              {REGULARS.map((r, i) => (
+                <Reveal
+                  key={r.id}
+                  className="flex min-w-0 items-center gap-3 rounded-2xl border border-foreground/10 bg-background p-4"
+                  delay={i * 0.05}
+                >
+                  <PlayerAvatar spec={r.avatar} size={48} className="shrink-0" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{r.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{r.bio}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* ── Balanced feature cards, each with a contained visual ──────────── */}
-        <div className="mt-6 grid gap-4 md:mt-8 md:grid-cols-2">
+        {/* A container: the cards and their mocks trade some padding for
+            words once the grid is narrow in rem (200% text on a phone). */}
+        <div className="@container mt-6 grid grid-cols-1 gap-4 md:mt-8 md:grid-cols-2">
           <FeatureCard
             icon={CalendarDays}
             title="The Daily Deal"
@@ -525,7 +532,7 @@ function FeatureCard({
       // min-w-0: grid items refuse to shrink below their content's min-content
       // width — without it the nowrap mock lines push the whole card grid past
       // the edge of a phone screen.
-      className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-7 transition hover:border-foreground/20"
+      className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-5 transition hover:border-foreground/20 @[20rem]:p-7"
     >
       <FeatureIcon icon={icon} />
       <h3 className="mt-5 text-xl font-semibold tracking-tight">{title}</h3>
@@ -604,9 +611,11 @@ function CustomizeStrip() {
  */
 function DailyShareMock() {
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
-      <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0 break-words font-mono text-sm text-muted-foreground">
+    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 @[20rem]:p-5">
+      {/* Wraps: at 200% text on a phone the badge takes its own line rather
+          than squeezing the share line to a sliver beside it. */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <span className="min-w-0 flex-1 basis-36 break-words font-mono text-sm text-muted-foreground">
           {dailyShareText(142, 2, THE_DAILY.seats, 34)}
         </span>
         <span className="shrink-0 rounded-lg bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium">
@@ -636,7 +645,7 @@ function DailyShareMock() {
 function HandLinkMock() {
   const token = encodeHand(HAND_LINK_SAMPLE)
   return (
-    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5">
+    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 @[20rem]:p-5">
       <div className="flex items-center gap-2.5">
         <Link2 className="size-4 shrink-0 text-pip" />
         <span className="min-w-0 truncate font-mono text-sm text-muted-foreground">
@@ -891,8 +900,8 @@ function Membership() {
           body={`The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds ${features.some((f) => f.id === 'multiplayer') ? 'multiplayer with your friends, ' : ''}the side tables, other games, the rest of Webb’s lessons and drills, reports on your play${features.some((f) => f.id === 'avatar') ? ', and a face you build feature by feature' : ''}.`}
         />
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2">
-          <Reveal className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-7">
+        <div className="@container mt-12 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Reveal className="flex min-w-0 flex-col rounded-3xl border border-foreground/10 bg-background p-5 @[20rem]:p-7">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
               Free, for good
             </p>
@@ -911,7 +920,7 @@ function Membership() {
           </Reveal>
 
           <Reveal
-            className="flex min-w-0 flex-col rounded-3xl border border-pip/30 bg-background p-7"
+            className="flex min-w-0 flex-col rounded-3xl border border-pip/30 bg-background p-5 @[20rem]:p-7"
             delay={0.05}
           >
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-pip">
@@ -1052,9 +1061,11 @@ function SectionHeading({
   body: string
 }) {
   return (
-    <Reveal className="max-w-2xl">
+    // A container, so the heading caps itself to the column (`cqi`) when one of
+    // its words would not fit at 200% text on a phone.
+    <Reveal className="@container max-w-2xl">
       <p className="text-xs font-medium uppercase tracking-[0.2em] text-pip">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance md:text-4xl">
+      <h2 className="mt-3 text-[min(1.875rem,15cqi)] font-semibold tracking-tight text-balance md:text-[min(2.25rem,15cqi)]">
         {title}
       </h2>
       <p className="mt-4 text-lg leading-relaxed text-muted-foreground text-pretty">{body}</p>

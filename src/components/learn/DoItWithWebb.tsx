@@ -32,32 +32,36 @@ export function DoItWithWebb({ lesson: id }: { lesson: LessonId }) {
   const settled = useMembership((state) => state.checked)
   const gated = hydrated && settled && !canTakeLesson(lesson, member)
 
+  // The wrapper is a container, so at a big text size (under 20rem across)
+  // Webb sits over the words rather than beside them, and the arrow goes.
   return (
-    <Link
-      href={`/game/lessons/${lesson.id}`}
-      onClick={() => sound.play('tap')}
-      data-mirror="skip"
-      className="group mt-10 flex items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-5 transition hover:border-foreground/20 hover:bg-foreground/[0.05] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
-    >
-      {webb && <PlayerAvatar spec={webb.avatar} size={48} className="shrink-0" />}
-      <span className="min-w-0 flex-1">
-        <span className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Do it with Webb
-        </span>
-        <span className="mt-1 block text-[1.0625rem] font-semibold tracking-tight">
-          {lesson.title}, at the table
-        </span>
-        <span className="mt-1 block text-md leading-relaxed text-muted-foreground">
-          {lesson.blurb}
-        </span>
-        {gated && (
-          <span className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Lock className="size-3.5" />
-            Comes with the membership.
+    <div className="@container mt-10">
+      <Link
+        href={`/game/lessons/${lesson.id}`}
+        onClick={() => sound.play('tap')}
+        data-mirror="skip"
+        className="group flex flex-col items-start gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-5 transition hover:border-foreground/20 hover:bg-foreground/[0.05] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100 @[20rem]:flex-row @[20rem]:items-center"
+      >
+        {webb && <PlayerAvatar spec={webb.avatar} size={48} className="shrink-0" />}
+        <span className="w-full min-w-0 @[20rem]:w-auto @[20rem]:flex-1">
+          <span className="block text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            Do it with Webb
           </span>
-        )}
-      </span>
-      <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
-    </Link>
+          <span className="mt-1 block text-[1.0625rem] font-semibold tracking-tight">
+            {lesson.title}, at the table
+          </span>
+          <span className="mt-1 block text-md leading-relaxed text-muted-foreground">
+            {lesson.blurb}
+          </span>
+          {gated && (
+            <span className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Lock className="size-3.5" />
+              Comes with the membership.
+            </span>
+          )}
+        </span>
+        <ArrowRight className="hidden size-4 shrink-0 text-muted-foreground @[20rem]:block transition group-hover:translate-x-0.5 group-hover:text-foreground motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+      </Link>
+    </div>
   )
 }

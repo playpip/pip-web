@@ -246,7 +246,7 @@ export function Holding({
   label,
   detail,
   cards,
-  size = 'md',
+  size = 'drill',
   avatar,
   layout = 'above',
   dim = false,
@@ -255,7 +255,11 @@ export function Holding({
   label: string
   detail?: string
   cards: readonly Card[]
-  size?: 'md' | 'hero'
+  /**
+   * `drill` rather than `md`: the same card on a phone at 100%, but sized in
+   * vw, so two hands side by side still fit at 150% text (the felt's cap).
+   */
+  size?: 'drill' | 'hero'
   avatar?: React.ComponentProps<typeof PlayerAvatar>['spec']
   /** Where the name goes: over the cards (across the table) or under them. */
   layout?: 'above' | 'below'
@@ -309,7 +313,9 @@ export function Holding({
 export function ActionBar({ children }: { children: React.ReactNode }) {
   return (
     <div className="px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-1">
-      <div className="mx-auto w-full max-w-2xl">{children}</div>
+      {/* A container, so an answer can tell when the text size has left its
+          phrase no room on one line (`Answer`). */}
+      <div className="@container mx-auto w-full max-w-2xl">{children}</div>
     </div>
   )
 }
@@ -358,7 +364,7 @@ export function Answer({
       disabled={settled}
       aria-label={spoken ?? label}
       className={cn(
-        'relative flex min-h-[3.25rem] items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-center font-semibold transition',
+        'relative flex min-h-[3.25rem] items-center justify-center gap-2 rounded-2xl border px-2 py-3 text-center font-semibold transition @[20rem]:px-4',
         wide ? 'w-full' : 'flex-1',
         state === 'open' &&
           'border-foreground/15 bg-foreground/[0.03] hover:border-foreground/30 hover:bg-foreground/[0.06] active:scale-[0.97]',
@@ -374,9 +380,13 @@ export function Answer({
         (numeric ? (
           <span className="text-lg tabular-nums">{label}</span>
         ) : (
-          // One line, always. The badge is absolutely positioned in the corner,
-          // so the phrase keeps clear of it rather than flowing under it.
-          <span className="whitespace-nowrap px-1 text-base font-semibold">{label}</span>
+          // One line while there is room. The badge is absolutely positioned in
+          // the corner, so the phrase keeps clear of it rather than flowing
+          // under it. Below 20rem of bar (a phone at 150% text) three phrases
+          // cannot each have a line, so they wrap rather than spill the button.
+          <span className="px-1 text-base font-semibold text-balance @[20rem]:whitespace-nowrap">
+            {label}
+          </span>
         ))}
       {state === 'right' || state === 'missed' ? (
         <Check className="absolute right-2.5 top-2.5 size-4 text-emerald-500" />

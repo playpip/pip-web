@@ -35,7 +35,7 @@ export function WhoWins() {
       data-mirror="skip"
       className="mt-9 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 sm:p-6"
     >
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 className="text-base font-semibold tracking-tight">Who wins?</h3>
         <span className="text-xs text-muted-foreground">
           {index + 1} of {WHO_WINS.length}
@@ -57,7 +57,7 @@ export function WhoWins() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <HandChoice
           label="Hand A"
           codes={example.a}
@@ -138,7 +138,9 @@ function HandChoice({
       disabled={revealed}
       aria-pressed={chosen}
       className={cn(
-        'flex items-center gap-3 rounded-xl border p-3 text-left transition',
+        // Wraps, so at a big text size the label drops under the cards
+        // rather than off the edge of the screen.
+        'flex flex-wrap items-center gap-3 rounded-xl border p-3 text-left transition',
         revealed && won
           ? 'border-emerald-500/40 bg-emerald-500/10'
           : 'border-foreground/10 bg-background',

@@ -1,8 +1,8 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { Switch } from '@/components/settings/group'
 
-/** A labelled on/off switch, as Settings and Manage account draw them. */
+/** A labelled on/off switch, as Manage account and the rating sheet draw them. */
 export function ToggleRow({
   label,
   hint,
@@ -22,24 +22,7 @@ export function ToggleRow({
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{hint}</p>
       </div>
-      <button
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={onChange}
-        disabled={disabled}
-        className={cn(
-          'relative h-6 w-10 shrink-0 rounded-full transition disabled:opacity-40',
-          checked ? 'bg-primary' : 'bg-foreground/15',
-        )}
-      >
-        <span
-          className={cn(
-            'absolute top-0.5 size-5 rounded-full bg-background shadow transition-all',
-            checked ? 'left-[18px]' : 'left-0.5',
-          )}
-        />
-      </button>
+      <Switch label={label} checked={checked} onChange={onChange} disabled={disabled} />
     </div>
   )
 }

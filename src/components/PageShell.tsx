@@ -13,18 +13,21 @@ import { AppBar } from './AppBar'
  */
 export function PageShell({
   children,
+  settings = 'page',
   ...appBar
 }: { children: React.ReactNode } & ComponentProps<typeof AppBar>) {
   // The home lobby (leading='profile') opens with the Roll hero, which brings
   // its own generous top space; the back-led pages open straight into a title,
   // so they need a real gap under the nav bar to breathe.
   const spacious = appBar.leading !== 'profile'
+  // A menu screen's gear opens the Settings page; a game hosted in a shell
+  // (QuickPage) asks for the sheet instead, so nobody walks off a round.
 
   return (
     // `data-shell`: in the store app, the AppBar stays put and <main> scrolls
     // under it, like a native screen (globals.css). Nothing changes on the web.
     <div data-shell={spacious ? 'spacious' : 'tight'} className="flex min-h-dvh flex-col">
-      <AppBar {...appBar} />
+      <AppBar settings={settings} {...appBar} />
       {/* Padding lives on the outer wrapper and the max-w cap on the inner
           column — the SAME structure as AppBar — so the content column lines up
           exactly with the nav bar's, rather than sitting a padding's-width in. */}

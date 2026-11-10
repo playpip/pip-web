@@ -416,13 +416,17 @@ function Mark({ value, member }: { value: string | boolean; member: boolean }) {
 
 function Compare({ price }: { price: ShownPrice }) {
   const rows = comparisonRows()
+  // The two plan columns are fixed in rem, so a big text size leaves the
+  // thing being compared no width at all. Under 20rem across (a phone at 125%
+  // and up) each row puts the thing on its own line over the two marks.
   const cols =
-    'grid grid-cols-[minmax(0,1fr)_6.5rem_7rem] items-center gap-3 md:grid-cols-[minmax(0,1fr)_11rem_11rem]'
+    'grid grid-cols-2 items-center gap-x-3 gap-y-1.5 @[20rem]:grid-cols-[minmax(0,1fr)_6.5rem_7rem] @[20rem]:gap-y-3 @[42rem]:grid-cols-[minmax(0,1fr)_11rem_11rem]'
+  const thing = 'col-span-2 @[20rem]:col-span-1'
   return (
     <Reveal>
-      <div className="overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
+      <div className="@container overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
         <div className={cn(cols, 'border-b border-foreground/[0.07] px-4 py-4 md:px-6')}>
-          <span />
+          <span className="hidden @[20rem]:block" />
           <span className="text-sm font-semibold">Free</span>
           <span className="flex flex-col text-sm font-semibold">
             <span className="flex items-center gap-1.5">
@@ -440,7 +444,7 @@ function Compare({ price }: { price: ShownPrice }) {
               key={row.thing}
               className={cn(cols, 'px-4 py-3 text-sm text-muted-foreground md:px-6')}
             >
-              <span className="text-foreground">{row.thing}</span>
+              <span className={cn(thing, 'text-foreground')}>{row.thing}</span>
               <Mark value={row.free} member={false} />
               <Mark value={row.member} member />
             </li>

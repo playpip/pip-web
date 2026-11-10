@@ -65,7 +65,7 @@ export function DrillIndex() {
         title="Drills"
         subtitle="Short spots with a right answer. Your rating moves with every one, and there is no limit on how many you play."
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {kinds.map((kind, i) => (
             <DrillTile
               key={kind.id}
@@ -111,15 +111,17 @@ function DrillTile({ kind, gated, delay }: { kind: DrillKind; gated: boolean; de
         aria-label={gated ? `${kind.title} — what the membership is` : undefined}
         className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
       >
-        <div className="relative flex w-full items-center justify-center gap-1.5 bg-foreground/[0.04] px-4 py-6">
+        <div className="@container relative flex w-full items-center justify-center bg-foreground/[0.04] px-4 py-6">
           {/* A real spot, locked or not. Card backs behind a padlock told a
               reader nothing about the thing they were being offered. */}
           {hydrated ? (
             <TileBoard kind={kind} dim={gated} />
           ) : (
-            Array.from({ length: kind.boardCards || 2 }, (_, i) => (
-              <PlayingCard key={i} size="sm" />
-            ))
+            <span className={FAN}>
+              {Array.from({ length: kind.boardCards || 2 }, (_, i) => (
+                <PlayingCard key={i} size="sm" />
+              ))}
+            </span>
           )}
           {gated && (
             <span className="absolute left-2 top-2">
@@ -222,16 +224,25 @@ function Standing({ kind }: { kind: DrillKind }) {
  * entirely: it is a window into the kind, and a window you have not paid for is
  * still a window.
  */
+/**
+ * The tile's cards: spaced while five fit, fanned like a held hand once they
+ * don't. Cards are sized in rem, so at 200% text on a phone five of them are
+ * wider than the tile; overlapping keeps every rank in its corner on show.
+ */
+const FAN = 'flex items-center gap-1.5 [&>*+*]:-ml-[1.4rem] @[18rem]:[&>*+*]:ml-0 [&>*]:shrink-0'
+
 function TileBoard({ kind, dim = false }: { kind: DrillKind; dim?: boolean }) {
   const [drill] = useState(() => nextDrill(kind.id, randomSeed()))
   // A kind asked before the flop has no board, so its window is your two cards
   // and the seat it folded round to you in.
   const cards = drill.board.length > 0 ? drill.board : (drill.hands?.[0].cards ?? [])
   return (
-    <span className={cn('flex items-center gap-1.5', dim && 'opacity-60')}>
-      {cards.map((card) => (
-        <PlayingCard key={`${card.rank}${card.suit}`} card={card} size="sm" />
-      ))}
+    <span className={cn('flex items-center', dim && 'opacity-60')}>
+      <span className={FAN}>
+        {cards.map((card) => (
+          <PlayingCard key={`${card.rank}${card.suit}`} card={card} size="sm" />
+        ))}
+      </span>
       {drill.seat && (
         <span className="ml-1.5 rounded-full bg-background px-2 py-0.5 text-2xs font-semibold ring-1 ring-foreground/15">
           {seatById(drill.seat).short}

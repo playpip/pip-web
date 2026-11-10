@@ -151,7 +151,7 @@ export function OddsCalculator() {
       // what this does. Rendered into a mirror it would arrive as a column of
       // loose card glyphs. scripts/gen-llms.mjs drops anything marked this way.
       data-mirror="skip"
-      className="mt-8 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 sm:p-6"
+      className="@container mt-8 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 sm:p-6"
     >
       <Slots
         label="Your cards"
@@ -178,7 +178,9 @@ export function OddsCalculator() {
 
       <div className="mt-6">
         <FieldLabel>Opponents</FieldLabel>
-        <div className="mt-2 grid grid-cols-8 gap-1.5">
+        {/* Eight across while they fit, four at a big text size (the section
+            is a container, so this counts in rem). */}
+        <div className="mt-2 grid grid-cols-4 gap-1.5 @[13rem]:grid-cols-8">
           {Array.from({ length: MAX_OPPONENTS }, (_, i) => i + 1).map((n) => (
             <button
               key={n}
@@ -308,7 +310,9 @@ function Picker({
   return (
     <div>
       <FieldLabel>{rank ? 'And the suit' : 'Add a card'}</FieldLabel>
-      <div className="mt-2 grid grid-cols-7 gap-1.5">
+      {/* Seven across, four once the text size makes "10" wider than a
+          seventh of the row. */}
+      <div className="mt-2 grid grid-cols-4 gap-1.5 @[13rem]:grid-cols-7">
         {RANKS.map((r) => (
           <button
             key={r}

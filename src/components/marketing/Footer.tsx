@@ -68,7 +68,9 @@ const FOOTER_GROUPS: {
 export function Footer() {
   return (
     <footer className="border-t border-foreground/5">
-      <div className="mx-auto flex w-full max-w-6xl flex-col justify-between gap-10 px-6 py-12 md:flex-row md:px-10">
+      {/* A container, so the link columns can count in rem: at 200% text on a
+          phone two columns leave "Contributing" wider than its column. */}
+      <div className="@container mx-auto flex w-full max-w-6xl flex-col justify-between gap-10 px-6 py-12 md:flex-row md:px-10">
         <div>
           <Wordmark />
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
@@ -77,7 +79,7 @@ export function Footer() {
           </p>
           <AppStoreBadge className="mt-5" />
         </div>
-        <div className="grid grid-cols-2 gap-x-12 gap-y-8 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-x-12 gap-y-8 @[17rem]:grid-cols-2 @[34rem]:grid-cols-3">
           {FOOTER_GROUPS.map((group) => (
             <div key={group.title}>
               <p className="text-sm font-medium">{group.title}</p>

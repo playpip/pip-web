@@ -75,8 +75,10 @@ caption left in px stays small while the paragraph around it doubles.
 
 ### The table stops at 150%
 
-**Reading surfaces go to 200%. `/play/*` caps at 150%** (`TABLE_MAX_TEXT_SCALE` in
-`lib/textScale.ts`). Will played a hand at 200% on a phone and it does not hold: 150% is just
+**Reading surfaces go to 200%. The felts cap at 150%** (`TABLE_MAX_TEXT_SCALE` in
+`lib/textScale.ts`): `/play/*`, a room, and since 2026-11-10 a drill (`/game/drills/<kind>`) and a
+lesson (`/game/lessons/<id>`), which are drawn on the same table. The lists of them are not felts
+and go to 200%. Will played a hand at 200% on a phone and it does not hold: 150% is just
 about playable, 200% is not. The felt is the one screen that cannot reflow, because nine seats,
 a board, a pot and an action row all have to be visible at once and in a fixed spatial
 relationship, so type that doubles has nowhere to push except off the screen.
@@ -90,6 +92,25 @@ relationship, so type that doubles has nowhere to push except off the screen.
 - **The stored setting is never rewritten.** Walking off the table restores 200%.
 - **Do not fix a table overflow by widening the cap**, and do not fix one by dropping the 200%
   step: that would take the WCAG 1.4.4 answer away from every reading surface to fix one screen.
+- **On a felt at 150%, the seats and the board give way first.** `SceneTable`'s phone column
+  scrolls the seats and the board; the talk and your hand stay put, because they are what the
+  decision needs.
+
+### Every screen holds at 200%
+
+Will's rule (2026-11-10): **every screen that isn't a felt must work at 200% on a 390px phone** —
+nothing past the screen edge, no text spilling out of its box, nothing painted over anything else.
+
+- **Breakpoints can't see the text size.** `sm:`/`md:` are media queries, and a rem in a media
+  query is the browser's 16px, not ours. A rem in a **container query** is the root font size, so
+  `@container` + `@[Nrem]:` is how a layout notices it has been doubled: `grid-cols-1
+  @[24rem]:grid-cols-2`, an icon that hides below `@[16rem]`, a row of buttons that wraps.
+- **Pick thresholds that change nothing at 100%.** A 390px phone at 100% is ~21rem of content.
+- **Use `grid-cols-1`, not a bare `grid`**, so a column can shrink below its content's min width.
+- **A card sized in rem doubles too.** On a phone, a row of cards wants a `vw` size (`drill`,
+  `board`, `hero` in `PlayingCard`), or to fan (`DrillIndex`'s tiles).
+- **Check it.** The AppBar, Settings and the drill felt are worked examples. Sweep the routes
+  headless at 200% and 390px wide and look at every failure.
 
 ### The action row never changes height
 

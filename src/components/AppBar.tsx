@@ -34,6 +34,9 @@ type Leading = 'profile' | 'back' | 'none'
  *   first game, where onboarding asks about an account straight afterwards.
  * - `leading='none'` — nothing on the left, and the title sits there in the
  *   flow instead of floating centred, so it can never run under the actions.
+ * - `settings` — what the gear opens: `'sheet'` (the default) over a screen you
+ *   can't walk off mid-game, `'page'` (/settings) from a menu screen, which
+ *   PageShell asks for, or `'none'` on the settings page itself.
  */
 export function AppBar({
   leading = 'back',
@@ -44,6 +47,7 @@ export function AppBar({
   showWordmark = true,
   chrome = true,
   account = true,
+  settings = 'sheet',
   className,
 }: {
   leading?: Leading
@@ -57,6 +61,8 @@ export function AppBar({
   chrome?: boolean
   /** The signed-out account button. Off on the welcome table. */
   account?: boolean
+  /** What the gear opens. */
+  settings?: 'sheet' | 'page' | 'none'
   className?: string
 }) {
   const router = useRouter()
@@ -79,7 +85,11 @@ export function AppBar({
   }
 
   return (
-    <header className={cn('w-full px-6 pt-6 md:px-10 md:pt-8', className)}>
+    // A container, so the bar can fit itself to the room it has in rem: at 200%
+    // text on a phone (Settings → Text size) the row is under 11rem wide, and
+    // the wordmark, the back label and the buttons' padding give way in turn
+    // rather than pushing the last button off the screen.
+    <header className={cn('@container w-full px-6 pt-6 md:px-10 md:pt-8', className)}>
       <div
         ref={row}
         className={cn(
@@ -111,10 +121,11 @@ export function AppBar({
         ) : leading === 'back' ? (
           <button
             onClick={back}
-            className="-ml-2 flex items-center gap-1 justify-self-start whitespace-nowrap rounded-full py-1.5 pl-2 pr-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.98]"
+            className="-ml-2 flex items-center gap-1 justify-self-start whitespace-nowrap rounded-full py-1.5 pl-2 pr-2 @[14rem]:pr-4 text-sm font-medium text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground active:scale-[0.98]"
           >
-            <ChevronLeft className="size-4" />
-            {backLabel}
+            <ChevronLeft className="size-4 shrink-0" />
+            {/* Below 14rem the chevron alone is the button; the label stays for screen readers. */}
+            <span className="sr-only @[14rem]:not-sr-only">{backLabel}</span>
           </button>
         ) : title ? (
           <div className="flex min-w-0 flex-col items-start leading-tight">{title}</div>
@@ -143,7 +154,7 @@ export function AppBar({
         >
           {actions}
           {showWordmark && (
-            <span className="mx-1 select-none text-xl font-semibold lowercase tracking-tight text-muted-foreground">
+            <span className="mx-1 hidden select-none text-xl @[20rem]:inline font-semibold lowercase tracking-tight text-muted-foreground">
               pip
             </span>
           )}
@@ -157,21 +168,24 @@ export function AppBar({
                   sound.play('tap')
                   setStyleOpen(true)
                 }}
-                className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+                className="rounded-full p-1.5 text-muted-foreground transition @[20rem]:p-2 hover:bg-foreground/5 hover:text-foreground"
                 aria-label="Style"
               >
                 <Palette className="size-4" />
               </button>
-              <button
-                onClick={() => {
-                  sound.play('tap')
-                  setSettingsOpen(true)
-                }}
-                className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
-                aria-label="Settings"
-              >
-                <Settings className="size-4" />
-              </button>
+              {settings !== 'none' && (
+                <button
+                  onClick={() => {
+                    sound.play('tap')
+                    if (settings === 'page') router.push('/settings')
+                    else setSettingsOpen(true)
+                  }}
+                  className="rounded-full p-1.5 text-muted-foreground transition @[20rem]:p-2 hover:bg-foreground/5 hover:text-foreground"
+                  aria-label="Settings"
+                >
+                  <Settings className="size-4" />
+                </button>
+              )}
             </>
           )}
         </div>
@@ -181,7 +195,9 @@ export function AppBar({
       {chrome && (
         <>
           <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
-          <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+          {settings === 'sheet' && (
+            <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+          )}
         </>
       )}
     </header>
@@ -231,7 +247,7 @@ export function AppBarAction({
     <button
       onClick={onClick}
       aria-label={label}
-      className="rounded-full p-2 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground"
+      className="rounded-full p-1.5 text-muted-foreground transition @[20rem]:p-2 hover:bg-foreground/5 hover:text-foreground"
     >
       {children}
     </button>

@@ -455,7 +455,9 @@ function GuestPanel({ onSignUp, onSignIn }: { onSignUp: () => void; onSignIn: ()
       <span className="mx-auto grid size-12 place-items-center rounded-full bg-primary/15 text-primary">
         <Users className="size-5" />
       </span>
-      <h2 className="mt-4 text-2xl font-semibold tracking-tight">Sign in to play multiplayer</h2>
+      <h2 className="mt-4 hyphens-auto break-words text-2xl font-semibold tracking-tight text-balance">
+        Sign in to play multiplayer
+      </h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
         Play with your friends at one table. A free account joins any friend’s room and opens one of
         your own a day. Camera and voice come with a member’s room.

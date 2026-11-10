@@ -60,7 +60,11 @@ export function CourseShelf() {
           list. The first version was a card per level holding a card per item,
           two columns wide — boxes in boxes, with holes where a level had an odd
           number of things (Will, 2026-09-23: "cluttered and clumsy"). */}
-      <ol className="mt-8">
+      {/* A container, so the steps can tell when the text size has left them
+          no room: under 17rem across (a phone at 150% and up) the number sits
+          over the level instead of beside it, and the rows drop their icons
+          and chevrons, rather than wrapping each title one letter a line. */}
+      <ol className="@container mt-8">
         {COURSE.map((level, index) => (
           <Level key={level.level} level={level} last={index === COURSE.length - 1} />
         ))}
@@ -84,12 +88,17 @@ function Level({ level, last }: { level: CourseLevel; last: boolean }) {
   const planned = level.items.flatMap((item) => (item.kind === 'planned' ? [item.title] : []))
   const empty = built.length === 0
   return (
-    <li className={cn('relative pl-12 sm:pl-14', last ? 'pb-0' : 'pb-10')}>
+    <li
+      className={cn(
+        'relative pt-12 @[17rem]:pl-12 @[17rem]:pt-0 @[36rem]:pl-14',
+        last ? 'pb-0' : 'pb-10',
+      )}
+    >
       {/* The rail between one step and the next. */}
       {!last && (
         <span
           aria-hidden
-          className="absolute bottom-0 left-[1.0625rem] top-11 w-px bg-foreground/10"
+          className="absolute bottom-0 left-[1.0625rem] top-11 hidden w-px bg-foreground/10 @[17rem]:block"
         />
       )}
       <span
@@ -247,7 +256,7 @@ function Item({ item }: { item: Exclude<CourseItem, { kind: 'planned' }> }) {
     >
       <span
         className={cn(
-          'grid size-8 shrink-0 place-items-center rounded-full',
+          'hidden size-8 shrink-0 place-items-center rounded-full @[17rem]:grid',
           gated
             ? 'bg-foreground/[0.05] text-muted-foreground'
             : item.kind === 'lesson'
@@ -287,7 +296,7 @@ function Item({ item }: { item: Exclude<CourseItem, { kind: 'planned' }> }) {
         </span>
       </span>
       {hydrated && row.drill && !gated && <Rating id={row.drill.id} />}
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground/60 transition group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+      <ChevronRight className="hidden size-4 shrink-0 text-muted-foreground/60 transition @[17rem]:block group-hover:translate-x-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
     </Link>
   )
 }

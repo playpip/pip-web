@@ -63,6 +63,10 @@ test('the table caps at 150%, and nothing else does', (t) => {
     '/play/challenge-high',
     '/game/room',
     '/game/room/',
+    // The drills and the lessons are drawn on the same felt.
+    '/game/drills/pot-odds',
+    '/game/drills/pot-odds/',
+    '/game/lessons/position',
   ]) {
     t.true(isTableRoute(path))
     t.is(effectiveTextScale(200, path), TABLE_MAX_TEXT_SCALE)
@@ -80,6 +84,10 @@ test('the table caps at 150%, and nothing else does', (t) => {
     '/play',
     '/game/multiplayer',
     '/game/rooms',
+    // The lists of them are not.
+    '/game/drills',
+    '/game/drills/',
+    '/game/lessons/',
     null,
   ]) {
     t.false(isTableRoute(path))
@@ -109,6 +117,10 @@ test('the boot script applies the cap before first paint', (t) => {
   t.is(run('200', '/game/room/'), '150%')
   t.is(run('200', '/game/multiplayer'), '200%')
   t.is(run('200', '/game/rooms'), '200%')
+  t.is(run('200', '/game/drills/pot-odds'), '150%')
+  t.is(run('200', '/game/lessons/position/'), '150%')
+  t.is(run('200', '/game/drills'), '200%')
+  t.is(run('200', '/game/drills/'), '200%')
   // 100 and junk are left alone, so the reader's own browser default stands.
   t.is(run('100', '/game'), '')
   t.is(run(null, '/game'), '')

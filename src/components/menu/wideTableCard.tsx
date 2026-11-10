@@ -49,13 +49,16 @@ export function WideTableCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35, ease: 'easeOut' }}
-      className="h-full w-full"
+      // A container, so the card can stack its cover over the words once it
+      // is under 16rem wide: a phone at 150% text and up, where side by side
+      // left the copy a column one letter wide.
+      className="@container h-full w-full"
     >
       <button
         onClick={onOpen}
-        className="group flex h-full w-full items-stretch overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+        className="group flex h-full w-full flex-col items-stretch overflow-hidden @[16rem]:flex-row rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
       >
-        <span className="relative aspect-[16/10] w-32 shrink-0 sm:w-40 md:w-48 lg:w-56">
+        <span className="relative aspect-[16/10] w-full shrink-0 @[16rem]:w-32 @[16rem]:sm:w-40 @[16rem]:md:w-48 @[16rem]:lg:w-56">
           {cover}
         </span>
         <span className="flex min-w-0 flex-1 items-center gap-3 p-3 md:p-4 lg:p-5">

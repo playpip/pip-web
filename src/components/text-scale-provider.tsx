@@ -27,8 +27,8 @@ import {
   parseTextScale,
   rootFontSize,
   TABLE_MAX_TEXT_SCALE,
+  FELT_ROUTE_PREFIXES,
   ROOM_ROUTE,
-  TABLE_ROUTE_PREFIX,
   TEXT_SCALE_KEY,
   TEXT_SCALES,
   type TextScale,
@@ -99,6 +99,14 @@ const BOOT_STEPS = TEXT_SCALES.filter((step) => step !== DEFAULT_TEXT_SCALE)
   .join('||')
 
 // The same test as isTableRoute, written out for a script that cannot import it.
-const BOOT_ON_TABLE = `p.indexOf('${TABLE_ROUTE_PREFIX}')===0||p==='${ROOM_ROUTE}'||p.indexOf('${ROOM_ROUTE}/')===0`
+// `q` is the path without a trailing slash, so `/game/drills/` (the list, not a
+// felt) is not caught by its own prefix.
+const BOOT_ON_TABLE = [
+  ...FELT_ROUTE_PREFIXES.map(
+    (prefix) => `(p.indexOf('${prefix}')===0&&q.length>${prefix.length - 1})`,
+  ),
+  `p==='${ROOM_ROUTE}'`,
+  `p.indexOf('${ROOM_ROUTE}/')===0`,
+].join('||')
 
-export const TEXT_SCALE_BOOT_SCRIPT = `(function(){try{var s=localStorage.getItem('${TEXT_SCALE_KEY}');if(!(${BOOT_STEPS}))return;var n=+s,p=location.pathname;if(n>${TABLE_MAX_TEXT_SCALE}&&(${BOOT_ON_TABLE}))n=${TABLE_MAX_TEXT_SCALE};document.documentElement.style.fontSize=n+'%'}catch(e){}})()`
+export const TEXT_SCALE_BOOT_SCRIPT = `(function(){try{var s=localStorage.getItem('${TEXT_SCALE_KEY}');if(!(${BOOT_STEPS}))return;var n=+s,p=location.pathname,q=p.replace(/\\/$/,'');if(n>${TABLE_MAX_TEXT_SCALE}&&(${BOOT_ON_TABLE}))n=${TABLE_MAX_TEXT_SCALE};document.documentElement.style.fontSize=n+'%'}catch(e){}})()`

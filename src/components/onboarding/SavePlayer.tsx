@@ -77,7 +77,7 @@ export function AccountCard({
         Right now your player lives in this browser only. A free account keeps it safe and on every
         device. It takes a few seconds.
       </p>
-      <ul className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground">
+      <ul className="mt-4 flex flex-col gap-2 hyphens-auto break-words text-sm text-muted-foreground">
         {ACCOUNT_REASONS.map((line) => (
           <li key={line} className="flex items-start gap-2">
             <Check className="mt-0.5 size-4 shrink-0 text-primary" />

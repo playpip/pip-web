@@ -606,7 +606,7 @@ function HandSeat({
         aria-hidden
       >
         {choice.cards.map((card, i) => (
-          <DealtCard key={cardKey(card)} card={card} index={i} size="md" />
+          <DealtCard key={cardKey(card)} card={card} index={i} size="drill" />
         ))}
       </span>
       <span className="flex items-baseline gap-1.5" aria-hidden>

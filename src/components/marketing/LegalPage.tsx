@@ -51,7 +51,12 @@ export function LegalPage({
           <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
           {updated && <p className="mt-2 text-sm text-muted-foreground">Last updated {updated}</p>}
           {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
-          <div className="mt-10">{children}</div>
+          {/* `break-words` for the file paths, `code` and URLs the prose
+              quotes: at 200% text on a phone one of them is wider than the
+              column, and it has to break rather than run off the screen. Not
+              `anywhere`, which also shrinks every card on the page to the
+              width of one letter. */}
+          <div className="mt-10 break-words">{children}</div>
         </div>
       </main>
     </MarketingFrame>

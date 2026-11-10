@@ -38,16 +38,18 @@ export function TodaysDeal() {
           <p className="font-semibold text-foreground text-xl">
             Today is Daily #{dailyNumber(dateKey)}
           </p>
+          {/* Each pair wraps: at 200% text on a phone the seed is wider than
+              the line, and it goes under its label rather than squeezing it. */}
           <dl className="mt-4 space-y-1 text-md text-muted-foreground">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-x-2">
               <dt>UTC date</dt>
               <dd>
                 <code>{dateKey}</code>
               </dd>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-x-2">
               <dt>Day seed</dt>
-              <dd>
+              <dd className="min-w-0 break-words">
                 <code>{dailySeed(dateKey)}</code>
               </dd>
             </div>

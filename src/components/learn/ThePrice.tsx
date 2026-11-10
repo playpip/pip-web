@@ -40,7 +40,7 @@ export function ThePrice() {
       data-mirror="skip"
       className="mt-9 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-5 sm:p-6"
     >
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 className="text-base font-semibold tracking-tight">One card, or two?</h3>
         <span className="text-xs text-muted-foreground">
           {index + 1} of {WORKED_SPOTS.length}
@@ -116,7 +116,7 @@ function Bar({
 }) {
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <span className="text-sm text-muted-foreground">{label}</span>
         <span className="text-sm font-medium tabular-nums">{pct(value / 100)}%</span>
       </div>
