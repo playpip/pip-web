@@ -38,6 +38,8 @@ import { track, trackOnce } from '@/lib/analytics'
 import type { Json } from '@/types/supabase-types'
 import type { Session } from '@supabase/supabase-js'
 import { askApp, inApp } from '@/lib/nativeApp'
+import { fetchNotifySettings, forgetNotify, saveNotifyPrefs } from '@/lib/multiplayer/client'
+import { deleteWithNotify } from '@/lib/sync/deleteAccount'
 
 /** Where this device got to last time, so divergence is detectable. */
 const BOOKMARK_KEY = 'pip.sync'
@@ -512,10 +514,21 @@ export const useSync = create<SyncState>()((set, get) => ({
     // subscription first and only then deletes. The RPC cannot reach Stripe, so
     // a member deleting through it would go on being billed with no account to
     // cancel from. Builds with no checkout keep the RPC and need no function.
-    const { error } = checkoutReady()
-      ? await sb.functions.invoke('delete-account', { body: {} })
-      : await sb.rpc('delete_own_account')
-    if (error) {
+    //
+    // The room server's copy (push devices, notification switches) is cleared
+    // first, while the session still works there (`lib/sync/deleteAccount.ts`).
+    const deleted = await deleteWithNotify({
+      readNotify: fetchNotifySettings,
+      forgetNotify,
+      deleteAccount: async () => {
+        const { error } = checkoutReady()
+          ? await sb.functions.invoke('delete-account', { body: {} })
+          : await sb.rpc('delete_own_account')
+        return !error
+      },
+      restoreNotify: (kept) => saveNotifyPrefs(kept.prefs),
+    })
+    if (!deleted) {
       set({ busy: false, error: 'Could not delete right now. Try again in a moment.' })
       return false
     }

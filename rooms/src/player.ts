@@ -237,6 +237,15 @@ export class Player extends DurableObject<Env> {
         )
         return json({ ok: true }, 200)
       }
+      case 'POST /forget': {
+        // The account is being deleted: nothing of it stays here. A slow game
+        // still running can send one more card, which holds no device, no
+        // switch and no email address (only the deleted account's id), and the
+        // room's own close removes it.
+        await this.ctx.storage.deleteAlarm()
+        await this.ctx.storage.deleteAll()
+        return json({ ok: true }, 200)
+      }
       case 'POST /email-off': {
         await this.ctx.storage.put('prefs', { ...(await this.prefs()), email: false })
         const notices = await this.notices()
