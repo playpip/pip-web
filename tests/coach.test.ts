@@ -263,13 +263,13 @@ test('the setting is labelled "Second opinion" and says it is usually quiet', (t
   // silence reads as normal instead of as a bug. Losing it turns the quietest
   // feature in the app into a suspected broken one.
   const source = readFileSync(
-    new URL('../src/components/settings/SettingsDialog.tsx', import.meta.url),
+    new URL('../src/components/settings/sections.tsx', import.meta.url),
     'utf-8',
   )
-  const body = source.split('function HandCoachingSection')[1] ?? ''
+  const body = source.split('function HandCoachingRow')[1] ?? ''
   // Only what the player reads. The store field is still called handCoaching,
   // deliberately, so the whole function body would fail this on its own name.
-  const row = body.split('<ToggleRow')[1]?.split('checked=')[0] ?? ''
+  const row = body.split('<SwitchRow')[1]?.split('checked=')[0] ?? ''
   t.true(row.includes('label='), 'the section stopped rendering a labelled toggle')
   t.true(row.includes('label="Second opinion"'), 'the label moved')
   t.true(row.includes('Most hands do not get one.'), 'the hint lost its second sentence')

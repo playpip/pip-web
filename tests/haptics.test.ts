@@ -283,7 +283,7 @@ test.serial('nothing else fires a haptic beside its sound', (t) => {
     .filter((f) => readFileSync(`src/components/${f}`, 'utf-8').includes('haptics.fire('))
     .map((f) => `src/components/${f}`)
     .sort()
-  t.deepEqual(hits, ['src/components/AppBoot.tsx', 'src/components/settings/SettingsDialog.tsx'])
+  t.deepEqual(hits, ['src/components/AppBoot.tsx', 'src/components/settings/sections.tsx'])
 })
 
 test.serial('the setting is off by default and survives a migration', (t) => {

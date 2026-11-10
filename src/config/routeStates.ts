@@ -35,6 +35,7 @@ export const NOINDEX_SUBTREES = [
     why: 'one prerendered file per venue, all of them the same screen with different chips',
   },
   { dir: 'src/app/stats', why: 'your own lifetime numbers, read out of your own browser' },
+  { dir: 'src/app/settings', why: 'your own preferences, kept on your own device' },
   {
     dir: 'src/app/hand',
     why: 'a shared hand lives in the URL fragment, which no crawler sends, so every link indexes as the same empty shell',
