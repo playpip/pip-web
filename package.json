@@ -36,6 +36,7 @@
     "shove-chart": "tsx scripts/shove-chart.ts",
     "odds-band-coverage": "tsx scripts/odds-band-coverage.ts",
     "blackjack-edge": "tsx scripts/blackjack-edge.ts",
+    "solitaire-targets": "tsx scripts/solitaire-targets.ts",
     "lead-band": "tsx scripts/lead-band.ts",
     "exploit-sim": "tsx scripts/exploit-sim.ts",
     "ai-stats": "tsx scripts/ai-stats.ts",

@@ -20,6 +20,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'poker-solitaire-every-puzzle-solvable',
+    title: 'A poker solitaire you can always finish, and how we know',
+    description:
+      'Pip’s Poker Solitaire Puzzle puts all 25 cards face up and asks for 90% of a grid Pip has already made with the same cards, so every puzzle can be solved. Over a year of Daily puzzles, a search more than five times longer beat Pip’s own grid on 178 days of 365. Why the target is 90% of a good grid, not the best one.',
+    date: '2026-11-10',
+  },
+  {
     slug: 'pip-rating-grades-decisions',
     title: 'A poker rating that ignores whether you won the hand',
     description: `The Pip Rating grades each call, fold and opening move on the cards you could see, so a bad beat costs nothing. ${ANCHOR_RATING.toLocaleString('en-GB')} gives away ${ANCHOR_LOSS * 100}% of what was at stake, and every halving is ${STEP} points. Calling everything and folding everything both rate about 400. What the server checks, and what it cannot.`,
