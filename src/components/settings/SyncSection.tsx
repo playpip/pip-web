@@ -1,7 +1,8 @@
 'use client'
 
 // The account's footprint inside Settings: who you are, where your progress
-// lives, and the doors. Every form lives in AccountDialog, over the top.
+// lives, and what you can do with it. Signed in, that is all here as rows
+// (AccountRows); signed out, the sign-in forms open in AccountDialog.
 //
 // Signed out is a first-class state, permanently. There is no banner, no
 // interstitial and no "sync your progress!" anywhere in the app, and if the
@@ -16,7 +17,8 @@
 import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
-import { SettingsGroup, SettingsRow } from '@/components/settings/group'
+import { PasswordRow, SignOutRow, SyncRow } from '@/components/settings/AccountRows'
+import { SettingsGroup } from '@/components/settings/group'
 import { TransferRow } from '@/components/settings/sections'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
@@ -47,6 +49,7 @@ export function AccountGroup() {
   const status = useSync((s) => s.status)
   const email = useSync((s) => s.email)
   const dirty = useSync((s) => s.dirty)
+  const error = useSync((s) => s.error)
   const { name, avatar, peakRoll, avatarRing } = useProfile()
   const hydrated = useHydrated()
   const [dialog, setDialog] = useState<AccountMode | null>(null)
@@ -90,13 +93,11 @@ export function AccountGroup() {
 
       {status !== 'off' &&
         (signedIn ? (
-          <button type="button" onClick={() => open('manage')} className={rowButton}>
-            <SettingsRow
-              label="Manage account"
-              hint="Your progress syncs on its own."
-              control={<ChevronRight className="size-4 shrink-0 text-muted-foreground" />}
-            />
-          </button>
+          <>
+            <SyncRow />
+            <PasswordRow />
+            <SignOutRow />
+          </>
         ) : (
           <div className="px-4 py-4">
             <p className="text-xs leading-relaxed text-muted-foreground">
@@ -115,6 +116,11 @@ export function AccountGroup() {
         ))}
 
       <TransferRow />
+
+      {/* The password form shows its own errors, so this is sync's and sign-out's. */}
+      {signedIn && error && (
+        <p className="px-4 py-3 text-xs leading-relaxed text-suit-red">{error}</p>
+      )}
 
       <AccountDialog
         open={dialog !== null}

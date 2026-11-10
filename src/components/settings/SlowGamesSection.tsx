@@ -1,13 +1,14 @@
 'use client'
 
 // Settings → Notifications: what Pip pushes (your move in a slow game,
-// somebody passing you on the board, your streak ending), the slow games'
-// email, and the hours it leaves you alone. Kept on the room server with your account
+// somebody passing you on the board, your streak ending), what it emails, and
+// the hours it leaves you alone. Kept on the room server with your account
 // (`rooms/src/player.ts`), so the same on every device, and a game's clock
 // follows a change straight away.
 
 import { useEffect, useState } from 'react'
 import { Bell, Mail, Moon } from 'lucide-react'
+import { EmailRows, useEmailRows } from '@/components/settings/EmailSection'
 import { SettingsGroup, SettingsRow, SwitchRow } from '@/components/settings/group'
 import {
   devSignedIn,
@@ -36,13 +37,25 @@ const fromClock = (value: string): number | null => {
   return m ? Number(m[1]) * 60 + Number(m[2]) : null
 }
 
-export function SlowGamesSection() {
+/**
+ * Everything Pip sends you, in one group: the pushes and slow-game emails the
+ * room server keeps, and the streak and weekly emails (EmailRows), which used
+ * to sit apart in a Manage account dialog.
+ */
+export function NotificationsGroup() {
   const signedIn = useSync((s) => s.status === 'signed-in') || devSignedIn()
-  if (!signedIn || !roomsConfigured()) return null
-  return <SlowGamesSwitches />
+  const rooms = roomsConfigured()
+  const emails = useEmailRows()
+  if (!signedIn || (!rooms && !emails)) return null
+  return (
+    <SettingsGroup label="Notifications">
+      {rooms ? <RoomSwitches emails={emails} /> : <EmailRows />}
+    </SettingsGroup>
+  )
 }
 
-function SlowGamesSwitches() {
+/** The room server's switches, with the account's emails beside its own email. */
+function RoomSwitches({ emails }: { emails: boolean }) {
   const [prefs, setPrefs] = useState<PlayPrefs | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const support = pushSupport()
@@ -80,7 +93,7 @@ function SlowGamesSwitches() {
     'rounded-lg bg-foreground/[0.06] px-2 py-1.5 text-sm tabular-nums [color-scheme:dark] disabled:opacity-40'
 
   return (
-    <SettingsGroup label="Notifications">
+    <>
       <SwitchRow
         icon={Bell}
         tint="coral"
@@ -127,6 +140,7 @@ function SlowGamesSwitches() {
           void save({ email: !prefs?.email })
         }}
       />
+      {emails && <EmailRows />}
       <SettingsRow
         icon={Moon}
         tint="pip"
@@ -160,6 +174,6 @@ function SlowGamesSwitches() {
         </div>
       </SettingsRow>
       {problem && <p className="px-4 py-3 text-xs leading-relaxed text-suit-red">{problem}</p>}
-    </SettingsGroup>
+    </>
   )
 }

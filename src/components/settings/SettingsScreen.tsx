@@ -4,8 +4,9 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { PageShell } from '@/components/PageShell'
 import { MembershipSection } from '@/components/settings/MembershipSection'
-import { SlowGamesSection } from '@/components/settings/SlowGamesSection'
+import { NotificationsGroup } from '@/components/settings/SlowGamesSection'
 import { AccountGroup } from '@/components/settings/SyncSection'
+import { DeleteAccount } from '@/components/settings/AccountRows'
 import {
   AboutLine,
   DisplayGroup,
@@ -19,8 +20,8 @@ import {
  * you can't walk off mid-game open the same groups as a sheet instead
  * (SettingsDialog).
  *
- * Two columns from lg: you and your account on the left, how the game looks,
- * sounds and talks on the right. One column below that, account first.
+ * Two columns from lg, balanced by height; one column below that, account
+ * first.
  */
 export function SettingsScreen() {
   const router = useRouter()
@@ -39,21 +40,21 @@ export function SettingsScreen() {
       >
         <h1 className="mb-8 px-1 text-3xl font-semibold tracking-tight md:text-4xl">Settings</h1>
 
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 lg:gap-8">
-          <div className="flex min-w-0 flex-col gap-6">
-            <AccountGroup />
-            <MembershipSection />
-            <SlowGamesSection />
-          </div>
-          <div className="flex min-w-0 flex-col gap-6">
-            <DisplayGroup />
-            <SoundGroup />
-            <TableGroup />
-          </div>
+        {/* Columns rather than a grid, so the two sides balance by height
+            whichever groups are showing: signed out there is no Notifications,
+            signed in it is the longest group on the page. */}
+        <div className="gap-8 lg:columns-2 [&>*]:mb-6 [&>*]:break-inside-avoid">
+          <AccountGroup />
+          <MembershipSection />
+          <DisplayGroup />
+          <SoundGroup />
+          <NotificationsGroup />
+          <TableGroup />
         </div>
 
-        <div className="mx-auto mt-10 flex max-w-sm flex-col gap-6">
+        <div className="mx-auto mt-4 flex max-w-sm flex-col gap-6">
           <ResetButton />
+          <DeleteAccount />
           <AboutLine />
         </div>
       </motion.div>

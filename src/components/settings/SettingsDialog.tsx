@@ -1,8 +1,9 @@
 'use client'
 
 import { MembershipSection } from '@/components/settings/MembershipSection'
-import { SlowGamesSection } from '@/components/settings/SlowGamesSection'
+import { NotificationsGroup } from '@/components/settings/SlowGamesSection'
 import { AccountGroup } from '@/components/settings/SyncSection'
+import { DeleteAccount } from '@/components/settings/AccountRows'
 import {
   AboutLine,
   DisplayGroup,
@@ -36,10 +37,11 @@ export function SettingsDialog({
           <DisplayGroup />
           <SoundGroup />
           <TableGroup />
-          <SlowGamesSection />
+          <NotificationsGroup />
           <MembershipSection />
           <AccountGroup />
           <ResetButton />
+          <DeleteAccount />
           <AboutLine />
         </div>
       </DialogContent>

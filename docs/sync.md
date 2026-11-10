@@ -38,7 +38,7 @@ all of them signed-out only, all of them gone for good once there is an account:
 | End-of-run overlay, under the recap | `settings/AccountOffer variant="overlay"` in `table/RunRecap` |
 | AppBar, beside Style and Settings | `settings/AccountBarButton` |
 | Foot of Edit player | `profile/AccountRow` |
-| Settings → Your account | `settings/SyncSection` |
+| Settings → Account (sync, password, sign out as rows) | `settings/SyncSection`, `settings/AccountRows` |
 
 **The test any new one has to pass:** it is furniture on a screen the player is already looking
 at, it never covers anything, it has no dismiss button because there is nothing to dismiss, and

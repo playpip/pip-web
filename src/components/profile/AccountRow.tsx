@@ -43,18 +43,11 @@ export function AccountRow({ name }: { name: string }) {
   return (
     <div className="mt-4 border-t border-foreground/10 pt-3">
       {signedIn ? (
-        <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 text-xs leading-relaxed text-muted-foreground">
-            Signed in as <span className="break-all text-foreground">{email}</span>. Your progress
-            syncs on its own{dirty ? ', saving now' : ''}.
-          </p>
-          <button
-            onClick={() => open('manage')}
-            className="min-h-11 shrink-0 px-1 text-xs text-muted-foreground/70 underline-offset-2 transition hover:text-foreground hover:underline"
-          >
-            Manage
-          </button>
-        </div>
+        // The account's controls are on Settings, so here it only says so.
+        <p className="min-w-0 text-xs leading-relaxed text-muted-foreground">
+          Signed in as <span className="break-all text-foreground">{email}</span>. Your progress
+          syncs on its own{dirty ? ', saving now' : ''}.
+        </p>
       ) : (
         <>
           <p className="text-xs leading-relaxed text-muted-foreground">

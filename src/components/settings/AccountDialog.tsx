@@ -5,9 +5,10 @@
 // four-field flow share a scroll with the dark-mode toggle. Same reasoning as
 // the QR: a real task gets its own surface rather than a cramped inline panel.
 //
-// Four modes, one dialog. Signed out it's sign in / create / reset; signed in
-// it's the management view. Nothing here nags: it only opens when the player
-// presses a button in Settings asking for it.
+// Three modes, one dialog: sign in, create, reset. Signed in, there is nothing
+// to show here: the account's controls are rows on Settings (AccountRows), so
+// the dialog closes the moment a sign-in lands. Nothing here nags: it only
+// opens when the player presses a button asking for it.
 
 import { useEffect, useState } from 'react'
 import {
@@ -21,13 +22,11 @@ import { FaApple } from 'react-icons/fa'
 import { FcGoogle } from 'react-icons/fc'
 import { useSync } from '@/store/sync'
 import { oauthProviders, type OAuthProvider, providerNames } from '@/lib/sync/client'
-import { EmailSection } from '@/components/settings/EmailSection'
 import { ALL_EMAIL, emailReady, rememberOptIn, writeEmailPrefs } from '@/lib/email/prefs'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
-import { MANAGE_IN_STORE, useMembershipSource } from '@/lib/membership/store'
 
-export type AccountMode = 'signin' | 'signup' | 'reset' | 'manage'
+export type AccountMode = 'signin' | 'signup' | 'reset'
 
 // Sizes are touch-first: this ships as an Android app via TWA, so a control
 // that is comfortable with a mouse is not the bar. Buttons clear 44px (Apple's
@@ -40,9 +39,7 @@ const primaryButton =
   'min-h-11 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40'
 const secondaryButtonBase =
   'min-h-11 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12] disabled:opacity-40'
-// The row variants share a line; the full-width one must not also grow
-// vertically, which is what `flex-1` would do to a child of the column.
-const secondaryButton = `flex-1 ${secondaryButtonBase}`
+// Full width, and not `flex-1`, which would grow it vertically in the column.
 const wideSecondaryButton = `w-full ${secondaryButtonBase}`
 // A quiet link is still a tap target: 11px text in a 15px-tall box was the
 // worst thing in here on a phone.
@@ -73,10 +70,6 @@ const COPY: Record<AccountMode, { title: string; description: string }> = {
     title: 'Reset your password',
     description: 'We’ll email you a link. Your progress on this device is untouched either way.',
   },
-  manage: {
-    title: 'Your account',
-    description: 'Sync, change your password, sign out, or delete it entirely.',
-  },
 }
 
 export function AccountDialog({
@@ -100,13 +93,10 @@ export function AccountDialog({
     }
   }, [open, mode, clearError])
 
-  // Signing in or out from inside the dialog flips it to the other side rather
-  // than leaving a stale form behind.
+  // A sign-in landing closes the dialog rather than leaving a spent form behind.
   useEffect(() => {
-    if (!open) return
-    if (status === 'signed-in') setCurrent('manage')
-    else if (current === 'manage') setCurrent('signin')
-  }, [status, open, current])
+    if (open && status === 'signed-in') onOpenChange(false)
+  }, [status, open, onOpenChange])
 
   const copy = COPY[current]
   // With Google or Apple on offer, "an email and a password" is no longer the
@@ -125,11 +115,7 @@ export function AccountDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2 pt-1">
-          {current === 'manage' ? (
-            <Manage onDone={() => onOpenChange(false)} />
-          ) : (
-            <AuthForm mode={current} setMode={setCurrent} onDone={() => onOpenChange(false)} />
-          )}
+          <AuthForm mode={current} setMode={setCurrent} onDone={() => onOpenChange(false)} />
         </div>
       </DialogContent>
     </Dialog>
@@ -240,7 +226,7 @@ function AuthForm({
           />
           <span>
             Email me when my streak is about to end, and a summary on Mondays. You can turn either
-            off in Manage account.
+            off in Settings.
           </span>
         </label>
       )}
@@ -291,248 +277,4 @@ function AuthForm({
       </div>
     </>
   )
-}
-
-function Manage({ onDone }: { onDone: () => void }) {
-  const [confirming, setConfirming] = useState(false)
-  const [changing, setChanging] = useState(false)
-  const [changed, setChanged] = useState(false)
-  const {
-    email,
-    hasPassword,
-    busy,
-    dirty,
-    lastSyncedAt,
-    error,
-    signOut,
-    syncNow,
-    deleteAccount,
-    clearError,
-  } = useSync()
-  const source = useMembershipSource()
-  const storeManage = source ? MANAGE_IN_STORE[source] : undefined
-
-  return (
-    <>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Signed in as <span className="text-foreground">{email}</span>. Your progress syncs on its
-        own.{' '}
-        {dirty
-          ? 'Saving…'
-          : lastSyncedAt
-            ? `Last synced ${when(lastSyncedAt)}.`
-            : 'Not synced yet.'}
-      </p>
-
-      <div className="flex gap-2">
-        <button
-          onClick={() => {
-            sound.play('tap')
-            void syncNow()
-          }}
-          disabled={busy}
-          className={cn(secondaryButton, busy && 'opacity-50')}
-        >
-          Sync now
-        </button>
-        <button
-          onClick={() => {
-            sound.play('tap')
-            void signOut().then(onDone)
-          }}
-          disabled={busy}
-          className={secondaryButton}
-        >
-          Sign out
-        </button>
-      </div>
-
-      <p className="text-xs leading-relaxed text-muted-foreground/70">
-        Signing out leaves your profile on this device exactly as it is.
-      </p>
-
-      <EmailSection />
-
-      {changing ? (
-        <ChangePassword
-          onCancel={() => setChanging(false)}
-          onSaved={() => {
-            setChanged(true)
-            setChanging(false)
-          }}
-        />
-      ) : (
-        <button
-          onClick={() => {
-            sound.play('tap')
-            clearError()
-            setChanged(false)
-            setConfirming(false)
-            setChanging(true)
-          }}
-          disabled={busy}
-          className={wideSecondaryButton}
-        >
-          {hasPassword ? 'Change password' : 'Set a password'}
-        </button>
-      )}
-
-      {changed && !changing && (
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Password saved. You’re still signed in here.
-        </p>
-      )}
-
-      {confirming ? (
-        <div className="flex flex-col gap-2 rounded-xl bg-foreground/[0.04] p-3">
-          <p className="text-xs leading-relaxed">
-            This deletes your account and the synced copy of your profile. The profile on this
-            device stays exactly as it is. It cannot be undone.
-          </p>
-          {/* A web membership is cancelled by delete-account. A store one can't
-              be: only the player can cancel it, in the store (Apple 5.1.1(v)). */}
-          {storeManage && (
-            <p className="text-xs leading-relaxed">
-              Your membership was bought through the store, so deleting the account doesn’t stop it
-              renewing.{' '}
-              <a href={storeManage.href} className="font-medium underline underline-offset-2">
-                Cancel it there
-              </a>{' '}
-              first.
-            </p>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                sound.play('tap')
-                setConfirming(false)
-              }}
-              className={secondaryButton}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                sound.play('call')
-                void deleteAccount().then((ok) => ok && onDone())
-              }}
-              className={cn(secondaryButton, 'text-suit-red')}
-            >
-              Delete it
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => {
-            sound.play('tap')
-            setChanging(false)
-            setConfirming(true)
-          }}
-          className={cn(textLink, 'w-full')}
-        >
-          Delete my account and synced data
-        </button>
-      )}
-
-      {/* The password form shows its own errors, so this would be a duplicate. */}
-      {error && !changing && <p className="text-xs leading-relaxed text-suit-red">{error}</p>}
-    </>
-  )
-}
-
-// No current-password field, deliberately. Supabase's updateUser takes the
-// session as the proof, so asking for the old one adds a step on a device that
-// already holds a valid session and buys no security. Typing it twice is here
-// for a different reason: nothing echoes a password back, so a typo would lock
-// the player out of a password they think they know.
-function ChangePassword({ onCancel, onSaved }: { onCancel: () => void; onSaved: () => void }) {
-  const [next, setNext] = useState('')
-  const [again, setAgain] = useState('')
-  const [mismatch, setMismatch] = useState(false)
-  const { busy, error, updatePassword, clearError } = useSync()
-
-  const submit = async () => {
-    sound.play('tap')
-    if (next.length < 8) return
-    if (next !== again) {
-      setMismatch(true)
-      return
-    }
-    if (await updatePassword(next)) onSaved()
-  }
-
-  /** Any edit is a fresh attempt: drop whatever the last one complained about. */
-  const clearComplaints = () => {
-    setMismatch(false)
-    if (error) clearError()
-  }
-
-  return (
-    <div className="flex flex-col gap-2 rounded-xl bg-foreground/[0.04] p-3">
-      <input
-        type="password"
-        value={next}
-        onChange={(e) => {
-          setNext(e.target.value)
-          clearComplaints()
-        }}
-        placeholder="New password"
-        autoComplete="new-password"
-        aria-label="New password"
-        className={field}
-      />
-      <input
-        type="password"
-        value={again}
-        onChange={(e) => {
-          setAgain(e.target.value)
-          clearComplaints()
-        }}
-        onKeyDown={(e) => e.key === 'Enter' && void submit()}
-        placeholder="New password again"
-        autoComplete="new-password"
-        aria-label="New password again"
-        className={field}
-      />
-
-      <div className="flex gap-2">
-        <button
-          onClick={() => {
-            sound.play('tap')
-            clearError()
-            onCancel()
-          }}
-          disabled={busy}
-          className={secondaryButton}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={submit}
-          disabled={busy || next.length < 8 || again.length < 8}
-          className={secondaryButton}
-        >
-          Save it
-        </button>
-      </div>
-
-      <p className="text-xs leading-relaxed text-muted-foreground/70">
-        At least 8 characters. You stay signed in on this device.
-      </p>
-
-      {mismatch && <p className="text-xs leading-relaxed text-suit-red">Those two don’t match.</p>}
-      {error && <p className="text-xs leading-relaxed text-suit-red">{error}</p>}
-    </div>
-  )
-}
-
-/** Rough and human. Nobody needs a timestamp for this. */
-function when(ts: number): string {
-  const mins = Math.floor((Date.now() - ts) / 60_000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} min ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
 }

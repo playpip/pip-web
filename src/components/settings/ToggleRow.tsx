@@ -2,7 +2,7 @@
 
 import { Switch } from '@/components/settings/group'
 
-/** A labelled on/off switch, as Manage account and the rating sheet draw them. */
+/** A labelled on/off switch, as the rating sheet draws them. */
 export function ToggleRow({
   label,
   hint,

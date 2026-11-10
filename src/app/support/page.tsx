@@ -65,7 +65,7 @@ export default function SupportPage() {
 
       <Section title="Deleting your account">
         <p>
-          Settings, Your account, Manage account, Delete my account and synced data. It deletes the
+          Settings, then Delete my account and synced data, at the foot of the page. It deletes the
           account and the synced copy of your profile straight away. A membership bought on the
           website is cancelled with it. One bought in the app is not, because only you can cancel it
           with Apple, so cancel that first. See <A href="/privacy">privacy</A> for what is kept and
