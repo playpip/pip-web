@@ -43,9 +43,9 @@ export default function PrivacyPage() {
           <strong className="font-medium text-foreground">your email address</strong>, so you can
           sign back in, and{' '}
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
-          was already on your device. Nothing else, unless you take a membership or turn on email
-          (both below). No hand histories beyond what your profile already holds, no IP-based
-          profiling, and no email you did not ask for. The data sits with{' '}
+          was already on your device. Nothing else, unless you take a membership, turn on email,
+          play a slow game or allow notifications (all below). No hand histories beyond what your
+          profile already holds, and no IP-based profiling. The data sits with{' '}
           <A href="https://supabase.com">Supabase</A> on our behalf, and email goes out through{' '}
           <A href="https://resend.com">Resend</A>.
         </p>
@@ -111,9 +111,9 @@ export default function PrivacyPage() {
 
       <Section title="Email">
         <p>
-          Pip only emails you about your play if you ask it to. With an account you can turn on two
-          kinds, in Settings → Notifications or with the box when you create the account. Both are
-          off until you do.
+          With an account you can turn on two kinds of email about your play, in Settings →
+          Notifications or with the box when you create the account. Both are off until you do. A
+          slow game you are playing can also email you, which is under Notifications below.
         </p>
         <List>
           <Item>
@@ -255,6 +255,33 @@ export default function PrivacyPage() {
             still encrypted, so the relay cannot see or hear them. Nothing of either is stored on
             our server.
           </p>
+        </Section>
+      )}
+
+      {/* Notifications (slow games 2026-10, the board and the streak 2026-11-09).
+          They run on the same room server, so they are said where it is. */}
+      {process.env.NEXT_PUBLIC_ROOMS_URL && (
+        <Section title="Notifications">
+          <p>
+            Pip only sends a notification to a device you allowed, after your phone or browser asks
+            you. Settings → Notifications has a switch for each kind: your move in a slow game,
+            someone passing you on the Pip Rating board, and your streak about to end. Nothing is
+            sent in your quiet hours.
+          </p>
+          <p>
+            To do that our room server keeps, with your account’s id: the address of each device you
+            allowed, your switches, your quiet hours and time zone, and your slow games. The address
+            is made by your phone or browser and only works for sending to it. The notification
+            itself goes through the push service your phone or browser maker runs, and through
+            Expo’s for the Pip app. To check your streak, the server reads it once a day from the
+            profile your account already syncs.
+          </p>
+          <p>
+            A slow game also emails you when a move has waited a while, at most one email every 12
+            hours, and only while it is your move. That one is on until you turn it off, in Settings
+            → Notifications or with the link at the foot of the email.
+          </p>
+          <p>Deleting your account from Settings deletes all of this with it.</p>
         </Section>
       )}
 

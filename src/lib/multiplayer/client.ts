@@ -173,6 +173,14 @@ export async function saveNotifyPrefs(prefs: PlayPrefs): Promise<boolean> {
   return (await mine('/notify/prefs', prefs)) !== null
 }
 
+/**
+ * Ask the room server to forget this account: its devices, switches, quiet
+ * hours and slow games list. Called just before the account is deleted.
+ */
+export async function forgetNotify(): Promise<boolean> {
+  return (await mine('/notify/forget', {})) !== null
+}
+
 /** Allow pushes on this device: a browser's subscription, or the app's Expo token. */
 export async function registerDevice(
   device:

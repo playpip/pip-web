@@ -96,6 +96,11 @@ The rules are `src/lib/multiplayer/notices.ts`; `Player` keeps the prefs, device
   it. A device already allowed registers again once a session. On an iPhone, web push needs Pip on
   the Home Screen; the app needs a build with `expo-notifications` (`mobile/README.md`).
 
+- **Deleting the account** clears it all first: `POST /notify/forget` empties the player's index
+  (devices, switches, quiet hours, slow games list) while the session still works there
+  (`lib/sync/deleteAccount.ts`). If the delete then fails, the switches are put back. `/privacy`
+  says so under Notifications.
+
 ### Pushes that are not about a game
 
 The rules are `src/lib/multiplayer/nudges.ts`; `Player` sends them, through the same devices,

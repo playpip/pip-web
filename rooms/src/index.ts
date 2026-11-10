@@ -340,6 +340,9 @@ async function mine(
       }
       return relay(await player(env, userId, 'devices/remove', { id: body.id }))
     }
+    // The account is about to be deleted (`lib/sync/deleteAccount.ts`).
+    case 'POST /notify/forget':
+      return relay(await player(env, userId, 'forget', {}))
   }
   return json({ error: 'not-found' }, 404, cors)
 }
