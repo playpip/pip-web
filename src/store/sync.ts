@@ -30,7 +30,8 @@ import {
   type ProfileRow,
 } from '@/lib/sync/client'
 import { mergeProfiles, summarise, type ProfileData, type SideSummary } from '@/lib/sync/merge'
-import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/plan'
+import { dataOf, fingerprint, isUnpushed, planSync } from '@/lib/sync/plan'
+import { NO_BOOKMARK, readBookmark, writeBookmark } from '@/lib/sync/bookmark'
 import { friendly, neverReachedServer } from '@/lib/sync/errors'
 import { migrateProfile, PERSIST_VERSION, useProfile } from '@/store/profile'
 import { dropUnbackedTable } from '@/store/game'
@@ -41,47 +42,15 @@ import { askApp, inApp } from '@/lib/nativeApp'
 import { fetchNotifySettings, forgetNotify, saveNotifyPrefs } from '@/lib/multiplayer/client'
 import { deleteWithNotify } from '@/lib/sync/deleteAccount'
 
-/** Where this device got to last time, so divergence is detectable. */
-const BOOKMARK_KEY = 'pip.sync'
-
-const NO_BOOKMARK: Bookmark = { seen: null, pushed: null }
-
 /**
  * How long a tab coming back to the foreground waits before pulling again, so
  * flicking between apps is not a request each time.
  */
 const RESUME_MIN_GAP_MS = 30_000
 
-function readBookmark(): Bookmark {
-  try {
-    const raw = localStorage.getItem(BOOKMARK_KEY)
-    if (!raw) return NO_BOOKMARK
-    // A bookmark written before fingerprints has no `pushed`. Null is the
-    // honest answer there, and the next push fills it in.
-    const stored = JSON.parse(raw) as Partial<Bookmark>
-    return { seen: stored.seen ?? null, pushed: stored.pushed ?? null }
-  } catch {
-    return NO_BOOKMARK
-  }
-}
-
-function writeBookmark(bookmark: Bookmark) {
-  try {
-    localStorage.setItem(BOOKMARK_KEY, JSON.stringify(bookmark))
-  } catch {
-    // Storage blocked. Sync still works; divergence just prompts more often,
-    // which errs towards asking rather than towards overwriting.
-  }
-}
-
 /** The profile's data fields, without the actions. What actually syncs. */
 function localData(): ProfileData {
-  const { ...all } = useProfile.getState()
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(all)) {
-    if (typeof v !== 'function') out[k] = v
-  }
-  return out as ProfileData
+  return dataOf(useProfile.getState())
 }
 
 /** The shell's answer to a sign-in request (mobile/src/signIn.ts). */

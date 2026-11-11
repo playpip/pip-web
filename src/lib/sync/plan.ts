@@ -175,6 +175,34 @@ export function planSync(input: PlanInput): SyncPlan {
   return { action: 'merge', profile: mergeProfiles(local, remote, 'local'), bookmark: pulled }
 }
 
+/** A profile store's data fields, without its actions. What actually syncs. */
+export function dataOf(state: object): ProfileData {
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(state)) {
+    if (typeof v !== 'function') out[k] = v
+  }
+  return out as ProfileData
+}
+
+/**
+ * Carry the fingerprint across a profile format change.
+ *
+ * The fingerprint is taken of the profile's shape as well as its values, so
+ * every `PERSIST_VERSION` bump that adds a field made a device that was fully
+ * saved look unsaved. Harmless alone (it pushes), but if the account had moved
+ * on another device meanwhile, both sides looked changed and the player was
+ * asked which copy to keep, for progress they had never made here. Four bumps
+ * in four days (2-5 Nov 2026) are what tripled the sync conflicts that week.
+ *
+ * So: if the stored profile, before migrating, was exactly what the server
+ * took, the migrated profile is too. Anything else is left alone, so a device
+ * that really did have unsaved progress still says so.
+ */
+export function carryFingerprint(bookmark: Bookmark, before: string, after: ProfileData): Bookmark {
+  if (bookmark.pushed === null || bookmark.pushed !== before) return bookmark
+  return { ...bookmark, pushed: fingerprint(after) }
+}
+
 /**
  * A short, stable fingerprint of a profile.
  *

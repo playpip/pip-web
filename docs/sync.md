@@ -177,6 +177,12 @@ Two rules keep it honest:
 - **It gets no vote in the restore branch below.** A cleared profile does not match the
   fingerprint either, and reading that as work to upload is the exact disaster that branch exists
   to prevent.
+- **A format change carries it.** The fingerprint covers the profile's shape, so a
+  `PERSIST_VERSION` bump that adds a field made every saved device look unsaved, and a player
+  whose other device had played since was asked which copy to keep (four bumps on 2-5 Nov 2026
+  tripled the conflicts that week). The profile store fingerprints the saved profile before
+  migrating it; if that matches the bookmark, hydration rewrites the bookmark to the migrated
+  profile (`carryFingerprint`, held by `tests/syncFormatChange.test.ts`).
 
 The decision it feeds is a pure function, `planSync` in `lib/sync/plan`, covered branch by branch
 in `tests/syncPlan.test.ts`.
