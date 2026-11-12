@@ -16,6 +16,8 @@ import type { CustomTableSpec } from '@/config/customTable'
 import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
 import { type RatingPoint, appendRatingPoint, seedRatingHistory } from '@/lib/drills/history'
 import { claimEscrow, type Escrow } from '@/lib/sync/escrow'
+import { carryFingerprint, dataOf, fingerprint } from '@/lib/sync/plan'
+import { readBookmark, writeBookmark } from '@/lib/sync/bookmark'
 import { emptyReviewStats, foldHand, type ReviewStats } from '@/lib/review/stats'
 import type { ReviewHand } from '@/lib/review/session'
 import { track } from '@/lib/analytics'
@@ -425,6 +427,9 @@ export const emptyDrillRecord = (): DrillRecord => ({
   history: seedRatingHistory(0, STARTING_RATING),
 })
 
+/** The fingerprint of the saved profile before a migration, until hydration reads it. */
+let savedAs: string | null = null
+
 export const useProfile = create<ProfileState>()(
   persist(
     (set, get) => ({
@@ -750,7 +755,22 @@ export const useProfile = create<ProfileState>()(
     {
       name: PERSIST_KEY,
       version: PERSIST_VERSION,
-      migrate: (persisted, fromVersion) => migrateProfile(persisted, fromVersion),
+      migrate: (persisted, fromVersion) => {
+        // Fingerprint the profile as it was saved, before the migration
+        // reshapes it, so the sync bookmark can follow it (below).
+        savedAs = fingerprint(dataOf(persisted as object))
+        return migrateProfile(persisted, fromVersion)
+      },
+      // A format change must not make a fully saved device look unsaved: that
+      // asked two-device players which copy to keep after every bump
+      // (`carryFingerprint`, lib/sync/plan).
+      onRehydrateStorage: () => (state) => {
+        if (savedAs === null || !state) return
+        const bookmark = readBookmark()
+        const carried = carryFingerprint(bookmark, savedAs, dataOf(state))
+        savedAs = null
+        if (carried !== bookmark) writeBookmark(carried)
+      },
     },
   ),
 )

@@ -9,7 +9,14 @@
 // reported "synced", or adopted the server's Roll with no prompt.
 
 import test from 'ava'
-import { fingerprint, isUnpushed, planSync, type Bookmark } from '@/lib/sync/plan'
+import {
+  carryFingerprint,
+  dataOf,
+  fingerprint,
+  isUnpushed,
+  planSync,
+  type Bookmark,
+} from '@/lib/sync/plan'
 import type { ProfileData } from '@/lib/sync/merge'
 import { emptySeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
@@ -392,4 +399,81 @@ test('an unknown fingerprint is not evidence of anything', (t) => {
   t.false(isUnpushed(local, { seen: 't1', pushed: null }))
   t.false(isUnpushed(local, { seen: 't1', pushed: fingerprint(local) }))
   t.true(isUnpushed(local, { seen: 't1', pushed: fingerprint(profile({ roll: 1 })) }))
+})
+
+// --- a format change ---------------------------------------------------------
+//
+// Every PERSIST_VERSION bump that adds a field changed the fingerprint of a
+// device that was fully saved. If the account had moved on another device
+// meanwhile, the player was asked which copy to keep for progress they never
+// made here. Four bumps on 2-5 Nov 2026 tripled the conflicts that week.
+
+/** A device's saved profile, then the same profile after a migration adds a field. */
+function bumped() {
+  const saved = profile()
+  const migrated = { ...profile(), freshField: null } as ProfileData
+  return { saved, migrated }
+}
+
+test('without the carry, a format change alone asks which copy to keep', (t) => {
+  const { saved, migrated } = bumped()
+  const theirs = profile({ roll: 7_000, stats: { ...profile().stats, handsPlayed: 340 } })
+
+  const p = plan({
+    local: migrated,
+    row: row(theirs, { updatedAt: 't2', deviceId: THEIRS }),
+    bookmark: { seen: 't1', pushed: fingerprint(saved) },
+  })
+
+  // The bug, held here so the next test means something.
+  t.is(p.action, 'conflict')
+})
+
+test('a fully saved device stays saved across a format change, and takes the account', (t) => {
+  const { saved, migrated } = bumped()
+  const theirs = profile({ roll: 7_000, stats: { ...profile().stats, handsPlayed: 340 } })
+  const before: Bookmark = { seen: 't1', pushed: fingerprint(saved) }
+
+  const bookmark = carryFingerprint(before, fingerprint(saved), migrated)
+  t.is(bookmark.seen, 't1')
+  t.false(isUnpushed(migrated, bookmark))
+
+  const p = plan({
+    local: migrated,
+    row: row(theirs, { updatedAt: 't2', deviceId: THEIRS }),
+    bookmark,
+  })
+  t.is(p.action, 'adopt')
+})
+
+test('a device with unsaved progress still says so after a format change', (t) => {
+  const lastPushed = profile({ roll: 4_000 })
+  const saved = profile({ roll: 9_000 }) // won since the last push, never sent
+  const migrated = { ...saved, freshField: null } as ProfileData
+  const before: Bookmark = { seen: 't1', pushed: fingerprint(lastPushed) }
+
+  const bookmark = carryFingerprint(before, fingerprint(saved), migrated)
+  t.is(bookmark, before)
+  t.true(isUnpushed(migrated, bookmark))
+
+  const p = plan({
+    local: migrated,
+    row: row(profile({ roll: 1_200 }), { updatedAt: 't2', deviceId: THEIRS }),
+    bookmark,
+  })
+  t.is(p.action, 'conflict')
+})
+
+test('an unknown fingerprint stays unknown across a format change', (t) => {
+  const { saved, migrated } = bumped()
+  const before: Bookmark = { seen: 't1', pushed: null }
+  t.is(carryFingerprint(before, fingerprint(saved), migrated), before)
+})
+
+test('the fingerprint ignores the store’s actions, as a push does', (t) => {
+  const data = profile()
+  const store = { ...data, setName: () => {}, reset: () => {} }
+  t.is(fingerprint(dataOf(store)), fingerprint(data))
+  // What a reload hands the migration: the profile through JSON.
+  t.is(fingerprint(dataOf(JSON.parse(JSON.stringify(data)))), fingerprint(data))
 })
