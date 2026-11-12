@@ -81,7 +81,7 @@ The rules are `src/lib/multiplayer/notices.ts`; `Player` keeps the prefs, device
 
 - **Push** as soon as it's your move, to every device you allowed: browsers through the service
   worker (VAPID web push, `public/sw.js`), the iOS app through Expo's push service.
-- **Email** (Resend) if the move is still waiting a quarter of the way through the clock, or after
+- **Email** (Resend), off until the player turns it on, if the move is still waiting a quarter of the way through the clock, or after
   5 minutes with no device. One email lists every game waiting on you, at most one every 12 hours,
   with a signed one-click off link (`/notify/off`).
 - **Nothing in quiet hours** (it waits for them to end), and nothing while the table is open.

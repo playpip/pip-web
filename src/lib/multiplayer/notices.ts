@@ -34,7 +34,9 @@ export const DEFAULT_PREFS: PlayPrefs = {
   quietFrom: DEFAULT_QUIET.from,
   quietTo: DEFAULT_QUIET.to,
   push: true,
-  email: true,
+  // Off until the player turns it on, like the Daily and weekly emails.
+  // Anyone who saved their switches keeps what they saved.
+  email: false,
   slow: true,
   rating: true,
   streak: true,
