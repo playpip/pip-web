@@ -277,9 +277,9 @@ export default function PrivacyPage() {
             profile your account already syncs.
           </p>
           <p>
-            A slow game can also email you when a move has waited a while, at most one email every 12
-            hours, and only while it is your move. That one is off until you turn it on in Settings
-            → Notifications, and the link at the foot of each email turns it off again.
+            A slow game can also email you when a move has waited a while, at most one email every
+            12 hours, and only while it is your move. That one is off until you turn it on in
+            Settings → Notifications, and the link at the foot of each email turns it off again.
           </p>
           <p>Deleting your account from Settings deletes all of this with it.</p>
         </Section>
