@@ -70,7 +70,15 @@ test('what the notification says', (t) => {
   t.is(ordinal(23), '23rd')
 })
 
-const prefs: PlayPrefs = { ...DEFAULT_PREFS, tz: 'Europe/London' }
+const prefs: PlayPrefs = { ...DEFAULT_PREFS, tz: 'Europe/London', email: true }
+
+test('slow-game email starts off, like the other emails', (t) => {
+  t.false(DEFAULT_PREFS.email)
+  const s = dealt()
+  const card = cardFor(s, toAct(s), { watching: false, now: 0 })
+  const n = planNotice(undefined, card, { ...DEFAULT_PREFS, tz: 'Europe/London' }, true, 0)!
+  t.is(n.emailAt, null)
+})
 
 test('your move is pushed at once and emailed a quarter of the way through the clock', (t) => {
   const s = dealt()
