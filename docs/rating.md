@@ -150,8 +150,10 @@ that slow, bounded and visible, not impossible.
 - **Shape**: at most 200 hands a submission, 1 to 8 decisions a hand, a known kind, a loss
   from 0 to 20 big blinds and never more than its stake, a stake from 1 to 200. One bad
   value refuses the whole submission.
-- **Timing**: hands in order, at least 2 seconds apart, newer than the last hand counted (no
-  hand counts twice), no more than 2 minutes in the future, no more than 14 days old.
+- **Timing**: hands in order, at least 2 seconds apart, no more than 2 minutes in the future,
+  no more than 14 days old. A hand no newer than the last one counted is left out, not refused
+  (no hand counts twice): another device counted past it, and refusing would cost the newer
+  hands sent with it. A submission with nothing newer is refused as `already-counted`.
 - **Rate**: one submission per 15 seconds, at most 900 decisions an hour.
 - **Max change**: once established, one submission moves the rating at most 60 points.
 - **Flag**: after 200 decisions, a record that rates 2600 or better (about 0.1% of the
