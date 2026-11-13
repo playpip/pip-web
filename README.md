@@ -236,3 +236,9 @@ hand.
 
 *Keywords: poker · texas hold'em · sit-and-go · tournament · play money ·
 multiplayer · card game · next.js · react · typescript*
+
+## Run locally with PicoRunner
+
+[![Launch on PicoRunner](https://picorunner.com/badges/launch.svg)](https://picorunner.com/launch/?repository=https%3A%2F%2Fgithub.com%2Fplaypip%2Fpip-web)
+
+This uses the existing local development server on loopback. The core game uses play money and needs no account; profiles remain in browser storage for the same profile and local address. Optional sync and multiplayer services need their own configuration.
