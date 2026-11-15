@@ -517,7 +517,7 @@ Worth listing, because each was considered:
 | `tests/reportTeaser.test.ts` | The end-of-run line saying something the report does not, or naming the wrong unit |
 | `tests/sitDown.test.ts` | A free table moving behind the membership; a member room paying better than a free one |
 | `tests/customTable.test.ts` | A built table being easier than the ladder at the same price; an invited guest not turning up |
-| `tests/spectate.test.ts` | The spectator view answering while a hand is live |
+| `tests/spectate.test.ts` | The spectator view answering while a hand is live; watching it out writing anything to the player's record |
 | `tests/challenge.test.ts` | Member content enlarging a free player's denominator |
 | `tests/roadmapDrills.test.ts` | The public roadmap going stale about which drills are paid, or dropping the daily free game |
 | `tests/rating.test.ts` | The ratings tables gaining a client write; the rating taking an impossible value |
