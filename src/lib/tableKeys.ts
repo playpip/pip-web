@@ -2,7 +2,8 @@
 //
 // F, C and R press the three buttons, whatever they say at that moment. R only
 // opens the sizer, never bets: a size is a decision. Space and X only check, so
-// a resting hand never calls.
+// a resting hand never calls. Between hands Space deals the next one: the same
+// key that checks a hand through moves the table on.
 
 import type { LegalActions } from '@/lib/poker/engine'
 
@@ -40,6 +41,7 @@ export const KEY_LIST: readonly { keys: readonly string[]; does: string }[] = [
   { keys: ['R'], does: 'Bet / Raise' },
   { keys: SIZER_PRESET_KEYS, does: '½ · ¾ · Pot · Max' },
   { keys: ['Enter'], does: 'Confirm' },
+  { keys: ['Space'], does: 'Next hand' },
   { keys: ['Esc'], does: 'Close' },
   { keys: ['?'], does: 'This list' },
 ]
@@ -67,6 +69,19 @@ export function intentFor(e: KeyPress, legal: LegalActions | null): TableIntent 
     default:
       return null
   }
+}
+
+/**
+ * Between hands, while the Next hand button is up: Space deals. Held down it
+ * deals once, never a run of hands; on the focused button it is the button's.
+ */
+export function nextHandKeyFor(
+  e: KeyPress,
+  target: KeyTarget | null,
+  doc?: { querySelector: (selector: string) => unknown },
+): boolean {
+  if (ignored(e) || e.shiftKey || e.key !== ' ') return false
+  return keysReachTable(e, target, doc)
 }
 
 /** Inside the open sizer: a preset (0–3, in `SIZER_PRESET_KEYS` order), or confirm. */

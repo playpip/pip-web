@@ -7,6 +7,9 @@ import { HelpCircle, History } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
 import { ActionBar } from './ActionBar'
+import { useTableKeyboard, useTableKeys } from './keys'
+import { KeyBadge } from '@/components/KeyBadge'
+import { nextHandKeyFor, type KeyTarget } from '@/lib/tableKeys'
 import { ActionRow } from './ActionRow'
 import { nextUp } from '@/lib/nextUp'
 import { deviceId } from '@/lib/sync/client'
@@ -159,6 +162,14 @@ export function Table() {
   // (2026-11-04): 107 reached the first game in the week to 1 November and 71
   // the save step, and "Continue" did not say that saving came next.
   const signedOut = useSync((s) => s.ready && s.status === 'signed-out')
+
+  // Space deals the next hand while its button is up (lib/tableKeys).
+  const keyboard = useTableKeyboard()
+  useTableKeys(keyboard && status === 'handover', (e) => {
+    if (!nextHandKeyFor(e, e.target as KeyTarget | null, document)) return
+    e.preventDefault()
+    nextHand()
+  })
 
   if (!hand || !venue) return <div className="min-h-dvh" />
 
@@ -345,9 +356,13 @@ export function Table() {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <button
         onClick={nextHand}
-        className="w-full whitespace-nowrap rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+        aria-keyshortcuts={keyboard ? 'Space' : undefined}
+        className="relative w-full whitespace-nowrap rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
       >
         Next hand
+        {keyboard && (
+          <KeyBadge className="bg-primary-foreground/10 text-primary-foreground/60">Space</KeyBadge>
+        )}
       </button>
     </motion.div>
   ) : (
