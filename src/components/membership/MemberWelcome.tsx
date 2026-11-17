@@ -6,6 +6,7 @@ import { ChevronRight, Star } from 'lucide-react'
 import { tappedFeature } from '@/config/membership'
 import { trackOnce } from '@/lib/analytics'
 import { awaitMembership } from '@/lib/membership/billing'
+import { FIRST_CHECKS, LATE_CHECKS } from '@/lib/membership/pollRow'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
@@ -36,10 +37,17 @@ export function MemberWelcome() {
     // counts completed checkouts, and the next one counts the row arriving.
     trackOnce('checkout-completed')
     let live = true
-    void awaitMembership().then((ok) => {
+    const stillHere = () => live
+    void (async () => {
+      let ok = await awaitMembership(FIRST_CHECKS, stillHere)
+      if (!ok && live) {
+        // A slow webhook still lands: keep asking, so the page turns to
+        // "You're a member" by itself and the funnel counts it.
+        setSlow(true)
+        ok = await awaitMembership(LATE_CHECKS, stillHere)
+      }
       if (ok) trackOnce('membership-active')
-      if (live && !ok) setSlow(true)
-    })
+    })()
     return () => {
       live = false
     }
@@ -65,7 +73,7 @@ export function MemberWelcome() {
         </div>
         <p className="mt-3 text-center text-sm text-muted-foreground">
           {slow
-            ? 'Stripe has your payment and is still telling us. It usually lands within a minute — reload this page, and if it hasn’t after that, write to hello@playpip.io and we will sort it out.'
+            ? 'Stripe has your payment and is still telling us. It usually lands within a minute, and this page will change when it does. If it hasn’t after a few minutes, write to hello@playpip.io and we will sort it out.'
             : 'Stripe is telling us it went through. This takes a few seconds.'}
         </p>
       </>

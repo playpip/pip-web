@@ -23,7 +23,8 @@ read in exactly one place, `store/entitlement.ts`.
 ### Properties worth keeping
 
 - **Returning from Checkout grants nothing.** `?joined=1` only changes what the join box says
-  while `awaitMembership()` re-reads the row for ~15 seconds. The webhook decides.
+  while `awaitMembership()` re-reads the row for ~15 seconds, then every 10 seconds for two
+  more minutes (`lib/membership/pollRow.ts`). The webhook decides.
 - **The webhook trusts no event body.** It re-fetches the subscription and writes what Stripe
   says *now*, so out-of-order and duplicate deliveries cannot leave a stale status.
 - **One live subscription per player.** `checkout` refuses with `already-a-member`; the
