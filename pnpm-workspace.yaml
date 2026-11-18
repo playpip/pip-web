@@ -50,3 +50,8 @@ auditConfig:
     # fast-glob in the shadcn CLI and in ava: build and test time only, fed our
     # own glob patterns, never shipped to a browser.
     - GHSA-vfj7-8cjw-p6xm
+    # picomatch (ReDoS on repeated extglobs). The advisory names 4.0.8 as the
+    # fix and npm's latest is 4.0.7 (checked 2026-11-18). Arrives through the
+    # shadcn CLI, ava, knip and micromatch: build and test time only, fed our
+    # own glob patterns, never shipped to a browser.
+    - GHSA-fc5q-39xc-vjpf
