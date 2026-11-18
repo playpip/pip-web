@@ -27,6 +27,7 @@ import { legalActions, type HandState } from '@/lib/poker/engine'
 import { type Cue, sound } from '@/lib/sound'
 import { DEFAULT_QUIET, type PreKind, type Quiet } from '@/lib/multiplayer/slow'
 import { captureRoomView } from '@/lib/multiplayer/review'
+import { notePlayedThisWeek, roomHandToCount } from '@/lib/returning'
 import { useProfile } from './profile'
 
 export type RoomConnection = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'gone'
@@ -181,6 +182,8 @@ export const useRoom = create<RoomStore>((set, get) => {
         sound.play(cue as Cue)
       }
     }
+    // Whether players come back counts a room hand like a ladder one (lib/returning).
+    if (roomHandToCount(prev, view)) notePlayedThisWeek()
     // Finished hands, kept for the session review (lib/multiplayer/review).
     // After this frame, because it deals each new hand again and prices your
     // calls, and the table's sounds and redraw should not wait on that.

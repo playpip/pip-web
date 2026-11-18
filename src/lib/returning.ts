@@ -1,6 +1,12 @@
 // Whether players come back: of the devices that played a hand in one week,
 // how many play again the next. Nothing counted it before November 2026.
 //
+// A hand counts wherever it is dealt: the ladder and the other single-player
+// tables (store/game), and a multiplayer room, quick match or slow game the
+// player is dealt into (store/room, through `roomHandToCount`). Slow-game turn
+// pushes exist to bring people back, so a return that only plays a slow game
+// has to count as one.
+//
 // The device keeps one number, the last UTC week (Monday to Sunday) it played
 // a hand in. On the first hand of a tab it compares that with this week and
 // sends at most two event names: `played-this-week` the first time in a week,
@@ -45,7 +51,27 @@ export function weekVisit(lastWeek: number | null, thisWeek: number): WeekVisit 
   return { firstThisWeek: true, again: lastWeek === thisWeek - 1, keep: thisWeek }
 }
 
-/** Called beside the `first-hand` count. Fire-and-forget, like analytics. */
+/** The parts of a room view (lib/multiplayer/view) this reads. */
+interface DealtView {
+  code: string
+  handIndex: number
+  you: string | null
+  hand: { players: readonly { id: string }[] } | null
+}
+
+/**
+ * Whether a room view means the player has a hand to count: they are dealt
+ * into it, and it is a new table or a new hand since the last view. A first
+ * view counts too, since opening a slow game on your turn is playing it. A
+ * busted seat and somebody watching are not dealt in: only seats with chips are.
+ */
+export function roomHandToCount(prev: DealtView | null, next: DealtView): boolean {
+  const you = next.you
+  if (!you || !next.hand?.players.some((p) => p.id === you)) return false
+  return !prev || prev.code !== next.code || prev.handIndex !== next.handIndex || prev.you !== you
+}
+
+/** Called beside the `first-hand` count, and on a room hand the player is dealt into. Fire-and-forget, like analytics. */
 export function notePlayedThisWeek(now: number = Date.now()): void {
   if (typeof window === 'undefined') return
   let visit: WeekVisit
