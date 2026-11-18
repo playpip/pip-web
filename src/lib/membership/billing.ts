@@ -13,6 +13,7 @@
 
 import { type CurrencyCode, TERMS_VERSION } from '@/config/membership'
 import { trackOnce } from '@/lib/analytics'
+import { FIRST_CHECKS, pollRow } from '@/lib/membership/pollRow'
 import { getSupabase } from '@/lib/sync/client'
 import { useMembership } from '@/store/entitlement'
 
@@ -90,13 +91,19 @@ export function openPortal(): Promise<Result> {
  * and the redirect usually wins. So the row is re-read a few times over about
  * fifteen seconds rather than once, and the page shows "confirming" until it
  * arrives rather than telling a player who just paid that they are not a member.
+ * The welcome page then keeps asking on `LATE_CHECKS` (`pollRow.ts`).
  */
-export async function awaitMembership(): Promise<boolean> {
+export function awaitMembership(
+  waits: readonly number[] = FIRST_CHECKS,
+  wanted?: () => boolean,
+): Promise<boolean> {
   const { refresh } = useMembership.getState()
-  for (const wait of [0, 1000, 1500, 2000, 3000, 4000, 4000]) {
-    if (wait) await new Promise((resolve) => setTimeout(resolve, wait))
-    await refresh()
-    if (useMembership.getState().member) return true
-  }
-  return false
+  return pollRow(
+    async () => {
+      await refresh()
+      return useMembership.getState().member
+    },
+    waits,
+    wanted,
+  )
 }
