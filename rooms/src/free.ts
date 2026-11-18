@@ -23,7 +23,7 @@ export interface FreeClaim {
   previous: string | null
 }
 
-/** Spend today's free room or quick match, or null when today's is already spent. */
+/** Spend this week's free room or today's quick match, or null when it is already spent. */
 export async function claimFree(
   env: Env,
   userId: string,

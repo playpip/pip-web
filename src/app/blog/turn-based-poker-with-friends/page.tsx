@@ -35,9 +35,9 @@ export default function TurnBasedPokerPost() {
       <Correction date="26 October 2026">
         <p>
           Two things below stopped being true within three days. Since 25 October anyone with a free
-          Pip account can host one slow game at a time, and open one live room a day; the membership
-          hosts as many as you like. And since 24 October a slow table has camera and voice, the
-          same as a live room, for when you both happen to be there.
+          Pip account can host one slow game at a time, and open one live room (one a week since 18
+          November); the membership hosts as many as you like. And since 24 October a slow table has
+          camera and voice, the same as a live room, for when you both happen to be there.
         </p>
       </Correction>
 

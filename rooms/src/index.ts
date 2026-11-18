@@ -208,7 +208,7 @@ async function createRoom(
   const userId = await identify(token, env)
   if (!userId) return json({ error: 'auth' }, 401, cors)
   const member = await isMember(userId, token, env)
-  // Without the membership: the free one of this kind. Today's room is
+  // Without the membership: the free one of this kind. This week's room is
   // claimed now so two tabs cannot both have it, and handed back below if the
   // room cannot be opened. A slow game is free while they host no other.
   let release = async () => {}

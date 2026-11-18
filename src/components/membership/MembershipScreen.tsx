@@ -55,6 +55,7 @@ import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { TappedFor } from '@/components/membership/TappedFor'
 import { MultiplayerSpotlight } from '@/components/membership/MultiplayerSpotlight'
+import { YourFinding } from '@/components/membership/YourFinding'
 import {
   CURRENCIES,
   type CurrencyCode,
@@ -201,26 +202,43 @@ export function MembershipScreen() {
 
         <TappedFor price={price} />
 
+        {/* One reason to join first (cmo#252, 2026-11-18): getting better,
+            then what is free and what is not, then friends, then the rest
+            folded away. */}
         <div className="mx-auto w-full max-w-6xl px-4 md:px-10">
-          {pillars.map((pillar) => (
-            <Section key={pillar.id} id={pillar.id} title={pillar.title}>
-              {pillar.id === 'multiplayer' ? (
-                <MultiplayerSpotlight feature={pillar.features[0]} />
-              ) : (
+          {pillars
+            .filter((pillar) => pillar.id !== 'multiplayer')
+            .map((pillar) => (
+              <Section key={pillar.id} id={pillar.id} title={pillar.title}>
                 <PillarGrid features={pillar.features} />
-              )}
-            </Section>
-          ))}
-
-          {rest.length > 0 && (
-            <Section id="more" title="And the rest of it">
-              <MoreList features={rest} />
-            </Section>
-          )}
+              </Section>
+            ))}
 
           <Section id="free" title="Free or member">
             <Compare price={price} />
           </Section>
+
+          {pillars
+            .filter((pillar) => pillar.id === 'multiplayer')
+            .map((pillar) => (
+              <Section key={pillar.id} id={pillar.id} title={pillar.title}>
+                <MultiplayerSpotlight feature={pillar.features[0]} />
+              </Section>
+            ))}
+
+          {rest.length > 0 && (
+            <Section id="more" title="Also included">
+              <details className="group">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+                  Show all {rest.length}
+                  <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="mt-4">
+                  <MoreList features={rest} />
+                </div>
+              </details>
+            </Section>
+          )}
 
           <Section id="questions" title="Questions">
             <Questions coming={coming} />
@@ -258,16 +276,14 @@ function Hero({ multiplayer, children }: { multiplayer: boolean; children: React
           </span>
           <h1 className="mt-4 text-balance text-[2.1rem] font-semibold leading-tight tracking-tight md:text-6xl">
             Get better at poker.{' '}
-            <span className="block text-muted-foreground">
-              {multiplayer ? 'Play with friends, no limits.' : 'Find out what is costing you.'}
-            </span>
+            <span className="block text-muted-foreground">Find out what is costing you.</span>
           </h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
-            {MEMBERSHIP_PILLARS.filter((p) => multiplayer || p.id !== 'multiplayer')
-              .map((p) => p.lede)
-              .join(' ')}{' '}
-            The core game stays free, for good.
+            {MEMBERSHIP_PILLARS.find((p) => p.id === 'better')?.lede}
+            {multiplayer && ' And host your friends as often as you like.'} The core game stays
+            free, for good.
           </p>
+          <YourFinding />
         </div>
         <div id="plans" className="scroll-mt-24">
           {children}
@@ -670,7 +686,7 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
         {sellableFeatures().some((f) => f.id === MULTIPLAYER_ID) && (
           <Question q="Can I host without a membership?">
             <p>
-              Yes, a little. Anyone with a free Pip account can open one private room a day, up to
+              Yes, a little. Anyone with a free Pip account can open one private room a week, up to
               four seats and without camera or voice, play one quick match a day, and host one slow
               game at a time. The membership opens as many of each as you like, up to eight seats,
               with camera and voice.

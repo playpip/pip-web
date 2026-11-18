@@ -36,7 +36,7 @@ table ever sees another player's Roll or rank.
 | | | |
 |---|---|---|
 | Who pays | **Only the host.** Friends join free with an account. | 2026-10-11 |
-| Free room | **One live private room a day for any account**, counted on the room server (`freeRoom.ts`). | 2026-10-23 |
+| Free room | **One live private room a UTC week (Monday to Sunday) for any account**, counted on the room server (`freeRoom.ts`). Was one a day from 2026-10-23: a weekly poker night was the main reason to host as a member, and one a day gave it away. | 2026-11-18 |
 | Free quick match and slow game | **One quick match a day, and one hosted slow game open at a time**, for any account. | 2026-10-25 |
 | Free tables | **A room or slow game hosted without the membership has at most 4 seats and no camera or voice.** Members host up to 8, with both. Decided when the room opens (`freeHost`); rooms opened before the rule keep what they had. | 2026-11-02 |
 | Empty tables | **A live table nobody has open stops dealing** at the next hand and closes after ten minutes (`EMPTY_HOLD_MS`) unless somebody comes back. Slow games are exempt. | 2026-10-25 |

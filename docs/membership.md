@@ -132,7 +132,8 @@ host.
   only decides which buttons the hub shows.
 - **The free ones are counted on the room server too.** The decision is
   `hostingAllowance()` in `lib/multiplayer/freeRoom.ts`; the account's `Player` object keeps the
-  UTC day the free room and the free quick match were last spent. The room is claimed when it is
+  UTC day the free room and the free quick match were last spent; the room is free once a week
+  (Monday to Sunday, UTC, `spentThisWeek`), the quick match once a day. The room is claimed when it is
   created and handed back if creation fails; the quick match is claimed on joining the queue and
   handed back if they leave it unmatched. The slow game is counted from the same object's index
   of their slow games (the ones they host, lobby or playing). A table costs us money and seats
@@ -421,6 +422,12 @@ page that answers their question is the least we owe them for asking. If this ev
 into something that appears without being asked for, it has stopped being this and the rule
 above is what it has broken.
 
+**One exception, on the lobby** (cmo#252, 2026-11-18). After a player's third run, once their
+free report is used, `MembershipCard` shows their report's top finding and what the rest holds,
+with a button to the page and an × that puts it away for good on that device. It is the only
+thing that offers without being asked; it stays on the lobby, never over anything, never at a
+table, and never comes back once put away.
+
 **Nothing about buying appears in the game loop, bar one line once the run is over.**
 `tests/membershipSurfaces.test.ts` fails the build if anything under `src/components/table/`
 or `src/store/game.ts` links to `/membership`, imports `config/membership`, or calls
@@ -563,7 +570,8 @@ event, at most once per tab:
 | Event | Sent when |
 |---|---|
 | `limit-card-seen-table` / `limit-card-tapped-table` | today's free member table is spent: the card on Side Tables shown / its button tapped |
-| `limit-card-seen-room` / `limit-card-tapped-room` | today's free private room is spent: the card on the hub shown / tapped |
+| `limit-card-seen-room` / `limit-card-tapped-room` | this week's free private room is spent: the card on the hub shown / tapped |
+| `report-offer-seen` / `report-offer-tapped` / `report-offer-dismissed` | the lobby's one ask (after three runs, the free report used): shown / its button tapped / put away |
 | `limit-card-seen-quick` / `limit-card-tapped-quick` | today's free quick match is spent: the card on the hub shown / tapped |
 | `host-card-seen` | a friend's guest without the membership reached the room's end screen |
 | `host-card-open-tapped` | they tapped "Open a room" on it |

@@ -10,7 +10,7 @@
 // never to the host, who already knows.
 //
 // The copy holds whatever the free room's seats and camera are: it names one
-// free room a day, and what a member's room has.
+// free room a week, and what a member's room has.
 
 import { useEffect } from 'react'
 import { Mic, Users, Video } from 'lucide-react'
@@ -46,8 +46,8 @@ export function HostOwnCard({ onGo }: { onGo: (href: string) => void }) {
         <h3 className="text-lg font-semibold tracking-tight">Host your own room</h3>
       </div>
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-        One room a day is free. Members host as many as they like, up to {MAX_ROOM_SEATS} seats with
-        camera and voice.
+        One room a week is free. Members host as many as they like, up to {MAX_ROOM_SEATS} seats
+        with camera and voice.
       </p>
       <div className="mt-4 flex gap-2">
         <button

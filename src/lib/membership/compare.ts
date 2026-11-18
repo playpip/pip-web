@@ -57,7 +57,7 @@ export function comparisonRows(): CompareRow[] {
       member: `All ${levels} levels`,
       ids: ['lessons'],
     },
-    { thing: 'Host a private room', free: 'One a day', member: 'No limit', ids: ['multiplayer'] },
+    { thing: 'Host a private room', free: 'One a week', member: 'No limit', ids: ['multiplayer'] },
     {
       thing: 'Seats in a room you host',
       free: `Up to ${say(FREE_ROOM_SEATS).toLowerCase()}`,

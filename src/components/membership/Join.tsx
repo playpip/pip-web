@@ -84,23 +84,33 @@ export const PLAN_ORDER: readonly Plan[] = ['annual', 'monthly']
  */
 export const OPENING_PLAN: Plan = 'monthly'
 
-/** The two plans in one currency. The sums come from minor units, never the display strings. */
+/**
+ * The two plans in one currency. The sums come from minor units, never the display strings.
+ *
+ * On the web the yearly card leads with what it comes to a month, with the
+ * yearly sum beside it (cmo#252, 2026-11-18). In the store app the sum billed
+ * stays the big number, because the store asks for that.
+ */
 export function plansIn(
   price: ShownPrice,
+  opts: { perMonthFirst?: boolean } = {},
 ): Record<Plan, { name: string; price: string; per: string; note: string }> {
   const saving = price.monthlyMinor * 12 - price.annualMinor
   const perMonth = Math.round(price.annualMinor / 12)
   const { format } = price
+  const perMonthFirst = Boolean(opts.perMonthFirst && format && saving > 0)
   return {
     annual: {
       name: 'Yearly',
-      price: price.annual,
-      per: 'a year',
+      price: perMonthFirst && format ? format(perMonth) : price.annual,
+      per: perMonthFirst ? `a month, billed ${price.annual} yearly` : 'a year',
       // Left out when the numbers aren't known (an older app build sends only
       // the store's price labels), rather than worked out from a string.
       note:
         format && saving > 0
-          ? `${format(perMonth)} a month, near enough: ${format(saving)} less than paying monthly for twelve months.`
+          ? perMonthFirst
+            ? `One payment of ${price.annual} a year: ${format(saving)} less than paying monthly for twelve months.`
+            : `${format(perMonth)} a month, near enough: ${format(saving)} less than paying monthly for twelve months.`
           : 'One payment a year.',
     },
     monthly: {
@@ -122,7 +132,7 @@ export function PlanPicker({
   plan: Plan
   onPlan: (next: Plan) => void
 }) {
-  const PLANS = plansIn(price)
+  const PLANS = plansIn(price, { perMonthFirst: !useInApp() })
   const pick = (next: Plan) => {
     if (next === plan) return
     sound.play('tap')

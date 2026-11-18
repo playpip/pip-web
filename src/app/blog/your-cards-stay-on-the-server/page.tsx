@@ -29,8 +29,8 @@ export default function YourCardsStayOnTheServerPost() {
       <Correction date="26 October 2026">
         <p>
           Below, this post says hosting needs the membership. Since 25 October anyone with a free
-          Pip account can open one room a day, play one quick match a day and host one slow game at
-          a time. The membership opens as many as you like.
+          Pip account can open a room (one a week since 18 November), play one quick match a day and
+          host one slow game at a time. The membership opens as many as you like.
         </p>
       </Correction>
 

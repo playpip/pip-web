@@ -6,8 +6,10 @@ import type { DeepRead, Leak } from '@/lib/deepCoach'
 // `deepRead().leaks`, which is worst first — with the sample it was drawn from.
 // Nothing here writes a finding: if the report has nothing to say yet (under
 // its hand minimum, or no leak clears its own sample), this returns null and
-// the card shows nothing. It never says the advice, the number, or the hands:
-// the title and how much play it rests on, and the rest is the report.
+// the card shows nothing. It never says the advice or the hands: the title, how
+// much play it rests on, and (since 2026-11-18, cmo#252) what is held back —
+// how many more findings there are, and what the priced decisions have cost,
+// both the report's own counts. The rest is the report.
 
 /** The one line, ready to render. */
 export interface ReportTeaser {
@@ -17,6 +19,14 @@ export interface ReportTeaser {
   sample: number
   /** What was counted, plural: "hands", "showdowns", "priced decisions". */
   unit: string
+  /** How many more findings the report has past this one. */
+  more: number
+  /**
+   * What the priced decisions have cost, in big blinds per hundred hands,
+   * from the report's own `cost`. Null when it has not got there, or when it
+   * is not a cost.
+   */
+  costBb100: number | null
 }
 
 /**
@@ -62,5 +72,21 @@ export function reportTeaser(read: DeepRead): ReportTeaser | null {
   if (!top || top.sample <= 0) return null
   const unit = sampleUnit(top)
   if (!unit) return null
-  return { title: top.title, sample: top.sample, unit }
+  const cost =
+    read.cost && read.cost.bbPer100 >= 0.1 ? Math.round(read.cost.bbPer100 * 10) / 10 : null
+  return {
+    title: top.title,
+    sample: top.sample,
+    unit,
+    more: read.leaks.length - 1,
+    costBb100: cost,
+  }
+}
+
+/** What the report holds back, from its own counts: for the line under the finding. */
+export function heldBack({ more, costBb100 }: Pick<ReportTeaser, 'more' | 'costBb100'>): string {
+  const findings = more === 1 ? '1 more finding' : `${more} more findings`
+  if (costBb100 === null) return `${findings} in your report, with the hands they came from.`
+  const cost = `Your calls and folds have cost ${costBb100.toFixed(1)} big blinds per 100 hands.`
+  return more > 0 ? `${cost} ${findings} say where.` : cost
 }

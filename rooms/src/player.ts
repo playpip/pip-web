@@ -16,7 +16,7 @@
 // they have a device to push to.
 //
 // And the days their free room and free quick match were last spent
-// (`lib/multiplayer/freeRoom.ts`), so the one-a-day allowances hold on every
+// (`lib/multiplayer/freeRoom.ts`), so the room a week and match a day hold on every
 // device and cannot be reset from the browser.
 
 import { DurableObject } from 'cloudflare:workers'
@@ -42,7 +42,7 @@ import {
 } from '@/lib/multiplayer/nudges'
 import { noticeCopy, type SlowCard } from '@/lib/multiplayer/slowCard'
 import { MAX_SLOW_GAMES } from '@/lib/multiplayer/slow'
-import { FREE_SLOW_GAMES, spentToday, utcDay, type FreeLeft } from '@/lib/multiplayer/freeRoom'
+import { FREE_SLOW_GAMES, freeSpent, utcDay, type FreeLeft } from '@/lib/multiplayer/freeRoom'
 import { json, type Env } from './env'
 import { emailOf, gameUrl, offLink, profileStateOf, pushAll, sendEmail, turnEmail } from './notify'
 
@@ -129,8 +129,8 @@ export class Player extends DurableObject<Env> {
         ).length
         return json(
           {
-            room: !spentToday(await this.get<string | null>(FREE_KEYS.room, null), now),
-            quick: !spentToday(await this.get<string | null>(FREE_KEYS.quick, null), now),
+            room: !freeSpent('room', await this.get<string | null>(FREE_KEYS.room, null), now),
+            quick: !freeSpent('quick', await this.get<string | null>(FREE_KEYS.quick, null), now),
             slow: hostedOpen < FREE_SLOW_GAMES,
           } satisfies FreeLeft,
           200,
@@ -138,13 +138,13 @@ export class Player extends DurableObject<Env> {
       }
       case 'POST /free/claim': {
         // Read and written with nothing awaited between, so two tables
-        // opened at once cannot both have today's.
+        // opened at once cannot both have the free one.
         const { kind } = (await request.json()) as { kind?: FreeDaily }
         const key = kind && FREE_KEYS[kind]
         if (!key) return json({ ok: false }, 400)
         const now = Date.now()
         const previous = await this.get<string | null>(key, null)
-        if (spentToday(previous, now)) return json({ ok: false }, 200)
+        if (freeSpent(kind as FreeDaily, previous, now)) return json({ ok: false }, 200)
         await this.ctx.storage.put(key, utcDay(now))
         return json({ ok: true, previous }, 200)
       }

@@ -10,8 +10,8 @@
 // Hosting as much as you like comes with the membership. Joining a friend's
 // room needs only a free account, so a member's game is never short of people
 // because their friends have not paid (Will, 2026-10-11). And anyone with an
-// account can host one live room a day, one quick match a day and one slow
-// game at a time (Will, 2026-10-23 and 2026-10-25; the server counts them,
+// account can host one live room a week, one quick match a day and one slow
+// game at a time (Will, 2026-10-23 and 2026-10-25; the room weekly since 2026-11-18; the server counts them,
 // `lib/multiplayer/freeRoom.ts`), on the same form a member gets. A room
 // hosted that way has four seats at most and no camera or voice (Will,
 // 2026-11-02; the server holds it, `FREE_ROOM_SEATS`): the seats past four
@@ -65,7 +65,7 @@ type Mode = 'friends' | 'quick'
 const ERRORS: Record<string, string> = {
   auth: 'Sign in again to play.',
   'members-only': 'This comes with the membership.',
-  'free-room-used': 'Your free room today is used. Opening another comes with the membership.',
+  'free-room-used': 'Your free room this week is used. Opening another comes with the membership.',
   'free-quick-used':
     'Your free quick match today is used. Playing another comes with the membership.',
   'free-slow-used':
@@ -148,7 +148,7 @@ export function MultiplayerHub() {
     !(k === 'quick' && queue.state === 'failed' && queue.error === 'free-quick-used')
   const picked: keyof FreeLeft = mode === 'quick' ? 'quick' : slow ? 'slow' : 'room'
   const host = member || kindLeft(picked)
-  // Today's free room or quick match spent: a card in place of the quiet
+  // This week's free room or today's quick match spent: a card in place of the quiet
   // button says so (the slow game is one at a time, not one a day, so it keeps
   // its line).
   const limit: LimitKind | null =
@@ -487,7 +487,7 @@ function freeLine(kind: keyof FreeLeft, left: boolean): string {
   if (kind === 'slow') {
     return left ? 'One free slow game at a time.' : 'You’re hosting your free slow game.'
   }
-  return left ? 'One free room a day, up to 4 seats.' : 'Your free room today is used.'
+  return left ? 'One free room a week, up to 4 seats.' : 'Your free room this week is used.'
 }
 
 const HOSTING = [

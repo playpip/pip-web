@@ -74,3 +74,13 @@ test('every leak the report can produce has a unit, or the teaser could not name
     t.true(TEASABLE_LEAKS.includes(`leaky-${street}`))
   }
 })
+
+test('what is held back is the report’s own count', (t) => {
+  const tendencies = { ...emptySeatStats(), handsDealt: 340, vpipHands: 260 }
+  const read = deepRead(input({ tendencies }))
+  const teaser = reportTeaser(read)
+  t.is(teaser?.more, read.leaks.length - 1)
+  // No priced decisions counted, so no cost is claimed.
+  t.is(read.cost, null)
+  t.is(teaser?.costBb100, null)
+})

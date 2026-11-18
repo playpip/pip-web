@@ -192,19 +192,21 @@ export default function PrivacyPage() {
           card saying so, and we count that the free table card was shown, that the free table card
           was tapped, that the free room card was shown, that the free room card was tapped, that
           the free quick match card was shown, that the free quick match card was tapped, that the
-          free round card was shown and that the free round card was tapped. For each quick game we
-          count that a round of it was started and finished: that someone started a round of Poker
-          Solitaire, that someone finished a round of Poker Solitaire, that someone started a round
-          of Ten Hands, that someone finished a round of Ten Hands, that someone started a round of
-          Mystery Card and that someone finished a round of Mystery Card. A guest at the end of a
-          friend’s room game sees a card about hosting their own, and we count that the hosting card
-          was shown, that its open a room button was tapped and that its membership button was
-          tapped. When someone tries to join a room with no seats left, we count that a full room
-          turned someone away. Before your first free report opens, the lobby shows how many hands
-          it needs, and we count that the free report card on the lobby was shown and that the free
-          report card on the lobby was tapped. On Android phones a row at the top offers to add Pip
-          to your home screen, and we count that the install row was shown, that its install button
-          was tapped and that Pip was added to a home screen.{' '}
+          free round card was shown and that the free round card was tapped. On the lobby, a card
+          showing what your report found is offered once, and we count that it was shown, that it
+          was tapped and that it was put away. For each quick game we count that a round of it was
+          started and finished: that someone started a round of Poker Solitaire, that someone
+          finished a round of Poker Solitaire, that someone started a round of Ten Hands, that
+          someone finished a round of Ten Hands, that someone started a round of Mystery Card and
+          that someone finished a round of Mystery Card. A guest at the end of a friend’s room game
+          sees a card about hosting their own, and we count that the hosting card was shown, that
+          its open a room button was tapped and that its membership button was tapped. When someone
+          tries to join a room with no seats left, we count that a full room turned someone away.
+          Before your first free report opens, the lobby shows how many hands it needs, and we count
+          that the free report card on the lobby was shown and that the free report card on the
+          lobby was tapped. On Android phones a row at the top offers to add Pip to your home
+          screen, and we count that the install row was shown, that its install button was tapped
+          and that Pip was added to a home screen.{' '}
           {ratingEnabled() &&
             'For the Pip Rating we count that someone opened their rating and that someone opened the leaderboard. '}{' '}
           That tells us where people stop, not who they are. No cookies, no fingerprinting, no

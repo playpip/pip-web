@@ -2,8 +2,8 @@
 
 // The card a free player sees once today's free one is used (2026-11-02).
 //
-// A free player gets one member table, one private room and one quick match a
-// UTC day. Once it was spent, the tile went quiet: a padlock and a grey line.
+// A free player gets one member table and one quick match a UTC day, and one
+// private room a UTC week (Monday to Sunday, since 2026-11-18). Once it was spent, the tile went quiet: a padlock and a grey line.
 // The moment somebody has just had a taste is the moment the membership is
 // worth naming, so the quiet state is now this card, in the tile's place.
 //
@@ -11,6 +11,8 @@
 // invited versus uninvited): on the screen the player is already on, never over
 // anything, one per surface, nothing to dismiss, and never inside a hand. It
 // says what happened, what members get, and when the free one comes back.
+
+import { utcWeek } from '@/lib/multiplayer/freeRoom'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -27,6 +29,7 @@ import { sound } from '@/lib/sound'
 export type LimitKind = 'table' | 'room' | 'quick' | 'round'
 
 const DAY = 24 * 60 * 60 * 1000
+const WEEK = 7 * DAY
 
 const CARD: Record<
   LimitKind,
@@ -40,7 +43,7 @@ const CARD: Record<
     tapped: () => trackOnce('limit-card-tapped-table'),
   },
   room: {
-    title: 'You’ve had today’s free room.',
+    title: 'You’ve had this week’s free room.',
     line: 'Members open a room whenever they like.',
     href: membershipFor('multiplayer'),
     seen: () => trackOnce('limit-card-seen-room'),
@@ -62,9 +65,22 @@ const CARD: Record<
   },
 }
 
-/** "Free again in 5 hours": the daily ones come back at midnight UTC. */
-function freeAgain(now: number): string {
-  const hours = Math.ceil((DAY - (now % DAY)) / (60 * 60 * 1000))
+/** When this week began: midnight UTC on its Monday. */
+function weekStart(now: number): number {
+  return Date.parse(`${utcWeek(now)}T00:00:00Z`)
+}
+
+/**
+ * "Free again in 5 hours": the daily ones come back at midnight UTC. The room
+ * is weekly, so it counts days until Monday once more than a day is left.
+ */
+function freeAgain(now: number, kind: LimitKind): string {
+  const left = kind === 'room' ? WEEK - (now - weekStart(now)) : DAY - (now % DAY)
+  if (left > DAY) {
+    const days = Math.ceil(left / DAY)
+    return `Free again in ${days} days`
+  }
+  const hours = Math.ceil(left / (60 * 60 * 1000))
   return hours <= 1 ? 'Free again in under an hour' : `Free again in ${hours} hours`
 }
 
@@ -79,8 +95,9 @@ export function LimitCard({
   const card = CARD[kind]
   const [now] = useState(() => Date.now())
   useEffect(() => card.seen(), [card])
-  // How far through the UTC day, for the dial: full when the free one is back.
-  const through = (now % DAY) / DAY
+  // How far through the UTC day (or week, for the room), for the dial: full
+  // when the free one is back.
+  const through = kind === 'room' ? (now - weekStart(now)) / WEEK : (now % DAY) / DAY
 
   return (
     <motion.div
@@ -128,7 +145,7 @@ export function LimitCard({
           >
             See the membership
           </Link>
-          <p className="text-sm tabular-nums text-muted-foreground">{freeAgain(now)}</p>
+          <p className="text-sm tabular-nums text-muted-foreground">{freeAgain(now, kind)}</p>
         </div>
       </div>
     </motion.div>

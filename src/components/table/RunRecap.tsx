@@ -18,6 +18,9 @@
  *   (`lib/review/teaser`), never written here, and absent when there is none.
  *   Since 2026-11-02 its button opens their one free report while that is
  *   ready (lib/membership/freeReport), and goes to the membership after.
+ *   Since 2026-11-18 (cmo#252) it also says what the report holds back —
+ *   the other findings and what the priced decisions cost — and its button
+ *   is the card's main one.
  *   This card is the one place in the game loop allowed to mention the
  *   membership: the run is over and no hand is live
  *   (`tests/membershipSurfaces.test.ts`).
@@ -28,7 +31,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import type { Recap } from '@/lib/recap'
 import { deepRead } from '@/lib/deepCoach'
-import { reportTeaser } from '@/lib/review/teaser'
+import { heldBack, reportTeaser } from '@/lib/review/teaser'
 import { FREE_REPORT_COPY, freeReportState } from '@/lib/membership/freeReport'
 import { dailyDateKey } from '@/lib/daily'
 import { cn } from '@/lib/utils'
@@ -107,6 +110,9 @@ function ReportLine() {
           <p className="mt-0.5 text-xs text-white/60">
             Counted over {teaser.sample.toLocaleString('en-GB')} {teaser.unit}.
           </p>
+          {!yours && (teaser.more > 0 || teaser.costBb100 !== null) && (
+            <p className="mt-3 text-sm text-white/80">{heldBack(teaser)}</p>
+          )}
         </>
       )}
       <button
@@ -119,14 +125,16 @@ function ReportLine() {
           'mt-3 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm font-medium text-white transition active:scale-[0.98]',
           yours
             ? 'bg-white/15 ring-1 ring-white/25 ring-inset hover:bg-white/20'
-            : 'border border-white/20 hover:bg-white/10',
+            : 'bg-white font-semibold text-neutral-950 hover:bg-white/90',
         )}
       >
         {free === 'ready'
           ? FREE_REPORT_COPY.ready
           : free === 'open'
             ? FREE_REPORT_COPY.open
-            : 'See your full report'}
+            : teaser && teaser.more > 0
+              ? `See all ${teaser.more + 1} findings`
+              : 'See your full report'}
         <ChevronRight className="size-4" />
       </button>
     </div>
