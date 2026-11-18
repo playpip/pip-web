@@ -10,6 +10,7 @@ import {
   KEY_LIST,
   KEYBOARD_QUERY,
   keysReachTable,
+  nextHandKeyFor,
   SIZER_PRESET_KEYS,
   sizerIntentFor,
   tableKeyFor,
@@ -265,10 +266,29 @@ test('the list says what the keys do, and every key in it is one that answers', 
   for (const letter of Object.values(BUTTON_KEYS)) t.true(listed.includes(letter), letter)
   for (const digit of SIZER_PRESET_KEYS) t.true(listed.includes(digit), digit)
   for (const key of ['Space', 'X', 'Enter', 'Esc', '?']) t.true(listed.includes(key), key)
+  t.true(KEY_LIST.some((row) => row.keys.includes('Space') && row.does === 'Next hand'))
 
   // The letters on the buttons press what the buttons say.
   t.is(intentFor(press(BUTTON_KEYS.fold.toLowerCase()), facingBet()), 'fold')
   t.is(intentFor(press(BUTTON_KEYS.middle.toLowerCase()), facingBet()), 'call')
   t.is(intentFor(press(BUTTON_KEYS.middle.toLowerCase()), canCheck()), 'check')
   t.is(intentFor(press(BUTTON_KEYS.raise.toLowerCase()), facingBet()), 'sizer')
+})
+
+test('between hands, Space deals the next one, once', (t) => {
+  t.true(nextHandKeyFor(press(' '), node('BODY'), noDialog))
+  // Held down, it deals one hand, never a run of them.
+  t.false(nextHandKeyFor(press(' ', { repeat: true }), node('BODY'), noDialog))
+  for (const mod of ['shiftKey', 'ctrlKey', 'metaKey', 'altKey'] as const)
+    t.false(nextHandKeyFor(press(' ', { [mod]: true }), node('BODY'), noDialog), mod)
+  // Only Space: the letters stay the betting buttons'.
+  for (const key of ['Enter', 'c', 'x', 'n']) t.false(nextHandKeyFor(press(key), null), key)
+})
+
+test('Space deals nothing while typing, under a dialog, or on a focused button', (t) => {
+  const open = { querySelector: (s: string) => (s.includes('[role="dialog"]') ? {} : null) }
+  t.false(nextHandKeyFor(press(' '), node('INPUT'), noDialog))
+  t.false(nextHandKeyFor(press(' '), node('BODY'), open))
+  // The focused button answers Space itself; dealing too would deal twice.
+  t.false(nextHandKeyFor(press(' '), node('BUTTON'), noDialog))
 })

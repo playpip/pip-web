@@ -213,8 +213,9 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
 ### The table's keyboard
 
 On desktop the action bar takes **F** fold, **C** call/check, **R** the sizer (never a bet
-by itself), **Space**/**X** check (never a call), and in the sizer **1–4** and **Enter**;
-**?** lists them. Desktop is one media query on the pointers, not the width, so phones,
+by itself), **Space**/**X** check (never a call), and in the sizer **1–4** and **Enter**.
+Between hands **Space** presses Next hand: the key that checks a hand through moves the
+table on, once per press (held down, it deals one hand, not a run). **?** lists them. Desktop is one media query on the pointers, not the width, so phones,
 tablets and touchscreen laptops get none of it. The letters use the drills' `KeyBadge`;
 no hint lines. Logic in `lib/tableKeys.ts`.
 
