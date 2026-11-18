@@ -115,7 +115,8 @@ room with its code needs a free account and nothing else** (Will, 2026-10-11). A
 should never be short of players because their friends have not paid, and every friend sat at a
 member's table sees what the membership is.
 
-**Anyone with a free account can open one live private room a day** (Will, 2026-10-23, cmo#220),
+**Anyone with a free account can open one live private room a UTC week, Monday to Sunday** (Will,
+2026-11-18, cmo#252; one a day from 2026-10-23, cmo#220),
 with regulars, and nothing at the table says who paid. **A room hosted without the membership has
 at most four seats and no camera or voice** (Will, 2026-11-02): since the free room shipped, taps
 on the multiplayer membership link went to zero, and bigger tables with faces and voices are the
