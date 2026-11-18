@@ -125,7 +125,7 @@ function ReportLine() {
           'mt-3 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm font-medium text-white transition active:scale-[0.98]',
           yours
             ? 'bg-white/15 ring-1 ring-white/25 ring-inset hover:bg-white/20'
-            : 'bg-white font-semibold text-neutral-950 hover:bg-white/90',
+            : 'bg-primary font-semibold text-primary-foreground hover:bg-primary/90',
         )}
       >
         {free === 'ready'

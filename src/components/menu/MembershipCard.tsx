@@ -24,6 +24,7 @@
 // it is still on the lobby only, never over anything and never at a table.
 
 import { useEffect, useState } from 'react'
+import { useHydrated } from '@/lib/useHydrated'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Star, X } from 'lucide-react'
@@ -59,12 +60,12 @@ export function MembershipCard({ delay = 0 }: { delay?: number }) {
   const show = useMembership((s) => s.checked && !s.member)
   const runs = useProfile((s) => s.stats.tournamentsEntered)
   const free = useFreeReport()
-  const [dismissed, setDismissed] = useState<boolean | null>(null)
-  useEffect(() => setDismissed(offerDismissed()), [])
+  const hydrated = useHydrated()
+  const [putAway, setPutAway] = useState(false)
   if (!checkoutReady() || !show) return null
 
   const teaser = free.ready && free.state === 'used' ? reportTeaser(free.read) : null
-  if (teaser && runs >= OFFER_AFTER_RUNS && dismissed === false) {
+  if (teaser && runs >= OFFER_AFTER_RUNS && hydrated && !putAway && !offerDismissed()) {
     return (
       <ReportOffer
         teaser={teaser}
@@ -76,7 +77,7 @@ export function MembershipCard({ delay = 0 }: { delay?: number }) {
             // Storage can throw (Safari private mode): it goes for this visit.
           }
           track('report-offer-dismissed')
-          setDismissed(true)
+          setPutAway(true)
         }}
       />
     )
