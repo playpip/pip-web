@@ -690,8 +690,11 @@ export const useGame = create<GameState>((set, get) => {
    * stacks back, so the chips still in front of players live on `hand` alone.
    */
   function saveLiveHand() {
-    const { venue, hand, seats, buttonSeatId, handIndex, blindLevel, cashInvested } = get()
+    const { venue, hand, seats, buttonSeatId, handIndex, blindLevel, cashInvested, status } = get()
     if (!venue || !hand || !buttonSeatId) return
+    // A spectated table is over for the player: busting cleared the snapshot,
+    // and writing one now would let a reload resume it as the player's own run.
+    if (status === 'watching') return
     saveTableSnapshot({
       venueId: venue.id,
       seats,
@@ -766,7 +769,9 @@ export const useGame = create<GameState>((set, get) => {
     for (const c of configs) statsFor(c.id).handsDealt++
     set({
       hand,
-      status: 'playing',
+      // A spectated table deals on as one: `finishHand` reads this to keep from
+      // settling the run a second time.
+      status: get().status === 'watching' ? 'watching' : 'playing',
       newAwards: [],
       lastBounty: 0,
       talk: null,
@@ -896,14 +901,18 @@ export const useGame = create<GameState>((set, get) => {
     const pot = potSize(hand)
 
     const profile = useProfile.getState()
-    profile.mergeStats({
-      handsPlayed: 1,
-      handsWon: heroWon ? 1 : 0,
-      biggestPot: heroWon ? pot : 0,
-      showdownsWon: heroWon && result?.showdown ? 1 : 0,
-    })
-    // The landing page's hands-played count. Anonymous; see lib/handTally.
-    countHand()
+    // Watching it out deals hands the player is not in, and those are not theirs.
+    const dealtIn = hand.players.some((p) => p.id === HUMAN_ID)
+    if (dealtIn) {
+      profile.mergeStats({
+        handsPlayed: 1,
+        handsWon: heroWon ? 1 : 0,
+        biggestPot: heroWon ? pot : 0,
+        showdownsWon: heroWon && result?.showdown ? 1 : 0,
+      })
+      // The landing page's hands-played count. Anonymous; see lib/handTally.
+      countHand()
+    }
 
     // Flush the hero's tendencies for this hand — the session counter is
     // cumulative, so push only the delta since the last flush.

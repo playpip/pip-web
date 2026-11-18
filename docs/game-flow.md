@@ -68,7 +68,9 @@ progress()
 
 finishHand()
   ├─ sync stacks; players at 0 chips are eliminated (dropped from live seats)
-  ├─ profile.mergeStats(...)
+  ├─ profile.mergeStats(...)                      (hands the human was dealt into)
+  ├─ watching it out?     → the run stays as the bust settled it; next hand after a pause
+  │                         (no button), until one is left
   ├─ human busted?        → status 'busted', place = survivors + 1  (freeroll / leave)
   ├─ one survivor (human) → status 'won', profile.adjustRoll(+venue.prize)
   └─ else → status 'handover' (show result; wait for nextHand())
