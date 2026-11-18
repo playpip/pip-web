@@ -212,6 +212,32 @@ test('hands must finish in order, a plausible time apart, and only once', (t) =>
   if (!again.ok) t.is(again.reason, 'already-counted')
 })
 
+test('a hand another device counted past is left out, and the newer ones still count', (t) => {
+  // This device's last hand never went up (the tab closed); the phone has since
+  // counted a hand after it. The next send carries the old hand and two new ones.
+  const counted = NOW - 120_000
+  const sent = [
+    { at: NOW - 180_000, decisions: [{ kind: 'flop-call', loss: 1, stake: 5 }] },
+    { at: NOW - 60_000, decisions: [{ kind: 'flop-call', loss: 0, stake: 5 }] },
+    { at: NOW - 30_000, decisions: [{ kind: 'flop-call', loss: 0, stake: 5 }] },
+  ]
+  const r = validateHands(sent, counted, NOW)
+  t.true(r.ok)
+  if (r.ok) t.deepEqual(r.hands, sent.slice(1))
+
+  // The gap from the last counted hand still applies to the first new one.
+  const close = [sent[0], { ...sent[1], at: counted + MIN_HAND_GAP_MS - 1 }]
+  const fast = validateHands(close, counted, NOW)
+  t.false(fast.ok)
+  if (!fast.ok) t.is(fast.reason, 'too-fast')
+
+  // A malformed old hand still refuses the lot: left out is not unchecked.
+  const bad = [{ ...sent[0], decisions: [{ kind: 'flop-call', loss: 9, stake: 5 }] }, sent[1]]
+  const refused = validateHands(bad, counted, NOW)
+  t.false(refused.ok)
+  if (!refused.ok) t.is(refused.reason, 'bad-loss')
+})
+
 test('an established rating moves at most 60 points a submission', (t) => {
   const settled = play(emptyCore(), 300, 0.45)
   const before = ratingOf(settled)

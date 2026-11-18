@@ -312,7 +312,10 @@ export type Rejection =
  * Check a submission's shape and timing. Pure: `lastHandAt` is the last hand
  * the server counted for this player (0 for none), `now` the server's clock.
  * Any failure rejects the whole submission, so a client cannot slip a bad hand
- * in among good ones.
+ * in among good ones. A well-formed hand at or before `lastHandAt` is left out
+ * rather than refused: another device has counted past it (a tab closed before
+ * its last send), and refusing would cost the newer hands sent with it. Only a
+ * submission with nothing newer is `already-counted`.
  */
 export function validateHands(
   input: unknown,
@@ -333,9 +336,6 @@ export function validateHands(
       return { ok: false, reason: 'too-many-decisions' }
     if (at > now + CLOCK_SKEW_MS) return { ok: false, reason: 'from-the-future' }
     if (at < now - MAX_HAND_AGE_MS) return { ok: false, reason: 'too-old' }
-    if (at <= lastHandAt) return { ok: false, reason: 'already-counted' }
-    if (at <= previous && hands.length > 0) return { ok: false, reason: 'out-of-order' }
-    if (previous > 0 && at - previous < MIN_HAND_GAP_MS) return { ok: false, reason: 'too-fast' }
     const out: SubmittedDecision[] = []
     for (const d of decisions) {
       const { kind, loss, stake } = (d ?? {}) as { kind?: unknown; loss?: unknown; stake?: unknown }
@@ -354,9 +354,13 @@ export function validateHands(
         return { ok: false, reason: 'bad-loss' }
       out.push({ kind, loss, stake })
     }
+    if (at <= lastHandAt) continue
+    if (at <= previous && hands.length > 0) return { ok: false, reason: 'out-of-order' }
+    if (previous > 0 && at - previous < MIN_HAND_GAP_MS) return { ok: false, reason: 'too-fast' }
     hands.push({ at, decisions: out })
     previous = at
   }
+  if (hands.length === 0) return { ok: false, reason: 'already-counted' }
   return { ok: true, hands }
 }
 
