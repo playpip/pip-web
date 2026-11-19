@@ -19,7 +19,7 @@
 // or duplicating events therefore cannot leave a stale status behind.
 
 import Stripe from 'npm:stripe@22'
-import { LIVE, admin, isPip, stripe } from '../_shared/billing.ts'
+import { LIFETIME_UNTIL, LIVE, admin, isPip, stripe } from '../_shared/billing.ts'
 
 /** The statuses that make somebody a member — src/lib/membership/entitlement.ts. */
 const ENTITLING = ['active', 'trialing']
@@ -57,9 +57,12 @@ async function sync(subscriptionId: string): Promise<void> {
   // a late event about an old dead one must not overwrite it.
   const { data: existing } = await admin
     .from('memberships')
-    .select('stripe_subscription_id, status, source')
+    .select('stripe_subscription_id, status, source, lifetime')
     .eq('user_id', userId)
     .maybeSingle()
+  // A lifetime member is never overwritten by a subscription, live or dead
+  // (cmo#252). Only a refund of the lifetime payment ends it (`refunded`).
+  if (existing?.lifetime && ENTITLING.includes(existing.status)) return
   // A live membership bought in the app (revenuecat-webhook) is never
   // overwritten by a Stripe subscription that isn't live.
   if (
@@ -122,6 +125,79 @@ async function sync(subscriptionId: string): Promise<void> {
   if (error) throw error
 }
 
+/**
+ * A paid lifetime checkout (cmo#252): the player is a member for as long as
+ * Pip runs. Written only once the money has arrived — `payment_status` is
+ * `paid` at completion for a card, and later, on `async_payment_succeeded`,
+ * for a method that settles slowly.
+ */
+async function grantLifetime(session: Stripe.Checkout.Session): Promise<void> {
+  if (session.metadata?.kind !== 'lifetime' || session.payment_status !== 'paid') return
+  const userId = session.metadata?.user_id
+  if (!userId) {
+    console.warn(`lifetime session ${session.id} has no user_id in its metadata; not written`)
+    return
+  }
+  const customer =
+    typeof session.customer === 'string' ? session.customer : (session.customer?.id ?? null)
+  const { data: existing } = await admin
+    .from('memberships')
+    .select('stripe_subscription_id, status, source, stripe_customer_id')
+    .eq('user_id', userId)
+    .maybeSingle()
+  // Checkout refuses a live member, but a subscription paid in another tab can
+  // land first. They have paid for life now, so the subscription stops here
+  // and its last payment needs refunding by hand, the same as a duplicate.
+  if (
+    existing?.source === 'stripe' &&
+    existing.stripe_subscription_id &&
+    LIVE.includes(existing.status)
+  ) {
+    await stripe.subscriptions.cancel(existing.stripe_subscription_id)
+    console.error(
+      `LIFETIME bought over subscription ${existing.stripe_subscription_id} for user ${userId}; cancelled it — REFUND ITS LAST INVOICE in the dashboard`,
+    )
+  }
+  const { error } = await admin.from('memberships').upsert(
+    {
+      user_id: userId,
+      stripe_customer_id: customer ?? existing?.stripe_customer_id ?? null,
+      stripe_subscription_id: null,
+      status: 'active',
+      current_period_end: LIFETIME_UNTIL,
+      cancel_at_period_end: false,
+      price_id: null,
+      source: 'stripe',
+      lifetime: true,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  )
+  if (error?.code === '23503') return
+  if (error) throw error
+}
+
+/**
+ * A refunded lifetime payment ends the membership. Only a full refund, and
+ * only of a payment tagged as Pip's lifetime: the charge itself carries no
+ * metadata, so its payment is fetched to read the tag.
+ */
+async function refundLifetime(charge: Stripe.Charge): Promise<void> {
+  if (!charge.refunded || !charge.payment_intent) return
+  const id =
+    typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id
+  const payment = await stripe.paymentIntents.retrieve(id)
+  if (!isPip(payment.metadata) || payment.metadata?.kind !== 'lifetime') return
+  const userId = payment.metadata?.user_id
+  if (!userId) return
+  const { error } = await admin
+    .from('memberships')
+    .update({ status: 'refunded', updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('lifetime', true)
+  if (error) throw error
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('method', { status: 405 })
 
@@ -142,7 +218,9 @@ Deno.serve(async (req) => {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         if (!isPip(session.metadata)) break
-        if (session.mode === 'subscription' && session.subscription) {
+        if (session.mode === 'payment') {
+          await grantLifetime(session)
+        } else if (session.mode === 'subscription' && session.subscription) {
           const id =
             typeof session.subscription === 'string'
               ? session.subscription
@@ -151,6 +229,14 @@ Deno.serve(async (req) => {
         }
         break
       }
+      case 'checkout.session.async_payment_succeeded': {
+        const session = event.data.object as Stripe.Checkout.Session
+        if (isPip(session.metadata) && session.mode === 'payment') await grantLifetime(session)
+        break
+      }
+      case 'charge.refunded':
+        await refundLifetime(event.data.object as Stripe.Charge)
+        break
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':

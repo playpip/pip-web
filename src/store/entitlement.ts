@@ -152,7 +152,10 @@ export const useMembership = create<MembershipState>()((set) => ({
     // must not cost anyone their membership, so the read is retried without it.
     const read = (columns: string) =>
       sb.from('memberships').select(columns).eq('user_id', userId).maybeSingle()
-    let result = await read(`${COLUMNS}, source`)
+    // Likewise `lifetime` (cmo#252): asked for, and dropped if the database
+    // predates it.
+    let result = await read(`${COLUMNS}, source, lifetime`)
+    if (result.error?.code === '42703') result = await read(`${COLUMNS}, source`)
     if (result.error?.code === '42703') result = await read(COLUMNS)
     const { error } = result
     const row = result.data as unknown as MembershipRow | null

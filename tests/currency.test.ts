@@ -76,3 +76,18 @@ test('an unrecognised region is dollars, and Hong Kong is not mainland China', (
 test('a default en-US browser in Europe sees euros', (t) => {
   t.is(detectCurrency(['en-US'], 'Europe/Madrid'), 'EUR')
 })
+
+test('lifetime is the pound converted and rounded to a whole unit, and says so', (t) => {
+  t.is(MEMBERSHIP_PRICES.GBP.lifetimeMinor, MEMBERSHIP_PRICE.lifetimePence)
+  for (const code of CURRENCIES) {
+    const p = MEMBERSHIP_PRICES[code]
+    const lifetime = (MEMBERSHIP_PRICE.lifetimePence / 100) * p.ratePerGbp
+    t.true(
+      Math.abs(p.lifetimeMinor / 100 - lifetime) <= 1,
+      `${code} lifetime is not the pound converted`,
+    )
+    t.true(Number.isInteger(p.lifetimeMinor / 100), `${code} lifetime is not a whole unit`)
+    t.is(formatPrice(p.lifetimeMinor, code), p.lifetime)
+    t.true(p.lifetimeMinor > p.annualMinor, `${code}: lifetime costs less than a year`)
+  }
+})

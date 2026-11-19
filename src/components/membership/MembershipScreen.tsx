@@ -34,11 +34,13 @@ import { MotionConfig, motion } from 'framer-motion'
 import {
   Check,
   ChevronDown,
+  ChevronRight,
   ChartSpline,
   Eye,
   Flame,
   GraduationCap,
   Hand,
+  Heart,
   History,
   Minus,
   Palette,
@@ -61,6 +63,7 @@ import {
   type CurrencyCode,
   DAILY_FREE_GAME,
   HOW_TO_CANCEL,
+  LIFETIME_PITCH,
   MEMBERSHIP_FEATURES,
   MEMBERSHIP_PILLARS,
   MEMBERSHIP_PRICES,
@@ -68,6 +71,7 @@ import {
   type MembershipFeature,
   checkoutReady,
   formatPrice,
+  lifetimeOnSale,
   sellableFeatures,
 } from '@/config/membership'
 import {
@@ -171,7 +175,11 @@ export function MembershipScreen() {
   // in the player's own App Store currency, and there is no currency picker:
   // the store decides. Everywhere else it is the website's price in the picked
   // currency, exactly as before.
-  const storeSells = useInApp() && appSupports('purchase')
+  const app = useInApp()
+  const storeSells = app && appSupports('purchase')
+  // Held here rather than in the plans box, so the lifetime panel below the
+  // hero can pick lifetime in it.
+  const [plan, setPlan] = useState<Plan>(OPENING_PLAN)
   const price = useTillPrice({
     ...MEMBERSHIP_PRICES[currency],
     format: (minor) => formatPrice(minor, currency),
@@ -192,11 +200,28 @@ export function MembershipScreen() {
   return (
     <MotionConfig reducedMotion="user">
       <main className="flex-1 overflow-x-clip">
-        <Hero multiplayer={multiplayer}>
+        <Hero
+          multiplayer={multiplayer}
+          lifetime={
+            !app && lifetimeOnSale() ? (
+              <LifetimePanel
+                price={price.lifetime ?? ''}
+                onChoose={() => {
+                  setPlan('lifetime')
+                  document
+                    .getElementById('plans')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+              />
+            ) : null
+          }
+        >
           <Plans
             price={price}
             currency={currency}
             onCurrency={storeSells ? undefined : setCurrency}
+            plan={plan}
+            onPlan={setPlan}
           />
         </Hero>
 
@@ -256,7 +281,16 @@ export function MembershipScreen() {
  * price came up under the headline on 2 November 2026 (#283); now Join is on
  * the first screen too, because almost no tab scrolled down to it.
  */
-function Hero({ multiplayer, children }: { multiplayer: boolean; children: React.ReactNode }) {
+function Hero({
+  multiplayer,
+  lifetime,
+  children,
+}: {
+  multiplayer: boolean
+  /** The lifetime panel, under the headline, where it is seen first (Will, 2026-11-19). */
+  lifetime: React.ReactNode
+  children: React.ReactNode
+}) {
   return (
     <section className="relative isolate overflow-hidden">
       <div
@@ -283,10 +317,69 @@ function Hero({ multiplayer, children }: { multiplayer: boolean; children: React
             {multiplayer && ' And host your friends as often as you like.'} The core game stays
             free, for good.
           </p>
+          {lifetime}
           <YourFinding />
         </div>
         <div id="plans" className="scroll-mt-24">
           {children}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// --- lifetime -------------------------------------------------------------------
+
+/**
+ * Lifetime, said out loud (Will, 2026-11-19): who Pip is, why one payment
+ * helps, and a button that picks lifetime in the plans box above. Only where
+ * it is on sale (`lifetimeOnSale`), and never in the store app.
+ */
+function LifetimePanel({ price, onChoose }: { price: string; onChoose: () => void }) {
+  return (
+    <section className="mt-6 w-full max-w-xl">
+      <div className="relative isolate overflow-hidden rounded-3xl border border-pip/30 bg-[color-mix(in_oklch,var(--color-pip)_8%,transparent)] p-5 md:p-6">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-24 -z-10 size-80 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_28%,transparent),transparent_65%)] blur-2xl"
+        />
+        <div className="flex flex-col gap-5">
+          <div>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-pip">
+              <Heart className="size-3.5 fill-pip" />
+              Lifetime
+            </span>
+            <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight md:text-3xl">
+              {LIFETIME_PITCH.title}
+            </h2>
+            <p className="mt-2 text-base text-muted-foreground">{LIFETIME_PITCH.lede}</p>
+            <ul className="mt-4 flex flex-col gap-2 text-sm">
+              {LIFETIME_PITCH.points.map((point) => (
+                <li key={point} className="flex items-center gap-2">
+                  <Check className="size-4 shrink-0 text-pip" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <p className="shrink-0">
+              <span className="text-4xl font-semibold tabular-nums tracking-tight">{price}</span>{' '}
+              <span className="text-sm text-muted-foreground">once</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                sound.play('tap')
+                trackOnce('lifetime-chosen')
+                onChoose()
+              }}
+              className="flex h-14 w-full items-center justify-center gap-1.5 rounded-2xl bg-primary text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] sm:flex-1"
+            >
+              Back Pip for life
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -533,13 +626,16 @@ function Plans({
   price,
   currency,
   onCurrency,
+  plan,
+  onPlan: setPlan,
 }: {
   price: ShownPrice
   currency: CurrencyCode
   /** Absent in the store app, where the store picks the currency. */
   onCurrency?: (next: CurrencyCode) => void
+  plan: Plan
+  onPlan: (next: Plan) => void
 }) {
-  const [plan, setPlan] = useState<Plan>(OPENING_PLAN)
   // In the store app it is paid and cancelled through the store, so the notes
   // about Stripe's checkout and cancelling from Settings don't apply.
   const app = useInApp()
@@ -557,7 +653,7 @@ function Plans({
 
       <ul className="mt-4 grid gap-y-2 border-t border-foreground/[0.07] px-1 pt-4 text-sm text-muted-foreground">
         {[
-          ...PAYING_LINES[app ? 'app' : 'web'],
+          ...(plan === 'lifetime' ? PAYING_LINES.lifetime : PAYING_LINES[app ? 'app' : 'web']),
           'You need a free Pip account to join. You never need one to play.',
           FREE_REPORT_COPY.offer,
           DAILY_FREE_GAME,

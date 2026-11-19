@@ -194,7 +194,8 @@ export default function PrivacyPage() {
           the free quick match card was shown, that the free quick match card was tapped, that the
           free round card was shown and that the free round card was tapped. On the lobby, a card
           showing what your report found is offered once, and we count that it was shown, that it
-          was tapped and that it was put away. For each quick game we count that a round of it was
+          was tapped and that it was put away. We also count that someone chose the lifetime
+          membership on the membership page. For each quick game we count that a round of it was
           started and finished: that someone started a round of Poker Solitaire, that someone
           finished a round of Poker Solitaire, that someone started a round of Ten Hands, that
           someone finished a round of Ten Hands, that someone started a round of Mystery Card and

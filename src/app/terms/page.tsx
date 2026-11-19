@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { LegalPage, Section, A } from '@/components/marketing/LegalPage'
 import { contentAlternates } from '@/config/site'
-import { MEMBERSHIP_PRICE, SELLER } from '@/config/membership'
+import { MEMBERSHIP_PRICE, SELLER, lifetimeOnSale } from '@/config/membership'
 
 export const metadata: Metadata = {
   title: 'Terms · Pip',
@@ -68,6 +68,15 @@ export default function TermsPage() {
           <strong>is not refunded for the unused months</strong>. We are saying that plainly because
           “cancel any time” is easy to read as “and get my money back”, and it does not mean that.
         </p>
+        {lifetimeOnSale() && (
+          <p>
+            <strong>A lifetime membership</strong> is one payment of {MEMBERSHIP_PRICE.lifetime} (or
+            its fixed price in your currency), bought on the website. It never renews and there is
+            nothing to cancel. &ldquo;Lifetime&rdquo; means for as long as Pip runs, not forever: if
+            we ever close Pip, the membership ends with it. It is not transferable to another
+            account.
+          </p>
+        )}
         <p>
           Your membership starts as soon as you pay.{' '}
           <strong>

@@ -10,6 +10,7 @@
 
 import {
   CORS,
+  LIFETIME_PRICE,
   PROJECT_METADATA,
   LIVE,
   PRICES,
@@ -50,7 +51,8 @@ Deno.serve(async (req) => {
   }
   const priceId = typeof body.priceId === 'string' ? body.priceId : ''
   const currency = typeof body.currency === 'string' ? body.currency.toLowerCase() : ''
-  if (!PRICES.has(priceId)) return json({ error: 'unknown-price' }, 400)
+  const lifetime = LIFETIME_PRICE !== null && priceId === LIFETIME_PRICE
+  if (!PRICES.has(priceId) && !lifetime) return json({ error: 'unknown-price' }, 400)
   if (!CURRENCIES.has(currency)) return json({ error: 'unknown-currency' }, 400)
 
   // No waiver is asked for (terms of 2026-11-02): a new member keeps the
@@ -96,10 +98,19 @@ Deno.serve(async (req) => {
   }
 
   const automaticTax = Deno.env.get('STRIPE_AUTOMATIC_TAX') === 'true'
+  const metadata = {
+    ...PROJECT_METADATA,
+    user_id: user.id,
+    terms_version: termsVersion,
+    ...(lifetime ? { kind: 'lifetime' } : {}),
+  }
 
   const session = await stripe.checkout.sessions.create({
     expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
-    mode: 'subscription',
+    // Lifetime is one payment, not a subscription (cmo#252). The webhook grants
+    // it from the paid session, and the tag rides on the payment too so a
+    // refund of it can find its way back to the player.
+    mode: lifetime ? 'payment' : 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
     currency,
     // A returning player (lapsed, cancelled) keeps their Stripe customer, so
@@ -120,14 +131,13 @@ Deno.serve(async (req) => {
     // `terms_version` says which terms the player joined under, for a
     // cancellation request or a dispute months from now.
     client_reference_id: user.id,
-    metadata: {
-      ...PROJECT_METADATA,
-      user_id: user.id,
-      terms_version: termsVersion,
-    },
-    subscription_data: {
-      metadata: { ...PROJECT_METADATA, user_id: user.id, terms_version: termsVersion },
-    },
+    metadata,
+    ...(lifetime
+      ? {
+          payment_intent_data: { metadata },
+          customer_creation: row?.stripe_customer_id ? undefined : ('always' as const),
+        }
+      : { subscription_data: { metadata } }),
     // Tax-inclusive prices need Stripe Tax to work out the split for the
     // invoice. Off until Stripe Tax is *active* on the account: it is shared, and
     // on the live account it was still `pending` (no head office, no

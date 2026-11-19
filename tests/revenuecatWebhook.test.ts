@@ -96,3 +96,9 @@ test('the function syncs every account the event names', (t) => {
   t.regex(src, /for \(const userId of userIds\)/)
   t.notRegex(src, /\.find\(pipUser\)/)
 })
+
+test('a lifetime membership is never touched by the store, live or lapsed', (t) => {
+  const lifetime = { source: 'stripe', status: 'active', lifetime: true }
+  t.is(decide(rowFor(A, holding('2026-11-09T12:00:00Z'), NOW), lifetime, NOW).kind, 'none')
+  t.is(decide(rowFor(A, nothing, NOW), lifetime, NOW).kind, 'none')
+})

@@ -30,6 +30,8 @@ export interface MembershipRow {
    * the app. Absent on a database from before the column, and on old caches.
    */
   source?: string
+  /** Bought once, for life (cmo#252). Absent before that column. */
+  lifetime?: boolean
 }
 
 /**
@@ -54,6 +56,8 @@ export interface Entitlement {
   cancelAtPeriodEnd: boolean
   /** Where it was bought, so the app can send a member to the right place to manage it. */
   source: string | null
+  /** A member for life: nothing renews, so there is no date to show. */
+  lifetime: boolean
 }
 
 /** Nobody: signed out, no row, or a row that does not entitle. */
@@ -63,6 +67,7 @@ export const NOT_A_MEMBER: Entitlement = {
   periodEnd: null,
   cancelAtPeriodEnd: false,
   source: null,
+  lifetime: false,
 }
 
 /**
@@ -99,6 +104,7 @@ export function readEntitlement(
     periodEnd: dated ? periodEnd : null,
     cancelAtPeriodEnd: row.cancel_at_period_end,
     source: row.source ?? null,
+    lifetime: row.lifetime === true,
   }
 }
 
@@ -128,6 +134,7 @@ export function parseCache(raw: string | null, userId: string): MembershipRow | 
         typeof row.current_period_end === 'string' ? row.current_period_end : null,
       cancel_at_period_end: row.cancel_at_period_end === true,
       ...(typeof row.source === 'string' ? { source: row.source } : {}),
+      ...(row.lifetime === true ? { lifetime: true } : {}),
     }
   } catch {
     return null

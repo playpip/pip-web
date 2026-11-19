@@ -20,6 +20,7 @@ import {
   MEMBERSHIP_PRICE_IDS,
   SELLER,
   checkoutReady,
+  lifetimeOnSale,
   tappedFeature,
 } from '@/config/membership'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
@@ -69,13 +70,23 @@ export const PAYING_LINES = {
     'Paid through the store, in your own currency, with tax included.',
     'Renews until you stop it. Cancel any time in your store’s subscription settings.',
   ],
+  lifetime: [
+    'Tax is inside the price, and the price is fixed in your currency: the number here is the number that leaves your bank.',
+    'One payment. Nothing renews and there is nothing to cancel.',
+  ],
 } as const
 
 // --- plans ----------------------------------------------------------------------
 
-export type Plan = 'annual' | 'monthly'
+/** The two subscriptions, and lifetime: one payment, on the web only (cmo#252). */
+export type Plan = 'annual' | 'monthly' | 'lifetime'
 
 export const PLAN_ORDER: readonly Plan[] = ['annual', 'monthly']
+
+/** The plans a picker offers: lifetime too, on the web, once it is on sale. */
+export function plansOffered(app: boolean): readonly Plan[] {
+  return !app && lifetimeOnSale() ? [...PLAN_ORDER, 'lifetime'] : PLAN_ORDER
+}
 
 /**
  * The plan the page and the plans sheet open on. Monthly from 9 November 2026:
@@ -119,6 +130,12 @@ export function plansIn(
       per: 'a month',
       note: 'Pay as you go. Stop whenever you like and it runs to the end of the month.',
     },
+    lifetime: {
+      name: 'Lifetime',
+      price: price.lifetime ?? '',
+      per: 'once',
+      note: 'One payment. A member for as long as Pip runs, and nothing ever renews.',
+    },
   }
 }
 
@@ -132,7 +149,9 @@ export function PlanPicker({
   plan: Plan
   onPlan: (next: Plan) => void
 }) {
-  const PLANS = plansIn(price, { perMonthFirst: !useInApp() })
+  const app = useInApp()
+  const PLANS = plansIn(price, { perMonthFirst: !app })
+  const offered = plansOffered(app)
   const pick = (next: Plan) => {
     if (next === plan) return
     sound.play('tap')
@@ -141,9 +160,10 @@ export function PlanPicker({
   return (
     <>
       <div role="radiogroup" aria-label="Billing" className="grid grid-cols-2 gap-2.5">
-        {PLAN_ORDER.map((id) => {
+        {offered.map((id) => {
           const p = PLANS[id]
           const on = plan === id
+          const wide = id === 'lifetime'
           return (
             <motion.button
               key={id}
@@ -155,6 +175,7 @@ export function PlanPicker({
               transition={SPRING}
               className={cn(
                 'relative flex flex-col rounded-2xl border p-4 text-left transition-colors',
+                wide && 'col-span-2',
                 on
                   ? 'border-foreground/60 bg-foreground/[0.07] ring-1 ring-foreground/60'
                   : 'border-foreground/10 bg-foreground/[0.03] hover:border-foreground/25',
@@ -296,6 +317,7 @@ export function Join({
   const memberStatus = useMembership((s) => s.status)
   const periodEnd = useMembership((s) => s.periodEnd)
   const leaving = useMembership((s) => s.cancelAtPeriodEnd)
+  const forLife = useMembership((s) => s.lifetime)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<BillingError | null>(null)
   const [account, setAccount] = useState<AccountMode | null>(null)
@@ -368,9 +390,11 @@ export function Join({
               You’re a member
             </div>
             <p className="mt-3 text-center text-sm text-muted-foreground">
-              {leaving
-                ? `Cancelled. You stay a member until ${endsOn(periodEnd)}.`
-                : `Renews on ${endsOn(periodEnd)}.`}
+              {forLife
+                ? 'For life, bought on the web.'
+                : leaving
+                  ? `Cancelled. You stay a member until ${endsOn(periodEnd)}.`
+                  : `Renews on ${endsOn(periodEnd)}.`}
             </p>
           </>
         ) : (
@@ -394,7 +418,8 @@ export function Join({
       </div>
     )
   } else if (app && signedIn) {
-    body = <StoreJoin plan={plan} planName={planName} />
+    // The app never offers lifetime (plansOffered), so this is a subscription.
+    body = <StoreJoin plan={plan === 'lifetime' ? 'annual' : plan} planName={planName} />
   } else if (member) {
     body = (
       <>
@@ -403,9 +428,11 @@ export function Join({
           You’re a member
         </div>
         <p className="mt-3 text-center text-sm text-muted-foreground">
-          {leaving
-            ? `Cancelled. You stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
-            : `Renews on ${endsOn(periodEnd)}. Cancel, change card or get an invoice from the portal.`}
+          {forLife
+            ? 'For life. Nothing renews. Thank you for backing Pip.'
+            : leaving
+              ? `Cancelled. You stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
+              : `Renews on ${endsOn(periodEnd)}. Cancel, change card or get an invoice from the portal.`}
         </p>
         <button
           disabled={busy}
@@ -432,12 +459,17 @@ export function Join({
     body = (
       <>
         <button disabled={busy} onClick={pay} className={joinButton}>
-          {busy ? 'Opening checkout…' : `Join ${planName.toLowerCase()}`}
+          {busy
+            ? 'Opening checkout…'
+            : plan === 'lifetime'
+              ? 'Back Pip for life'
+              : `Join ${planName.toLowerCase()}`}
           {!busy && <ChevronRight className="size-4" />}
         </button>
         <p className="mt-3 text-center text-sm text-muted-foreground">
-          Changed your mind within 14 days? Email us for a full refund. Joining means you agree to
-          the{' '}
+          Changed your mind within 14 days? Email us for a full refund.
+          {plan === 'lifetime' && ' Lifetime means for as long as Pip runs.'} Joining means you
+          agree to the{' '}
           {/* Said here, not on Stripe's page: Checkout's own terms consent
               points at the shared account's terms, which are Ava's, not Pip's. */}
           <Link
@@ -512,7 +544,7 @@ export function Join({
  * its length, its price, how it renews and links to the terms and the privacy
  * policy on this screen, so all of it is here.
  */
-function StoreJoin({ plan, planName }: { plan: Plan; planName: string }) {
+function StoreJoin({ plan, planName }: { plan: Exclude<Plan, 'lifetime'>; planName: string }) {
   const prices = useStorePrices(true)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)

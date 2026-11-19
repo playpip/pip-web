@@ -67,10 +67,13 @@ export const MEMBERSHIP_PRICE = {
   /** Pence, so arithmetic never touches a float. */
   monthlyPence: 599,
   annualPence: 4900,
+  /** One payment, a member for as long as Pip runs (cmo#252, 2026-11-19). */
+  lifetimePence: 7900,
   currency: 'GBP',
   /** What the page and the settings row say. Derived nowhere — read them. */
   monthly: '£5.99',
   annual: '£49',
+  lifetime: '£79',
 } as const
 
 /** The currencies the membership is sold in. GBP is the base every other one is set from. */
@@ -84,9 +87,12 @@ export interface LocalPrice {
   /** Minor units (pence, cents, fen), so arithmetic never touches a float. */
   monthlyMinor: number
   annualMinor: number
+  /** The one lifetime payment, priced like the yearly: to the nearest whole unit. */
+  lifetimeMinor: number
   /** What the page says. Pinned against the minor units by tests/membership.test.ts. */
   monthly: string
   annual: string
+  lifetime: string
   /**
    * Units of this currency per pound when the price was set. **Not used to
    * charge anybody** — the prices above are fixed, and Stripe charges them as
@@ -119,8 +125,10 @@ export const MEMBERSHIP_PRICES: Record<CurrencyCode, LocalPrice> = {
     symbol: '£',
     monthlyMinor: MEMBERSHIP_PRICE.monthlyPence,
     annualMinor: MEMBERSHIP_PRICE.annualPence,
+    lifetimeMinor: MEMBERSHIP_PRICE.lifetimePence,
     monthly: MEMBERSHIP_PRICE.monthly,
     annual: MEMBERSHIP_PRICE.annual,
+    lifetime: MEMBERSHIP_PRICE.lifetime,
     ratePerGbp: 1,
   },
   USD: {
@@ -128,8 +136,10 @@ export const MEMBERSHIP_PRICES: Record<CurrencyCode, LocalPrice> = {
     symbol: '$',
     monthlyMinor: 799,
     annualMinor: 6600,
+    lifetimeMinor: 10600,
     monthly: '$7.99',
     annual: '$66',
+    lifetime: '$106',
     ratePerGbp: 1.34,
   },
   EUR: {
@@ -137,8 +147,10 @@ export const MEMBERSHIP_PRICES: Record<CurrencyCode, LocalPrice> = {
     symbol: '€',
     monthlyMinor: 699,
     annualMinor: 5700,
+    lifetimeMinor: 9200,
     monthly: '€6.99',
     annual: '€57',
+    lifetime: '€92',
     ratePerGbp: 1.16,
   },
   CNY: {
@@ -146,8 +158,10 @@ export const MEMBERSHIP_PRICES: Record<CurrencyCode, LocalPrice> = {
     symbol: '¥',
     monthlyMinor: 5800,
     annualMinor: 47000,
+    lifetimeMinor: 75800,
     monthly: '¥58',
     annual: '¥470',
+    lifetime: '¥758',
     ratePerGbp: 9.6,
   },
 }
@@ -173,6 +187,34 @@ export function formatPrice(minor: number, currency: CurrencyCode): string {
 export const MEMBERSHIP_PRICE_IDS = {
   monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_MONTHLY,
   annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_ANNUAL,
+  lifetime: process.env.NEXT_PUBLIC_STRIPE_PRICE_LIFETIME,
+} as const
+
+/**
+ * Is lifetime on sale on the web? (cmo#252, 2026-11-19.)
+ *
+ * **The switch is the price id.** Built and shipped before it is sold: until
+ * `NEXT_PUBLIC_STRIPE_PRICE_LIFETIME` is set in the build, nothing shows it,
+ * so the phase 1 read is not muddied by a third plan. Never in the store app,
+ * which sells through the store and may not point at another way to pay.
+ */
+export function lifetimeOnSale(): boolean {
+  return checkoutReady() && Boolean(MEMBERSHIP_PRICE_IDS.lifetime)
+}
+
+/**
+ * What the lifetime panel says (Will, 2026-11-19: "support an early games
+ * startup, self funded, just passed 2,000 users, help us grow"). Here so the
+ * number is changed in one place as it grows.
+ */
+export const LIFETIME_PITCH = {
+  title: 'Back Pip, for life',
+  lede: 'Pip is an early, self-funded games startup. We just passed 2,000 players. One payment makes you a member for as long as Pip runs, and helps us grow.',
+  points: [
+    'Everything in the membership, for good',
+    'One payment, never renews',
+    'Straight into building Pip',
+  ],
 } as const
 
 /**
@@ -507,7 +549,7 @@ export const HOW_TO_CANCEL =
  * months later can be answered with which terms were on the page. Bump it when
  * the membership section of `/terms` changes in substance, not for typos.
  */
-export const TERMS_VERSION = '2026-11-02'
+export const TERMS_VERSION = lifetimeOnSale() ? '2026-11-19' : '2026-11-02'
 
 /**
  * Who actually sells the membership.

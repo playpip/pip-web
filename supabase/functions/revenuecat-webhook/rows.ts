@@ -36,6 +36,8 @@ export interface Subscriber {
 export interface Existing {
   source: string
   status: string
+  /** Bought for life on the web (stripe-webhook). Absent before that column. */
+  lifetime?: boolean
 }
 
 /**
@@ -115,6 +117,10 @@ export function decide(
   existing: Existing | null,
   now: number,
 ): Write {
+  // A lifetime membership bought on the web is never touched by the store,
+  // live or lapsed (cmo#252).
+  if (existing?.lifetime && ENTITLING.includes(existing.status)) return { kind: 'none' }
+
   if (!row) {
     // Nothing in the store. Only a store row that still entitles needs ending;
     // a Stripe row is Stripe's, and no row means nobody to tell.

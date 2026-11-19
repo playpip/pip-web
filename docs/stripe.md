@@ -179,6 +179,35 @@ Rules for whoever is in the dashboard — the code cannot enforce these:
   annual renewals*; both are expected of a UK consumer subscription.
 - **Disputes are not watched by Pip** — see below.
 
+## Lifetime (built 2026-11-19, off until switched on)
+
+One payment, a member for as long as Pip runs (cmo#252): **£79**, $106, €92, ¥758
+(`MEMBERSHIP_PRICES`, converted and rounded like the yearly). Web only: the store app never
+offers it.
+
+**How it works.** `checkout` sells `STRIPE_PRICE_LIFETIME` in `mode: 'payment'`, to a player
+who is not already a member, with the Pip tag on the session and on its payment.
+`stripe-webhook` grants it on `checkout.session.completed` once `payment_status` is `paid`, or
+on `checkout.session.async_payment_succeeded` for a slow method. The row is
+`status: active`, `lifetime: true`, `current_period_end: 2099-12-31`, no subscription, so every
+existing members-only check already treats them as a member. Neither webhook ever overwrites a
+lifetime row. A **full** refund of the lifetime payment (`charge.refunded`) sets the row to
+`refunded`, which ends it. A subscription paid in another tab first is cancelled when the
+lifetime payment lands, and logged: refund its last invoice by hand.
+
+**Switching it on**, in this order:
+
+1. Database: apply `supabase/migrations/20261119090000_membership_lifetime.sql` (adds the
+   `lifetime` column). **Before** step 3: the webhooks read that column.
+2. Stripe: a one-off price on the Pip product, £79 GBP, with `currency_options` USD 106,
+   EUR 92, CNY 758, tax **inclusive**. On Pip's webhook endpoint add the events
+   `checkout.session.async_payment_succeeded` and `charge.refunded`. On the `pip` restricted
+   key add **PaymentIntents: Read** (the refund handler reads the payment's tag).
+3. Supabase: `supabase secrets set STRIPE_PRICE_LIFETIME=price_…`, then
+   `supabase functions deploy checkout stripe-webhook revenuecat-webhook`.
+4. The site: set the GitHub repo variable `NEXT_PUBLIC_STRIPE_PRICE_LIFETIME=price_…` and redeploy.
+   That is the switch: without it nothing shows lifetime, and the terms leave it out.
+
 ## A free trial: not built, and why (2026-10-07)
 
 A 7-day trial would be one line in `checkout`

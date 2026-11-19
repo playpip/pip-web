@@ -96,6 +96,8 @@ export async function restoreFromStore(): Promise<StoreResult> {
 export interface ShownPrice {
   monthly: string
   annual: string
+  /** The web's lifetime price. Absent in the store app, which never sells it. */
+  lifetime?: string
   monthlyMinor: number
   annualMinor: number
   format?: (minor: number) => string

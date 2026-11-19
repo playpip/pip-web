@@ -42,12 +42,16 @@ test('on the shared account, Pip only touches what it tagged', (t) => {
   const shared = code('supabase/functions/_shared/billing.ts')
   t.regex(shared, /PROJECT_METADATA = \{ project: 'pip' \}/)
 
-  t.regex(checkout, /metadata: \{\s*\.\.\.PROJECT_METADATA/, 'the session is not tagged')
+  // One tag, built once and put on the session, the subscription and (for
+  // lifetime) the payment, so a refund of it can find its way back.
+  t.regex(checkout, /const metadata = \{\s*\.\.\.PROJECT_METADATA/, 'the session is not tagged')
+  t.regex(checkout, /^\s*metadata,$/m, 'the session is not tagged')
   t.regex(
     checkout,
-    /subscription_data: \{\s*metadata: \{ \.\.\.PROJECT_METADATA/,
+    /subscription_data: \{ metadata \}/,
     'the subscription is not tagged, so the webhook will ignore every renewal',
   )
+  t.regex(checkout, /payment_intent_data: \{ metadata \}/, 'a lifetime payment is not tagged')
 
   t.regex(
     webhook,
@@ -115,8 +119,9 @@ test('the functions load one Stripe SDK', (t) => {
 })
 
 // A checkout that sells whatever price id it is sent can be repriced from a console.
-test('checkout only sells the two configured prices', (t) => {
-  t.regex(checkout, /if \(!PRICES\.has\(priceId\)\)/)
+test('checkout only sells the configured prices', (t) => {
+  t.regex(checkout, /LIFETIME_PRICE !== null && priceId === LIFETIME_PRICE/)
+  t.regex(checkout, /if \(!PRICES\.has\(priceId\) && !lifetime\)/)
   t.regex(checkout, /already-a-member/, 'a live member can start a second subscription')
 })
 
@@ -143,4 +148,17 @@ test('nothing the browser loads imports the billing functions', (t) => {
   for (const path of walk('src')) {
     t.notRegex(code(path), /supabase\/functions|SERVICE_ROLE|STRIPE_SECRET/, path)
   }
+})
+
+// Lifetime (cmo#252): granted only once paid, never overwritten by a
+// subscription event, and ended only by a refund of the lifetime payment.
+test('a lifetime membership is granted when paid and nothing else ends it', (t) => {
+  t.regex(
+    webhook,
+    /session\.metadata\?\.kind !== 'lifetime' \|\| session\.payment_status !== 'paid'/,
+  )
+  t.regex(webhook, /checkout\.session\.async_payment_succeeded/)
+  t.regex(webhook, /if \(existing\?\.lifetime && ENTITLING\.includes\(existing\.status\)\) return/)
+  t.regex(webhook, /payment\.metadata\?\.kind !== 'lifetime'/)
+  t.regex(webhook, /\.eq\('lifetime', true\)/)
 })

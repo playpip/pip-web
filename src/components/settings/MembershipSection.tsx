@@ -40,7 +40,7 @@ export function MembershipSection() {
   const pathname = usePathname()
   const signedIn = useSync((s) => s.status === 'signed-in')
   const syncOff = useSync((s) => s.status === 'off')
-  const { member, status, periodEnd, cancelAtPeriodEnd } = useMembership()
+  const { member, status, periodEnd, cancelAtPeriodEnd, lifetime } = useMembership()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<BillingError | null>(null)
   const app = useInApp()
@@ -64,9 +64,11 @@ export function MembershipSection() {
   }
 
   const summary = member
-    ? cancelAtPeriodEnd
-      ? `Cancelled. You stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
-      : `You’re a member. It renews on ${endsOn(periodEnd)}.`
+    ? lifetime
+      ? 'You’re a member for life. Thank you for backing Pip.'
+      : cancelAtPeriodEnd
+        ? `Cancelled. You stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
+        : `You’re a member. It renews on ${endsOn(periodEnd)}.`
     : failed
       ? 'Your last payment didn’t go through, so the membership is paused until it does.'
       : 'The side tables, the other games, the drills that price a hand and the lessons past Level 1.'

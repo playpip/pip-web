@@ -40,7 +40,7 @@ async function sync(userId: string): Promise<void> {
   const row = rowFor(userId, await subscriber(userId), now)
   const { data: existing } = await admin
     .from('memberships')
-    .select('source, status')
+    .select('source, status, lifetime')
     .eq('user_id', userId)
     .maybeSingle()
 

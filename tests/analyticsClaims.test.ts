@@ -55,6 +55,7 @@ const DESCRIBED_ON_PRIVACY: Record<string, string> = {
   'report-offer-seen': 'and we count that it was shown',
   'report-offer-tapped': 'that it was tapped',
   'report-offer-dismissed': 'that it was put away',
+  'lifetime-chosen': 'that someone chose the lifetime membership',
   'quick-mystery-started': 'someone started a round of Mystery Card',
   'quick-mystery-finished': 'someone finished a round of Mystery Card',
   'host-card-seen': 'the hosting card was shown',

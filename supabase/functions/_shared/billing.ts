@@ -84,6 +84,22 @@ export const SITE_URL = env('SITE_URL').replace(/\/+$/, '')
 export const PRICES = new Set([env('STRIPE_PRICE_MONTHLY'), env('STRIPE_PRICE_ANNUAL')])
 
 /**
+ * The lifetime price: one payment, a member for as long as Pip runs (cmo#252).
+ * Optional. Unset, nothing sells it and the checkout refuses it like any other
+ * unknown price. Kept apart from `PRICES` because it is a payment, not a
+ * subscription, and the webhook grants it differently.
+ */
+export const LIFETIME_PRICE = Deno.env.get('STRIPE_PRICE_LIFETIME') || null
+
+/**
+ * The paid-until date a lifetime row carries. Far enough out to never come up,
+ * and a real date, so a device's cached row (trusted only while its period is
+ * running, src/lib/membership/entitlement.ts) keeps a lifetime member a member
+ * offline too.
+ */
+export const LIFETIME_UNTIL = '2099-12-31T23:59:59.000Z'
+
+/**
  * Service role: bypasses RLS. The only writer of `memberships` there is.
  * Never returned to a caller and never logged.
  */
