@@ -15,6 +15,7 @@ import { askApp } from '@/lib/nativeApp'
 import { getSupabase } from '@/lib/sync/client'
 import { useMembership } from '@/store/entitlement'
 import { awaitMembership } from './billing'
+import { LATE_CHECKS } from './pollRow'
 
 export type StorePlan = 'monthly' | 'annual'
 
@@ -70,6 +71,18 @@ export async function buyInStore(plan: StorePlan): Promise<StoreResult> {
   const member = await awaitMembership()
   if (member) trackOnce('membership-active')
   return { ok: true, member }
+}
+
+/**
+ * The store took the payment but the row has not landed in ~15 seconds: keep
+ * asking every 10 seconds for two more minutes while the page is open, the
+ * same schedule as the web's welcome page (`MemberWelcome`). The page turns to
+ * the member's view by itself, and the funnel still counts the row arriving.
+ */
+export async function keepWaitingForRow(wanted: () => boolean): Promise<boolean> {
+  const member = await awaitMembership(LATE_CHECKS, wanted)
+  if (member) trackOnce('membership-active')
+  return member
 }
 
 /** Apple requires a Restore Purchases button. */

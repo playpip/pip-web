@@ -29,3 +29,19 @@ test('a restore counts nothing, since nothing was bought', (t) => {
 test('a restore the store confirmed never says there was nothing to restore', (t) => {
   t.regex(body('restoreFromStore'), /The store found your membership/)
 })
+
+test('a slow store purchase keeps checking for the row, and counts it when it lands', (t) => {
+  const late = body('keepWaitingForRow')
+  t.regex(late, /awaitMembership\(LATE_CHECKS, wanted\)/)
+  t.regex(late, /if \(member\) trackOnce\('membership-active'\)/)
+  const join = readFileSync(
+    new URL('../src/components/membership/Join.tsx', import.meta.url),
+    'utf-8',
+  )
+  t.regex(join, /keepWaitingForRow\(\(\) => live\)/, 'the wait stops when the screen closes')
+  t.regex(
+    join,
+    /buyInStore\(plan\)[\s\S]{0,200}true,\n\s*\)/,
+    'only a purchase starts the late wait',
+  )
+})

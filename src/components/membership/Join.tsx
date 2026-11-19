@@ -33,6 +33,7 @@ import { useInApp } from '@/lib/useInApp'
 import { appPlatform, appSupports } from '@/lib/nativeApp'
 import {
   buyInStore,
+  keepWaitingForRow,
   MANAGE_IN_STORE,
   restoreFromStore,
   type StoreResult,
@@ -550,28 +551,50 @@ function StoreJoin({ plan, planName }: { plan: Exclude<Plan, 'lifetime'>; planNa
   const [note, setNote] = useState<string | null>(null)
   const store = appPlatform() === 'android' ? 'Google Play' : 'the App Store'
   const price = prices ? (plan === 'annual' ? prices.annual : prices.monthly) : null
+  // Paid, and the row is slower than the first ~15 seconds of checks.
+  const [paid, setPaid] = useState(false)
 
-  const act = async (action: () => Promise<StoreResult>, pending: string) => {
+  // Keep asking while this screen is open. Once the row lands the page shows
+  // the member's view and this unmounts, which ends the wait.
+  useEffect(() => {
+    if (!paid) return
+    let live = true
+    void keepWaitingForRow(() => live).then((member) => {
+      if (live && !member)
+        setNote(
+          `${store === 'Google Play' ? 'Google Play' : 'The App Store'} has your payment, but it hasn’t reached Pip yet. Try Restore purchases in a few minutes.`,
+        )
+    })
+    return () => {
+      live = false
+    }
+  }, [paid, store])
+
+  const act = async (action: () => Promise<StoreResult>, pending: string, bought = false) => {
     sound.play('tap')
     setBusy(true)
     setNote(null)
     const result = await action()
     setBusy(false)
-    if (result.ok && !result.member) setNote(pending)
+    if (result.ok && !result.member) {
+      setNote(pending)
+      if (bought) setPaid(true)
+    }
     if (!result.ok && 'error' in result) setNote(result.error)
   }
 
   return (
     <>
       <button
-        disabled={busy || !price}
+        disabled={busy || !price || paid}
         onClick={() => {
           // The same count as the web's Join, so an app sale is not a checkout
           // that nobody tapped.
           trackOnce('membership-join-tapped')
           void act(
             () => buyInStore(plan),
-            `${store === 'Google Play' ? 'Google Play' : 'The App Store'} has your payment. It can take a minute to show here.`,
+            `${store === 'Google Play' ? 'Google Play' : 'The App Store'} has your payment. This page will change by itself when it reaches Pip.`,
+            true,
           )
         }}
         className={joinButton}

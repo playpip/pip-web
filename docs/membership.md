@@ -609,7 +609,7 @@ Umami events here are names only, so the feature is in the name rather than in e
 They are counts, not grants: nothing reads them back. Stripe's dashboard stays the count of
 money. Where the funnel undercounts: a blocked Umami tag reports nothing, a player who pays in
 one tab and comes back in another is a new tab, and a webhook slower than ~2 minutes 15 seconds
-(~15 seconds in the store app) means `membership-active` never fires for that player even though the membership is real. Adding or
+(the same in the store app, while its membership page stays open) means `membership-active` never fires for that player even though the membership is real. Adding or
 renaming one is a `/privacy` change too (`tests/analyticsClaims.test.ts`).
 
 ## Still to build
