@@ -180,6 +180,8 @@ The engine is imported unchanged. What runs on the server is what is in the publ
     server-side and caches it for five minutes). `POST /hands` is the game reporting its hands
     against the cast, ten at a time, anonymously: capped at 20 a report, one report a minute
     per address.
+  - `GET /rooms-opened` is private rooms opened each UTC week (keyed by its Monday), split
+    `member` / `free`. Totals only, nothing per player.
 - **`room.ts`, the `PokerRoom` Durable Object** (one per code):
   - it holds the `RoomState` in SQLite storage and runs the reducer;
   - it sends each socket its own view;
