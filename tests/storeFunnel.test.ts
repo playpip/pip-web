@@ -26,22 +26,30 @@ test('a restore counts nothing, since nothing was bought', (t) => {
   t.notRegex(body('restoreFromStore'), /trackOnce/)
 })
 
+const join = readFileSync(
+  new URL('../src/components/membership/Join.tsx', import.meta.url),
+  'utf-8',
+)
+
 test('a restore the store confirmed never says there was nothing to restore', (t) => {
-  t.regex(body('restoreFromStore'), /The store found your membership/)
+  t.regex(body('restoreFromStore'), /return \{ ok: true, member: false, found: true \}/)
+  t.regex(join, /if \(bought \|\| result\.found\)/, 'a found restore waits, it is not "nothing"')
+  t.regex(join, /found your membership\. This page will change by itself/)
 })
 
-test('a slow store purchase keeps checking for the row, and counts it when it lands', (t) => {
+test('a slow store purchase or restore keeps checking for the row', (t) => {
   const late = body('keepWaitingForRow')
   t.regex(late, /awaitMembership\(LATE_CHECKS, wanted\)/)
-  t.regex(late, /if \(member\) trackOnce\('membership-active'\)/)
-  const join = readFileSync(
-    new URL('../src/components/membership/Join.tsx', import.meta.url),
-    'utf-8',
+  t.regex(
+    late,
+    /if \(member && bought\) trackOnce\('membership-active'\)/,
+    'only a purchase counts',
   )
-  t.regex(join, /keepWaitingForRow\(\(\) => live\)/, 'the wait stops when the screen closes')
   t.regex(
     join,
-    /buyInStore\(plan\)[\s\S]{0,200}true,\n\s*\)/,
-    'only a purchase starts the late wait',
+    /keepWaitingForRow\(\(\) => live, late\.bought\)/,
+    'the wait stops when the screen closes',
   )
+  t.regex(join, /act\(\(\) => buyInStore\(plan\), true\)/, 'a purchase is the one that counts')
+  t.regex(join, /act\(restoreFromStore, false\)/, 'a restore counts nothing')
 })

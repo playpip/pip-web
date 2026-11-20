@@ -37,7 +37,7 @@ export const MANAGE_IN_STORE: Partial<Record<MembershipSource, { label: string; 
 type Answer = { ok: true; member?: boolean } | { ok: false; cancelled?: true; error?: string }
 
 export type StoreResult =
-  | { ok: true; member: boolean }
+  | { ok: true; member: boolean; found?: true }
   | { ok: false; cancelled: true }
   | { ok: false; error: string }
 
@@ -74,14 +74,15 @@ export async function buyInStore(plan: StorePlan): Promise<StoreResult> {
 }
 
 /**
- * The store took the payment but the row has not landed in ~15 seconds: keep
- * asking every 10 seconds for two more minutes while the page is open, the
- * same schedule as the web's welcome page (`MemberWelcome`). The page turns to
- * the member's view by itself, and the funnel still counts the row arriving.
+ * The store took the payment (or found one on a restore) but the row has not
+ * landed in ~15 seconds: keep asking every 10 seconds for two more minutes
+ * while the page is open, the same schedule as the web's welcome page
+ * (`MemberWelcome`). The page turns to the member's view by itself. Only a
+ * purchase counts the row arriving, since a restore bought nothing.
  */
-export async function keepWaitingForRow(wanted: () => boolean): Promise<boolean> {
+export async function keepWaitingForRow(wanted: () => boolean, bought: boolean): Promise<boolean> {
   const member = await awaitMembership(LATE_CHECKS, wanted)
-  if (member) trackOnce('membership-active')
+  if (member && bought) trackOnce('membership-active')
   return member
 }
 
@@ -95,8 +96,8 @@ export async function restoreFromStore(): Promise<StoreResult> {
   if (!(answer.ok && answer.member)) return { ok: true, member: false }
   if (await awaitMembership()) return { ok: true, member: true }
   // The store found one, but the row has not arrived yet. Saying there was
-  // nothing to restore would be wrong.
-  return { ok: false, error: 'The store found your membership. It can take a minute to show here.' }
+  // nothing to restore would be wrong: the page keeps checking instead.
+  return { ok: true, member: false, found: true }
 }
 
 /**
