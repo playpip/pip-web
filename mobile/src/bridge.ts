@@ -8,7 +8,7 @@
 import Constants from 'expo-constants'
 import * as Haptics from 'expo-haptics'
 import { Platform } from 'react-native'
-import { products, purchase, purchasesConfigured, restore, type Plan } from './purchases'
+import { identify, products, purchase, purchasesConfigured, restore, type Plan } from './purchases'
 import { pushToken } from './push'
 import { appleAvailable, googleConfigured, type Provider, signIn } from './signIn'
 
@@ -38,6 +38,7 @@ type NativeMessage =
   | { type: 'purchase'; id: string; plan: Plan; userId: string }
   | { type: 'restore'; id: string; userId: string }
   | { type: 'pushToken'; id: string }
+  | { type: 'signedIn'; userId: string }
 
 /** Answers a request the page made, by its id. App.tsx delivers it. */
 export type Reply = (id: string, payload: unknown) => void
@@ -156,6 +157,11 @@ export function handleMessage(data: string, reply: Reply) {
       return
     case 'pushToken':
       void answer(message.id, reply, pushToken)
+      return
+    case 'signedIn':
+      // No answer: the page doesn't wait on it. A failure here leaves the
+      // membership where Restore can still find it.
+      identify(message.userId).catch(() => {})
       return
   }
 }
