@@ -33,6 +33,7 @@ import { useInApp } from '@/lib/useInApp'
 import { appPlatform, appSupports } from '@/lib/nativeApp'
 import {
   buyInStore,
+  keepWaitingForRow,
   MANAGE_IN_STORE,
   restoreFromStore,
   type StoreResult,
@@ -550,29 +551,59 @@ function StoreJoin({ plan, planName }: { plan: Exclude<Plan, 'lifetime'>; planNa
   const [note, setNote] = useState<string | null>(null)
   const store = appPlatform() === 'android' ? 'Google Play' : 'the App Store'
   const price = prices ? (plan === 'annual' ? prices.annual : prices.monthly) : null
+  const storeName = store === 'Google Play' ? 'Google Play' : 'The App Store'
+  // The store has a membership (bought or restored) and the row is slower than
+  // the first ~15 seconds of checks. A new object each time, so a Restore after
+  // a wait ran out starts a fresh one.
+  const [late, setLate] = useState<{ bought: boolean } | null>(null)
 
-  const act = async (action: () => Promise<StoreResult>, pending: string) => {
+  // Keep asking while this screen is open. Once the row lands the page shows
+  // the member's view and this unmounts, which ends the wait.
+  useEffect(() => {
+    if (!late) return
+    let live = true
+    void keepWaitingForRow(() => live, late.bought).then((member) => {
+      if (live && !member)
+        setNote(
+          late.bought
+            ? `${storeName} has your payment, but it hasn’t reached Pip yet. Try Restore purchases in a few minutes.`
+            : `${storeName} found your membership, but it hasn’t reached Pip yet. Try Restore purchases again in a few minutes.`,
+        )
+    })
+    return () => {
+      live = false
+    }
+  }, [late, storeName])
+
+  const act = async (action: () => Promise<StoreResult>, bought: boolean) => {
     sound.play('tap')
     setBusy(true)
     setNote(null)
     const result = await action()
     setBusy(false)
-    if (result.ok && !result.member) setNote(pending)
+    if (result.ok && !result.member) {
+      if (bought || result.found) {
+        setNote(
+          bought
+            ? `${storeName} has your payment. This page will change by itself when it reaches Pip.`
+            : `${storeName} found your membership. This page will change by itself when it reaches Pip.`,
+        )
+        // A Restore during a purchase's wait still counts that purchase arriving.
+        setLate((was) => ({ bought: bought || (was?.bought ?? false) }))
+      } else setNote('Nothing to restore on this account.')
+    }
     if (!result.ok && 'error' in result) setNote(result.error)
   }
 
   return (
     <>
       <button
-        disabled={busy || !price}
+        disabled={busy || !price || late !== null}
         onClick={() => {
           // The same count as the web's Join, so an app sale is not a checkout
           // that nobody tapped.
           trackOnce('membership-join-tapped')
-          void act(
-            () => buyInStore(plan),
-            `${store === 'Google Play' ? 'Google Play' : 'The App Store'} has your payment. It can take a minute to show here.`,
-          )
+          void act(() => buyInStore(plan), true)
         }}
         className={joinButton}
       >
@@ -599,7 +630,7 @@ function StoreJoin({ plan, planName }: { plan: Exclude<Plan, 'lifetime'>; planNa
       </p>
       <button
         disabled={busy}
-        onClick={() => void act(restoreFromStore, 'Nothing to restore on this account.')}
+        onClick={() => void act(restoreFromStore, false)}
         className={cn(quietButton, 'mt-3')}
       >
         Restore purchases
