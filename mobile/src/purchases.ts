@@ -24,6 +24,22 @@ export const purchasesConfigured = Boolean(KEY)
 
 let configured = false
 
+/**
+ * Called once when the app opens, before the web view has loaded. A player can
+ * buy the membership from Pip's App Store page, and the store hands that
+ * purchase to the app as it opens: RevenueCat completes it only if it is
+ * already listening. Started from the membership page instead, the purchase
+ * would sit unfinished until that page was opened.
+ *
+ * Nobody is signed in yet at this point, so the purchase belongs to an
+ * anonymous RevenueCat user until `identify` moves it to the Pip account.
+ */
+export function startPurchases() {
+  if (!KEY || configured) return
+  Purchases.configure({ apiKey: KEY })
+  configured = true
+}
+
 /** Configured on first use, as the signed-in player. */
 async function as(userId?: string) {
   if (!KEY) throw new Error('Purchases are not set up in this build.')
@@ -33,6 +49,24 @@ async function as(userId?: string) {
   } else if (userId) {
     await Purchases.logIn(userId)
   }
+}
+
+/**
+ * The web page says who is signed in, on every load and every sign-in. A
+ * membership bought from the App Store page before signing in sits on the
+ * anonymous user; this moves it to the Pip account, the same move Restore
+ * makes, without the player having to find the button. `syncPurchases` is the
+ * silent form: it never asks for an Apple ID password.
+ */
+export async function identify(userId: string) {
+  if (!KEY) return
+  if (!configured) return as(userId)
+  const wasAnonymous = await Purchases.isAnonymous()
+  const bought = wasAnonymous
+    ? Boolean((await Purchases.getCustomerInfo()).entitlements.active[ENTITLEMENT])
+    : false
+  if ((await Purchases.getAppUserID()) !== userId) await Purchases.logIn(userId)
+  if (bought) await Purchases.syncPurchases()
 }
 
 async function packages(): Promise<Record<Plan, PurchasesPackage | undefined>> {
