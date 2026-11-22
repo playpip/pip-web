@@ -41,7 +41,7 @@ import { useSync } from '@/store/sync'
 import { ChallengeDialog } from './ChallengeDialog'
 import { Face, profileHref, RowButton, SectionLabel } from './parts'
 import { PlayerView } from './PlayerView'
-import { ProfileEditor } from './ProfileEditor'
+import { ProfileDialog } from '@/components/profile/ProfileDialog'
 
 type Tab = 'friends' | 'inbox' | 'find'
 
@@ -156,7 +156,7 @@ export function FriendsScreen() {
           </div>
         )}
       </div>
-      <ProfileEditor open={editing} onOpenChange={setEditing} />
+      <ProfileDialog open={editing} onOpenChange={setEditing} />
     </PageShell>
   )
 }

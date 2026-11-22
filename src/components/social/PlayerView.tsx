@@ -34,7 +34,7 @@ import { cn } from '@/lib/utils'
 import { useSocial } from '@/store/social'
 import { ChallengeDialog } from './ChallengeDialog'
 import { Face, RowButton, shownTiles } from './parts'
-import { ProfileEditor } from './ProfileEditor'
+import { ProfileDialog } from '@/components/profile/ProfileDialog'
 
 /** Each rank's table, climbing the ladder as the ranks do. */
 const RANK_VENUE: Record<string, string> = {
@@ -326,7 +326,7 @@ function Card({
         onClose={() => setSafety(null)}
         onBlocked={() => (onGone ? onGone() : router.push('/game/friends'))}
       />
-      <ProfileEditor
+      <ProfileDialog
         open={editing}
         onOpenChange={(o) => {
           setEditing(o)

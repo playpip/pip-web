@@ -105,11 +105,13 @@ export function Home() {
 
   return (
     <PageShell leading="profile">
-      {/* the Roll — compact balance, quietly alive */}
+      {/* the Roll — compact balance, quietly alive. On a desktop the sidebar
+          already shows who you are, so the bar above is nearly empty and the
+          Roll moves up to meet it. */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-start py-10 text-left"
+        className="flex flex-col items-start py-10 text-left lg:pt-2 lg:pb-8"
       >
         {/* Three levels and no more (Will, 2026-11-05): the greeting, the Roll
             with its day, then one quiet row of secondary stats. */}

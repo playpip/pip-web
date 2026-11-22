@@ -161,7 +161,8 @@ const itemKey = (item: CourseItem) =>
       ? 'tour'
       : item.kind === 'guide'
         ? `guide:${item.slug}`
-        : item.id
+        : // A lesson and its drill can share an id (pot-odds), so the kind leads.
+          `${item.kind}:${item.id}`
 
 /** What a row on the shelf says and where it goes, before the membership is asked. */
 function rowFor(item: Exclude<CourseItem, { kind: 'planned' }>): {

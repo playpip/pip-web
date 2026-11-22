@@ -21,6 +21,7 @@ import {
   Dumbbell,
   GraduationCap,
   House,
+  Layers,
   type LucideIcon,
   Map as MapIcon,
   Palette,
@@ -114,7 +115,7 @@ function NavLink({ item, onGo }: { item: Item; onGo?: () => void }) {
       }}
       aria-current={on ? 'page' : undefined}
       className={cn(
-        'relative flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition',
+        'relative flex min-h-9 items-center gap-3 rounded-xl px-3 py-1.5 text-sm font-medium transition lg:min-h-8 lg:py-1',
         on
           ? 'text-foreground'
           : 'text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground',
@@ -154,7 +155,7 @@ function Action({
         sound.play('tap')
         onClick()
       }}
-      className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-foreground"
+      className="flex min-h-9 w-full items-center gap-3 rounded-xl px-3 py-1.5 lg:min-h-8 lg:py-1 text-left text-sm font-medium text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-foreground"
     >
       <Icon className="size-[1.125rem] shrink-0" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -176,6 +177,7 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
     { href: '/game', label: 'Home', icon: House },
     { href: '/game/ladder', label: 'Venues', icon: MapIcon, also: ['/game/table'] },
     { href: '/game/rail', label: 'The Rail', icon: Sparkles },
+    { href: '/game/side', label: 'Side Tables', icon: Layers, also: ['/game/blackjack'] },
     ...(roomsConfigured()
       ? [{ href: '/game/multiplayer', label: 'Multiplayer', icon: Wifi, also: ['/game/room'] }]
       : []),
@@ -196,7 +198,7 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
   ]
   const better: Item[] = [
     { href: '/game/drills', label: 'Drills', icon: Dumbbell },
-    { href: '/learn', label: 'Learn with Webb', icon: GraduationCap },
+    { href: '/game/learn', label: 'Learn with Webb', icon: GraduationCap, also: ['/game/lessons'] },
     { href: '/stats', label: 'Your stats', icon: BarChart3 },
   ]
 
@@ -217,7 +219,7 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
       )}
       {/* A small heading over each group, as a sidebar on a Mac has: space
           alone between groups did not read as a break. */}
-      <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1">
+      <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1">
         {(
           [
             ['Play', play],
@@ -228,7 +230,7 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
           .filter(([, items]) => items.length > 0)
           .map(([heading, items]) => (
             <section key={heading} className="flex flex-col gap-0.5">
-              <h2 className="px-3 pb-1 text-2xs font-medium uppercase tracking-[0.15em] text-muted-foreground/60">
+              <h2 className="px-3 pb-0.5 text-2xs font-medium uppercase tracking-[0.15em] text-muted-foreground/60">
                 {heading}
               </h2>
               <ul className="flex flex-col gap-0.5">
@@ -260,7 +262,7 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
 /** Desktop menu screens: always there, at the left. */
 export function DesktopSidebar() {
   return (
-    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-foreground/[0.07] bg-foreground/[0.015] px-3 pt-6 pb-4 lg:flex">
+    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-foreground/[0.07] bg-foreground/[0.015] px-3 pt-5 pb-3 lg:flex">
       <SidebarBody />
     </aside>
   )

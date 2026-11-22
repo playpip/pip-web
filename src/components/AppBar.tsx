@@ -120,7 +120,7 @@ export function AppBar({
               sound.play('tap')
               setMenuOpen(true)
             }}
-            className="flex items-center gap-3 justify-self-start rounded-full py-1 pl-1 pr-3 transition hover:bg-foreground/5 active:scale-[0.98] lg:invisible"
+            className="flex items-center gap-3 justify-self-start rounded-full py-1 pl-1 pr-3 transition hover:bg-foreground/5 active:scale-[0.98] lg:hidden"
             aria-label="Menu"
           >
             {avatar && <PlayerAvatar spec={avatar} size={40} ring={ring} />}
@@ -175,7 +175,8 @@ export function AppBar({
         <div
           className={cn(
             'flex items-center gap-0.5 md:gap-1',
-            centred && 'col-start-3 row-start-1 justify-self-end',
+            // Stays right when the leading side is hidden (the sidebar's desktop).
+            centred ? 'col-start-3 row-start-1 justify-self-end' : 'ml-auto',
           )}
         >
           {actions}
