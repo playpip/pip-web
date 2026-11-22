@@ -5,6 +5,7 @@
 
 import { useId } from 'react'
 import type { RatingPoint } from '@/lib/rating/local'
+import { smoothPath } from '@/lib/smoothPath'
 
 /** "4 Nov" from a UTC day key. */
 function dayLabel(key: string): string {
@@ -33,7 +34,7 @@ export function RatingHistory({ points }: { points: RatingPoint[] }) {
   const span = max - min || 1
   const x = (i: number) => PAD + (i / (data.length - 1)) * (W - 2 * PAD)
   const y = (v: number) => H - PAD - ((v - min) / span) * (H - 2 * PAD)
-  const line = data.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(p.rating)}`).join(' ')
+  const line = smoothPath(data.map((p, i) => ({ x: x(i), y: y(p.rating) })))
   const area = `${line} L ${x(data.length - 1)} ${H} L ${x(0)} ${H} Z`
   const last = data[data.length - 1]
   return (

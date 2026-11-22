@@ -275,13 +275,16 @@ export function HeroCards({
   const mysteryHidden = !!hand.mystery && hero.hole.length === 1
   const fan = (i: number) =>
     fanned && !discarding && (i === 0 ? '-rotate-3' : 'translate-y-1 rotate-2')
+  // The wrapper stays when you fold; only the hover and press go. Dropping it
+  // changed the element in the card's place, so React mounted the card afresh
+  // and it played its deal animation a second time on every fold.
   const lift = (node: React.ReactNode, key: string) =>
-    tactile && !folded ? (
+    tactile ? (
       <motion.div
         key={key}
         className="relative"
-        whileHover={{ y: -8, zIndex: 1 }}
-        whileTap={{ scale: 0.97 }}
+        whileHover={folded ? undefined : { y: -8, zIndex: 1 }}
+        whileTap={folded ? undefined : { scale: 0.97 }}
         transition={{ type: 'spring', stiffness: 420, damping: 26 }}
       >
         {node}
