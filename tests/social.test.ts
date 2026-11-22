@@ -168,3 +168,23 @@ test('every security definer function pins its search path', (t) => {
     if (head.includes('security definer')) t.true(head.includes(`set search_path = ''`), head)
   }
 })
+
+// --- badges -------------------------------------------------------------------
+
+test('the app knows the same badges the database gives, and member follows the membership', async (t) => {
+  const { BADGES, parseBadges } = await import('@/lib/social/badges')
+  const badges = readFileSync(
+    new URL('../supabase/migrations/20261122230000_badges.sql', import.meta.url),
+    'utf-8',
+  ).replace(/^\s*--.*$/gm, ' ')
+  const m = badges.match(/check \(badge in \(([^)]*)\)\)/)
+  t.truthy(m)
+  const given = [...(m?.[1] ?? '').matchAll(/'([^']*)'/g)].map((x) => x[1])
+  t.deepEqual(
+    given,
+    BADGES.filter((b) => b !== 'member'),
+  )
+  t.true(badges.includes("select 'member', 3"))
+  t.deepEqual(parseBadges(['member', 'nonsense', 'team']), ['team', 'member'])
+  t.deepEqual(parseBadges(null), [])
+})

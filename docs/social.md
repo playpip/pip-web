@@ -50,13 +50,34 @@ Friends and Find (before you type) show **Suggested** people to add (`suggested_
 
 1. **Featured players**, from `featured_players`, a short list kept by hand with the
    service role, each with a label shown beside them and on their profile card. Will is on
-   it as "Made Pip" (Will, 2026-11-22). To add someone:
+   it as "Team Pip" (Will, 2026-11-22). To add someone:
    `insert into featured_players (user_id, label, sort) select user_id, 'Label', 1 from
    player_profiles where handle = '…';`
 2. **Friends of friends**, most mutual friends first, and only people who appear in search.
 
 Never yourself, anyone you're already friends with or have asked (either way), anyone
 blocked either way, or a flagged profile. At most twelve.
+
+## Badges
+
+Shown on the profile card as chips, and as small marks beside the name in lists and on the
+leaderboard (`20261122230000_badges.sql`, labels in `src/lib/social/badges.ts`):
+
+| Badge | How |
+|---|---|
+| Team Pip | By hand. Will has it. |
+| Verified | By hand. |
+| High roller | By hand. |
+| Member | On its own while the membership is live, unless the player switches it off in Your profile. |
+
+To give one, with the service role (SQL editor):
+`insert into player_badges (user_id, badge) select user_id, 'verified' from player_profiles
+where handle = '…';` and `delete from player_badges where …` to take it away. A new kind needs
+the check in `player_badges`, the order in `pip_badges`, and `BADGES` in badges.ts.
+
+## The leaderboard
+
+Signed in, every row opens that player's profile (`handles_for`), and shows their badges.
 
 ## Where it lives
 

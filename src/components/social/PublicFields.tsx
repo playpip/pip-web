@@ -13,7 +13,7 @@ import { ChevronRight } from 'lucide-react'
 import { Switch } from '@/components/settings/group'
 import type { AvatarSpec } from '@/lib/avatar'
 import { ratingOf } from '@/lib/rating'
-import { type MyProfile, saveMyProfile } from '@/lib/social/api'
+import { type MyProfile, saveMyProfile, setMemberBadge } from '@/lib/social/api'
 import { cardOf, DEFAULT_SHOWN, SHOWABLE, type ShowKey } from '@/lib/social/card'
 import {
   BIO_MAX,
@@ -25,6 +25,7 @@ import {
 } from '@/lib/social/clean'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+import { useEntitlement } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 import { useSocial } from '@/store/social'
 import { shownTiles } from './parts'
@@ -39,6 +40,7 @@ export function usePublicDraft(name: string) {
   const [bio, setBio] = useState(me?.bio ?? '')
   const [shown, setShown] = useState<ShowKey[]>(() => me?.shown ?? [...DEFAULT_SHOWN])
   const [searchable, setSearchable] = useState(me?.searchable ?? true)
+  const [showMember, setShowMember] = useState(me?.showMember ?? true)
 
   const h = normaliseHandle(handle)
   const handleProblem = !handleShapeOk(h)
@@ -75,6 +77,7 @@ export function usePublicDraft(name: string) {
       searchable,
     })
     if (!r.ok) return r.problem
+    if (me && showMember !== me.showMember) await setMemberBadge(showMember)
     const saved: MyProfile = {
       handle: h,
       name: face.name,
@@ -83,6 +86,8 @@ export function usePublicDraft(name: string) {
       bio: bio.trim(),
       shown: ordered,
       searchable,
+      showMember,
+      badges: (me?.badges ?? []).filter((b) => b !== 'member' || showMember),
     }
     useSocial.getState().setMe(saved)
     return null
@@ -101,6 +106,8 @@ export function usePublicDraft(name: string) {
     setShown,
     searchable,
     setSearchable,
+    showMember,
+    setShowMember,
     handleProblem,
     bioProblem,
     blocked: included && Boolean(handleProblem || bioProblem),
@@ -112,6 +119,7 @@ export type PublicDraft = ReturnType<typeof usePublicDraft>
 
 export function PublicFields({ draft }: { draft: PublicDraft }) {
   const profile = useProfile()
+  const member = useEntitlement()
 
   if (!draft.included) {
     return (
@@ -222,6 +230,21 @@ export function PublicFields({ draft }: { draft: PublicDraft }) {
               }}
             />
           </li>
+          {member && (
+            <li className="flex items-center gap-3 px-4 py-3">
+              <span className="min-w-0 flex-1 hyphens-auto break-words">
+                <span className="block text-sm font-medium">Member badge</span>
+              </span>
+              <Switch
+                label="Member badge"
+                checked={draft.showMember}
+                onChange={() => {
+                  sound.play('tap')
+                  draft.setShowMember((s) => !s)
+                }}
+              />
+            </li>
+          )}
         </ul>
       </section>
     </div>

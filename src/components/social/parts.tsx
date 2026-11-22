@@ -3,11 +3,13 @@
 // The small pieces the friends screens share: a face, a section label, a row
 // button, and the shown values as label and value.
 
+import { BadgeCheck, Crown, Gem, type LucideIcon, Spade } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { avatarRingById } from '@/config/cosmetics'
 import type { AvatarSpec } from '@/lib/avatar'
 import { bandFor, isProvisional } from '@/lib/rating'
 import { styleNamed } from '@/lib/playStyle'
+import { type Badge, BADGE_LABEL } from '@/lib/social/badges'
 import type { Card, ShowKey } from '@/lib/social/card'
 import { formatChips } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
@@ -116,4 +118,52 @@ export function shownTiles(
     }
   }
   return tiles
+}
+
+// The spade is filled: drawn as an outline, at this size it reads as a cloud.
+const BADGE_LOOK: Record<Badge, { icon: LucideIcon; tint: string; mark: string; solid?: true }> = {
+  team: { icon: Spade, tint: 'bg-pip/15 text-pip', mark: 'text-pip', solid: true },
+  verified: { icon: BadgeCheck, tint: 'bg-suit-blue/20 text-suit-blue', mark: 'text-suit-blue' },
+  'high-roller': { icon: Gem, tint: 'bg-streak/15 text-streak', mark: 'text-streak' },
+  member: { icon: Crown, tint: 'bg-suit-red/15 text-suit-red', mark: 'text-suit-red' },
+}
+
+/** A player's badges as labelled chips, for their profile card. */
+export function BadgeChips({ badges }: { badges: readonly Badge[] }) {
+  if (badges.length === 0) return null
+  return (
+    <span className="flex flex-wrap justify-center gap-1.5">
+      {badges.map((b) => {
+        const { icon: Icon, tint, solid } = BADGE_LOOK[b]
+        return (
+          <span
+            key={b}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
+              tint,
+            )}
+          >
+            <Icon className={cn('size-3.5', solid && 'fill-current')} /> {BADGE_LABEL[b]}
+          </span>
+        )
+      })}
+    </span>
+  )
+}
+
+/** The same badges as small marks beside a name in a list. */
+export function BadgeMarks({ badges }: { badges: readonly Badge[] }) {
+  if (badges.length === 0) return null
+  return (
+    <span className="ml-1 inline-flex shrink-0 items-center gap-0.5 align-[-0.125em]">
+      {badges.map((b) => {
+        const { icon: Icon, mark, solid } = BADGE_LOOK[b]
+        return (
+          <span key={b} title={BADGE_LABEL[b]} aria-label={BADGE_LABEL[b]} role="img">
+            <Icon className={cn('size-3.5', mark, solid && 'fill-current')} />
+          </span>
+        )
+      })}
+    </span>
+  )
 }

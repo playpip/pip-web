@@ -4,12 +4,15 @@
 // you, and this week's climbers. A face, a name and a rating, nothing else:
 // never the Roll. Live: it reloads when a row changes, and every minute anyway.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { PageShell } from '@/components/PageShell'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
+import { BadgeMarks, profileHref } from '@/components/social/parts'
+import type { Badge } from '@/lib/social/badges'
+import { handlesFor, socialEnabled } from '@/lib/social/api'
 import { trackOnce } from '@/lib/analytics'
 import { devSignedIn } from '@/lib/multiplayer/client'
 import { bandFor, isProvisional, ratingOf, weekStartOf } from '@/lib/rating'
@@ -32,6 +35,34 @@ export function LeaderboardScreen() {
   const [board, setBoard] = useState<Board | null>(null)
   const [failed, setFailed] = useState(false)
   const [tab, setTab] = useState<Tab>('top')
+  // Who each row is, so a signed-in player can open their profile.
+  const [people, setPeople] = useState<Map<string, { handle: string; badges: Badge[] }>>(
+    () => new Map(),
+  )
+  const ids = useMemo(
+    () =>
+      board
+        ? [
+            ...new Set(
+              [...board.top, ...board.climbers, ...(board.around?.rows ?? [])].map((r) => r.userId),
+            ),
+          ]
+        : [],
+    [board],
+  )
+  // The ids as one string: a reload that brings the same rows asks nothing.
+  const idsKey = ids.join(',')
+  useEffect(() => {
+    const list = idsKey ? idsKey.split(',') : []
+    if (!signedIn || !socialEnabled() || list.length === 0) return
+    let live = true
+    void handlesFor(list).then((m) => {
+      if (live) setPeople(m)
+    })
+    return () => {
+      live = false
+    }
+  }, [signedIn, idsKey])
 
   useEffect(() => trackOnce('leaderboard-opened'), [])
 
@@ -94,19 +125,20 @@ export function LeaderboardScreen() {
                   you’ll be the first.
                 </p>
               ) : (
-                <Rows rows={board.top} />
+                <Rows rows={board.top} people={people} />
               )
             ) : tab === 'climbers' ? (
               board.climbers.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nobody has climbed yet this week.</p>
               ) : (
-                <Rows rows={board.climbers} climb />
+                <Rows rows={board.climbers} climb people={people} />
               )
             ) : board.around ? (
               <Rows
                 rows={board.around.rows}
                 firstPlace={board.around.firstPlace}
                 you={board.around.place}
+                people={people}
               />
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -189,11 +221,14 @@ function Rows({
   climb = false,
   firstPlace = 1,
   you,
+  people,
 }: {
   rows: BoardRow[] | null
   climb?: boolean
   firstPlace?: number
   you?: number
+  /** Handles and badges by account, when signed in: a row with one opens the profile. */
+  people?: Map<string, { handle: string; badges: Badge[] }>
 }) {
   if (!rows) {
     return (
@@ -209,6 +244,7 @@ function Rows({
       {rows.map((row, i) => {
         const place = firstPlace + i
         const mine = you !== undefined && place === you
+        const who = people?.get(row.userId)
         return (
           <motion.li
             key={row.userId}
@@ -216,37 +252,52 @@ function Rows({
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(i, 12) * 0.02, duration: 0.25 }}
-            className={cn(
-              'flex min-h-14 items-center gap-3 border-b border-foreground/[0.06] px-3 py-2 last:border-b-0',
-              mine && 'bg-pip/10',
-            )}
+            className={cn('border-b border-foreground/[0.06] last:border-b-0', mine && 'bg-pip/10')}
           >
-            <span
-              className={cn(
-                'w-8 shrink-0 text-center text-sm font-semibold tabular-nums',
-                !climb && place <= 3 ? 'text-streak' : 'text-muted-foreground',
-              )}
-            >
-              {climb ? i + 1 : place}
-            </span>
-            {row.avatar ? (
-              <PlayerAvatar spec={row.avatar} size={36} />
-            ) : (
-              <span className="size-9 shrink-0 rounded-full bg-foreground/[0.08]" />
-            )}
-            <span className="min-w-0 flex-1 truncate text-sm font-medium">
-              {row.name}
-              {mine && <span className="ml-1.5 text-xs text-muted-foreground">You</span>}
-            </span>
-            <span className="text-right tabular-nums">
-              <span className="block text-sm font-semibold">
-                {row.rating.toLocaleString('en-GB')}
+            <RowLink handle={who?.handle}>
+              <span
+                className={cn(
+                  'w-8 shrink-0 text-center text-sm font-semibold tabular-nums',
+                  !climb && place <= 3 ? 'text-streak' : 'text-muted-foreground',
+                )}
+              >
+                {climb ? i + 1 : place}
               </span>
-              {climb && <span className="block text-xs text-emerald-500">▲{row.weekGain}</span>}
-            </span>
+              {row.avatar ? (
+                <PlayerAvatar spec={row.avatar} size={36} />
+              ) : (
+                <span className="size-9 shrink-0 rounded-full bg-foreground/[0.08]" />
+              )}
+              <span className="flex min-w-0 flex-1 items-center text-sm font-medium">
+                <span className="truncate">{row.name}</span>
+                {who && <BadgeMarks badges={who.badges} />}
+                {mine && <span className="ml-1.5 text-xs text-muted-foreground">You</span>}
+              </span>
+              <span className="text-right tabular-nums">
+                <span className="block text-sm font-semibold">
+                  {row.rating.toLocaleString('en-GB')}
+                </span>
+                {climb && <span className="block text-xs text-emerald-500">▲{row.weekGain}</span>}
+              </span>
+            </RowLink>
           </motion.li>
         )
       })}
     </ol>
+  )
+}
+
+/** A row: a link to the player's profile when there is one to open. */
+function RowLink({ handle, children }: { handle?: string; children: React.ReactNode }) {
+  const row = 'flex min-h-14 items-center gap-3 px-3 py-2'
+  if (!handle) return <div className={row}>{children}</div>
+  return (
+    <Link
+      href={profileHref(handle)}
+      onClick={() => sound.play('tap')}
+      className={cn(row, 'transition hover:bg-foreground/[0.04] active:bg-foreground/[0.06]')}
+    >
+      {children}
+    </Link>
   )
 }

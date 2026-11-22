@@ -40,7 +40,7 @@ import { useRoom } from '@/store/room'
 import { useSocial } from '@/store/social'
 import { useSync } from '@/store/sync'
 import { ChallengeDialog } from './ChallengeDialog'
-import { Face, profileHref, RowButton, SectionLabel } from './parts'
+import { BadgeMarks, Face, profileHref, RowButton, SectionLabel } from './parts'
 import { PlayerView } from './PlayerView'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
 
@@ -252,7 +252,10 @@ function Person({
     <>
       <Face avatar={person.avatar} ring={person.ring} size={44} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium">{person.name}</span>
+        <span className="flex min-w-0 items-center font-medium">
+          <span className="truncate">{person.name}</span>
+          <BadgeMarks badges={person.badges} />
+        </span>
         <span className="block truncate text-xs text-muted-foreground">
           @{person.handle}
           {note && ` · ${note}`}

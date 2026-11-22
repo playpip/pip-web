@@ -9,6 +9,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AvatarSpec } from '@/lib/avatar'
 import { syncConfigured, getSupabase } from '@/lib/sync/client'
+import { type Badge, parseBadges } from './badges'
 import { type Card, type ShowKey, parseCard, parseShown } from './card'
 
 /** Switched on per build, like the rating, until the backend is live. */
@@ -29,6 +30,8 @@ export interface PlayerRow {
   name: string
   avatar: AvatarSpec | null
   ring: string | null
+  /** Team Pip, Verified and the rest, in the order they are shown. */
+  badges: Badge[]
 }
 
 export interface Player extends PlayerRow {
@@ -39,14 +42,14 @@ export interface Player extends PlayerRow {
   relation: Relation
   friendsSince: string | null
   searchable: boolean
-  /** A featured player's label ("Made Pip"), or null. */
-  featured: string | null
 }
 
 export interface MyProfile extends PlayerRow {
   bio: string
   shown: ShowKey[]
   searchable: boolean
+  /** Show the Member badge while the membership is live. */
+  showMember: boolean
 }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; problem: string }
@@ -90,6 +93,7 @@ type RawRow = {
   display_name: string
   avatar: AvatarSpec | null
   ring: string | null
+  badges?: unknown
 }
 
 const toRow = (r: RawRow): PlayerRow => ({
@@ -97,6 +101,7 @@ const toRow = (r: RawRow): PlayerRow => ({
   name: r.display_name,
   avatar: r.avatar,
   ring: r.ring,
+  badges: parseBadges(r.badges),
 })
 
 // --- your profile -------------------------------------------------------------
@@ -110,7 +115,7 @@ export async function readMyProfile(): Promise<MyProfile | null | undefined> {
   if (!me) return undefined
   const { data, error } = await sb
     .from('player_profiles')
-    .select('handle, display_name, avatar, ring, bio, shown, searchable')
+    .select('handle, display_name, avatar, ring, bio, shown, searchable, show_member')
     .eq('user_id', me)
     .maybeSingle()
   if (error) return undefined
@@ -120,7 +125,26 @@ export async function readMyProfile(): Promise<MyProfile | null | undefined> {
     bio: data.bio as string,
     shown: parseShown(data.shown),
     searchable: data.searchable as boolean,
+    showMember: data.show_member !== false,
   }
+}
+
+export function setMemberBadge(show: boolean): Promise<Result<null>> {
+  return rpc('set_member_badge', { p_show: show })
+}
+
+/** The handle and badges behind each account, for leaderboard rows. Signed in only. */
+export async function handlesFor(
+  userIds: string[],
+): Promise<Map<string, { handle: string; badges: Badge[] }>> {
+  const out = new Map<string, { handle: string; badges: Badge[] }>()
+  if (userIds.length === 0) return out
+  const r = await rpc<{ user_id: string; handle: string; badges: unknown }[]>('handles_for', {
+    p_users: userIds.slice(0, 200),
+  })
+  if (r.ok)
+    for (const x of r.value) out.set(x.user_id, { handle: x.handle, badges: parseBadges(x.badges) })
+  return out
 }
 
 export function saveMyProfile(p: {
@@ -194,6 +218,7 @@ export async function getPlayer(handle: string): Promise<Result<Player | null>> 
       name: v.name as string,
       avatar: (v.avatar as AvatarSpec | null) ?? null,
       ring: (v.ring as string | null) ?? null,
+      badges: parseBadges(v.badges),
       bio: (v.bio as string) ?? '',
       shown: parseShown(v.shown),
       card: parseCard(v.card),
@@ -201,7 +226,6 @@ export async function getPlayer(handle: string): Promise<Result<Player | null>> 
       relation: v.relation as Relation,
       friendsSince: (v.friendsSince as string | null) ?? null,
       searchable: v.searchable === true,
-      featured: typeof v.featured === 'string' ? v.featured : null,
     },
   }
 }
