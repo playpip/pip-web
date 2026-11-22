@@ -15,6 +15,7 @@
 //   GET|POST /notify/off      the "stop these emails" link (signed, no token)
 //   GET  /hands               the hands-played count (the landing page reads it)
 //   POST /hands               the game's hands against the cast, a batch at a time
+//   GET  /rooms-opened        private rooms opened a UTC week, member and free
 //
 // And on a schedule (wrangler.jsonc `triggers`): drain `push_outbox`, the
 // pushes Supabase has queued for players (somebody passed them on the Pip
@@ -37,7 +38,7 @@ import { blocksOf } from './safety'
 import { corsHeaders, json, originAllowed, playerStub, type Env } from './env'
 import { offLinkValid, serviceHeaders } from './notify'
 import type { InitBody } from './room'
-import { tallyStub } from './tally'
+import { countRoomOpened, tallyStub } from './tally'
 
 export { PokerRoom } from './room'
 export { Matchmaker } from './matchmaker'
@@ -75,6 +76,11 @@ export default {
         })
         return new Response(null, { status: res.ok ? 204 : res.status, headers: cors })
       }
+    }
+
+    if (parts[0] === 'rooms-opened' && parts.length === 1 && request.method === 'GET') {
+      const res = await tallyStub(env).fetch('https://tally/rooms-read')
+      return json(await res.json(), 200, { ...cors, 'Cache-Control': 'public, max-age=300' })
     }
 
     if (parts[0] === 'rooms' && parts.length === 1 && request.method === 'POST') {
@@ -246,7 +252,10 @@ async function createRoom(
       method: 'POST',
       body: JSON.stringify(init),
     })
-    if (res.status === 201) return json({ code }, 201, cors)
+    if (res.status === 201) {
+      if (kind === 'private') await countRoomOpened(env, member)
+      return json({ code }, 201, cors)
+    }
     if (res.status === 400) {
       await release()
       return json({ error: 'bad-settings' }, 400, cors)
