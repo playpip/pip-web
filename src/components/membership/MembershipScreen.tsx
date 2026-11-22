@@ -34,13 +34,11 @@ import { MotionConfig, motion } from 'framer-motion'
 import {
   Check,
   ChevronDown,
-  ChevronRight,
   ChartSpline,
   Eye,
   Flame,
   GraduationCap,
   Hand,
-  Heart,
   History,
   Minus,
   Palette,
@@ -63,7 +61,6 @@ import {
   type CurrencyCode,
   DAILY_FREE_GAME,
   HOW_TO_CANCEL,
-  LIFETIME_PITCH,
   MEMBERSHIP_FEATURES,
   MEMBERSHIP_PILLARS,
   MEMBERSHIP_PRICES,
@@ -71,7 +68,6 @@ import {
   type MembershipFeature,
   checkoutReady,
   formatPrice,
-  lifetimeOnSale,
   sellableFeatures,
 } from '@/config/membership'
 import {
@@ -200,22 +196,7 @@ export function MembershipScreen() {
   return (
     <MotionConfig reducedMotion="user">
       <main className="flex-1 overflow-x-clip">
-        <Hero
-          multiplayer={multiplayer}
-          lifetime={
-            !app && lifetimeOnSale() ? (
-              <LifetimePanel
-                price={price.lifetime ?? ''}
-                onChoose={() => {
-                  setPlan('lifetime')
-                  document
-                    .getElementById('plans')
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }}
-              />
-            ) : null
-          }
-        >
+        <Hero multiplayer={multiplayer}>
           <Plans
             price={price}
             currency={currency}
@@ -281,23 +262,14 @@ export function MembershipScreen() {
  * price came up under the headline on 2 November 2026 (#283); now Join is on
  * the first screen too, because almost no tab scrolled down to it.
  */
-function Hero({
-  multiplayer,
-  lifetime,
-  children,
-}: {
-  multiplayer: boolean
-  /** The lifetime panel, under the headline, where it is seen first (Will, 2026-11-19). */
-  lifetime: React.ReactNode
-  children: React.ReactNode
-}) {
+function Hero({ multiplayer, children }: { multiplayer: boolean; children: React.ReactNode }) {
   return (
     <section className="relative isolate overflow-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/4 top-0 -z-10 size-[44rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_20%,transparent),transparent_65%)] blur-2xl"
       />
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-4 pb-6 pt-8 md:grid-cols-[1fr_minmax(0,28rem)] md:gap-12 md:px-10 md:pb-12 md:pt-16">
+      <div className="mx-auto grid w-full max-w-6xl items-start gap-8 px-4 pb-6 pt-8 md:grid-cols-[1fr_minmax(0,28rem)] md:gap-12 md:px-10 md:pb-12 md:pt-16">
         {/* CSS rather than Framer, so the headline is in the static HTML at
             full opacity and does not wait for hydration (globals.css). */}
         <div
@@ -317,69 +289,10 @@ function Hero({
             {multiplayer && ' And host your friends as often as you like.'} The core game stays
             free, for good.
           </p>
-          {lifetime}
           <YourFinding />
         </div>
         <div id="plans" className="scroll-mt-24">
           {children}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// --- lifetime -------------------------------------------------------------------
-
-/**
- * Lifetime, said out loud (Will, 2026-11-19): who Pip is, why one payment
- * helps, and a button that picks lifetime in the plans box above. Only where
- * it is on sale (`lifetimeOnSale`), and never in the store app.
- */
-function LifetimePanel({ price, onChoose }: { price: string; onChoose: () => void }) {
-  return (
-    <section className="mt-6 w-full max-w-xl">
-      <div className="relative isolate overflow-hidden rounded-3xl border border-pip/30 bg-[color-mix(in_oklch,var(--color-pip)_8%,transparent)] p-5 md:p-6">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 -z-10 size-80 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_28%,transparent),transparent_65%)] blur-2xl"
-        />
-        <div className="flex flex-col gap-5">
-          <div>
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-pip">
-              <Heart className="size-3.5 fill-pip" />
-              Lifetime
-            </span>
-            <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight md:text-3xl">
-              {LIFETIME_PITCH.title}
-            </h2>
-            <p className="mt-2 text-base text-muted-foreground">{LIFETIME_PITCH.lede}</p>
-            <ul className="mt-4 flex flex-col gap-2 text-sm">
-              {LIFETIME_PITCH.points.map((point) => (
-                <li key={point} className="flex items-center gap-2">
-                  <Check className="size-4 shrink-0 text-pip" />
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <p className="shrink-0">
-              <span className="text-4xl font-semibold tabular-nums tracking-tight">{price}</span>{' '}
-              <span className="text-sm text-muted-foreground">once</span>
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                sound.play('tap')
-                trackOnce('lifetime-chosen')
-                onChoose()
-              }}
-              className="flex h-14 w-full items-center justify-center gap-1.5 rounded-2xl bg-primary text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98] sm:flex-1"
-            >
-              Back Pip for life
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
         </div>
       </div>
     </section>
@@ -524,18 +437,21 @@ function Mark({ value, member }: { value: string | boolean; member: boolean }) {
 }
 
 function Compare({ price }: { price: ShownPrice }) {
-  const rows = comparisonRows()
-  // The two plan columns are fixed in rem, so a big text size leaves the
-  // thing being compared no width at all. Under 20rem across (a phone at 125%
-  // and up) each row puts the thing on its own line over the two marks.
+  const all = comparisonRows()
+  // What everybody gets is one line above the table, not rows of two ticks.
+  const shared = all.filter((row) => row.free === true && row.member === true)
+  const rows = all.filter((row) => !(row.free === true && row.member === true))
+  // Under 36rem across (any phone) each row puts the thing on its own line over
+  // the two answers, which sit under Free and Member; three columns there left
+  // the thing a word wide (Will, 2026-11-22).
   const cols =
-    'grid grid-cols-2 items-center gap-x-3 gap-y-1.5 @[20rem]:grid-cols-[minmax(0,1fr)_6.5rem_7rem] @[20rem]:gap-y-3 @[42rem]:grid-cols-[minmax(0,1fr)_11rem_11rem]'
-  const thing = 'col-span-2 @[20rem]:col-span-1'
+    'grid grid-cols-2 items-center gap-x-3 gap-y-1 @[36rem]:grid-cols-[minmax(0,1fr)_9rem_9rem] @[36rem]:gap-y-3 @[48rem]:grid-cols-[minmax(0,1fr)_11rem_11rem]'
+  const thing = 'col-span-2 font-medium @[36rem]:col-span-1 @[36rem]:font-normal'
   return (
     <Reveal>
       <div className="@container overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03]">
         <div className={cn(cols, 'border-b border-foreground/[0.07] px-4 py-4 md:px-6')}>
-          <span className="hidden @[20rem]:block" />
+          <span className="hidden @[36rem]:block" />
           <span className="text-sm font-semibold">Free</span>
           <span className="flex flex-col text-sm font-semibold">
             <span className="flex items-center gap-1.5">
@@ -547,6 +463,18 @@ function Compare({ price }: { price: ShownPrice }) {
             </span>
           </span>
         </div>
+        {shared.length > 0 && (
+          <p className="flex gap-2.5 border-b border-foreground/[0.07] px-4 py-3 text-sm text-muted-foreground md:px-6">
+            <Check className="mt-0.5 size-4 shrink-0 text-pip" strokeWidth={3} />
+            <span>
+              <span className="font-medium text-foreground">Free for everyone:</span>{' '}
+              {shared
+                .map((row) => row.thing.charAt(0).toLowerCase() + row.thing.slice(1))
+                .join(', ')}
+              .
+            </span>
+          </p>
+        )}
         <ul className="divide-y divide-foreground/[0.07]">
           {rows.map((row) => (
             <li
@@ -652,17 +580,17 @@ function Plans({
       <Till plan={plan} price={price} currency={currency} className="mt-3" />
 
       <ul className="mt-4 grid gap-y-2 border-t border-foreground/[0.07] px-1 pt-4 text-sm text-muted-foreground">
-        {[
-          ...(plan === 'lifetime' ? PAYING_LINES.lifetime : PAYING_LINES[app ? 'app' : 'web']),
-          'You need a free Pip account to join. You never need one to play.',
-          FREE_REPORT_COPY.offer,
-          DAILY_FREE_GAME,
-        ].map((line) => (
-          <li key={line} className="flex gap-2.5">
-            <Check className="mt-0.5 size-4 shrink-0 text-pip" />
-            <span>{line}</span>
-          </li>
-        ))}
+        {/* How it is paid, and nothing else (Will, 2026-11-22: "too much to
+            look at"). The free report and the daily free game are answered
+            under Questions. */}
+        {(plan === 'lifetime' ? PAYING_LINES.lifetime : PAYING_LINES[app ? 'app' : 'web']).map(
+          (line) => (
+            <li key={line} className="flex gap-2.5">
+              <Check className="mt-0.5 size-4 shrink-0 text-pip" />
+              <span>{line}</span>
+            </li>
+          ),
+        )}
       </ul>
     </div>
   )

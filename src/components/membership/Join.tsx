@@ -19,6 +19,7 @@ import {
   type CurrencyCode,
   MEMBERSHIP_PRICE_IDS,
   SELLER,
+  LIFETIME_PITCH,
   checkoutReady,
   lifetimeOnSale,
   tappedFeature,
@@ -156,11 +157,17 @@ export function PlanPicker({
   const pick = (next: Plan) => {
     if (next === plan) return
     sound.play('tap')
+    // The count the CMO reads for lifetime (cmo#175).
+    if (next === 'lifetime') trackOnce('lifetime-chosen')
     onPlan(next)
   }
   return (
     <>
-      <div role="radiogroup" aria-label="Billing" className="grid grid-cols-2 gap-2.5">
+      <div
+        role="radiogroup"
+        aria-label="Billing"
+        className="grid grid-cols-1 gap-2.5 sm:grid-cols-2"
+      >
         {offered.map((id) => {
           const p = PLANS[id]
           const on = plan === id
@@ -176,14 +183,23 @@ export function PlanPicker({
               transition={SPRING}
               className={cn(
                 'relative flex flex-col rounded-2xl border p-4 text-left transition-colors',
-                wide && 'col-span-2',
+                wide && 'sm:col-span-2',
                 on
                   ? 'border-foreground/60 bg-foreground/[0.07] ring-1 ring-foreground/60'
-                  : 'border-foreground/10 bg-foreground/[0.03] hover:border-foreground/25',
+                  : wide
+                    ? 'border-pip/40 bg-[color-mix(in_oklch,var(--color-pip)_8%,transparent)] hover:border-pip/70'
+                    : 'border-foreground/10 bg-foreground/[0.03] hover:border-foreground/25',
               )}
             >
               <span className="flex items-center justify-between">
-                <span className="font-semibold">{p.name}</span>
+                <span className="flex items-center gap-2 font-semibold">
+                  {p.name}
+                  {wide && (
+                    <span className="rounded-full bg-pip/15 px-2 py-0.5 text-2xs font-medium uppercase tracking-wider text-pip">
+                      {LIFETIME_PITCH.badge}
+                    </span>
+                  )}
+                </span>
                 <span
                   className={cn(
                     'grid size-6 place-items-center rounded-full border transition-colors',
@@ -212,6 +228,11 @@ export function PlanPicker({
                 </span>
                 <span className="text-sm text-muted-foreground">{p.per}</span>
               </span>
+              {wide && (
+                <span className="mt-1.5 text-sm leading-snug text-muted-foreground">
+                  {LIFETIME_PITCH.line}
+                </span>
+              )}
             </motion.button>
           )
         })}

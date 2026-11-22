@@ -109,7 +109,7 @@ test('the gate lets everyone through unless something says otherwise', (t) => {
 })
 
 // The daily free game is written once and the page says it from there.
-test('the plans section says one member game a day is free', async (t) => {
+test('the page says one member game a day is free', async (t) => {
   const { DAILY_FREE_GAME } = await import('@/config/membership')
   t.regex(DAILY_FREE_GAME, /^One member game a day is free without joining/)
   t.regex(DAILY_FREE_GAME, /midnight UTC/, 'it does not say when it comes back')
@@ -118,8 +118,9 @@ test('the plans section says one member game a day is free', async (t) => {
     new URL('../src/components/membership/MembershipScreen.tsx', import.meta.url),
     'utf-8',
   )
-  const plans = page.slice(page.indexOf('function Plans('), page.indexOf('// --- questions'))
-  t.true(plans.includes('DAILY_FREE_GAME'), 'the plans box does not mention the daily free game')
+  // Said under Questions since 2026-11-22; the plans box only says how it is paid.
+  const questions = page.slice(page.indexOf('function Questions('))
+  t.true(questions.includes('DAILY_FREE_GAME'), 'the page does not mention the daily free game')
   // And the copy on the cards agrees with the page about how many.
   const { TASTE_COPY } = await import('@/lib/membership/taste')
   t.regex(TASTE_COPY.note, /One member game a day is free/)
