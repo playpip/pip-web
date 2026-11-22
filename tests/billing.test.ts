@@ -161,4 +161,6 @@ test('a lifetime membership is granted when paid and nothing else ends it', (t) 
   t.regex(webhook, /if \(existing\?\.lifetime && ENTITLING\.includes\(existing\.status\)\) return/)
   t.regex(webhook, /payment\.metadata\?\.kind !== 'lifetime'/)
   t.regex(webhook, /\.eq\('lifetime', true\)/)
+  // Another project's refund must never 500 this endpoint.
+  t.regex(webhook, /could not read payment/)
 })

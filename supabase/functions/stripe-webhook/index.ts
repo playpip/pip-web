@@ -186,7 +186,18 @@ async function refundLifetime(charge: Stripe.Charge): Promise<void> {
   if (!charge.refunded || !charge.payment_intent) return
   const id =
     typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent.id
-  const payment = await stripe.paymentIntents.retrieve(id)
+  // Every refund on the shared account lands here, Probus's included, so a
+  // failed read is logged and acknowledged rather than thrown: a 500 would have
+  // Stripe retry a sibling's refund for three days and then disable this
+  // endpoint. The likely cause is the restricted key missing PaymentIntents:
+  // Read (docs/stripe.md → Lifetime).
+  let payment: Stripe.PaymentIntent
+  try {
+    payment = await stripe.paymentIntents.retrieve(id)
+  } catch (err) {
+    console.error(`charge ${charge.id} refunded; could not read payment ${id}:`, err)
+    return
+  }
   if (!isPip(payment.metadata) || payment.metadata?.kind !== 'lifetime') return
   const userId = payment.metadata?.user_id
   if (!userId) return
