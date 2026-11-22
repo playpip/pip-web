@@ -206,12 +206,18 @@ export function lifetimeOnSale(): boolean {
  * What the lifetime panel says (Will, 2026-11-19: "support an early games
  * startup, self funded, just passed 2,000 users, help us grow"). Here so the
  * number is changed in one place as it grows.
+ *
+ * The number is the homepage's own (hands played, `functions/index.ts`), written
+ * as "over" a round figure so it stays true as the count climbs. No count of
+ * players reaches 2,000 (291 accounts, 1,024 profiles made by 15 Nov), and
+ * "just passed" goes stale. "For as long as Pip runs", never "for good": the
+ * terms say lifetime is not forever.
  */
 export const LIFETIME_PITCH = {
   title: 'Back Pip, for life',
-  lede: 'Pip is an early, self-funded games startup. We just passed 2,000 players. One payment makes you a member for as long as Pip runs, and helps us grow.',
+  lede: 'Pip is an early, self-funded games startup, with over 230,000 hands played so far. One payment makes you a member for as long as Pip runs, and helps us grow.',
   points: [
-    'Everything in the membership, for good',
+    'Everything in the membership',
     'One payment, never renews',
     'Straight into building Pip',
   ],
