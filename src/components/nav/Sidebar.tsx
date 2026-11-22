@@ -115,7 +115,8 @@ function NavLink({ item, onGo }: { item: Item; onGo?: () => void }) {
       }}
       aria-current={on ? 'page' : undefined}
       className={cn(
-        'relative flex min-h-9 items-center gap-3 rounded-xl px-3 py-1.5 text-sm font-medium transition lg:min-h-8 lg:py-1',
+        // 44px rows in the phone drawer, for a thumb; Mac-sized on a desktop.
+        'relative flex min-h-11 items-center gap-3.5 rounded-xl px-3 py-2 text-[0.9375rem] font-medium transition lg:min-h-8 lg:gap-3 lg:py-1 lg:text-sm',
         on
           ? 'text-foreground'
           : 'text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground',
@@ -128,7 +129,7 @@ function NavLink({ item, onGo }: { item: Item; onGo?: () => void }) {
           transition={{ type: 'spring', stiffness: 500, damping: 38 }}
         />
       )}
-      <Icon className="relative size-[1.125rem] shrink-0" />
+      <Icon className="relative size-5 shrink-0 lg:size-[1.125rem]" />
       <span className="relative min-w-0 flex-1 truncate">{item.label}</span>
       {item.badge ? (
         <span className="relative rounded-full bg-primary px-1.5 text-2xs font-semibold leading-5 text-primary-foreground tabular-nums">
@@ -155,9 +156,9 @@ function Action({
         sound.play('tap')
         onClick()
       }}
-      className="flex min-h-9 w-full items-center gap-3 rounded-xl px-3 py-1.5 lg:min-h-8 lg:py-1 text-left text-sm font-medium text-muted-foreground transition hover:bg-foreground/[0.04] hover:text-foreground"
+      className="flex min-h-11 w-full items-center gap-3.5 rounded-xl px-3 py-2 text-left text-[0.9375rem] font-medium text-muted-foreground lg:min-h-8 lg:gap-3 lg:py-1 lg:text-sm transition hover:bg-foreground/[0.04] hover:text-foreground"
     >
-      <Icon className="size-[1.125rem] shrink-0" />
+      <Icon className="size-5 shrink-0 lg:size-[1.125rem]" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
     </button>
   )
@@ -203,7 +204,9 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
   ]
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    // In the phone drawer the whole list scrolls as one, so nothing hides under
+    // a pinned footer; on a desktop the footer stays put and the places scroll.
+    <div className="-mx-1 flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-1 lg:mx-0 lg:overflow-visible lg:px-0">
       <Who onOpen={() => setProfileOpen(true)} roomRight={Boolean(onGo)} />
       {signedOut && (
         <button
@@ -219,7 +222,7 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
       )}
       {/* A small heading over each group, as a sidebar on a Mac has: space
           alone between groups did not read as a break. */}
-      <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-1">
+      <nav className="flex shrink-0 flex-col gap-3.5 lg:-mx-1 lg:min-h-0 lg:flex-1 lg:shrink lg:overflow-y-auto lg:px-1">
         {(
           [
             ['Play', play],
