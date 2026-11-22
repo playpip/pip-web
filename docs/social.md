@@ -1,7 +1,8 @@
 # Friends and profiles
 
-> **Status: built 2026-11-22, behind `NEXT_PUBLIC_SOCIAL`.** The screens stay hidden until
-> the migration is applied and the repo Variable is set ([To go live](#to-go-live)).
+> **Status: live since 2026-11-22.** `20261122180000_social.sql` is applied and the repo
+> Variable `NEXT_PUBLIC_SOCIAL=1` is set. [To go live](#to-go-live) is kept as the record of
+> how, and for a fresh project.
 
 Will, 2026-11-22: players can search for each other, add friends, block and report, challenge
 a friend to a game and invite friends to a table, all with notifications. Each player has a
@@ -81,7 +82,8 @@ From `pip-web/`:
    `pnpm supabase:db:push`.
 2. The room server deploys from CI on push. It already sends `social` pushes, and does nothing
    until the outbox has social rows.
-3. `gh variable set NEXT_PUBLIC_SOCIAL --body 1 -R playpip/pip-web`, then redeploy.
+3. `gh variable set NEXT_PUBLIC_SOCIAL --body 1 -R playpip/pip-web`, then redeploy. The build
+   step in `.github/workflows/deploy-cloudflare-pages.yaml` passes it through by name.
 4. Someone has to read reports. `select * from player_reports where not resolved order by
    created_at`, and clear `player_profiles.flagged` by hand. The App Store expects reports on
    user content to be dealt with within a day.

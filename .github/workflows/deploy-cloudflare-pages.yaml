@@ -173,6 +173,9 @@ jobs:
           # neither shows anywhere. Set it once the ratings migration is applied
           # and submit-rating is deployed, never before.
           NEXT_PUBLIC_RATING: ${{ vars.NEXT_PUBLIC_RATING }}
+          # `1` shows Friends, profiles and the inbox (docs/social.md). Unset →
+          # none of it shows. Set once the social migration is applied.
+          NEXT_PUBLIC_SOCIAL: ${{ vars.NEXT_PUBLIC_SOCIAL }}
         run: pnpm build
 
       # The only place the truth about sync config exists is the emitted bundle. `pnpm build`
