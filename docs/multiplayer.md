@@ -118,7 +118,7 @@ switch and quiet hours.
   once. Opens `/game`. Accounts with a device from before this start on their next lobby visit.
 - **Friends** (2026-11-22). Every inbox notification (a friend request, a request accepted, a
   challenge, a table invite) also queues a `social` `push_outbox` row (migration
-  `20261122090000_social.sql`), drained the same way into `POST /nudge/social` (`socialPush`).
+  `20261122180000_social.sql`), drained the same way into `POST /nudge/social` (`socialPush`).
   Under the Friends switch. Sent straight away outside quiet hours; in them, a live challenge or
   invite is dropped (the table is gone by morning) and the rest are held (up to 10) and sent
   when the quiet hours end.

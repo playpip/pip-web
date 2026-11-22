@@ -1,6 +1,6 @@
 // What a handle, a name or a bio may say (docs/social.md).
 //
-// An exact copy of `pip_text_ok` in supabase/migrations/20261122090000_social.sql,
+// An exact copy of `pip_text_ok` in supabase/migrations/20261122180000_social.sql,
 // so the form can say so before saving. The database is what enforces it;
 // tests/social.test.ts fails if the lists here and there differ.
 

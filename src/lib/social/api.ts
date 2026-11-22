@@ -2,7 +2,7 @@
 
 // Friends, profiles and the inbox: the network half (docs/social.md).
 //
-// Every call is a function in supabase/migrations/20261122090000_social.sql,
+// Every call is a function in supabase/migrations/20261122180000_social.sql,
 // which takes the caller from their session and refuses anything they may not
 // do. A refusal comes back as a short code; `problemOf` turns it into words.
 

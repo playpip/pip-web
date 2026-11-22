@@ -126,7 +126,7 @@ const definers = [
  * The security definer functions that take arguments, and why each cannot reach
  * a row the caller has no part in. Recorded here, as the test below asks.
  *
- * The friends functions (20261122090000_social.sql) all take the caller from
+ * The friends functions (20261122180000_social.sql) all take the caller from
  * `auth.uid()`, never from an argument. Their arguments name the *other*
  * person, or what the caller is saying about them, and every row they write or
  * delete has the caller in it: the caller's own profile, a friendship the

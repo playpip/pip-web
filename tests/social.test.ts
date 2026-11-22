@@ -16,7 +16,7 @@ import {
 // Friends, public profiles and the inbox (docs/social.md).
 
 const migration = readFileSync(
-  new URL('../supabase/migrations/20261122090000_social.sql', import.meta.url),
+  new URL('../supabase/migrations/20261122180000_social.sql', import.meta.url),
   'utf-8',
 )
 const sql = migration.replace(/^\s*--.*$/gm, ' ')

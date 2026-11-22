@@ -41,7 +41,7 @@ bio and picks what their profile shows.
 
 | Part | File |
 |---|---|
-| Tables and every write | `supabase/migrations/20261122090000_social.sql` |
+| Tables and every write | `supabase/migrations/20261122180000_social.sql` |
 | Client calls | `src/lib/social/api.ts` |
 | What a profile can show | `src/lib/social/card.ts` |
 | Word filter, handles | `src/lib/social/clean.ts` |
@@ -63,7 +63,7 @@ the Friends row on the multiplayer page, and Invite friends in a room's lobby.
 
 From `pip-web/`:
 
-1. `pnpm supabase:db:push:dry-run`. Check it lists only `20261122090000_social.sql`, then run
+1. `pnpm supabase:db:push:dry-run`. Check it lists only `20261122180000_social.sql`, then run
    `pnpm supabase:db:push`.
 2. The room server deploys from CI on push. It already sends `social` pushes, and does nothing
    until the outbox has social rows.
