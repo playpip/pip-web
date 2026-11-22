@@ -195,10 +195,9 @@ lifetime row. A **full** refund of the lifetime payment (`charge.refunded`) sets
 `refunded`, which ends it. A subscription paid in another tab first is cancelled when the
 lifetime payment lands, and logged: refund its last invoice by hand.
 
-**Status (2026-11-22):** steps 1 and 3 done; in step 2 the price exists
-(`price_1Uede5FQ6B6rgI6A9B1mBYe6`) and the webhook has both events, but the restricted key's
-PaymentIntents: Read is still to add in the dashboard. Step 4 is the switch, left off until the
-phase 1 read.
+**Status (2026-11-22):** steps 1 to 3 done. The price is `price_1Uede5FQ6B6rgI6A9B1mBYe6`, the
+webhook has both events, and the `pip` key already had PaymentIntents at Write (which includes
+Read). Step 4 is the switch, left off until the phase 1 read.
 
 **Switching it on**, in this order:
 
