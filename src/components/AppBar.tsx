@@ -9,6 +9,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { AccountBarButton } from '@/components/settings/AccountOffer'
 import { StyleDialog } from '@/components/settings/StyleDialog'
 import { SocialBell } from '@/components/social/SocialBell'
+import { SidebarDrawer } from '@/components/nav/Sidebar'
 import { useProfile } from '@/store/profile'
 import { avatarRingById } from '@/config/cosmetics'
 import { rankFor } from '@/config/ranks'
@@ -49,6 +50,7 @@ export function AppBar({
   chrome = true,
   account = true,
   settings = 'sheet',
+  nav = false,
   className,
 }: {
   leading?: Leading
@@ -64,6 +66,12 @@ export function AppBar({
   account?: boolean
   /** What the gear opens. */
   settings?: 'sheet' | 'page' | 'none'
+  /**
+   * A menu screen with the sidebar (PageShell): Style, Settings and the profile
+   * live in the sidebar, so the bar keeps only pip, the Friends count and, for
+   * a guest, the account button. On a phone your face opens the sidebar.
+   */
+  nav?: boolean
   className?: string
 }) {
   const router = useRouter()
@@ -74,6 +82,7 @@ export function AppBar({
   const [profileOpen, setProfileOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const centred = Boolean(title) && leading !== 'none'
   const row = useRef<HTMLDivElement>(null)
@@ -104,7 +113,23 @@ export function AppBar({
         )}
       >
         {/* leading */}
-        {leading === 'profile' ? (
+        {leading === 'profile' && nav ? (
+          // On a desktop the sidebar is already showing who you are.
+          <button
+            onClick={() => {
+              sound.play('tap')
+              setMenuOpen(true)
+            }}
+            className="flex items-center gap-3 justify-self-start rounded-full py-1 pl-1 pr-3 transition hover:bg-foreground/5 active:scale-[0.98] lg:invisible"
+            aria-label="Menu"
+          >
+            {avatar && <PlayerAvatar spec={avatar} size={40} ring={ring} />}
+            <div className="text-left leading-tight">
+              <div className="text-sm font-medium text-muted-foreground">{name}</div>
+              <div className="text-2xs text-muted-foreground/70">{rankFor(peakRoll).name}</div>
+            </div>
+          </button>
+        ) : leading === 'profile' ? (
           <button
             onClick={() => {
               sound.play('tap')
@@ -155,17 +180,31 @@ export function AppBar({
         >
           {actions}
           {showWordmark && (
-            <span className="mx-1 hidden select-none text-xl @[20rem]:inline font-semibold lowercase tracking-tight text-muted-foreground">
+            <span
+              className={cn(
+                'mx-1 select-none text-xl font-semibold lowercase tracking-tight text-muted-foreground',
+                // With the sidebar the wordmark is all the bar has to say.
+                nav ? 'order-last' : 'hidden @[20rem]:inline',
+              )}
+            >
               pip
             </span>
           )}
           {/* Signed out only, and it vanishes permanently once there is an
               account. One tap from anywhere beats three taps from two screens. */}
-          {chrome && (
+          {chrome && nav && (
+            <>
+              <SocialBell quiet />
+              {account && (
+                <span className="lg:hidden">
+                  <AccountBarButton />
+                </span>
+              )}
+            </>
+          )}
+          {chrome && !nav && (
             <>
               {account && <AccountBarButton />}
-              {/* Menu screens only: from a table it would walk you off a hand. */}
-              {settings === 'page' && <SocialBell />}
               <button
                 onClick={() => {
                   sound.play('tap')
@@ -194,8 +233,11 @@ export function AppBar({
         </div>
       </div>
 
-      {leading === 'profile' && <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />}
-      {chrome && (
+      {leading === 'profile' && !nav && (
+        <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+      )}
+      {nav && <SidebarDrawer open={menuOpen} onOpenChange={setMenuOpen} />}
+      {chrome && !nav && (
         <>
           <StyleDialog open={styleOpen} onOpenChange={setStyleOpen} />
           {settings === 'sheet' && (

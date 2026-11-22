@@ -20,22 +20,24 @@ export function InviteFriendsDialog({
   onOpenChange,
   code,
   slow,
+  venue,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   code: string
   slow: boolean
+  venue: string
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
-        {open && <Body code={code} slow={slow} />}
+        {open && <Body code={code} slow={slow} venue={venue} />}
       </DialogContent>
     </Dialog>
   )
 }
 
-function Body({ code, slow }: { code: string; slow: boolean }) {
+function Body({ code, slow, venue }: { code: string; slow: boolean; venue: string }) {
   const [friends, setFriends] = useState<Friend[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [picked, setPicked] = useState<string[]>([])
@@ -73,7 +75,7 @@ function Body({ code, slow }: { code: string; slow: boolean }) {
     sound.play('call')
     setSending(true)
     setProblem(null)
-    const r = await inviteFriends(picked, 'invite', code, slow)
+    const r = await inviteFriends(picked, 'invite', code, slow, venue)
     setSending(false)
     if (!r.ok) {
       setProblem(r.problem)

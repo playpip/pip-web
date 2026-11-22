@@ -3,6 +3,7 @@
 import type { ComponentProps } from 'react'
 import { cn } from '@/lib/utils'
 import { AppBar } from './AppBar'
+import { DesktopSidebar } from './nav/Sidebar'
 
 /**
  * The standard screen frame: the shared AppBar over a `max-w-6xl` content
@@ -23,22 +24,34 @@ export function PageShell({
   // A menu screen's gear opens the Settings page; a game hosted in a shell
   // (QuickPage) asks for the sheet instead, so nobody walks off a round.
 
+  // Menu screens get the sidebar (components/nav/Sidebar): standing at the left
+  // on a desktop, in a drawer from your face on a phone. A game hosted in a
+  // shell (`settings='sheet'`) does not: nobody walks off a round.
+  const nav = settings !== 'sheet'
+
   return (
-    // `data-shell`: in the store app, the AppBar stays put and <main> scrolls
-    // under it, like a native screen (globals.css). Nothing changes on the web.
-    <div data-shell={spacious ? 'spacious' : 'tight'} className="flex min-h-dvh flex-col">
-      <AppBar settings={settings} {...appBar} />
-      {/* Padding lives on the outer wrapper and the max-w cap on the inner
+    <div className={cn(nav && 'lg:flex')}>
+      {nav && <DesktopSidebar />}
+      {/* `data-shell`: in the store app, the AppBar stays put and <main> scrolls
+          under it, like a native screen (globals.css). Nothing changes on the
+          web. <main> must stay its direct child: the CSS says so. */}
+      <div
+        data-shell={spacious ? 'spacious' : 'tight'}
+        className="flex min-h-dvh min-w-0 flex-col lg:flex-1"
+      >
+        <AppBar settings={settings} nav={nav} {...appBar} />
+        {/* Padding lives on the outer wrapper and the max-w cap on the inner
           column — the SAME structure as AppBar — so the content column lines up
           exactly with the nav bar's, rather than sitting a padding's-width in. */}
-      <main
-        className={cn(
-          'flex flex-1 flex-col px-6 pb-8 md:px-10',
-          spacious ? 'pt-10 md:pt-14' : 'pt-4',
-        )}
-      >
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">{children}</div>
-      </main>
+        <main
+          className={cn(
+            'flex flex-1 flex-col px-6 pb-8 md:px-10',
+            spacious ? 'pt-10 md:pt-14' : 'pt-4',
+          )}
+        >
+          <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">{children}</div>
+        </main>
+      </div>
     </div>
   )
 }

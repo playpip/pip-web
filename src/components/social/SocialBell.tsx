@@ -10,11 +10,12 @@ import { sound } from '@/lib/sound'
 import { useSocial } from '@/store/social'
 import { useSync } from '@/store/sync'
 
-export function SocialBell() {
+/** `quiet`: only there when something is waiting, for the sidebar's bare bar. */
+export function SocialBell({ quiet = false }: { quiet?: boolean }) {
   const router = useRouter()
   const signedIn = useSync((s) => s.status === 'signed-in')
   const unread = useSocial((s) => s.unread)
-  if (!signedIn || !socialEnabled()) return null
+  if (!signedIn || !socialEnabled() || (quiet && unread === 0)) return null
   return (
     <button
       type="button"

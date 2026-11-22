@@ -113,7 +113,7 @@ function Form({ friend }: { friend: PlayerRow }) {
     }
     // The room is open either way; if the word doesn't reach them, the
     // lobby's invite link still does.
-    await inviteFriends([friend.handle], 'challenge', room.code, slow)
+    await inviteFriends([friend.handle], 'challenge', room.code, slow, stake.id)
     useRoom.getState().enter(room.code)
     router.push(`/game/room?code=${room.code}`)
   }

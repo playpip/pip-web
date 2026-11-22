@@ -422,6 +422,7 @@ export function RoomLobby({
           onOpenChange={setInviting}
           code={view.code}
           slow={slow}
+          venue={view.venueId}
         />
         <PlayerSheet
           seat={sheet}

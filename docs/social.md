@@ -56,8 +56,22 @@ reach anyone else's rows.
 
 ## Ways in
 
-The Friends button in the bar on menu screens (not at a table), with the unread count. Also
-the Friends row on the multiplayer page, and Invite friends in a room's lobby.
+Friends in the sidebar, with the unread count, and the count in the bar when something is
+waiting (menu screens only, never at a table). Also the Friends row on the multiplayer page,
+and Invite friends in a room's lobby.
+
+## The screens
+
+- **Friends:** a strip of faces to challenge in one tap, then requests, friends, sent, and
+  blocked (folded away). On a wide screen (1280px and up) the friend you pick stands on the
+  right.
+- **A profile** (`PlayerView`): the venue that matches their rank behind them, only when
+  they show their rank (otherwise the multiplayer table, which says nothing). One main
+  button; Remove, Block and Report wait behind "…".
+- **Inbox:** games first, as cards with the room's venue (challenges and invites carry
+  `venue` in their payload), then friend requests still waiting on you, then the rest.
+  `my_notifications` returns where you stand with each sender now, so a request already
+  answered is not asked again.
 
 ## To go live
 

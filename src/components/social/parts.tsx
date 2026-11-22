@@ -1,16 +1,14 @@
 'use client'
 
-// The small pieces the friends screens share: a face, a row for a person, and
-// the shown values as tiles.
+// The small pieces the friends screens share: a face, a section label, a row
+// button, and the shown values as label and value.
 
-import Link from 'next/link'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { avatarRingById } from '@/config/cosmetics'
 import type { AvatarSpec } from '@/lib/avatar'
 import { bandFor, isProvisional } from '@/lib/rating'
 import { styleNamed } from '@/lib/playStyle'
 import type { Card, ShowKey } from '@/lib/social/card'
-import type { PlayerRow } from '@/lib/social/api'
 import { formatChips } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 
@@ -34,44 +32,6 @@ export function Face({
 }
 
 export const profileHref = (handle: string) => `/game/player?h=${encodeURIComponent(handle)}`
-
-/** One person in a list. The face and name open their profile; `children` sit at the end. */
-export function PersonRow({
-  person,
-  note,
-  children,
-}: {
-  person: PlayerRow
-  note?: string
-  children?: React.ReactNode
-}) {
-  return (
-    <li className="flex min-h-16 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5">
-      <Link
-        href={profileHref(person.handle)}
-        className="flex min-w-0 flex-1 basis-40 items-center gap-3 rounded-xl transition hover:opacity-80"
-      >
-        <Face avatar={person.avatar} ring={person.ring} size={40} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{person.name}</span>
-          <span className="block truncate text-xs text-muted-foreground">
-            @{person.handle}
-            {note && ` · ${note}`}
-          </span>
-        </span>
-      </Link>
-      {children && <span className="ml-auto flex shrink-0 items-center gap-2">{children}</span>}
-    </li>
-  )
-}
-
-export function List({ children }: { children: React.ReactNode }) {
-  return (
-    <ul className="flex flex-col divide-y divide-foreground/[0.06] overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02]">
-      {children}
-    </ul>
-  )
-}
 
 export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -156,26 +116,4 @@ export function shownTiles(
     }
   }
   return tiles
-}
-
-export function Tiles({ tiles }: { tiles: Shown[] }) {
-  if (tiles.length === 0) return null
-  return (
-    <dl className="grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2">
-      {tiles.map((t) => (
-        <div
-          key={t.label}
-          className="rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3"
-        >
-          <dt className="text-xs text-muted-foreground">{t.label}</dt>
-          <dd className="mt-0.5 text-lg font-semibold tabular-nums">
-            {t.value}
-            {t.detail && (
-              <span className="ml-1.5 text-xs font-normal text-muted-foreground">{t.detail}</span>
-            )}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  )
 }

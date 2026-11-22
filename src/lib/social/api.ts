@@ -289,8 +289,15 @@ export function inviteFriends(
   kind: 'challenge' | 'invite',
   code: string,
   slow: boolean,
+  venue: string,
 ): Promise<Result<number>> {
-  return rpc('invite_friends', { p_handles: handles, p_kind: kind, p_code: code, p_slow: slow })
+  return rpc('invite_friends', {
+    p_handles: handles,
+    p_kind: kind,
+    p_code: code,
+    p_slow: slow,
+    p_venue: venue,
+  })
 }
 
 // --- the inbox ----------------------------------------------------------------
@@ -304,8 +311,12 @@ export interface Notice {
   /** Challenges and invites. */
   code: string | null
   slow: boolean
+  /** The room's venue, for its picture. */
+  venue: string | null
   at: string
   read: boolean
+  /** Where you stand with them now: a request already answered is not asked again. */
+  relation: Relation
 }
 
 export async function myNotices(): Promise<Result<Notice[]>> {
@@ -314,9 +325,10 @@ export async function myNotices(): Promise<Result<Notice[]>> {
       (RawRow & {
         id: number
         kind: NoticeKind
-        payload: { code?: string; slow?: boolean } | null
+        payload: { code?: string; slow?: boolean; venue?: string } | null
         created_at: string
         read_at: string | null
+        relation: Relation
       })[]
     >('my_notifications')
   return r.ok
@@ -328,8 +340,10 @@ export async function myNotices(): Promise<Result<Notice[]>> {
           from: toRow(x),
           code: x.payload?.code ?? null,
           slow: x.payload?.slow === true,
+          venue: x.payload?.venue ?? null,
           at: x.created_at,
           read: x.read_at !== null,
+          relation: x.relation,
         })),
       }
     : r

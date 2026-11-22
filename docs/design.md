@@ -161,6 +161,14 @@ blips in keeping with the anti-casino aesthetic, not casino jingles.
   Rail, Venues, Side Tables, the Chip Shop). Tapping a section opens its own page
   (`/game/ladder`, `/game/rail`, `/game/side`) via `SectionScreen` — an iOS-style back
   header; venue pages show a responsive grid on desktop, a vertical list on mobile.
+- **The sidebar** (`components/nav/Sidebar.tsx`, Will 2026-11-22). Every `PageShell`
+  menu screen has it: always showing at the left from `lg` up, and in a drawer from your
+  face in the bar below that. It holds who you are, the main places (Home, Venues, The
+  Rail, Multiplayer, Friends, Leaderboard, Drills, Learn, Stats), then Pearl's counter,
+  Style, Membership and Settings. The bar on those screens says only **pip**, plus the
+  Friends count when something is waiting and the account button for a guest. **Never on
+  a table** or a game in a shell (`settings='sheet'`): those keep their own bar with Style
+  and Settings. `<main>` stays a direct child of `[data-shell]` (the store app's CSS).
 - **One lobby for everybody.** A new player sees the same lobby as anyone else, with the
   "Getting started" checklist under the Roll (docs/game-flow.md → The welcome flow).
 - **Above-the-fold copy on marketing pages animates in CSS (`.rise-in`), never with a Framer

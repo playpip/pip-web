@@ -124,7 +124,7 @@ create table if not exists public.notifications (
   user_id uuid not null references auth.users on delete cascade,
   actor uuid not null references auth.users on delete cascade,
   kind text not null check (kind in ('friend-request', 'friend-accepted', 'challenge', 'invite')),
-  -- For a challenge or an invite: { code, slow }.
+  -- For a challenge or an invite: { code, slow, venue }.
   payload jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   read_at timestamptz
@@ -659,7 +659,8 @@ create or replace function public.invite_friends(
   p_handles text[],
   p_kind text,
   p_code text,
-  p_slow boolean
+  p_slow boolean,
+  p_venue text
 )
 returns integer
 language plpgsql
@@ -677,6 +678,9 @@ begin
   end if;
   if p_code !~ '^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$' then
     raise exception 'code';
+  end if;
+  if p_venue !~ '^[a-z0-9-]{1,40}$' then
+    raise exception 'venue';
   end if;
   if coalesce(array_length(p_handles, 1), 0) = 0 then
     return 0;
@@ -701,7 +705,7 @@ begin
         where user_id = them and actor = me and payload ->> 'code' = p_code
       ) then
       perform public.social_notify(them, me, p_kind,
-        jsonb_build_object('code', p_code, 'slow', coalesce(p_slow, false)));
+        jsonb_build_object('code', p_code, 'slow', coalesce(p_slow, false), 'venue', p_venue));
       sent := sent + 1;
     end if;
   end loop;
@@ -714,7 +718,7 @@ $$;
 create or replace function public.my_notifications()
 returns table (
   id bigint, kind text, payload jsonb, created_at timestamptz, read_at timestamptz,
-  handle text, display_name text, avatar jsonb, ring text
+  handle text, display_name text, avatar jsonb, ring text, relation text
 )
 language sql
 stable
@@ -722,7 +726,9 @@ security definer
 set search_path = ''
 as $$
   select n.id, n.kind, n.payload, n.created_at, n.read_at,
-    p.handle, p.display_name, p.avatar, p.ring
+    p.handle, p.display_name, p.avatar, p.ring,
+    -- Where things stand now, so a request already answered shows as such.
+    public.social_relation(public.social_me(), n.actor)
   from public.notifications n
   join public.player_profiles p on p.user_id = n.actor
   where n.user_id = public.social_me()
@@ -764,7 +770,7 @@ begin
     'unblock_player(uuid)',
     'my_blocks()',
     'report_player(text, text, text)',
-    'invite_friends(text[], text, text, boolean)',
+    'invite_friends(text[], text, text, boolean, text)',
     'my_notifications()',
     'read_notifications(bigint[])'
   ] loop
