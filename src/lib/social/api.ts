@@ -39,6 +39,8 @@ export interface Player extends PlayerRow {
   relation: Relation
   friendsSince: string | null
   searchable: boolean
+  /** A featured player's label ("Made Pip"), or null. */
+  featured: string | null
 }
 
 export interface MyProfile extends PlayerRow {
@@ -143,6 +145,19 @@ export function saveMyProfile(p: {
   })
 }
 
+/**
+ * Make your profile if you have none: a handle from your name, showing only the
+ * Pip Rating. Everyone with an account has one (docs/social.md); this covers a
+ * new account. Leaves an existing profile alone.
+ */
+export function ensureMyProfile(p: {
+  name: string
+  avatar: AvatarSpec | null
+  ring: string | null
+}): Promise<Result<null>> {
+  return rpc('ensure_player_profile', { p_name: p.name, p_avatar: p.avatar, p_ring: p.ring })
+}
+
 /** The shown values again, and your current name and face. */
 export function refreshMyCard(p: {
   name: string
@@ -186,8 +201,15 @@ export async function getPlayer(handle: string): Promise<Result<Player | null>> 
       relation: v.relation as Relation,
       friendsSince: (v.friendsSince as string | null) ?? null,
       searchable: v.searchable === true,
+      featured: typeof v.featured === 'string' ? v.featured : null,
     },
   }
+}
+
+/** People to add: featured players first, then friends of friends. `reason` says why. */
+export async function suggestedPlayers(): Promise<Result<(PlayerRow & { reason: string })[]>> {
+  const r = await rpc<(RawRow & { reason: string })[]>('suggested_players')
+  return r.ok ? { ok: true, value: r.value.map((x) => ({ ...toRow(x), reason: x.reason })) } : r
 }
 
 // --- friends ------------------------------------------------------------------

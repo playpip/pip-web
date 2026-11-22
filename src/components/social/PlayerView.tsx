@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Ban, Check, Flag, Loader2, MoreHorizontal, UserMinus, X } from 'lucide-react'
+import { BadgeCheck, Ban, Check, Flag, Loader2, MoreHorizontal, UserMinus, X } from 'lucide-react'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -167,6 +167,11 @@ function Card({
         </motion.div>
         <div className="min-w-0 max-w-full">
           <h1 className="break-words text-3xl font-semibold tracking-tight">{player.name}</h1>
+          {player.featured && (
+            <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">
+              <BadgeCheck className="size-3.5" /> {player.featured}
+            </span>
+          )}
           <p className="mt-0.5 break-all text-sm text-muted-foreground">
             @{player.handle}
             {player.relation === 'friends' && player.friendsSince && (

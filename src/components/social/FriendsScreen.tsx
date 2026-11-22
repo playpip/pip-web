@@ -29,6 +29,7 @@ import {
   requestFriend,
   searchPlayers,
   socialEnabled,
+  suggestedPlayers,
   unblockPlayer,
 } from '@/lib/social/api'
 import { sound } from '@/lib/sound'
@@ -331,6 +332,58 @@ function Answer({ handle, onDone }: { handle: string; onDone: (r: Relation) => v
   )
 }
 
+// --- suggested ----------------------------------------------------------------
+
+/** People to add, with why: featured players, then friends of friends. Hidden when empty. */
+function Suggested({ onAdded }: { onAdded?: () => void }) {
+  const [people, setPeople] = useState<(PlayerRow & { reason: string })[] | null>(null)
+  const [asked, setAsked] = useState<Record<string, Relation>>({})
+  const [busy, setBusy] = useState<string | null>(null)
+
+  useEffect(() => {
+    let live = true
+    void suggestedPlayers().then((r) => {
+      if (live && r.ok) setPeople(r.value)
+    })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  if (!people || people.length === 0) return null
+
+  const add = async (handle: string) => {
+    sound.play('tap')
+    setBusy(handle)
+    const r = await requestFriend(handle)
+    setBusy(null)
+    if (!r.ok) return
+    if (r.value === 'friends') sound.play('win')
+    setAsked((a) => ({ ...a, [handle]: r.value }))
+    onAdded?.()
+  }
+
+  return (
+    <Group label="Suggested">
+      {people.map((p) => (
+        <Person key={p.handle} person={p} note={p.reason}>
+          {asked[p.handle] === 'friends' ? (
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Check className="size-4" /> Friends
+            </span>
+          ) : asked[p.handle] ? (
+            <span className="text-sm text-muted-foreground">Requested</span>
+          ) : (
+            <RowButton primary disabled={busy === p.handle} onClick={() => void add(p.handle)}>
+              Add
+            </RowButton>
+          )}
+        </Person>
+      ))}
+    </Group>
+  )
+}
+
 // --- friends ------------------------------------------------------------------
 
 function FriendsTab({
@@ -449,6 +502,8 @@ function FriendsTab({
           ))}
         </Group>
       )}
+
+      <Suggested onAdded={load} />
 
       {sent.length > 0 && (
         <Group label="Sent">
@@ -714,7 +769,9 @@ function FindTab() {
         />
       </label>
       {problem && <p className="text-sm text-destructive">{problem}</p>}
-      {short ? null : !results ? (
+      {short ? (
+        <Suggested />
+      ) : !results ? (
         <Skeleton />
       ) : results.length === 0 ? (
         <p className="px-1 text-sm text-muted-foreground">Nobody by that name.</p>

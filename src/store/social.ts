@@ -11,6 +11,7 @@ import { cardOf } from '@/lib/social/card'
 import {
   type MyProfile,
   type Notice,
+  ensureMyProfile,
   myNotices,
   readMyProfile,
   readNotices,
@@ -74,14 +75,20 @@ export const useSocial = create<SocialState>()((set, get) => ({
   },
 
   loadMe: async () => {
-    const me = await readMyProfile()
+    let me = await readMyProfile()
     if (me === undefined) return
+    // Everyone with an account has a profile; a new account gets theirs here,
+    // once they have a player to make it from.
+    const p = useProfile.getState()
+    if (me === null && p.created) {
+      const made = await ensureMyProfile({ name: p.name, avatar: p.avatar, ring: p.avatarRing })
+      if (made.ok) me = (await readMyProfile()) ?? null
+    }
     set({ me })
     // Your shown numbers move as you play: send them again now and then, on
     // the next open, rather than after every hand.
     if (me && Date.now() - cardSentAt > CARD_EVERY_MS) {
       cardSentAt = Date.now()
-      const p = useProfile.getState()
       void refreshMyCard({
         name: p.name,
         avatar: p.avatar,

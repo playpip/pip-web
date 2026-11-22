@@ -147,6 +147,8 @@ const DEFINERS_WITH_ARGUMENTS: Record<string, string> = {
   report_player: 'writes a report the caller makes',
   invite_friends: 'notifies only the caller’s friends, as the caller',
   read_notifications: 'marks only the caller’s own notifications',
+  ensure_player_profile: 'makes only the caller’s own profile, and only if they have none',
+  pip_free_handle: 'helper, revoked from every client role',
   social_blocked: 'helper, revoked from every client role',
   social_target: 'helper, revoked from every client role',
   social_notify: 'helper, revoked from every client role',

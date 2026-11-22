@@ -10,10 +10,15 @@ bio and picks what their profile shows.
 
 ## The rules
 
-- **It takes an account.** Guests have no profile, no friends and no inbox. Signing up stays
-  optional, and "add friends" gives people one more reason to do it.
+- **It takes an account, and every account has a profile** (Will, 2026-11-22). Guests have no
+  profile, no friends and no inbox. Accounts that existed on 2026-11-22 were given one from the
+  name and face they sync (`20261122220000_default_profiles.sql`); a new account gets one the
+  first time it opens the app (`ensure_player_profile`, from `src/store/social.ts`). The handle
+  comes from the name (`will_l`, then `will_l_2`), or `player_<n>` when the name won't do.
+  Anyone can change it in Your profile.
 - **A profile shows only what its owner switched on.** A new profile shows the Pip Rating,
-  which is already public on the leaderboard, and nothing else. **The Roll and its rank are
+  which is already public on the leaderboard, and nothing else. A player hidden from the
+  leaderboard starts hidden here too: out of search and showing nothing. **The Roll and its rank are
   private unless the player chooses to show them here** (this overrides the old rule, for
   profiles only; nobody at a table sees them). Only the shown values leave the device
   (`cardOf` in `src/lib/social/card.ts`). The rating is read from `ratings`, so it is the one
@@ -37,6 +42,21 @@ bio and picks what their profile shows.
   they host. Joining is always free. `invite_friends` only sends the notice, and only to
   friends.
 - **No messaging.** Moderating direct messages would cost more than all of this put together.
+
+## Suggested
+
+Friends and Find (before you type) show **Suggested** people to add (`suggested_players`,
+`20261122210000_suggested_friends.sql`):
+
+1. **Featured players**, from `featured_players`, a short list kept by hand with the
+   service role, each with a label shown beside them and on their profile card. Will is on
+   it as "Made Pip" (Will, 2026-11-22). To add someone:
+   `insert into featured_players (user_id, label, sort) select user_id, 'Label', 1 from
+   player_profiles where handle = '…';`
+2. **Friends of friends**, most mutual friends first, and only people who appear in search.
+
+Never yourself, anyone you're already friends with or have asked (either way), anyone
+blocked either way, or a flagged profile. At most twelve.
 
 ## Where it lives
 
