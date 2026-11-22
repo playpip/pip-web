@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useMembership } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
+import { useSocial } from '@/store/social'
 import { useSync } from '@/store/sync'
 import { soundPackById } from '@/config/cosmetics'
 import { haptics } from '@/lib/haptics'
@@ -63,6 +64,8 @@ export function AppBoot() {
     // Subscribes to that session rather than going looking for one, so a
     // player with no account still makes no request of its own.
     useMembership.getState().start()
+    // Your public profile and inbox, the same way: nothing until signed in.
+    useSocial.getState().start()
 
     return () => sound.onPlay(null)
   }, [])

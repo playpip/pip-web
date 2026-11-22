@@ -122,10 +122,42 @@ const definers = [
   ...all.matchAll(/create (?:or replace )?function public\.(\w+)\s*\(([^)]*)\)([\s\S]*?)\$\$/gi),
 ].filter(([, , , body]) => /security definer/i.test(body))
 
+/**
+ * The security definer functions that take arguments, and why each cannot reach
+ * a row the caller has no part in. Recorded here, as the test below asks.
+ *
+ * The friends functions (20261122090000_social.sql) all take the caller from
+ * `auth.uid()`, never from an argument. Their arguments name the *other*
+ * person, or what the caller is saying about them, and every row they write or
+ * delete has the caller in it: the caller's own profile, a friendship the
+ * caller is half of, a block or report the caller makes, a notification the
+ * caller sends or owns. The `social_*` helpers do take ids, and are revoked
+ * from every client role, so only the functions above them can call them.
+ */
+const DEFINERS_WITH_ARGUMENTS: Record<string, string> = {
+  save_player_profile: 'writes only the caller’s own profile',
+  refresh_player_card: 'updates only the caller’s own profile',
+  search_players: 'reads only public fields, leaving out blocks and the unsearchable',
+  get_player: 'reads only public fields, null across a block',
+  request_friend: 'writes a friendship the caller is half of',
+  answer_friend: 'changes only a request made to the caller',
+  remove_friend: 'deletes only a friendship the caller is half of',
+  block_player: 'writes a block the caller makes; deletes only rows between the two',
+  unblock_player: 'deletes only a block the caller made',
+  report_player: 'writes a report the caller makes',
+  invite_friends: 'notifies only the caller’s friends, as the caller',
+  read_notifications: 'marks only the caller’s own notifications',
+  social_blocked: 'helper, revoked from every client role',
+  social_target: 'helper, revoked from every client role',
+  social_notify: 'helper, revoked from every client role',
+  social_relation: 'helper, revoked from every client role',
+}
+
 test('a security definer function takes no arguments', (t) => {
   t.true(definers.length >= 1, 'delete_own_account() has gone missing')
 
   for (const [, name, args] of definers) {
+    if (DEFINERS_WITH_ARGUMENTS[name]) continue
     t.is(
       args.trim(),
       '',

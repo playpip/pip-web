@@ -1,6 +1,6 @@
 // Pushes that are not about a slow game: somebody passing you on the Pip
-// Rating board, and your streak about to end (Will, 2026-11-09: "as many for
-// retention").
+// Rating board, your streak about to end (Will, 2026-11-09: "as many for
+// retention"), and friends: requests, challenges and table invites.
 //
 // Pure: the player's index (`rooms/src/player.ts`) holds the prefs, the
 // devices and the clock, and asks these functions what is due and what to say.
@@ -12,9 +12,13 @@
 //   UTC day), at the latest of a few times outside your quiet hours. Played
 //   yesterday and not yet today: it ends at midnight. Missed yesterday after
 //   two days or more: it has ended, said once.
+// - **Friends:** each one goes as it comes. A live challenge or invite that
+//   lands in your quiet hours is dropped (the table is gone by morning); the
+//   rest wait them out.
 // - Every one of them waits out your quiet hours, like a slow game's.
 
 import { daysBetween, streakAtRisk, type PlayStreak } from '@/lib/streak'
+import { normaliseRoomCode } from './code'
 import { awake, type PlayPrefs } from './notices'
 
 const H = 60 * 60 * 1000
@@ -118,4 +122,61 @@ export function passedCopy(name: string, rank: number | null): PushCopy {
 /** Whether a "passed you" push may go at `now`, given when the last one did. */
 export function ratingPushAllowed(lastAt: number | null, now: number): boolean {
   return lastAt === null || now - lastAt >= RATING_GAP_MS
+}
+
+/** A friend push: what it says, where it opens, and whether it is about a live table. */
+interface SocialPush {
+  copy: PushCopy
+  url: string
+  tag: string
+  /** A live table: worth nothing once it has gone, so never held for later. */
+  live: boolean
+}
+
+/**
+ * A `social` outbox row's payload (`social_notify` in the social migration), as
+ * a push. Null unless every field it needs is right.
+ */
+export function socialPush(payload: unknown): SocialPush | null {
+  if (typeof payload !== 'object' || payload === null) return null
+  const p = payload as Record<string, unknown>
+  const { name, handle } = p
+  if (typeof name !== 'string' || name.length === 0 || name.length > 24) return null
+  if (typeof handle !== 'string' || !/^[a-z0-9_]{3,20}$/.test(handle)) return null
+  switch (p.kind) {
+    case 'friend-request':
+      return {
+        copy: { title: `${name} sent you a friend request`, body: 'Say yes or no in Friends.' },
+        url: '/game/friends',
+        tag: `friend-${handle}`,
+        live: false,
+      }
+    case 'friend-accepted':
+      return {
+        copy: { title: `${name} accepted your friend request`, body: 'Challenge them to a game.' },
+        url: `/game/player?h=${handle}`,
+        tag: `friend-${handle}`,
+        live: false,
+      }
+    case 'challenge':
+    case 'invite': {
+      const code = typeof p.code === 'string' ? normaliseRoomCode(p.code) : null
+      if (!code) return null
+      const slow = p.slow === true
+      const copy =
+        p.kind === 'challenge'
+          ? {
+              title: `${name} challenged you`,
+              body: slow
+                ? 'A slow game, heads-up. Your seat is waiting.'
+                : 'Heads-up, live now. Take your seat.',
+            }
+          : {
+              title: `${name} invited you to their table`,
+              body: slow ? 'A slow game. Your seat is waiting.' : 'They’re at the table now.',
+            }
+      return { copy, url: `/game/room?code=${code}`, tag: `room-${code}`, live: !slow }
+    }
+  }
+  return null
 }

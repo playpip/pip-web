@@ -23,7 +23,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Clock, Loader2, Lock, Star, Users, Video, Zap } from 'lucide-react'
+import { ChevronRight, Clock, Loader2, Lock, Star, Users, Video, Zap } from 'lucide-react'
 import { AccountDialog } from '@/components/settings/AccountDialog'
 import { PageShell } from '@/components/PageShell'
 import { Splash } from '@/components/Splash'
@@ -55,6 +55,8 @@ import { useEntitlement } from '@/store/entitlement'
 import { useProfile } from '@/store/profile'
 import { useQueue } from '@/store/queue'
 import { useRoom } from '@/store/room'
+import { useSocial } from '@/store/social'
+import { socialEnabled } from '@/lib/social/api'
 import { useSync } from '@/store/sync'
 import { YourGames } from '@/components/menu/YourGames'
 import { LimitCard, type LimitKind } from '@/components/membership/LimitCard'
@@ -62,7 +64,7 @@ import { SettingsList, settingsForPace } from './RoomSettings'
 
 type Mode = 'friends' | 'quick'
 
-const ERRORS: Record<string, string> = {
+export const ROOM_ERRORS: Record<string, string> = {
   auth: 'Sign in again to play.',
   'members-only': 'This comes with the membership.',
   'free-room-used': 'Your free room this week is used. Opening another comes with the membership.',
@@ -185,7 +187,7 @@ export function MultiplayerHub() {
         const used = result.error === 'free-room-used' ? 'room' : 'slow'
         setFreeLeft((left) => left && { ...left, [used]: false })
       }
-      setProblem(ERRORS[result.error] ?? ERRORS.busy)
+      setProblem(ROOM_ERRORS[result.error] ?? ROOM_ERRORS.busy)
       return
     }
     useRoom.getState().enter(result.code)
@@ -317,6 +319,7 @@ export function MultiplayerHub() {
             the membership adds under it; somebody signed out is asked to sign
             in and shown nothing they could not use. */}
         {signedIn && <YourGames />}
+        {signedIn && <FriendsLink />}
 
         {!signedIn ? (
           <GuestPanel
@@ -424,7 +427,7 @@ export function MultiplayerHub() {
 
         {(problem || queueFailed) && !limit && (
           <p className="-mt-2 text-center text-sm text-suit-red">
-            {problem ?? ERRORS[queue.error ?? 'closed'] ?? ERRORS.closed}
+            {problem ?? ROOM_ERRORS[queue.error ?? 'closed'] ?? ROOM_ERRORS.closed}
           </p>
         )}
       </div>
@@ -659,5 +662,27 @@ function CodeBoxes({
         })}
       </div>
     </div>
+  )
+}
+
+/** Friends: challenge one, or see who's asked. Once friends are switched on. */
+function FriendsLink() {
+  const unread = useSocial((s) => s.unread)
+  if (!socialEnabled()) return null
+  return (
+    <Link
+      href="/game/friends"
+      onClick={() => sound.play('tap')}
+      className="flex min-h-14 items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3 transition hover:bg-foreground/[0.06]"
+    >
+      <Users className="size-5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 font-medium">Friends</span>
+      {unread > 0 && (
+        <span className="rounded-full bg-primary px-2 text-xs font-semibold leading-5 text-primary-foreground tabular-nums">
+          {unread}
+        </span>
+      )}
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
   )
 }

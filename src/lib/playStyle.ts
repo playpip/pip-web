@@ -74,3 +74,8 @@ export function derivePlayStyle(t: SeatStats): PlayStyle {
     ...ARCHETYPES[key],
   }
 }
+
+/** An archetype's name and line, for a style read off somebody's public profile. */
+export function styleNamed(key: StyleKey): { name: string; blurb: string } {
+  return ARCHETYPES[key]
+}

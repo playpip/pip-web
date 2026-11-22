@@ -27,6 +27,8 @@ export interface PlayPrefs {
   rating: boolean
   /** Push when your streak is about to end, or has (`nudges.ts`). */
   streak: boolean
+  /** Push for friend requests, challenges and table invites (`nudges.ts` `socialPush`). */
+  friends: boolean
 }
 
 export const DEFAULT_PREFS: PlayPrefs = {
@@ -40,6 +42,7 @@ export const DEFAULT_PREFS: PlayPrefs = {
   slow: true,
   rating: true,
   streak: true,
+  friends: true,
 }
 
 /** With no device to push to, the email waits this long, in case they are on their way. */
@@ -159,6 +162,8 @@ export function parsePrefs(v: unknown): PlayPrefs | null {
     slow: on(v.slow),
     rating: on(v.rating),
     streak: on(v.streak),
+    // And before 2026-11-22, this one.
+    friends: on(v.friends),
   }
 }
 

@@ -8,6 +8,7 @@ import { ProfileDialog } from '@/components/profile/ProfileDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
 import { AccountBarButton } from '@/components/settings/AccountOffer'
 import { StyleDialog } from '@/components/settings/StyleDialog'
+import { SocialBell } from '@/components/social/SocialBell'
 import { useProfile } from '@/store/profile'
 import { avatarRingById } from '@/config/cosmetics'
 import { rankFor } from '@/config/ranks'
@@ -163,6 +164,8 @@ export function AppBar({
           {chrome && (
             <>
               {account && <AccountBarButton />}
+              {/* Menu screens only: from a table it would walk you off a hand. */}
+              {settings === 'page' && <SocialBell />}
               <button
                 onClick={() => {
                   sound.play('tap')

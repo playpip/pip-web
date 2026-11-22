@@ -165,11 +165,14 @@ async function drainOutbox(env: Env): Promise<void> {
   const done: number[] = []
   await Promise.all(
     rows.map(async (row) => {
-      if (now - Date.parse(row.created_at) > OUTBOX_STALE_MS || row.kind !== 'passed') {
+      // Where each kind goes in the player's index. Any other kind is dropped.
+      const route =
+        row.kind === 'passed' ? 'nudge/passed' : row.kind === 'social' ? 'nudge/social' : null
+      if (now - Date.parse(row.created_at) > OUTBOX_STALE_MS || !route) {
         done.push(row.id)
         return
       }
-      const r = await player(env, row.user_id, 'nudge/passed', row.payload).catch(() => null)
+      const r = await player(env, row.user_id, route, row.payload).catch(() => null)
       if (r?.ok) done.push(row.id)
     }),
   )

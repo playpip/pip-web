@@ -7,6 +7,7 @@ import {
   passedCopy,
   ratingPushAllowed,
   readPlayStreak,
+  socialPush,
   streakCopy,
 } from '@/lib/multiplayer/nudges'
 
@@ -87,4 +88,76 @@ test('prefs from a page before the new switches turn them on', (t) => {
   const old = { tz: 'UTC', quietFrom: 0, quietTo: 0, push: true, email: false }
   t.like(parsePrefs(old), { slow: true, rating: true, streak: true })
   t.like(parsePrefs({ ...old, rating: false }), { rating: false, streak: true })
+})
+
+test('prefs from a page before the Friends switch turn it on', (t) => {
+  const old = { tz: 'UTC', quietFrom: 0, quietTo: 0, push: true, email: false, slow: true }
+  t.like(parsePrefs(old), { friends: true })
+  t.like(parsePrefs({ ...old, friends: false }), { friends: false })
+  t.true(DEFAULT_PREFS.friends)
+})
+
+test('a friend request and an acceptance say who, and open where to answer', (t) => {
+  t.deepEqual(socialPush({ kind: 'friend-request', name: 'Al', handle: 'al_ace' }), {
+    copy: { title: 'Al sent you a friend request', body: 'Say yes or no in Friends.' },
+    url: '/game/friends',
+    tag: 'friend-al_ace',
+    live: false,
+  })
+  t.deepEqual(socialPush({ kind: 'friend-accepted', name: 'Bea', handle: 'bea' }), {
+    copy: { title: 'Bea accepted your friend request', body: 'Challenge them to a game.' },
+    url: '/game/player?h=bea',
+    tag: 'friend-bea',
+    live: false,
+  })
+})
+
+test('a challenge or invite opens the room, and is live unless slow', (t) => {
+  const base = { name: 'Al', handle: 'al_ace', code: 'ABCDEF' }
+  t.deepEqual(socialPush({ ...base, kind: 'challenge', slow: false }), {
+    copy: { title: 'Al challenged you', body: 'Heads-up, live now. Take your seat.' },
+    url: '/game/room?code=ABCDEF',
+    tag: 'room-ABCDEF',
+    live: true,
+  })
+  t.like(socialPush({ ...base, kind: 'challenge', slow: true }), {
+    copy: { body: 'A slow game, heads-up. Your seat is waiting.' },
+    live: false,
+  })
+  t.deepEqual(socialPush({ ...base, kind: 'invite', slow: true }), {
+    copy: { title: 'Al invited you to their table', body: 'A slow game. Your seat is waiting.' },
+    url: '/game/room?code=ABCDEF',
+    tag: 'room-ABCDEF',
+    live: false,
+  })
+  t.like(socialPush({ ...base, kind: 'invite', slow: false }), {
+    copy: { body: 'They’re at the table now.' },
+    live: true,
+  })
+  // A code is read as a typed one would be.
+  t.like(socialPush({ ...base, kind: 'invite', code: 'abc-def' }), { tag: 'room-ABCDEF' })
+})
+
+test('a friend push with anything wrong in it is not sent', (t) => {
+  const ok = { kind: 'challenge', name: 'Al', handle: 'al_ace', code: 'ABCDEF', slow: false }
+  t.not(socialPush(ok), null)
+  for (const bad of [
+    null,
+    'challenge',
+    [],
+    { ...ok, kind: 'poke' },
+    { ...ok, kind: undefined },
+    { ...ok, name: undefined },
+    { ...ok, name: '' },
+    { ...ok, name: 'x'.repeat(25) },
+    { ...ok, handle: 'Al' },
+    { ...ok, handle: 'al ace' },
+    { ...ok, handle: 'a'.repeat(21) },
+    { ...ok, code: undefined },
+    { ...ok, code: 'ABCDE' },
+    { ...ok, code: 'ABCDE0' },
+    { ...ok, kind: 'invite', code: 42 },
+  ]) {
+    t.is(socialPush(bad), null, JSON.stringify(bad))
+  }
 })

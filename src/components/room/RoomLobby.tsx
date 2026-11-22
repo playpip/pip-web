@@ -9,8 +9,9 @@
 
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, Copy, Plus, Share2, SlidersHorizontal, X } from 'lucide-react'
+import { Check, Copy, Plus, Share2, SlidersHorizontal, Users, X } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
+import { InviteFriendsDialog } from '@/components/social/InviteFriendsDialog'
 import { TableStyleContext } from '@/components/table/parts'
 import { TableFelt, TableRoom } from '@/components/table/surface'
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
@@ -27,6 +28,7 @@ import { cn } from '@/lib/utils'
 import { useMedia } from '@/store/media'
 import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
+import { useSocial } from '@/store/social'
 import { PlayerSheet } from './PlayerSheet'
 import { PushPrompt } from './PushPrompt'
 import { RoomRulesDialog } from './RoomSettings'
@@ -121,6 +123,10 @@ export function RoomLobby({
     }
   }
 
+  // Friends on Pip get a push and a Join; the link is for everybody else.
+  const hasFriendsList = useSocial((s) => Boolean(s.me))
+  const [inviting, setInviting] = useState(false)
+
   const link = inviteLink(view.code)
   const share = async () => {
     sound.play('tap')
@@ -205,24 +211,37 @@ export function RoomLobby({
             >
               {view.code}
             </motion.button>
-            <button
-              onClick={() => void share()}
-              className="mt-1 inline-flex items-center gap-2 rounded-full bg-table-shade/70 px-4 py-2 text-sm font-medium ring-1 ring-foreground/10 transition hover:bg-table-shade active:scale-[0.97]"
-            >
-              {copied ? (
-                <>
-                  <Check className="size-4" /> Link copied
-                </>
-              ) : typeof navigator !== 'undefined' && 'share' in navigator ? (
-                <>
-                  <Share2 className="size-4" /> Invite friends
-                </>
-              ) : (
-                <>
-                  <Copy className="size-4" /> Copy invite link
-                </>
+            <div className="mt-1 flex flex-wrap justify-center gap-2">
+              {hasFriendsList && (
+                <button
+                  onClick={() => {
+                    sound.play('tap')
+                    setInviting(true)
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full bg-table-shade/70 px-4 py-2 text-sm font-medium ring-1 ring-foreground/10 transition hover:bg-table-shade active:scale-[0.97]"
+                >
+                  <Users className="size-4" /> Invite friends
+                </button>
               )}
-            </button>
+              <button
+                onClick={() => void share()}
+                className="inline-flex items-center gap-2 rounded-full bg-table-shade/70 px-4 py-2 text-sm font-medium ring-1 ring-foreground/10 transition hover:bg-table-shade active:scale-[0.97]"
+              >
+                {copied ? (
+                  <>
+                    <Check className="size-4" /> Link copied
+                  </>
+                ) : typeof navigator !== 'undefined' && 'share' in navigator ? (
+                  <>
+                    <Share2 className="size-4" /> {hasFriendsList ? 'Share link' : 'Invite friends'}
+                  </>
+                ) : (
+                  <>
+                    <Copy className="size-4" /> Copy invite link
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* The chairs. Filled in the order people sat down. */}
@@ -398,6 +417,12 @@ export function RoomLobby({
             </button>
           )}
         </RoomRulesDialog>
+        <InviteFriendsDialog
+          open={inviting}
+          onOpenChange={setInviting}
+          code={view.code}
+          slow={slow}
+        />
         <PlayerSheet
           seat={sheet}
           onClose={() => setSheet(null)}

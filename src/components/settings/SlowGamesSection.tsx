@@ -1,7 +1,7 @@
 'use client'
 
-// Settings → Notifications: what Pip pushes (your move in a slow game,
-// somebody passing you on the board, your streak ending), what it emails, and
+// Settings → Notifications: what Pip pushes (friends, your move in a slow
+// game, somebody passing you on the board, your streak ending), what it emails, and
 // the hours it leaves you alone. Kept on the room server with your account
 // (`rooms/src/player.ts`), so the same on every device, and a game's clock
 // follows a change straight away.
@@ -110,6 +110,7 @@ function RoomSwitches({ emails }: { emails: boolean }) {
       {/* What is pushed, each under the main switch, set in under its label. */}
       {(
         [
+          ['friends', 'Friends', 'Friend requests, challenges and table invites.'],
           ['slow', 'Slow games', 'When it’s your move.'],
           ['rating', 'Leaderboard', 'When someone passes you on the Pip Rating.'],
           ['streak', 'Streak', 'When your streak is about to end.'],

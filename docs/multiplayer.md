@@ -87,8 +87,8 @@ The rules are `src/lib/multiplayer/notices.ts`; `Player` keeps the prefs, device
 - **Nothing in quiet hours** (it waits for them to end), and nothing while the table is open.
 - A finished game is a push, never an email.
 - **Settings → Notifications:** Push notifications (the main switch; turning it on asks this
-  device and registers it), and under it Slow games, Leaderboard and Streak; then Slow game
-  emails and Quiet hours (default 23:00–08:00). The main switch and the three under it are the
+  device and registers it), and under it Friends, Slow games, Leaderboard and Streak; then Slow
+  game emails and Quiet hours (default 23:00–08:00). The main switch and the four under it are the
   account's, so they apply to every device.
 - **Asked once, on the first visit to the lobby** (`menu/LobbyPush`, Will 2026-11-09): the app puts
   up the system's question straight away; a browser gets Pip's card (`PushPrompt`) because it may
@@ -116,6 +116,12 @@ switch and quiet hours.
   profile's `state.streak` with the service role. Played yesterday and not today: "Your 6-day
   streak ends in 4 hours". Missed yesterday after 2 or more days: "Your streak ended at 6 days",
   once. Opens `/game`. Accounts with a device from before this start on their next lobby visit.
+- **Friends** (2026-11-22). Every inbox notification (a friend request, a request accepted, a
+  challenge, a table invite) also queues a `social` `push_outbox` row (migration
+  `20261122090000_social.sql`), drained the same way into `POST /nudge/social` (`socialPush`).
+  Under the Friends switch. Sent straight away outside quiet hours; in them, a live challenge or
+  invite is dropped (the table is gone by morning) and the rest are held (up to 10) and sent
+  when the quiet hours end.
 
 Secrets on the Worker: `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (`node scripts/vapid-keys.mjs`;
 rotating them unsubscribes every browser), `RESEND_API_KEY`, and optionally `NOTIFY_SECRET`.

@@ -11,7 +11,8 @@
 // All of it is keyed by the account, so it works the same on every device.
 //
 // And the pushes that are not about a game (`lib/multiplayer/nudges.ts`):
-// somebody passing them on the Pip Rating board, and their streak ending.
+// somebody passing them on the Pip Rating board, their streak ending, and
+// friends (requests, challenges, table invites).
 // The streak is checked once a day from the synced profile, for as long as
 // they have a device to push to.
 //
@@ -37,6 +38,7 @@ import {
   passedCopy,
   ratingPushAllowed,
   readPlayStreak,
+  socialPush,
   streakCopy,
   type PushCopy,
 } from '@/lib/multiplayer/nudges'
@@ -53,6 +55,9 @@ const FREE_KEYS: Record<FreeDaily, string> = { room: 'freeRoomDay', quick: 'free
 /** Devices one account may register. The oldest is dropped past this. */
 const MAX_DEVICES = 10
 
+/** Friend pushes held through the quiet hours. The oldest is dropped past this. */
+const MAX_HELD_SOCIAL = 10
+
 /** The pushes that are not about a game, and when each is next due. */
 interface Nudges {
   /** The next streak check, or null while there is no device to push to. */
@@ -61,9 +66,11 @@ interface Nudges {
   passed: { copy: PushCopy; at: number } | null
   /** When the last "passed you" went, for the twelve-hour gap. */
   passedLastAt: number | null
+  /** Friend pushes waiting out the quiet hours (never a live table's). Missing before 2026-11-22. */
+  social: { copy: PushCopy; url: string; tag: string; at: number }[]
 }
 
-const NO_NUDGES: Nudges = { streakAt: null, passed: null, passedLastAt: null }
+const NO_NUDGES: Nudges = { streakAt: null, passed: null, passedLastAt: null, social: [] }
 
 export class Player extends DurableObject<Env> {
   private async get<T>(key: string, fallback: T): Promise<T> {
@@ -97,6 +104,7 @@ export class Player extends DurableObject<Env> {
       nextDue(Object.values(notices ?? (await this.notices()))),
       n.streakAt,
       n.passed?.at,
+      ...n.social.map((s) => s.at),
     ]
     const at = due.reduce<number | null>(
       (min, t) => (t == null ? min : min === null || t < min ? t : min),
@@ -229,6 +237,34 @@ export class Player extends DurableObject<Env> {
         }
         return json({ ok: true }, 200)
       }
+      case 'POST /nudge/social': {
+        // From the outbox drain (index.ts `scheduled`), never from a client.
+        const push = socialPush(await request.json())
+        const prefs = await this.prefs()
+        const devices = await this.devices()
+        const now = Date.now()
+        if (push && prefs.push && prefs.friends && devices.length > 0) {
+          const at = awake(now, prefs)
+          if (at === now) {
+            await this.ctx.storage.put(
+              'devices',
+              await this.pushTo(devices, push.copy, push.url, push.tag),
+            )
+          } else if (!push.live) {
+            // A live table is gone by morning, so only the rest wait.
+            const n = await this.nudges()
+            const held = n.social.filter((h) => h.tag !== push.tag)
+            await this.ctx.storage.put('nudges', {
+              ...n,
+              social: [...held, { copy: push.copy, url: push.url, tag: push.tag, at }].slice(
+                -MAX_HELD_SOCIAL,
+              ),
+            })
+            await this.arm()
+          }
+        }
+        return json({ ok: true }, 200)
+      }
       case 'POST /devices/remove': {
         const { id } = (await request.json()) as { id?: string }
         await this.ctx.storage.put(
@@ -306,15 +342,31 @@ export class Player extends DurableObject<Env> {
     }
   }
 
-  /** The board and the streak, whichever is due. Re-arms through `deliver`. */
+  /** Pushes to every device, and returns the ones still there. */
+  private async pushTo(
+    devices: PushDevice[],
+    copy: PushCopy,
+    url: string,
+    tag: string,
+  ): Promise<PushDevice[]> {
+    const gone = await pushAll(this.env, devices, { ...copy, url, tag })
+    return gone.length ? devices.filter((d) => !gone.includes(deviceId(d))) : devices
+  }
+
+  /** The board, the streak and held friend pushes, whichever is due. Re-arms through `deliver`. */
   private async deliverNudges(): Promise<void> {
     const now = Date.now()
     const n = await this.nudges()
     const prefs = await this.prefs()
     let devices = await this.devices()
     const send = async (copy: PushCopy, url: string, tag: string) => {
-      const gone = await pushAll(this.env, devices, { ...copy, url, tag })
-      if (gone.length) devices = devices.filter((d) => !gone.includes(deviceId(d)))
+      devices = await this.pushTo(devices, copy, url, tag)
+    }
+
+    const due = n.social.filter((h) => h.at <= now)
+    if (due.length) {
+      n.social = n.social.filter((h) => h.at > now)
+      if (prefs.push && prefs.friends) for (const h of due) await send(h.copy, h.url, h.tag)
     }
 
     if (n.passed && n.passed.at <= now) {
