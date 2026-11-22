@@ -163,6 +163,8 @@ const ANON_GRANTS = [
   // The CMO's weekly export reads the account total with the publishable key,
   // so CI holds no database credential (cto#101, pip-web#169).
   'grant execute on function public.user_count() to anon, authenticated;',
+  // The same export reads the live lifetime total (cmo#175).
+  'grant execute on function public.lifetime_count() to anon, authenticated;',
 ]
 
 test('nothing else in the schema is granted to anon', (t) => {
@@ -188,4 +190,18 @@ test('user_count is the total and nothing else', (t) => {
   t.truthy(body, 'user_count() is no longer a stable, no-argument function returning bigint')
   t.is(body?.[1].trim(), 'select count(*) from auth.users;')
   t.regex(all, /revoke execute on function public\.user_count\(\) from public;/i)
+})
+
+test('lifetime_count is the live lifetime total and nothing else', (t) => {
+  // Same shape as user_count, over memberships: a column or a filter argument
+  // turns it into a buyer list or a purchase-timing oracle.
+  const body = all.match(
+    /create (?:or replace )?function public\.lifetime_count\(\)\s*returns bigint\s*language sql\s*stable\s*security definer\s*set search_path = ''\s*as \$\$([\s\S]*?)\$\$/i,
+  )
+  t.truthy(body, 'lifetime_count() is no longer a stable, no-argument function returning bigint')
+  t.is(
+    body?.[1].trim(),
+    "select count(*) from public.memberships where lifetime and status = 'active';",
+  )
+  t.regex(all, /revoke execute on function public\.lifetime_count\(\) from public;/i)
 })

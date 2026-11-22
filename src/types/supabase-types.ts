@@ -113,6 +113,7 @@ export type Database = {
     }
     Functions: {
       delete_own_account: { Args: never; Returns: undefined }
+      lifetime_count: { Args: never; Returns: number }
       user_count: { Args: never; Returns: number }
     }
     Enums: {
