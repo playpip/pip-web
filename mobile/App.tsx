@@ -13,6 +13,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { handleMessage, injectedFlag } from './src/bridge'
 import { Offline } from './src/Offline'
+import { startPurchases } from './src/purchases'
 import { pathOf } from './src/push'
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://playpip.io'
@@ -35,6 +36,10 @@ const Frame = Platform.OS === 'ios' ? View : SafeAreaView
 // on, rather than the earpiece (modules/pip-speaker). Absent in Expo Go and on
 // Android, where there is nothing to do.
 requireOptionalNativeModule<{ start: () => void }>('PipSpeaker')?.start()
+
+// Listening for store purchases from launch, so one begun on the App Store
+// page completes (src/purchases.ts).
+startPurchases()
 
 const isOwnSite = (url: string) => url.startsWith(SITE_URL) || url === 'about:blank'
 

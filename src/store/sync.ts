@@ -38,7 +38,7 @@ import { dropUnbackedTable } from '@/store/game'
 import { track, trackOnce } from '@/lib/analytics'
 import type { Json } from '@/types/supabase-types'
 import type { Session } from '@supabase/supabase-js'
-import { askApp, inApp } from '@/lib/nativeApp'
+import { askApp, inApp, postToApp } from '@/lib/nativeApp'
 import { fetchNotifySettings, forgetNotify, saveNotifyPrefs } from '@/lib/multiplayer/client'
 import { deleteWithNotify } from '@/lib/sync/deleteAccount'
 
@@ -165,6 +165,9 @@ export const useSync = create<SyncState>()((set, get) => ({
 
     sb.auth.onAuthStateChange((_event, session) => {
       set(fromSession(session))
+      // Fires for the session already there too, so the store app hears on
+      // every load. Outside the app this does nothing.
+      if (session?.user.id) postToApp({ type: 'signedIn', userId: session.user.id })
     })
 
     // Anything that changes the profile marks it dirty and schedules a push.

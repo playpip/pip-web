@@ -20,8 +20,14 @@
 
 import type { Buzz } from './haptics'
 
-/** What the web side can ask of the shell. */
-export type NativeMessage = { type: 'haptic'; buzz: Buzz }
+/** What the web side can tell the shell, expecting no answer. */
+export type NativeMessage =
+  | { type: 'haptic'; buzz: Buzz }
+  /**
+   * Who is signed in, so a membership bought from the App Store page before
+   * signing in moves to their account. Builds that predate it ignore it.
+   */
+  | { type: 'signedIn'; userId: string }
 
 /**
  * Requests that expect an answer. Each carries an id, added by `askApp`, and
