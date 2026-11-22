@@ -72,9 +72,9 @@ export const PAYING_LINES = {
     'Paid through the store, in your own currency, with tax included.',
     'Renews until you stop it. Cancel any time in your store’s subscription settings.',
   ],
+  // The lifetime note already says it never renews.
   lifetime: [
     'Tax is inside the price, and the price is fixed in your currency: the number here is the number that leaves your bank.',
-    'One payment. Nothing renews and there is nothing to cancel.',
   ],
 } as const
 
@@ -146,10 +146,13 @@ export function PlanPicker({
   price,
   plan,
   onPlan,
+  note = true,
 }: {
   price: ShownPrice
   plan: Plan
   onPlan: (next: Plan) => void
+  /** The picked plan's note under the cards. Off where the caller lists it itself. */
+  note?: boolean
 }) {
   const app = useInApp()
   const PLANS = plansIn(price, { perMonthFirst: !app })
@@ -237,9 +240,11 @@ export function PlanPicker({
           )
         })}
       </div>
-      <p className="mt-3 min-h-10 px-1 text-center text-sm leading-relaxed text-balance text-muted-foreground">
-        {PLANS[plan].note}
-      </p>
+      {note && (
+        <p className="mt-3 min-h-10 px-1 text-center text-sm leading-relaxed text-balance text-muted-foreground">
+          {PLANS[plan].note}
+        </p>
+      )}
     </>
   )
 }

@@ -75,6 +75,7 @@ import {
   PAYING_LINES,
   type Plan,
   PlanPicker,
+  plansIn,
   Till,
   useTillPrice,
 } from '@/components/membership/Join'
@@ -576,21 +577,23 @@ function Plans({
           <CurrencyPicker currency={currency} onCurrency={onCurrency} />
         </div>
       )}
-      <PlanPicker price={price} plan={plan} onPlan={setPlan} />
+      <PlanPicker price={price} plan={plan} onPlan={setPlan} note={false} />
       <Till plan={plan} price={price} currency={currency} className="mt-3" />
 
       <ul className="mt-4 grid gap-y-2 border-t border-foreground/[0.07] px-1 pt-4 text-sm text-muted-foreground">
-        {/* How it is paid, and nothing else (Will, 2026-11-22: "too much to
-            look at"). The free report and the daily free game are answered
-            under Questions. */}
-        {(plan === 'lifetime' ? PAYING_LINES.lifetime : PAYING_LINES[app ? 'app' : 'web']).map(
-          (line) => (
-            <li key={line} className="flex gap-2.5">
-              <Check className="mt-0.5 size-4 shrink-0 text-pip" />
-              <span>{line}</span>
-            </li>
-          ),
-        )}
+        {/* The picked plan's note, then how it is paid, and nothing else
+            (Will, 2026-11-22: "too much to look at"; the note moved down here
+            from between the plans and the button). The free report and the
+            daily free game are answered under Questions. */}
+        {[
+          plansIn(price, { perMonthFirst: !app })[plan].note,
+          ...(plan === 'lifetime' ? PAYING_LINES.lifetime : PAYING_LINES[app ? 'app' : 'web']),
+        ].map((line) => (
+          <li key={line} className="flex gap-2.5">
+            <Check className="mt-0.5 size-4 shrink-0 text-pip" />
+            <span>{line}</span>
+          </li>
+        ))}
       </ul>
     </div>
   )
