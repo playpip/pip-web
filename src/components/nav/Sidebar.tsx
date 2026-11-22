@@ -215,17 +215,30 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
           <UserPlus className="size-4" /> Create a free account
         </button>
       )}
-      <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
-        {[play, people, better]
-          .filter((g) => g.length > 0)
-          .map((group) => (
-            <ul key={group[0].href} className="flex flex-col gap-0.5">
-              {group.map((item) => (
-                <li key={item.href}>
-                  <NavLink item={item} onGo={onGo} />
-                </li>
-              ))}
-            </ul>
+      {/* A small heading over each group, as a sidebar on a Mac has: space
+          alone between groups did not read as a break. */}
+      <nav className="-mx-1 flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-1">
+        {(
+          [
+            ['Play', play],
+            ['People', people],
+            ['Learn', better],
+          ] as const
+        )
+          .filter(([, items]) => items.length > 0)
+          .map(([heading, items]) => (
+            <section key={heading} className="flex flex-col gap-0.5">
+              <h2 className="px-3 pb-1 text-2xs font-medium uppercase tracking-[0.15em] text-muted-foreground/60">
+                {heading}
+              </h2>
+              <ul className="flex flex-col gap-0.5">
+                {items.map((item) => (
+                  <li key={item.href}>
+                    <NavLink item={item} onGo={onGo} />
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
       </nav>
       <div className="flex flex-col gap-0.5 border-t border-foreground/[0.07] pt-3">
