@@ -75,6 +75,7 @@ import {
 } from '@/lib/daily'
 import { formatChips } from '@/lib/useMoney'
 import { countHand } from '@/lib/handTally'
+import { noteHandThisWeek } from '@/lib/lastWeek'
 import { notePlayedThisWeek } from '@/lib/returning'
 import { useProfile } from './profile'
 
@@ -650,6 +651,8 @@ export const useGame = create<GameState>((set, get) => {
     trackOnce('first-hand')
     // And whether this device played last week too (lib/returning). Once a week.
     notePlayedThisWeek()
+    // Last week's hands and days, for the line on Home (lib/lastWeek). Not a table being watched.
+    if (get().status !== 'watching') noteHandThisWeek()
     currentEvents = []
     // The table as the cards land, before anybody has acted: stacks after the
     // blinds, and the blinds themselves sitting in front. The review's first

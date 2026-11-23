@@ -37,6 +37,7 @@ import { DailyRewardSlot } from './DailyReward'
 import { LobbyPush } from './LobbyPush'
 import { RatingLine } from '@/components/rating/RatingLine'
 import { StreakBadge } from '@/components/StreakBadge'
+import { LastWeekLine } from './LastWeekLine'
 import { RegularsCard } from './RegularsCard'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
@@ -151,6 +152,8 @@ export function Home() {
           <RatingLine />
           <StreakBadge />
         </div>
+        {/* Last week's hands and days, for a player who played (lib/lastWeek). */}
+        <LastWeekLine />
         <DailyRewardSlot />
         {/* The one ask for notifications: the system's in the app, a card in a browser. */}
         <LobbyPush />
