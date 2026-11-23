@@ -45,8 +45,8 @@ export default function PrivacyPage() {
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
           was already on your device. Nothing else, unless you take a membership, turn on email,
           play a slow game or allow notifications (all below). An account also has a profile other
-          signed-in players can see, which is below too. No hand histories beyond what your
-          profile already holds, and no IP-based profiling. The data sits with{' '}
+          signed-in players can see, which is below too. No hand histories beyond what your profile
+          already holds, and no IP-based profiling. The data sits with{' '}
           <A href="https://supabase.com">Supabase</A> on our behalf, and email goes out through{' '}
           <A href="https://resend.com">Resend</A>.
         </p>
@@ -134,8 +134,8 @@ export default function PrivacyPage() {
             requests, challenges and invites. There is no messaging. You can block or report anyone
             from their profile. A report is stored with both accounts and an optional note for us to
             read, and a profile three different people report in a week is hidden until we have
-            looked. Deleting your account deletes your profile, your
-            friendships and your inbox with it.
+            looked. Deleting your account deletes your profile, your friendships and your inbox with
+            it.
           </p>
         </Section>
       )}
@@ -288,8 +288,8 @@ export default function PrivacyPage() {
           </p>
           <p>
             Your camera and microphone are off until you turn them on at a table with friends, and
-            they are never available at an open table. When they are on, the picture and sound
-            go directly from your device to the other players’, encrypted, and are not recorded by
+            they are never available at an open table. When they are on, the picture and sound go
+            directly from your device to the other players’, encrypted, and are not recorded by
             anyone. On networks that block a direct connection they pass through Cloudflare’s relay,
             still encrypted, so the relay cannot see or hear them. Nothing of either is stored on
             our server.
@@ -311,11 +311,10 @@ export default function PrivacyPage() {
           <p>
             To do that our room server keeps, with your account’s id: the address of each device you
             allowed, your switches, your quiet hours and time zone, your slow games, and whether you
-            asked to hear about open tables. The address
-            is made by your phone or browser and only works for sending to it. The notification
-            itself goes through the push service your phone or browser maker runs, and through
-            Expo’s for the Pip app. To check your streak, the server reads it once a day from the
-            profile your account already syncs.
+            asked to hear about open tables. The address is made by your phone or browser and only
+            works for sending to it. The notification itself goes through the push service your
+            phone or browser maker runs, and through Expo’s for the Pip app. To check your streak,
+            the server reads it once a day from the profile your account already syncs.
           </p>
           <p>
             A slow game can also email you when a move has waited a while, at most one email every
