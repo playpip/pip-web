@@ -44,7 +44,8 @@ export default function PrivacyPage() {
           sign back in, and{' '}
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
           was already on your device. Nothing else, unless you take a membership, turn on email,
-          play a slow game or allow notifications (all below). No hand histories beyond what your
+          play a slow game or allow notifications (all below). An account also has a profile other
+          signed-in players can see, which is below too. No hand histories beyond what your
           profile already holds, and no IP-based profiling. The data sits with{' '}
           <A href="https://supabase.com">Supabase</A> on our behalf, and email goes out through{' '}
           <A href="https://resend.com">Resend</A>.
@@ -109,6 +110,36 @@ export default function PrivacyPage() {
         </Section>
       )}
 
+      {/* Friends and profiles (2026-11-22). Only said in a build that has them. */}
+      {process.env.NEXT_PUBLIC_SOCIAL === '1' && (
+        <Section title="Your profile and friends">
+          <p>
+            <strong className="font-medium text-foreground">
+              Every account has a profile that other signed-in players can see.
+            </strong>{' '}
+            It holds a handle, the name and avatar your account already syncs, a bio if you write
+            one, and only what you choose to show. A new profile shows your Pip Rating, which the
+            leaderboard already shows, and nothing else. If you hid yourself from the leaderboard,
+            your profile starts hidden too. What you switch on in Your profile is copied there as
+            you play; nothing else about your play leaves your device for it.
+          </p>
+          <p>
+            Signed-in players can find you by handle or name, unless you switch off “Appear in
+            search” in Your profile. Your friends always can. Without an account nobody sees a
+            profile. While you have a live membership, a Member badge shows beside your name to
+            signed-in players; you can switch it off in Your profile.
+          </p>
+          <p>
+            We keep who your friends are, the requests you have sent and had, and an inbox of
+            requests, challenges and invites. There is no messaging. You can block or report anyone
+            from their profile. A report is stored with both accounts and an optional note for us to
+            read, and a profile three different people report in a week is hidden until we have
+            looked. Deleting your account deletes your profile, your
+            friendships and your inbox with it.
+          </p>
+        </Section>
+      )}
+
       <Section title="Email">
         <p>
           With an account you can turn on two kinds of email about your play, in Settings →
@@ -150,8 +181,8 @@ export default function PrivacyPage() {
         <List>
           <Item>
             <strong className="font-medium text-foreground">No account needed.</strong> You can play
-            everything without one. There’s an optional account for moving your progress between
-            devices (above), and that’s the only thing it does.
+            everything without one. There’s an optional account (above), for moving your progress
+            between devices, holding a membership and playing with friends.
           </Item>
           <Item>
             <strong className="font-medium text-foreground">No personal data.</strong> The counts we
@@ -251,8 +282,13 @@ export default function PrivacyPage() {
             hours.
           </p>
           <p>
+            A host can open their table to anyone. Until the cards are dealt it sits on the open
+            tables list, where any signed-in player sees the host’s name and avatar, the stakes and
+            how many seats are taken.
+          </p>
+          <p>
             Your camera and microphone are off until you turn them on at a table with friends, and
-            they are never available at a quick-match table. When they are on, the picture and sound
+            they are never available at an open table. When they are on, the picture and sound
             go directly from your device to the other players’, encrypted, and are not recorded by
             anyone. On networks that block a direct connection they pass through Cloudflare’s relay,
             still encrypted, so the relay cannot see or hear them. Nothing of either is stored on
@@ -267,13 +303,15 @@ export default function PrivacyPage() {
         <Section title="Notifications">
           <p>
             Pip only sends a notification to a device you allowed, after your phone or browser asks
-            you. Settings → Notifications has a switch for each kind: your move in a slow game,
-            someone passing you on the Pip Rating board, and your streak about to end. Nothing is
-            sent in your quiet hours.
+            you. Settings → Notifications has a switch for each kind: your friends (a request, a
+            challenge, an invite or a table they open), any table opened to anyone (off until you
+            turn it on), your move in a slow game, someone passing you on the Pip Rating board, and
+            your streak about to end. Nothing is sent in your quiet hours.
           </p>
           <p>
             To do that our room server keeps, with your account’s id: the address of each device you
-            allowed, your switches, your quiet hours and time zone, and your slow games. The address
+            allowed, your switches, your quiet hours and time zone, your slow games, and whether you
+            asked to hear about open tables. The address
             is made by your phone or browser and only works for sending to it. The notification
             itself goes through the push service your phone or browser maker runs, and through
             Expo’s for the Pip app. To check your streak, the server reads it once a day from the

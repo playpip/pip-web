@@ -65,7 +65,6 @@ export function comparisonRows(): CompareRow[] {
       ids: ['multiplayer'],
     },
     { thing: 'Camera and voice', free: false, member: true, ids: ['multiplayer'] },
-    { thing: 'Quick match', free: 'One a day', member: 'No limit', ids: ['multiplayer'] },
     {
       thing: 'Host a slow game',
       free: `${say(FREE_SLOW_GAMES)} at a time`,
