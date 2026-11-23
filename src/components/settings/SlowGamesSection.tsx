@@ -110,7 +110,8 @@ function RoomSwitches({ emails }: { emails: boolean }) {
       {/* What is pushed, each under the main switch, set in under its label. */}
       {(
         [
-          ['friends', 'Friends', 'Friend requests, challenges and table invites.'],
+          ['friends', 'Friends', 'Requests, challenges, invites, and tables they open.'],
+          ['tables', 'Open tables', 'When anyone opens a table. One every 3 hours at most.'],
           ['slow', 'Slow games', 'When it’s your move.'],
           ['rating', 'Leaderboard', 'When someone passes you on the Pip Rating.'],
           ['streak', 'Streak', 'When your streak is about to end.'],

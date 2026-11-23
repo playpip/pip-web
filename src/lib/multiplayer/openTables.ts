@@ -99,3 +99,27 @@ export function openTablesFor(
     .slice(0, OPEN_TABLES_SHOWN)
     .map(({ hostUserId, shut: _shut, ...table }) => ({ ...table, yours: hostUserId === userId }))
 }
+
+/** The most players one table's opening is announced to. */
+export const ANNOUNCE_MAX = 500
+
+/**
+ * Who hears that a table opened (`nudges.ts` `tablePush`): the host's friends,
+ * and everybody who switched Open tables on, each said once and marked a
+ * friend or not. Never the host, nobody the host removed or blocked, and
+ * nobody who blocked the host. Each player's own switches and gaps decide
+ * whether it actually goes.
+ */
+export function tableAudience(
+  hostUserId: string,
+  friends: readonly string[],
+  subscribers: readonly string[],
+  excluded: readonly string[],
+): { userId: string; friend: boolean }[] {
+  const out = new Map<string, boolean>()
+  for (const id of friends) out.set(id, true)
+  for (const id of subscribers) if (!out.has(id)) out.set(id, false)
+  out.delete(hostUserId)
+  for (const id of excluded) out.delete(id)
+  return [...out].map(([userId, friend]) => ({ userId, friend })).slice(0, ANNOUNCE_MAX)
+}

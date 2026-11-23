@@ -11,8 +11,8 @@
 // All of it is keyed by the account, so it works the same on every device.
 //
 // And the pushes that are not about a game (`lib/multiplayer/nudges.ts`):
-// somebody passing them on the Pip Rating board, their streak ending, and
-// friends (requests, challenges, table invites).
+// somebody passing them on the Pip Rating board, their streak ending,
+// friends (requests, challenges, table invites), and open tables.
 // The streak is checked once a day from the synced profile, for as long as
 // they have a device to push to.
 //
@@ -38,8 +38,11 @@ import {
   passedCopy,
   ratingPushAllowed,
   readPlayStreak,
+  readTableNews,
   socialPush,
   streakCopy,
+  tablePush,
+  tablePushAllowed,
   type PushCopy,
 } from '@/lib/multiplayer/nudges'
 import { noticeCopy, type SlowCard } from '@/lib/multiplayer/slowCard'
@@ -68,9 +71,17 @@ interface Nudges {
   passedLastAt: number | null
   /** Friend pushes waiting out the quiet hours (never a live table's). Missing before 2026-11-22. */
   social: { copy: PushCopy; url: string; tag: string; at: number }[]
+  /** When the last open-table push went, a friend's and anybody's. Missing before 2026-11-23. */
+  tableLastAt: { friend: number | null; any: number | null }
 }
 
-const NO_NUDGES: Nudges = { streakAt: null, passed: null, passedLastAt: null, social: [] }
+const NO_NUDGES: Nudges = {
+  streakAt: null,
+  passed: null,
+  passedLastAt: null,
+  social: [],
+  tableLastAt: { friend: null, any: null },
+}
 
 export class Player extends DurableObject<Env> {
   private async get<T>(key: string, fallback: T): Promise<T> {
@@ -262,6 +273,24 @@ export class Player extends DurableObject<Env> {
             })
             await this.arm()
           }
+        }
+        return json({ ok: true }, 200)
+      }
+      case 'POST /nudge/table': {
+        // From the open tables list (lobby.ts), never from a client.
+        const news = readTableNews(await request.json())
+        const prefs = await this.prefs()
+        const devices = await this.devices()
+        const n = await this.nudges()
+        const now = Date.now()
+        if (news && devices.length > 0 && tablePushAllowed(news, prefs, n.tableLastAt, now)) {
+          const { copy, url, tag } = tablePush(news)
+          await this.ctx.storage.put('devices', await this.pushTo(devices, copy, url, tag))
+          const kind = news.friend && prefs.friends ? 'friend' : 'any'
+          await this.ctx.storage.put('nudges', {
+            ...n,
+            tableLastAt: { ...n.tableLastAt, [kind]: now },
+          })
         }
         return json({ ok: true }, 200)
       }

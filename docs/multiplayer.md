@@ -39,6 +39,7 @@ table ever sees another player's Roll or rank.
 | Free room | **One live private room a UTC week (Monday to Sunday) for any account**, counted on the room server (`freeRoom.ts`). Was one a day from 2026-10-23: a weekly poker night was the main reason to host as a member, and one a day gave it away. | 2026-11-18 |
 | Free slow game | **One hosted slow game open at a time**, for any account. (One quick match a day too, until quick match went.) | 2026-10-25 |
 | Open tables | **Quick match is gone from the site; a host can open their table to anyone instead.** It sits on the open tables list until it is dealt or full, and anybody signed in joins free. It counts as the host's room like any other. No camera or voice at an open table (`mediaAllowed`). Quick match never had enough people in the queue at once. The matchmaker still runs on the server for a cached page. | 2026-11-23 |
+| Table pushes | **A table opened to anyone is announced** when it goes on the list: to the host's friends under their Friends switch (at most one an hour), and to everybody who switched **Open tables** on in Settings (off by default; at most one every three hours). Never in quiet hours, never to anybody the host blocked or who blocked the host. `nudges.ts` `tablePushAllowed`, `openTables.ts` `tableAudience`. | 2026-11-23 |
 | Challenges | **Challenging a friend is the hub's own form** (`/game/multiplayer?with=<handle>`): two seats, friends with the code, that friend invited. Same rules as any room. | 2026-11-23 |
 | Free tables | **A room or slow game hosted without the membership has at most 4 seats and no camera or voice.** Members host up to 8, with both. Decided when the room opens (`freeHost`); rooms opened before the rule keep what they had. | 2026-11-02 |
 | Empty tables | **A live table nobody has open stops dealing** at the next hand and closes after ten minutes (`EMPTY_HOLD_MS`) unless somebody comes back. Slow games are exempt. | 2026-10-25 |
@@ -223,7 +224,8 @@ The engine is imported unchanged. What runs on the server is what is in the publ
   `put` and `drop` themselves; `list` filters out tables whose host removed or blocked the
   viewer, ages off any past its idle clock, and sorts live before slow, busiest, then newest
   (`src/lib/multiplayer/openTables.ts`, tested in `tests/openTables.test.ts`). Account ids
-  never leave it.
+  never leave it. A table's first `put` is announced to its audience (above); who switched
+  Open tables on is kept here as `s:<account>`, set from `POST /notify/prefs`.
 - **`auth.ts`:**
   - `identify(token)` asks Supabase `/auth/v1/user`, once per socket;
   - `isMember` reads `memberships` with the service role and decides with the same

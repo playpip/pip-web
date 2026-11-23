@@ -283,6 +283,13 @@ function player(env: Env, userId: string, path: string, body?: unknown): Promise
   )
 }
 
+/** On or off the open tables announcements. Best effort: a failure never stops a save. */
+async function subscribe(env: Env, userId: string, on: boolean): Promise<void> {
+  await lobbyStub(env)
+    .fetch('https://lobby/subscribe', { method: 'POST', body: JSON.stringify({ userId, on }) })
+    .catch((e: unknown) => console.error('open tables switch not kept', String(e)))
+}
+
 /** The signed-in player's own things: their slow games and their notification settings. */
 async function mine(
   request: Request,
@@ -339,6 +346,8 @@ async function mine(
       if (!prefs) return json({ error: 'bad-message' }, 400, cors)
       const res = await player(env, userId, 'prefs', prefs)
       const { rooms } = (await res.json()) as { rooms: string[] }
+      // Open tables pushes go to whoever switched them on: the list keeps who.
+      await subscribe(env, userId, prefs.push && prefs.tables)
       // Every game still running moves its clock to the new hours.
       await Promise.all(
         rooms.map((code) =>
@@ -366,6 +375,7 @@ async function mine(
     }
     // The account is about to be deleted (`lib/sync/deleteAccount.ts`).
     case 'POST /notify/forget':
+      await subscribe(env, userId, false)
       return relay(await player(env, userId, 'forget', {}))
   }
   return json({ error: 'not-found' }, 404, cors)

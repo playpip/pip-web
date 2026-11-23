@@ -15,9 +15,15 @@
 // - **Friends:** each one goes as it comes. A live challenge or invite that
 //   lands in your quiet hours is dropped (the table is gone by morning); the
 //   rest wait them out.
+// - **Open tables** (Will, 2026-11-23): somebody opened a table to anyone.
+//   A friend's comes under the Friends switch, at most one an hour; anybody
+//   else's only with Open tables switched on, at most one every three hours.
+//   Dropped in your quiet hours: an open table fills or goes.
 // - Every one of them waits out your quiet hours, like a slow game's.
 
 import { daysBetween, streakAtRisk, type PlayStreak } from '@/lib/streak'
+import { venueById } from '@/config/venues'
+import { formatChips } from '@/lib/useMoney'
 import { normaliseRoomCode } from './code'
 import { awake, type PlayPrefs } from './notices'
 
@@ -179,4 +185,79 @@ export function socialPush(payload: unknown): SocialPush | null {
     }
   }
   return null
+}
+
+/** At most one push about a friend's open table in this long. */
+export const FRIEND_TABLE_GAP_MS = H
+/** And about anybody else's. */
+export const TABLE_GAP_MS = 3 * H
+
+/** An open table, as the list object announces it to one player. */
+export interface TableNews {
+  code: string
+  name: string
+  venueId: string
+  buyIn: number
+  forRoll: boolean
+  slow: boolean
+  seated: number
+  maxSeats: number
+  /** Whether the host is their friend. */
+  friend: boolean
+}
+
+/** A `nudge/table` body, checked. Null unless every field it needs is right. */
+export function readTableNews(v: unknown): TableNews | null {
+  if (typeof v !== 'object' || v === null) return null
+  const p = v as Record<string, unknown>
+  const code = typeof p.code === 'string' ? normaliseRoomCode(p.code) : null
+  const int = (x: unknown) => typeof x === 'number' && Number.isSafeInteger(x) && x >= 0
+  if (!code || typeof p.name !== 'string' || p.name.length === 0 || p.name.length > 24) return null
+  if (typeof p.venueId !== 'string' || !venueById(p.venueId)) return null
+  if (!int(p.buyIn) || !int(p.seated) || !int(p.maxSeats)) return null
+  return {
+    code,
+    name: p.name,
+    venueId: p.venueId,
+    buyIn: p.buyIn as number,
+    forRoll: p.forRoll !== false,
+    slow: p.slow === true,
+    seated: p.seated as number,
+    maxSeats: p.maxSeats as number,
+    friend: p.friend === true,
+  }
+}
+
+/**
+ * Whether a table push may go now: switched on for this kind (a friend's
+ * under Friends, anybody's under Open tables), outside the quiet hours, and
+ * past the gap since the last one of its kind.
+ */
+export function tablePushAllowed(
+  news: Pick<TableNews, 'friend'>,
+  prefs: PlayPrefs,
+  last: { friend: number | null; any: number | null },
+  now: number,
+): boolean {
+  if (!prefs.push || quietAt(now, prefs)) return false
+  if (news.friend && prefs.friends) {
+    return last.friend === null || now - last.friend >= FRIEND_TABLE_GAP_MS
+  }
+  if (!prefs.tables) return false
+  return last.any === null || now - last.any >= TABLE_GAP_MS
+}
+
+/** What an open table's push says, and where it opens. */
+export function tablePush(news: TableNews): { copy: PushCopy; url: string; tag: string } {
+  const venue = venueById(news.venueId)?.name ?? 'the ladder'
+  const stake = news.forRoll ? `${formatChips(news.buyIn)} buy-in` : 'for fun'
+  return {
+    copy: {
+      title: news.slow ? `${news.name} opened a slow game` : `${news.name} opened a table`,
+      body: `${venue}, ${stake}. ${news.seated} of ${news.maxSeats} seated.`,
+    },
+    url: `/game/room?code=${news.code}`,
+    // The same tag as an invite to that table, so a friend told both sees one.
+    tag: `room-${news.code}`,
+  }
 }

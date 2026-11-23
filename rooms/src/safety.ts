@@ -1,4 +1,5 @@
-// Reports and blocks, kept on Supabase where they outlive the room.
+// Reports and blocks, kept on Supabase where they outlive the room, and who
+// an account's friends are, for telling them about its open tables.
 //
 // Written with the service role into tables no client can read
 // (supabase/migrations/20261011090000_player_safety.sql). Best effort: a
@@ -69,6 +70,40 @@ export async function blocksOf(env: Env, userId: string): Promise<string[]> {
     )
     if (!res.ok) return []
     return ((await res.json()) as { blocked: string }[]).map((r) => r.blocked)
+  } catch {
+    return []
+  }
+}
+
+/** Everybody who has blocked this account: they never hear about its tables. */
+export async function blockersOf(env: Env, userId: string): Promise<string[]> {
+  const h = headers(env)
+  if (!h || !UUID.test(userId)) return []
+  try {
+    const res = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/player_blocks?blocked=eq.${userId}&select=blocker`,
+      { headers: h },
+    )
+    if (!res.ok) return []
+    return ((await res.json()) as { blocker: string }[]).map((r) => r.blocker)
+  } catch {
+    return []
+  }
+}
+
+/** This account's friends (accepted, not pending), for telling them it opened a table. */
+export async function friendsOf(env: Env, userId: string): Promise<string[]> {
+  const h = headers(env)
+  if (!h || !UUID.test(userId)) return []
+  try {
+    const res = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/friendships?status=eq.friends&or=(user_a.eq.${userId},user_b.eq.${userId})&select=user_a,user_b`,
+      { headers: h },
+    )
+    if (!res.ok) return []
+    return ((await res.json()) as { user_a: string; user_b: string }[]).map((r) =>
+      r.user_a === userId ? r.user_b : r.user_a,
+    )
   } catch {
     return []
   }

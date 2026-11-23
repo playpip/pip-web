@@ -27,8 +27,13 @@ export interface PlayPrefs {
   rating: boolean
   /** Push when your streak is about to end, or has (`nudges.ts`). */
   streak: boolean
-  /** Push for friend requests, challenges and table invites (`nudges.ts` `socialPush`). */
+  /**
+   * Push for friend requests, challenges and table invites (`nudges.ts`
+   * `socialPush`), and a friend opening a table to anyone (`tablePush`).
+   */
   friends: boolean
+  /** Push when anybody opens a table to anyone (`tablePush`). Opt-in (Will, 2026-11-23). */
+  tables: boolean
 }
 
 export const DEFAULT_PREFS: PlayPrefs = {
@@ -43,6 +48,7 @@ export const DEFAULT_PREFS: PlayPrefs = {
   rating: true,
   streak: true,
   friends: true,
+  tables: false,
 }
 
 /** With no device to push to, the email waits this long, in case they are on their way. */
@@ -164,6 +170,8 @@ export function parsePrefs(v: unknown): PlayPrefs | null {
     streak: on(v.streak),
     // And before 2026-11-22, this one.
     friends: on(v.friends),
+    // And before 2026-11-23 this one, which is off unless they turn it on.
+    tables: v.tables === true,
   }
 }
 
