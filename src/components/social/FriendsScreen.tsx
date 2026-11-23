@@ -52,6 +52,11 @@ const TABS: { value: Tab; label: string }[] = [
   { value: 'find', label: 'Find' },
 ]
 
+/* Rows that Framer animates must not carry Tailwind's bare `transition`: it
+   also transitions opacity and transform, so when Framer commits the final
+   style the CSS transition replays it and the row flashes. Use
+   `transition-colors`. Cards that rise in keep `will-change-transform` so they
+   aren't re-rasterised (a visible snap) the moment the motion stops. */
 const LIST = { hidden: {}, show: { transition: { staggerChildren: 0.035 } } }
 const ROW = {
   hidden: { opacity: 0, y: 8 },
@@ -268,7 +273,7 @@ function Person({
     <motion.li
       variants={ROW}
       className={cn(
-        'flex min-h-[4.25rem] flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 transition',
+        'flex min-h-[4.25rem] flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 transition-colors',
         active ? 'bg-foreground/[0.07]' : 'hover:bg-foreground/[0.03]',
       )}
     >
@@ -459,7 +464,7 @@ function FriendsTab({
                   sound.play('tap')
                   setChallenging(f)
                 }}
-                className="group flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5"
+                className="group flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 will-change-transform"
               >
                 <span className="relative">
                   <Face avatar={f.avatar} ring={f.ring} size={64} />
@@ -614,7 +619,7 @@ function GameCard({ notice, now, index }: { notice: Notice; now: number; index: 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, type: 'spring', stiffness: 380, damping: 30 }}
       className={cn(
-        'relative isolate overflow-hidden rounded-[1.5rem] border border-foreground/10 shadow-xl shadow-black/30',
+        'relative isolate overflow-hidden rounded-[1.5rem] border border-foreground/10 shadow-xl shadow-black/30 will-change-transform',
         !notice.read && 'ring-1 ring-primary/40',
       )}
     >
@@ -649,7 +654,7 @@ function GameCard({ notice, now, index }: { notice: Notice; now: number; index: 
           type="button"
           whileTap={{ scale: 0.95 }}
           onClick={join}
-          className="min-h-10 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/30 transition hover:bg-primary/90"
+          className="min-h-10 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/30 transition-colors hover:bg-primary/90"
         >
           Join
         </motion.button>
