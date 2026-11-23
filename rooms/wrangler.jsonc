@@ -1,5 +1,5 @@
 // The room server: one Durable Object per multiplayer table, one per
-// quick-match stake. Its own Worker, beside the Pages site rather than in it —
+// quick-match stake, and one for the open tables list. Its own Worker, beside the Pages site rather than in it —
 // Pages cannot hold a Durable Object (see docs/multiplayer.md).
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
@@ -18,13 +18,16 @@
       // One per account: their slow games, notification prefs and push devices.
       { "name": "PLAYERS", "class_name": "Player" },
       // The hands-played count on the landing page. One object.
-      { "name": "TALLY", "class_name": "Tally" }
+      { "name": "TALLY", "class_name": "Tally" },
+      // The open tables list on Multiplayer. One object.
+      { "name": "LOBBY", "class_name": "Lobby" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["PokerRoom", "Matchmaker"] },
     { "tag": "v2", "new_sqlite_classes": ["Player"] },
-    { "tag": "v3", "new_sqlite_classes": ["Tally"] }
+    { "tag": "v3", "new_sqlite_classes": ["Tally"] },
+    { "tag": "v4", "new_sqlite_classes": ["Lobby"] }
   ],
   "vars": {
     // Where the site is served from. Every socket and request is checked

@@ -17,7 +17,7 @@ interface MemberLine {
 export const MEMBER_LINES: readonly MemberLine[] = [
   // The report leads (2026-11-02): it is the locked thing tapped most.
   { text: 'A report on your own play, and every session to review', ids: ['coaching', 'review'] },
-  { text: 'Host friends and quick matches with no limits', ids: ['multiplayer'] },
+  { text: 'Host tables for friends with no limits', ids: ['multiplayer'] },
   {
     text: 'Every drill, lesson and side table, Omaha included',
     ids: ['drills', 'lessons', 'side-tables', 'omaha'],

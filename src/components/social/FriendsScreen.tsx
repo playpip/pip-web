@@ -39,8 +39,7 @@ import { cn } from '@/lib/utils'
 import { useRoom } from '@/store/room'
 import { useSocial } from '@/store/social'
 import { useSync } from '@/store/sync'
-import { ChallengeDialog } from './ChallengeDialog'
-import { BadgeMarks, Face, profileHref, RowButton, SectionLabel } from './parts'
+import { BadgeMarks, challengeHref, Face, profileHref, RowButton, SectionLabel } from './parts'
 import { PlayerView } from './PlayerView'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
 
@@ -403,11 +402,11 @@ function FriendsTab({
   picked: string | null
   onPick: (handle: string | null) => void
 }) {
+  const router = useRouter()
   const [friends, setFriends] = useState<Friend[] | null>(null)
   const [blocks, setBlocks] = useState<Blocked[]>([])
   const [failed, setFailed] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
-  const [challenging, setChallenging] = useState<PlayerRow | null>(null)
   const [showBlocked, setShowBlocked] = useState(false)
 
   const load = useCallback(() => {
@@ -462,7 +461,7 @@ function FriendsTab({
                 whileTap={{ scale: 0.93 }}
                 onClick={() => {
                   sound.play('tap')
-                  setChallenging(f)
+                  router.push(challengeHref(f.handle))
                 }}
                 className="group flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 will-change-transform"
               >
@@ -574,8 +573,6 @@ function FriendsTab({
           </AnimatePresence>
         </section>
       )}
-
-      <ChallengeDialog friend={challenging} onClose={() => setChallenging(null)} />
     </div>
   )
 }

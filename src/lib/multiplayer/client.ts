@@ -1,13 +1,14 @@
 'use client'
 
 // The browser's side of the room server: where it is, who you are to it, and
-// the two plain requests (open a room, look a code up). The sockets live in
-// `store/room.ts` and `store/queue.ts`.
+// the plain requests (open a room, look a code up, the open tables). The
+// sockets live in `store/room.ts`.
 
 import { getSupabase } from '@/lib/sync/client'
 import type { AvatarSpec } from '@/lib/avatar'
 import type { FreeLeft } from './freeRoom'
 import type { PlayPrefs } from './notices'
+import type { OpenTable } from './openTables'
 import type { RoomKind, RoomSettings } from './room'
 import type { SlowCard } from './slowCard'
 import type { MoveHours, SlowEnding } from './slow'
@@ -67,12 +68,16 @@ export interface Seat {
 
 export type CreateResult = { code: string } | { error: string }
 
-/** Open a private room (or a slow game) at a ladder stake, with you in the first seat and your rules set. */
+/**
+ * Open a private room (or a slow game) at a ladder stake, with you in the
+ * first seat and your rules set. `listed` puts it on the open tables list.
+ */
 export async function createRoom(
   venueId: string,
   seat: Seat,
   settings?: Partial<RoomSettings>,
   kind: Extract<RoomKind, 'private' | 'slow'> = 'private',
+  listed = false,
 ): Promise<CreateResult> {
   const token = await sessionToken()
   if (!token) return { error: 'auth' }
@@ -80,7 +85,7 @@ export async function createRoom(
     const res = await fetch(`${ROOMS_URL}/rooms`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ venueId, kind, ...seat, settings }),
+      body: JSON.stringify({ venueId, kind, ...seat, settings, listed }),
     })
     const body = (await res.json()) as { code?: string; error?: string }
     return body.code ? { code: body.code } : { error: body.error ?? 'busy' }
@@ -145,6 +150,12 @@ async function mine<T>(path: string, body?: unknown): Promise<T | null> {
 /** What is left of your free hosting. Null when it could not be asked: the server decides anyway. */
 export function fetchFreeLeft(): Promise<FreeLeft | null> {
   return mine<FreeLeft>('/free')
+}
+
+/** The open tables anybody can sit down at, best first. Null when they could not be fetched. */
+export async function fetchOpenTables(): Promise<(OpenTable & { yours: boolean })[] | null> {
+  const body = await mine<{ tables: (OpenTable & { yours: boolean })[] }>('/open')
+  return body?.tables ?? null
 }
 
 /** Your slow games as mini tables. Null when they could not be fetched. */

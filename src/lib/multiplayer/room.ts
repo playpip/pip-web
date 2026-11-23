@@ -206,6 +206,12 @@ export interface RoomState {
    * opened before 2026-11-02, which keeps what it was opened with.
    */
   freeHost?: true
+  /**
+   * On the open tables list on Multiplayer, for anybody to join, until it is
+   * dealt or full (Will, 2026-11-23). Decided once, when the room is opened.
+   * Strangers sit down at it, so it has no camera or voice (`mediaAllowed`).
+   */
+  listed?: true
   phase: RoomPhase
   players: RoomPlayer[]
   hand: HandState | null
@@ -267,10 +273,11 @@ export function hosted(state: Pick<RoomState, 'kind'>): boolean {
 
 /**
  * Whether camera and voice pass at this table: the rooms friends share by
- * code, when the host has the membership. Never at quick match.
+ * code, when the host has the membership. Never at quick match, and never at
+ * an open table, where anybody can sit down.
  */
-export function mediaAllowed(state: Pick<RoomState, 'kind' | 'freeHost'>): boolean {
-  return hosted(state) && !state.freeHost
+export function mediaAllowed(state: Pick<RoomState, 'kind' | 'freeHost' | 'listed'>): boolean {
+  return hosted(state) && !state.freeHost && !state.listed
 }
 
 /** The most seats this room's host may set. */
@@ -297,11 +304,14 @@ export function createRoom(opts: {
   hostBlocks?: string[]
   /** Hosted without the membership: fewer seats, no camera or voice. */
   freeHost?: boolean
+  /** On the open tables list, for anybody to join. */
+  listed?: boolean
   now: number
 }): RoomState {
   const { venue, now } = opts
   const slow = opts.kind === 'slow'
   const freeHost = Boolean(opts.freeHost) && opts.kind !== 'quick'
+  const listed = Boolean(opts.listed) && opts.kind !== 'quick'
   const seats =
     opts.kind === 'quick'
       ? venue.seats
@@ -330,6 +340,7 @@ export function createRoom(opts: {
       ...(slow ? { moveHours: DEFAULT_MOVE_HOURS, ending: DEFAULT_ENDING } : {}),
     },
     ...(freeHost ? { freeHost: true as const } : {}),
+    ...(listed ? { listed: true as const } : {}),
     phase: 'lobby',
     players: [],
     hand: null,

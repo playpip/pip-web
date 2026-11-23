@@ -56,9 +56,11 @@ export interface RoomView {
   maxSeats: number
   /**
    * Whether camera and voice pass at this table. False at a room hosted
-   * without the membership, and at quick match.
+   * without the membership, at an open table, and at quick match.
    */
   media: boolean
+  /** On the open tables list, for anybody to join. */
+  listed: boolean
   prize: number
   /** The host's table rules. */
   settings: RoomSettings
@@ -124,6 +126,7 @@ export function viewFor(state: RoomState, userId: string | null): RoomView {
     handIndex: state.handIndex,
     maxSeats: state.maxSeats,
     media: mediaAllowed(state),
+    listed: state.listed === true,
     prize: state.prize,
     startedAt: state.startedAt,
     settings: state.settings,

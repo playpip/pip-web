@@ -201,7 +201,7 @@ export function RoomLobby({
             style={g.board}
           >
             <span className="text-2xs uppercase tracking-[0.25em] text-muted-foreground">
-              {codeCopied ? 'Copied' : 'Room code'}
+              {codeCopied ? 'Copied' : view.listed ? 'Open table' : 'Room code'}
             </span>
             <motion.button
               whileTap={{ scale: 0.96 }}

@@ -10,10 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { type Friend, inviteFriends, myFriends } from '@/lib/social/api'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
+import { MAX_INVITES } from './FriendPickerDialog'
 import { Face } from './parts'
-
-/** The most friends one invite goes to; the database holds the same number. */
-const MAX_AT_ONCE = 8
 
 export function InviteFriendsDialog({
   open,
@@ -64,7 +62,7 @@ function Body({ code, slow, venue }: { code: string; slow: boolean; venue: strin
     setPicked((p) =>
       p.includes(handle)
         ? p.filter((h) => h !== handle)
-        : p.length < MAX_AT_ONCE
+        : p.length < MAX_INVITES
           ? [...p, handle]
           : p,
     )

@@ -277,7 +277,7 @@ export function Home() {
                   accent="#F0B44C"
                   title="Multiplayer"
                   badge="New"
-                  subtitle="Friends, or quick match"
+                  subtitle="Friends, or an open table"
                   onClick={() => go('/game/multiplayer')}
                   delay={0.1}
                 />

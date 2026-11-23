@@ -37,12 +37,14 @@ table ever sees another player's Roll or rank.
 |---|---|---|
 | Who pays | **Only the host.** Friends join free with an account. | 2026-10-11 |
 | Free room | **One live private room a UTC week (Monday to Sunday) for any account**, counted on the room server (`freeRoom.ts`). Was one a day from 2026-10-23: a weekly poker night was the main reason to host as a member, and one a day gave it away. | 2026-11-18 |
-| Free quick match and slow game | **One quick match a day, and one hosted slow game open at a time**, for any account. | 2026-10-25 |
+| Free slow game | **One hosted slow game open at a time**, for any account. (One quick match a day too, until quick match went.) | 2026-10-25 |
+| Open tables | **Quick match is gone from the site; a host can open their table to anyone instead.** It sits on the open tables list until it is dealt or full, and anybody signed in joins free. It counts as the host's room like any other. No camera or voice at an open table (`mediaAllowed`). Quick match never had enough people in the queue at once. The matchmaker still runs on the server for a cached page. | 2026-11-23 |
+| Challenges | **Challenging a friend is the hub's own form** (`/game/multiplayer?with=<handle>`): two seats, friends with the code, that friend invited. Same rules as any room. | 2026-11-23 |
 | Free tables | **A room or slow game hosted without the membership has at most 4 seats and no camera or voice.** Members host up to 8, with both. Decided when the room opens (`freeHost`); rooms opened before the rule keep what they had. | 2026-11-02 |
 | Empty tables | **A live table nobody has open stops dealing** at the next hand and closes after ten minutes (`EMPTY_HOLD_MS`) unless somebody comes back. Slow games are exempt. | 2026-10-25 |
 | Format | **Sit-and-go**, at ladder venue stakes. | 2026-10-11 |
 | Chips | **The Roll**, and nobody sees anybody else's Roll or rank. | 2026-10-06 |
-| Bots | **Quick match fills with AI strangers** (tagged "AI") after about 30 seconds. **A host may add the cast to a private room.** | 2026-10-11 |
+| Bots | **A host may add the cast to a live room**, an open table included. (Quick match filled with AI strangers after about 30 seconds.) | 2026-10-11 |
 | Where | **A separate Worker**, so the Pages deploy is untouched. | 2026-10-11 |
 | Menu | **A fifth tile** under "Other ways to play", first in the row and full width on a phone. | 2026-10-11 |
 
@@ -181,7 +183,8 @@ The engine is imported unchanged. What runs on the server is what is in the publ
     `GET /free-room` is the old form, kept for a cached page.
   - `GET /rooms/:code` returns a peek for the join screen.
   - `GET /rooms/:code/ws` is a table's socket.
-  - `GET /queue/:venueId/ws` is a stake's queue.
+  - `GET /open` is the open tables list for the signed-in player (`lobby.ts`, below).
+  - `GET /queue/:venueId/ws` is a stake's queue. The site stopped using it on 2026-11-23.
   - `GET /hands` is the hands-played count the landing page shows (its function reads it
     server-side and caches it for five minutes). `POST /hands` is the game reporting its hands
     against the cast, ten at a time, anonymously: capped at 20 a report, one report a minute
@@ -192,7 +195,10 @@ The engine is imported unchanged. What runs on the server is what is in the publ
   - it holds the `RoomState` in SQLite storage and runs the reducer;
   - it sends each socket its own view;
   - it relays WebRTC signalling and camera/mic state, in private rooms and slow games a member
-    opened (`mediaAllowed()`: `hosted()` and not `freeHost`), never at quick match.
+    opened (`mediaAllowed()`: `hosted()`, not `freeHost`, not `listed`), never at quick match
+    or an open table;
+  - a `listed` room tells the `Lobby` object what it looks like after every change while it
+    waits for the deal with a chair free, and drops off once it doesn't (`openTableOf`).
   - `index.ts` tells `/init` whether the host is a member (`freeHost: !member`, from the same
     `isMember` the free-room-a-day check uses); the reducer caps a free host's seats at
     `FREE_ROOM_SEATS` in `createRoom` and `configure`.
@@ -213,6 +219,11 @@ The engine is imported unchanged. What runs on the server is what is in the publ
   existed, partly estimated; the comment says how). A room adds each hand it deals, by how many
   people were really playing it: a person who has left, or has run out of time twice in a row,
   does not count, so a table everybody walked away from (it deals on by itself) adds nothing.
+- **`lobby.ts`, the `Lobby` Durable Object** (one, named `all`): the open tables list. Rooms
+  `put` and `drop` themselves; `list` filters out tables whose host removed or blocked the
+  viewer, ages off any past its idle clock, and sorts live before slow, busiest, then newest
+  (`src/lib/multiplayer/openTables.ts`, tested in `tests/openTables.test.ts`). Account ids
+  never leave it.
 - **`auth.ts`:**
   - `identify(token)` asks Supabase `/auth/v1/user`, once per socket;
   - `isMember` reads `memberships` with the service role and decides with the same
@@ -284,11 +295,12 @@ only the service role reads or writes them. Read reports in the Supabase table e
 
 | Path | What it is |
 |---|---|
-| `/game/multiplayer` (`MultiplayerHub`) | Open a room, type a code, quick match. Everybody can see it; quick match, slow games and a second room in a day ask for the membership. |
+| `/game/multiplayer` (`MultiplayerHub`) | The open tables, a code, and **Open a table**: who can join (anyone, or friends with the code), friends to invite, and the rules. `?with=<handle>` opens it as a challenge. Everybody can see it; a second room in a week, or a second slow game, asks for the membership. |
 | `/game/room?code=…` (`RoomScreen`) | The code is in the query string because the site is a static export. Sitting down is a tap (`JoinGate`). A host or a matched player is seated straight from the hub. |
 | `RoomLobby` | The felt with the chairs filling, and the code on the cloth. |
 | `RoomTable` | The live table's own parts, turned so you sit at the near rail. |
-| `store/room.ts`, `store/queue.ts` | Sockets, reconnect with backoff, and the ledger. |
+| `store/room.ts` | Sockets, reconnect with backoff, and the ledger. |
+| `OpenTables` | The open tables list on the hub, asked again every 15 s while the page is in front. |
 
 ## Local development
 

@@ -35,6 +35,10 @@ export function Face({
 
 export const profileHref = (handle: string) => `/game/player?h=${encodeURIComponent(handle)}`
 
+/** Challenge a friend: Multiplayer's own form, opened on a table for the two of you. */
+export const challengeHref = (handle: string) =>
+  `/game/multiplayer?with=${encodeURIComponent(handle)}`
+
 export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="px-1 text-2xs font-medium uppercase tracking-[0.15em] text-muted-foreground">

@@ -32,8 +32,7 @@ import {
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useSocial } from '@/store/social'
-import { ChallengeDialog } from './ChallengeDialog'
-import { BadgeChips, Face, RowButton, shownTiles } from './parts'
+import { BadgeChips, challengeHref, Face, RowButton, shownTiles } from './parts'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
 
 /** Each rank's table, climbing the ladder as the ranks do. */
@@ -110,7 +109,6 @@ function Card({
   const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
-  const [challenging, setChallenging] = useState(false)
   const [editing, setEditing] = useState(false)
   const [more, setMore] = useState(false)
   const [safety, setSafety] = useState<'block' | 'report' | null>(null)
@@ -136,7 +134,7 @@ function Card({
     }
     switch (player.relation) {
       case 'friends':
-        return { label: 'Challenge', run: () => setChallenging(true) }
+        return { label: 'Challenge', run: () => router.push(challengeHref(player.handle)) }
       case 'received':
         return {
           label: 'Accept friend request',
@@ -324,7 +322,6 @@ function Card({
         </SheetContent>
       </Sheet>
 
-      <ChallengeDialog friend={challenging ? player : null} onClose={() => setChallenging(false)} />
       <SafetyDialog
         player={player}
         step={safety}

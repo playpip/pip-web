@@ -37,8 +37,10 @@ bio and picks what their profile shows.
 - **Names, handles and bios** go through one word filter: `pip_text_ok` in the migration, with
   an exact copy in `src/lib/social/clean.ts` for the form. Bios can't hold links.
   `tests/social.test.ts` fails if the two copies drift apart.
-- **Challenges and invites are ordinary rooms.** A challenge opens a two-seat private room or
-  slow game and tells the friend. It counts against the host's free allowance like any room
+- **Challenges and invites are ordinary rooms.** A challenge is Multiplayer's own form
+  (`/game/multiplayer?with=<handle>`, from a profile or the Friends strip), opened on two seats
+  with that friend invited; any rule can be changed before it opens (Will, 2026-11-23). It
+  tells the friend. It counts against the host's free allowance like any room
   they host. Joining is always free. `invite_friends` only sends the notice, and only to
   friends.
 - **No messaging.** Moderating direct messages would cost more than all of this put together.

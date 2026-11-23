@@ -8,6 +8,8 @@ export interface Env {
   PLAYERS: DurableObjectNamespace
   /** The hands-played count on the landing page (`tally.ts`). */
   TALLY: DurableObjectNamespace
+  /** The open tables list on Multiplayer (`lobby.ts`). */
+  LOBBY: DurableObjectNamespace
   /** Where this Worker is reached from outside, for links in emails. */
   PUBLIC_URL?: string
   /** Comma-separated origins allowed to open a socket or create a room. */

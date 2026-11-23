@@ -9,7 +9,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Hourglass, Mic, UserPlus, Users, Video, Zap } from 'lucide-react'
+import { Globe, Hourglass, Mic, UserPlus, Users, Video } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CAST } from '@/config/cast'
 import type { MembershipFeature } from '@/config/membership'
@@ -51,9 +51,9 @@ const POINTS = [
     body: 'Sit one of the regulars in the empty chair. Live rooms only; a slow game is just friends.',
   },
   {
-    icon: Zap,
-    title: 'Quick match',
-    body: 'Pick a stake and get dealt in. AI players fill any empty seat.',
+    icon: Globe,
+    title: 'Open tables',
+    body: 'Open your table to anyone, or sit down at somebody else’s from the list.',
   },
 ] as const
 

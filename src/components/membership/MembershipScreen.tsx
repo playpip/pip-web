@@ -714,9 +714,9 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
           <Question q="Can I host without a membership?">
             <p>
               Yes, a little. Anyone with a free Pip account can open one private room a week, up to
-              four seats and without camera or voice, play one quick match a day, and host one slow
-              game at a time. The membership opens as many of each as you like, up to eight seats,
-              with camera and voice.
+              four seats and without camera or voice, and host one slow game at a time. Joining any
+              table, an open one included, is free. The membership opens as many of each as you
+              like, up to eight seats, with camera and voice.
             </p>
           </Question>
         )}

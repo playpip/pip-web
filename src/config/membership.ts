@@ -283,7 +283,7 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
     id: 'multiplayer',
     title: 'Multiplayer',
     blurb:
-      'Open a room whenever you like, up to eight seats, send your friends the code, and deal. Turn your camera on and your face takes your seat at the table; turn your mic on and talk while you play. Or make it a slow game, with an hour to a day for each move and the clock stopped in your quiet hours. Friends join free with a Pip account. Or quick match at any ladder stake, with AI players in any empty seat. Nobody at the table ever sees your Roll or your rank.',
+      'Open a room whenever you like, up to eight seats, send your friends the code, and deal. Turn your camera on and your face takes your seat at the table; turn your mic on and talk while you play. Or make it a slow game, with an hour to a day for each move and the clock stopped in your quiet hours. Friends join free with a Pip account. Or open your table to anyone, and players sit down from the open tables list. Nobody at the table ever sees your Roll or your rank.',
     shipped: true,
     needs: 'rooms',
     place: { href: '/game/multiplayer', name: 'multiplayer' },
@@ -504,7 +504,7 @@ export const MEMBERSHIP_PILLARS = [
   {
     id: 'multiplayer',
     title: 'Play with friends, no limits',
-    lede: 'Host a room, a quick match or a slow game whenever you like. Your friends join free.',
+    lede: 'Host a room or a slow game whenever you like, for friends or open to anyone. Your friends join free.',
     ids: ['multiplayer'],
   },
 ] as const

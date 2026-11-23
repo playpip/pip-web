@@ -4,7 +4,8 @@
 //   GET  /free                what is left of your free hosting (a token)
 //   GET  /rooms/:code         what a code opens: the stake and who is waiting
 //   GET  /rooms/:code/ws      the table's socket
-//   GET  /queue/:venueId/ws   quick match at a ladder stake
+//   GET  /open                the open tables list on Multiplayer (a token)
+//   GET  /queue/:venueId/ws   quick match at a ladder stake (gone from the site 2026-11-23)
 //   GET  /slow                your slow games, as mini tables (a token)
 //   POST /slow/dismiss        swipe a finished one away, or leave one waiting for players
 //   GET  /notify/prefs        Settings → Notifications, and your devices
@@ -39,11 +40,13 @@ import { corsHeaders, json, originAllowed, playerStub, type Env } from './env'
 import { offLinkValid, serviceHeaders } from './notify'
 import type { InitBody } from './room'
 import { countRoomOpened, tallyStub } from './tally'
+import { lobbyStub } from './lobby'
 
 export { PokerRoom } from './room'
 export { Matchmaker } from './matchmaker'
 export { Player } from './player'
 export { Tally } from './tally'
+export { Lobby } from './lobby'
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -111,6 +114,7 @@ export default {
     }
     if (
       parts[0] === 'slow' ||
+      parts[0] === 'open' ||
       parts[0] === 'notify' ||
       parts[0] === 'free' ||
       parts[0] === 'free-room'
@@ -182,7 +186,8 @@ async function drainOutbox(env: Env): Promise<void> {
 }
 
 /**
- * A member, or somebody spending a free one, opens a room or a slow game. The host is
+ * A member, or somebody spending a free one, opens a room or a slow game,
+ * for friends with the code or on the open tables list. The host is
  * seated as it is created, so the room exists with somebody in it from its
  * first moment and the code they share opens onto their face.
  */
@@ -213,6 +218,8 @@ async function createRoom(
   }
 
   const kind: RoomKind = body.kind === 'slow' ? 'slow' : 'private'
+  // On the open tables list, for anybody to join (Will, 2026-11-23).
+  const listed = body.listed === true
 
   const userId = await identify(token, env)
   if (!userId) return json({ error: 'auth' }, 401, cors)
@@ -250,6 +257,7 @@ async function createRoom(
       // The host's membership decides the table: without it, at most four
       // seats and no camera or voice (Will, 2026-11-02).
       freeHost: !member,
+      listed,
     }
     const res = await stub.fetch('https://room/init', {
       method: 'POST',
@@ -307,6 +315,10 @@ async function mine(
       return json({ spent: !(await freeLeft(env, userId)).room }, 200, cors)
     case 'GET /slow':
       return relay(await player(env, userId, 'games'))
+    case 'GET /open':
+      return relay(
+        await lobbyStub(env).fetch(`https://lobby/list?user=${encodeURIComponent(userId)}`),
+      )
     case 'POST /slow/dismiss': {
       const body = (await read()) as { code?: unknown } | null
       const code = typeof body?.code === 'string' ? normaliseRoomCode(body.code) : null

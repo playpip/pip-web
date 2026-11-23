@@ -57,6 +57,8 @@ import { MAX_SLOW_GAMES, type Quiet } from '@/lib/multiplayer/slow'
 import { identify } from './auth'
 import { saveBlock, saveReport } from './safety'
 import { countRoomHands } from './tally'
+import { lobbyStub } from './lobby'
+import { openTableOf } from '@/lib/multiplayer/openTables'
 import { roomBucket } from '@/lib/handCount'
 import { cryptoRng } from '@/lib/cryptoRng'
 import { json, playerStub, type Env } from './env'
@@ -79,6 +81,8 @@ export interface InitBody {
   hostBlocks?: string[]
   /** Opened without the membership: at most four seats, and no camera or voice. */
   freeHost?: boolean
+  /** On the open tables list, for anybody to join. */
+  listed?: boolean
 }
 
 /** Messages a socket may send in a burst before it is told to slow down. */
@@ -131,6 +135,7 @@ export class PokerRoom extends DurableObject<Env> {
       }
     }
     if (next.kind === 'slow') await this.index(next, leaving)
+    if (next.listed) this.ctx.waitUntil(this.list(before ?? null, next))
     if (next.phase === 'closed') {
       for (const ws of this.ctx.getWebSockets()) ws.close(4004, 'closed')
       await this.ctx.storage.deleteAll()
@@ -139,6 +144,24 @@ export class PokerRoom extends DurableObject<Env> {
     await this.ctx.storage.put('room', next)
     if (next.dueAt !== null) await this.ctx.storage.setAlarm(next.dueAt)
     else await this.ctx.storage.deleteAlarm()
+  }
+
+  /**
+   * Keep the open tables list up to date: this table as it looks now while it
+   * waits for the deal with a chair free, off the list once it does not.
+   * Best effort — the list ages a forgotten table off on its own.
+   */
+  private async list(before: RoomState | null, next: RoomState): Promise<void> {
+    const entry = openTableOf(next)
+    if (!entry && before && !openTableOf(before)) return
+    try {
+      await lobbyStub(this.env).fetch(entry ? 'https://lobby/put' : 'https://lobby/drop', {
+        method: 'POST',
+        body: JSON.stringify(entry ?? { code: next.code }),
+      })
+    } catch (e) {
+      console.error('open tables not updated', { code: next.code, error: String(e) })
+    }
   }
 
   /**
@@ -215,6 +238,7 @@ export class PokerRoom extends DurableObject<Env> {
         reserved: body.reserved,
         hostBlocks: body.hostBlocks,
         freeHost: body.freeHost,
+        listed: body.listed,
         now: Date.now(),
       })
       if (body.settings && body.host) {
