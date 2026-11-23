@@ -18,6 +18,15 @@ export default function YourCardsStayOnTheServerPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="23 November 2026">
+        <p>
+          Quick match, which this post and the note under this one mention, ended on 23 November. In
+          its place a host can open their table to anyone signed in, and it waits on the open tables
+          list in Multiplayer until it is dealt. The part below about AI players filling quick-match
+          seats describes something Pip no longer has.
+        </p>
+      </Correction>
+
       <Correction date="2 November 2026">
         <p>
           Since 2 November a room opened with a free account has up to four seats and no camera or
