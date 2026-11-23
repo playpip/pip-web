@@ -16,6 +16,20 @@ import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 import { BoardCard, BoardSlot, ChipStack } from './surface'
 
+/**
+ * **Chips in flight move by transform, never by `left`/`top`.** Animating the
+ * offsets re-lays-out the felt every frame; a transform is composited, so the
+ * slide holds the display's full frame rate even on a slow laptop. The trick
+ * that keeps the felt's percentage geometry: each flight rides a transparent
+ * layer the size of the felt, and a translate in percent is a percent of the
+ * element's own size, so `x: '62%'` on that layer lands exactly where
+ * `left: '62%'` did. The chips sit at the layer's top-left corner, centred on
+ * it. The felt clips its overflow, so a layer pushed past the edge (the hero's
+ * seat sits below it) never scrolls anything.
+ */
+const FLIGHT_LAYER = 'pointer-events-none absolute inset-0 z-10'
+const FLIGHT_CHIPS = 'absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2'
+
 export function FeltStage({
   hand,
   handIndex,
@@ -114,12 +128,12 @@ export function FeltStage({
               return (
                 <motion.div
                   key={`${handIndex}-${hand.street}-${p.id}`}
-                  className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
-                  initial={{ left: from.left, top: from.top, opacity: 0 }}
-                  animate={{ left: at.left, top: at.top, opacity: 1 }}
+                  className={FLIGHT_LAYER}
+                  initial={{ x: from.left, y: from.top, opacity: 0 }}
+                  animate={{ x: at.left, y: at.top, opacity: 1 }}
                   exit={{
-                    left: g.pot.left,
-                    top: g.pot.top,
+                    x: g.pot.left,
+                    y: g.pot.top,
                     opacity: 0,
                     transition: calm
                       ? { duration: 0 }
@@ -131,11 +145,13 @@ export function FeltStage({
                   }}
                   transition={spring}
                 >
-                  <ChipStack
-                    amount={p.committedThisStreet}
-                    unit={unit}
-                    label={money(p.committedThisStreet)}
-                  />
+                  <div className={FLIGHT_CHIPS}>
+                    <ChipStack
+                      amount={p.committedThisStreet}
+                      unit={unit}
+                      label={money(p.committedThisStreet)}
+                    />
+                  </div>
                 </motion.div>
               )
             })}
@@ -148,20 +164,22 @@ export function FeltStage({
           return (
             <motion.div
               key={`win-${handIndex}-${id}`}
-              className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2"
-              initial={{ left: g.pot.left, top: g.pot.top, opacity: 0 }}
-              animate={{ left: to.left, top: to.top, opacity: [0, 1, 1, 0] }}
+              className={cn(FLIGHT_LAYER, 'z-30')}
+              initial={{ x: g.pot.left, y: g.pot.top, opacity: 0 }}
+              animate={{ x: to.left, y: to.top, opacity: [0, 1, 1, 0] }}
               transition={
                 calm
                   ? { duration: 0 }
                   : {
-                      left: { duration: 0.75, delay: 0.5, ease: [0.3, 0, 0.2, 1] },
-                      top: { duration: 0.75, delay: 0.5, ease: [0.3, 0, 0.2, 1] },
+                      x: { duration: 0.75, delay: 0.5, ease: [0.3, 0, 0.2, 1] },
+                      y: { duration: 0.75, delay: 0.5, ease: [0.3, 0, 0.2, 1] },
                       opacity: { duration: 1.4, delay: 0.35, times: [0, 0.1, 0.8, 1] },
                     }
               }
             >
-              <ChipStack amount={hand.result?.payouts[id] ?? pot} unit={unit} />
+              <div className={FLIGHT_CHIPS}>
+                <ChipStack amount={hand.result?.payouts[id] ?? pot} unit={unit} />
+              </div>
             </motion.div>
           )
         })}
