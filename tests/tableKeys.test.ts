@@ -6,11 +6,11 @@ import { ActionBar } from '@/components/table/ActionBar'
 import { applyAction, legalActions, startHand, type LegalActions } from '@/lib/poker/engine'
 import {
   BUTTON_KEYS,
+  handoverKeyFor,
   intentFor,
   KEY_LIST,
   KEYBOARD_QUERY,
   keysReachTable,
-  nextHandKeyFor,
   SIZER_PRESET_KEYS,
   sizerIntentFor,
   tableKeyFor,
@@ -276,19 +276,30 @@ test('the list says what the keys do, and every key in it is one that answers', 
 })
 
 test('between hands, Space deals the next one, once', (t) => {
-  t.true(nextHandKeyFor(press(' '), node('BODY'), noDialog))
+  t.is(handoverKeyFor(press(' '), node('BODY'), noDialog), 'deal')
   // Held down, it deals one hand, never a run of them.
-  t.false(nextHandKeyFor(press(' ', { repeat: true }), node('BODY'), noDialog))
+  t.is(handoverKeyFor(press(' ', { repeat: true }), node('BODY'), noDialog), null)
   for (const mod of ['shiftKey', 'ctrlKey', 'metaKey', 'altKey'] as const)
-    t.false(nextHandKeyFor(press(' ', { [mod]: true }), node('BODY'), noDialog), mod)
-  // Only Space: the letters stay the betting buttons'.
-  for (const key of ['Enter', 'c', 'x', 'n']) t.false(nextHandKeyFor(press(key), null), key)
+    t.is(handoverKeyFor(press(' ', { [mod]: true }), node('BODY'), noDialog), null, mod)
+  // Only Space deals: the letters stay the betting buttons'.
+  for (const key of ['Enter', 'c', 'x', 'n']) t.is(handoverKeyFor(press(key), null), null, key)
 })
 
 test('Space deals nothing while typing, under a dialog, or on a focused button', (t) => {
   const open = { querySelector: (s: string) => (s.includes('[role="dialog"]') ? {} : null) }
-  t.false(nextHandKeyFor(press(' '), node('INPUT'), noDialog))
-  t.false(nextHandKeyFor(press(' '), node('BODY'), open))
+  t.is(handoverKeyFor(press(' '), node('INPUT'), noDialog), null)
+  t.is(handoverKeyFor(press(' '), node('BODY'), open), null)
   // The focused button answers Space itself; dealing too would deal twice.
-  t.false(nextHandKeyFor(press(' '), node('BUTTON'), noDialog))
+  t.is(handoverKeyFor(press(' '), node('BUTTON'), noDialog), null)
+})
+
+test('between hands, ? still opens the list', (t) => {
+  // With or without Shift, as mid-hand; a focused button does not swallow it.
+  t.is(handoverKeyFor(press('?', { shiftKey: true }), node('BODY'), noDialog), 'help')
+  t.is(handoverKeyFor(press('?'), node('BUTTON'), noDialog), 'help')
+  // Not while typing, not once a dialog is open, not held down.
+  const open = { querySelector: (s: string) => (s.includes('[role="dialog"]') ? {} : null) }
+  t.is(handoverKeyFor(press('?', { shiftKey: true }), node('INPUT'), noDialog), null)
+  t.is(handoverKeyFor(press('?', { shiftKey: true }), node('BODY'), open), null)
+  t.is(handoverKeyFor(press('?', { shiftKey: true, repeat: true }), node('BODY'), noDialog), null)
 })
