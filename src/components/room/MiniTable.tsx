@@ -19,17 +19,20 @@ import { opponents, ordinal, timeLeft, type SlowCard } from '@/lib/multiplayer/s
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
 
-/** Where the other seats sit round the far rail, by how many there are. */
+/**
+ * Where the other seats sit round the far rail, by how many there are: all of
+ * them above the board, so a name never lands on a card.
+ */
 const RAIL: Record<number, { left: string; top: string }[]> = {
   1: [{ left: '50%', top: '13%' }],
   2: [
-    { left: '27%', top: '18%' },
-    { left: '73%', top: '18%' },
+    { left: '30%', top: '15%' },
+    { left: '70%', top: '15%' },
   ],
   3: [
-    { left: '17%', top: '30%' },
-    { left: '50%', top: '11%' },
-    { left: '83%', top: '30%' },
+    { left: '20%', top: '19%' },
+    { left: '50%', top: '12%' },
+    { left: '80%', top: '19%' },
   ],
 }
 
@@ -121,11 +124,11 @@ export function MiniTable({
         />
       </div>
 
-      <div className={cn('relative aspect-[16/10] w-full', !yourMove && !finished && 'opacity-90')}>
+      <div className={cn('relative aspect-[4/3] w-full', !yourMove && !finished && 'opacity-90')}>
         {/* The oval: rail, then cloth. */}
         <div
           aria-hidden
-          className="absolute inset-x-[7%] top-[20%] bottom-[16%] rounded-[50%]"
+          className="absolute inset-x-[7%] top-[24%] bottom-[17%] rounded-[50%]"
           style={{
             background:
               'linear-gradient(to bottom, var(--color-table-rail-edge), var(--color-table-rail) 30%, var(--color-table-shade))',
@@ -144,7 +147,7 @@ export function MiniTable({
         </div>
 
         {/* The board and the pot, or the code while it waits for players. */}
-        <div className="absolute inset-x-0 top-[47%] flex -translate-y-1/2 flex-col items-center gap-1.5">
+        <div className="absolute inset-x-0 top-[51%] flex -translate-y-1/2 flex-col items-center gap-1.5">
           {lobby ? (
             <span className="font-mono text-lg font-semibold tracking-[0.3em] text-foreground/80">
               {card.code}
@@ -192,7 +195,12 @@ export function MiniTable({
                       dimmed={seat.folded || (seat.place !== null && !finished)}
                     />
                   </span>
-                  <span className="-mt-1 max-w-[5.5rem] truncate rounded-full bg-table-shade/80 px-1.5 py-px text-3xs font-medium tabular-nums">
+                  <span
+                    className={cn(
+                      '-mt-1 truncate rounded-full bg-table-shade/80 px-1.5 py-px text-3xs font-medium tabular-nums',
+                      rail.length === 3 ? 'max-w-[5rem]' : 'max-w-[6.5rem]',
+                    )}
+                  >
                     {lobby ? seat.name : `${seat.name} · ${money(seat.stack)}`}
                   </span>
                 </div>

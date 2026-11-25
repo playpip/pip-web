@@ -56,7 +56,7 @@ export function YourGames({ delay = 0, className }: { delay?: number; className?
           </span>
         )}
       </div>
-      <div className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 pb-2 pt-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-6 flex snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 pb-2 pt-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
         {games.map((g) => (
           <div
             key={g.code}
