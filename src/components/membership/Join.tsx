@@ -42,6 +42,7 @@ import {
   type ShownPrice,
   useStorePrices,
 } from '@/lib/membership/store'
+import { TASTE_COPY } from '@/lib/membership/taste'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -530,7 +531,7 @@ export function Join({
           <ChevronRight className="size-4" />
         </button>
         <p className="mt-3 text-center text-sm text-muted-foreground">
-          A membership has to belong to someone. Already have an account?{' '}
+          {TASTE_COPY.beforeJoining} Already have an account?{' '}
           <button
             onClick={() => {
               sound.play('tap')

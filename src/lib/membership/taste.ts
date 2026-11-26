@@ -97,4 +97,6 @@ export const TASTE_COPY = {
   note: 'One member game a day is free. This is today’s.',
   /** Once spent on something else. */
   used: 'Your free game today is used. Join for every table.',
+  /** Under the signed-out Join button, where they stop (cmo, 30 Nov read). */
+  beforeJoining: 'Not sure yet? One member game a day is free, and it needs no account.',
 } as const

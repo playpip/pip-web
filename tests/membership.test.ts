@@ -124,4 +124,14 @@ test('the page says one member game a day is free', async (t) => {
   // And the copy on the cards agrees with the page about how many.
   const { TASTE_COPY } = await import('@/lib/membership/taste')
   t.regex(TASTE_COPY.note, /One member game a day is free/)
+  // The signed-out Join button says it too, where visitors stop before pressing.
+  t.regex(TASTE_COPY.beforeJoining, /One member game a day is free/)
+  const join = readFileSync(
+    new URL('../src/components/membership/Join.tsx', import.meta.url),
+    'utf-8',
+  )
+  t.true(
+    join.includes('TASTE_COPY.beforeJoining'),
+    'the signed-out Join line does not offer the free game',
+  )
 })
