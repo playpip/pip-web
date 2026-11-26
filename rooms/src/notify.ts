@@ -8,6 +8,7 @@
 import { buildPushPayload, type PushSubscription } from '@block65/webcrypto-web-push'
 import { timeLeft, opponents, type SlowCard } from '@/lib/multiplayer/slowCard'
 import { deviceId, type PushDevice } from '@/lib/multiplayer/notices'
+import { accountIsGone } from '@/lib/multiplayer/accountGone'
 import type { Env } from './env'
 
 export interface PushMessage {
@@ -110,6 +111,19 @@ export async function emailOf(env: Env, userId: string): Promise<string | null> 
   if (!res.ok) return null
   const user = (await res.json()) as { email?: unknown }
   return typeof user.email === 'string' ? user.email : null
+}
+
+/**
+ * Whether the account was deleted, asked with the service role. False unless
+ * Supabase says plainly there is no such user (`lib/multiplayer/accountGone`).
+ */
+export async function accountGone(env: Env, userId: string): Promise<boolean> {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return false
+  const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    headers: serviceHeaders(env.SUPABASE_SERVICE_ROLE_KEY),
+  }).catch(() => null)
+  if (!res) return false
+  return accountIsGone(res.status, await res.json().catch(() => null))
 }
 
 /** A legacy service-role JWT goes as a bearer too; a `sb_secret_` key only as the apikey. */

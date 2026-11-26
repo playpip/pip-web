@@ -102,7 +102,11 @@ The rules are `src/lib/multiplayer/notices.ts`; `Player` keeps the prefs, device
 - **Deleting the account** clears it all first: `POST /notify/forget` empties the player's index
   (devices, switches, quiet hours, slow games list) while the session still works there
   (`lib/sync/deleteAccount.ts`). If the delete then fails, the switches are put back. `/privacy`
-  says so under Notifications.
+  says so under Notifications. An account deleted by hand (an email request) never calls it, so
+  the index asks Supabase once a day, whenever it wakes, whether its account still exists, and
+  forgets everything on a plain "no such user" (`lib/multiplayer/accountGone.ts`). One with a
+  device wakes daily for the streak check, so its phones stop hearing within a day; one with no
+  device and no game left never wakes, and its switches and quiet hours stay until it does.
 
 ### Pushes that are not about a game
 

@@ -171,7 +171,8 @@ Rules for whoever is in the dashboard — the code cannot enforce these:
   but the second's first payment went through. Refund it by hand. The restricted key cannot.
 - **Deleting an account by email request** (the privacy page offers it): cancel the
   player's Pip subscription in Stripe first, then delete the user — or the player goes on
-  being billed. Settings' own delete button does both.
+  being billed. Settings' own delete button does both. The room server finds out on its own
+  within a day and forgets the player's phones and switches (`docs/multiplayer.md`).
 - **Pip's portal configuration is the account default**, because it was the first. Probus
   (or anyone else) must create its own and pass its id, or its customers see Pip's portal.
 - **Account-wide Billing settings belong to every Ava project**: customer emails, Smart
