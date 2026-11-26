@@ -58,7 +58,10 @@ export function WideTableCard({
         onClick={onOpen}
         className="group flex h-full w-full flex-col items-stretch overflow-hidden @[16rem]:flex-row rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
       >
-        <span className="relative aspect-[16/10] w-full shrink-0 @[16rem]:w-32 @[16rem]:sm:w-40 @[16rem]:md:w-48 @[16rem]:lg:w-56">
+        {/* Sized by the card, not the viewport: the quick card is a third of
+            a wide screen, and a cover sized for the screen left its words a
+            column one word wide. */}
+        <span className="relative aspect-[16/10] w-full shrink-0 @[16rem]:w-[38%] @[16rem]:max-w-56">
           {cover}
         </span>
         <span className="flex min-w-0 flex-1 items-center gap-3 p-3 md:p-4 lg:p-5">
@@ -78,16 +81,18 @@ export function WideTableCard({
               {line}
             </span>
           </span>
-          {/* Desktop only: at phone width the card is already one tap and the
-              pill would crowd the line that carries the price. */}
-          {cta ? (
-            <span className="hidden shrink-0 items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition group-hover:bg-primary/90 lg:flex">
+          {/* Wide cards only: in a narrow one the card is already one tap and
+              the pill would crowd the name and the line that carries the
+              price, so it falls back to the chevron. */}
+          {cta && (
+            <span className="hidden shrink-0 items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition group-hover:bg-primary/90 @[40rem]:flex">
               {cta}
               <ChevronRight className="size-4 transition group-hover:translate-x-0.5" />
             </span>
-          ) : (
-            <ChevronRight className="hidden size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 md:block" />
           )}
+          <ChevronRight
+            className={`hidden size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 md:block ${cta ? '@[40rem]:hidden' : ''}`}
+          />
         </span>
       </button>
     </motion.div>

@@ -201,15 +201,17 @@ export function Home() {
             nothing on the screen ever said where they were. Now the app answers
             "what do I play" itself, and the ladder is a position rather than a
             door. */}
-        <div className="flex min-h-20 flex-col gap-3 md:min-h-[8.75rem] md:gap-4">
+        <div className="@container flex min-h-20 flex-col gap-3 md:min-h-[8.75rem] md:gap-4">
           {/* Two questions, one row: what is next, and what if you have ten
               minutes. They are different axes — progress and time — which is
               the only reason a second card is allowed up here at all. A third
               would make this a tile grid again, which is the thing the whole
               screen was rearranged to stop being. The quick card is absent
               whenever there is no honest stake for it, and the hero simply
-              takes the width back. */}
-          <div className="flex flex-col gap-3 md:flex-row md:gap-4">
+              takes the width back. Side by side by the room the row has,
+              not the screen: with the sidebar open a laptop left the quick
+              card too narrow to hold its own name. */}
+          <div className="flex flex-col gap-3 md:gap-4 @[52rem]:flex-row">
             {openTable && openVenue ? (
               <div className="min-w-0 flex-1">
                 <ResumeTableCard venue={openVenue} snapshot={openTable} delay={0.05} />
@@ -223,7 +225,7 @@ export function Home() {
               )
             )}
             {hydrated && quick && (
-              <div className="min-w-0 md:w-[38%]">
+              <div className="min-w-0 @[52rem]:w-[38%]">
                 <QuickPlayCard room={quick} delay={0.1} />
               </div>
             )}
