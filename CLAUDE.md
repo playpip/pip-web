@@ -21,6 +21,7 @@ work. This file is the quick-start and the non-negotiables.
 | Anything paid / gated | [docs/membership.md](./docs/membership.md) |
 | The Pip Rating / leaderboard | [docs/rating.md](./docs/rating.md) |
 | Friends / profiles / inbox | [docs/social.md](./docs/social.md) |
+| Game history (games on the account) | [docs/games.md](./docs/games.md) |
 | Persistence / backup / offline PWA | [docs/data-and-offline.md](./docs/data-and-offline.md) |
 | Setup / testing / conventions / deploy | [docs/development.md](./docs/development.md) |
 

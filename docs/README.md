@@ -23,6 +23,7 @@ cosmetics, multiplayer); see [brand.md](./brand.md).
 | [awards.md](./awards.md) | Collectible "special chips" awards — the set, triggers, visuals |
 | [shop.md](./shop.md) | The Chip Shop & earned unlocks — style, never edge |
 | [review.md](./review.md) | Session review and the report — the coaching that reads more than one hand |
+| [games.md](./games.md) | Game history: every game kept on the account, on profiles, free to go through, reviewed for members |
 | [social.md](./social.md) | Friends, public profiles, blocking and reporting, challenges and invites, the inbox |
 | [rating.md](./rating.md) | The Pip Rating and the public leaderboard: the maths, the anti-cheat checks, how to go live |
 | [membership.md](./membership.md) | What is paid and what is free, the gate, and the rules tests enforce |

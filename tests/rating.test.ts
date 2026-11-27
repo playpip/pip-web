@@ -31,6 +31,7 @@ import {
   rawRatingOf,
   type RatingCore,
   type Rejection,
+  validateServed,
   type SubmittedHand,
   validateHands,
   weekStartOf,
@@ -283,6 +284,46 @@ test('the server replays decisions itself and enforces its rate limits', (t) => 
   const limited = decideSubmission(hands(5, 0, 10, NOW + 20_000), many, first.numbers, NOW + 60_000)
   t.false(limited.ok)
   if (!limited.ok) t.is(limited.reason, 'hourly-limit')
+})
+
+test('hands the room server dealt count beside the device’s, outside its limits', (t) => {
+  const first = decideSubmission(hands(20, 0.5), null, null, NOW)
+  if (!first.ok) return t.fail()
+  // Dealt while the device was sending: older than its last hand, and too soon after its send.
+  const served = validateServed(hands(3, 0.5, 10, NOW - 60_000), NOW + 1_000)
+  t.is(served.length, 3)
+  const counted = decideSubmission([], first.state, first.numbers, NOW + 1_000, served)
+  t.true(counted.ok)
+  if (!counted.ok) return
+  t.is(counted.numbers.ratedDecisions, 23)
+  // The device's own clock and rate are left as they were.
+  t.is(counted.state.lastHandAt, first.state.lastHandAt)
+  t.is(counted.state.lastSubmitAt, first.state.lastSubmitAt)
+  t.is(counted.state.hourDecisions, first.state.hourDecisions)
+  // And alongside a device's own hands, both count.
+  const both = decideSubmission(
+    hands(2, 0.5, 10, NOW + 10_000),
+    first.state,
+    first.numbers,
+    NOW + MIN_SUBMIT_GAP_MS + 20_000,
+    served,
+  )
+  t.true(both.ok)
+  if (both.ok) t.is(both.numbers.ratedDecisions, 25)
+})
+
+test('a malformed or stale served hand is left out, not refused', (t) => {
+  const good = hands(1, 0.2)[0]
+  const out = validateServed(
+    [
+      good,
+      { at: NOW, decisions: [{ kind: 'nope', loss: 0, stake: 5 }] },
+      { at: 0, decisions: good.decisions },
+      null,
+    ],
+    NOW,
+  )
+  t.deepEqual(out, [good])
 })
 
 test('a record better than anyone measured is flagged off the board', (t) => {

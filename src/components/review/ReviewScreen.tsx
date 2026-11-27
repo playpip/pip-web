@@ -20,8 +20,9 @@
  * to offer the button; this page is what answers for the link.
  */
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Lock } from 'lucide-react'
 import { SectionScreen } from '@/components/menu/SectionScreen'
 import { useRequireProfile } from '@/components/menu/useRequireProfile'
@@ -34,9 +35,21 @@ import { devMember } from '@/lib/multiplayer/client'
 import { membershipFor } from '@/config/membership'
 import { useRoom } from '@/store/room'
 import { useSlowGames, useSlowGamesLive } from '@/store/slowGames'
+import { useSync } from '@/store/sync'
+import { type OpenedGame, openGame } from '@/lib/games/api'
 
 export function ReviewScreen() {
   const ready = useRequireProfile()
+  // `?game=ID` is a game from the account (docs/games.md): yours or a player's.
+  const game = useMemo(
+    () => (ready ? new URLSearchParams(window.location.search).get('game') : null),
+    [ready],
+  )
+  if (ready && game) return <GameReview id={game} />
+  return <SessionReview ready={ready} />
+}
+
+function SessionReview({ ready }: { ready: boolean }) {
   // A dev token's member flag counts locally, as it does at the tables.
   const member = useEntitlement() || devMember()
   // Whether a real answer about the membership has come back yet. For anybody
@@ -152,4 +165,68 @@ export function ReviewScreen() {
   }
 
   return <ReviewTable session={session} />
+}
+
+/**
+ * One game from the account. **The game is free to go through; the review is
+ * the membership's** (Will, 2026-11-27): anybody can step through the hands
+ * of a game, theirs or a player's, and a member also gets the odds, every
+ * move rated and the session's numbers.
+ */
+function GameReview({ id }: { id: string }) {
+  const router = useRouter()
+  const member = useEntitlement() || devMember()
+  const settled = useMembership((state) => state.checked)
+  const signedIn = useSync((s) => s.status === 'signed-in')
+  const syncReady = useSync((s) => s.ready)
+  // Undefined: loading. Null: not there for you. 'offline': Pip could not be reached.
+  const [opened, setOpened] = useState<OpenedGame | null | 'offline' | undefined>(undefined)
+
+  useEffect(() => {
+    if (!syncReady || !signedIn) return
+    let live = true
+    void openGame(id).then((g) => {
+      if (live) setOpened(g === undefined ? 'offline' : g)
+    })
+    return () => {
+      live = false
+    }
+  }, [id, syncReady, signedIn])
+
+  const back = () => router.back()
+
+  // A member is not shown the plain replay while their row is on its way.
+  if (!syncReady || (signedIn && (opened === undefined || (!member && !settled)))) {
+    return <Splash />
+  }
+  if (
+    !signedIn ||
+    opened === undefined ||
+    opened === null ||
+    opened === 'offline' ||
+    opened.session.hands.length === 0
+  ) {
+    return (
+      <SectionScreen title="Game">
+        <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-5">
+          <p className="text-sm text-muted-foreground">
+            {!signedIn
+              ? 'Sign in to see games.'
+              : opened === 'offline'
+                ? 'Couldn’t reach Pip. Try again later.'
+                : opened === null
+                  ? 'That game isn’t here.'
+                  : 'No hands in this game yet.'}
+          </p>
+          <Link
+            href="/game/games"
+            className="mt-3 inline-block text-sm underline underline-offset-4 hover:text-foreground"
+          >
+            Game history
+          </Link>
+        </div>
+      </SectionScreen>
+    )
+  }
+  return <ReviewTable session={opened.session} plain={!member} onBack={back} />
 }

@@ -193,7 +193,10 @@ Fast and slow multiplayer games have a session review too
   `HandRecord` with your seat renamed `hero`. A slow game's view carries its
   last few hands, so a game opened now and then still fills in; opening the
   review of a slow game you are in sits down at it to fetch them.
-- **One review per room**, the last `MAX_ROOM_REVIEWS` rooms, in
+- **On the account too**: the room server writes every hand into each
+  player's games (docs/games.md), so a slow game opened on another device, or
+  not at all, is still all there.
+- **One review per room on the device**, the last `MAX_ROOM_REVIEWS` rooms, in
   `localStorage` `pip.roomReviews`. Not added to the career report.
 - **Where it is offered:** the end card at the table (members), a finished
   game's card in "Your games" (tap → *Session review*), a small button on a game
@@ -236,10 +239,14 @@ that difference could be written down.
 | | Where | Lives for |
 |---|---|---|
 | The session | `localStorage` `pip.review` | one session — the next sit-down replaces it |
+| Every game, on the account | `games` + `game_hands` (docs/games.md) | the newest 300 games |
 | Multiplayer games | `localStorage` `pip.roomReviews` | one per room, the last few rooms |
 | The career table | `profile.reviewStats` (v20) | forever, and it syncs |
 
-**One session, not a library** (Will, 2026-09-20). No dates, nothing to fall
+**On the device, one session, not a library** (Will, 2026-09-20). Since
+2026-11-27 the account keeps every game as well (docs/games.md, Will: "I want
+to have like a game history"); this is what a guest has, and what the table's
+own *Review the session* opens. No dates, nothing to fall
 behind on — the call `lib/recap.ts` already made about runs. Capped at
 `MAX_REVIEW_HANDS`; when it bites the screen says how many hands were dropped.
 

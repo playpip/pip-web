@@ -28,6 +28,7 @@ import { type Cue, sound } from '@/lib/sound'
 import { DEFAULT_QUIET, type PreKind, type Quiet } from '@/lib/multiplayer/slow'
 import { captureRoomView } from '@/lib/multiplayer/review'
 import { notePlayedThisWeek, roomHandToCount } from '@/lib/returning'
+import { readRatingSoon } from '@/lib/rating/rate'
 import { useProfile } from './profile'
 
 export type RoomConnection = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'gone'
@@ -183,7 +184,11 @@ export const useRoom = create<RoomStore>((set, get) => {
       }
     }
     // Whether players come back counts a room hand like a ladder one (lib/returning).
-    if (roomHandToCount(prev, view)) notePlayedThisWeek()
+    if (roomHandToCount(prev, view)) {
+      notePlayedThisWeek()
+      // The room server rates the hand (rooms/src/games.ts); read the number back soon.
+      readRatingSoon()
+    }
     // Finished hands, kept for the session review (lib/multiplayer/review).
     // After this frame, because it deals each new hand again and prices your
     // calls, and the table's sounds and redraw should not wait on that.

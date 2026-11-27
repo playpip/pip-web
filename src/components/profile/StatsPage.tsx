@@ -187,6 +187,12 @@ export function StatsPage() {
             >
               Review your last session
             </Link>
+            <Link
+              href="/game/games"
+              className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+            >
+              Game history
+            </Link>
             {roomReviews.map((r) => (
               <Link
                 key={r.room.code}

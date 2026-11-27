@@ -57,6 +57,8 @@ import { MAX_SLOW_GAMES, type Quiet } from '@/lib/multiplayer/slow'
 import { identify } from './auth'
 import { saveBlock, saveReport } from './safety'
 import { countRoomHands } from './tally'
+import { recordRoomHand } from './games'
+import { handJustFinished } from '@/lib/multiplayer/games'
 import { lobbyStub } from './lobby'
 import { openTableOf } from '@/lib/multiplayer/openTables'
 import { roomBucket } from '@/lib/handCount'
@@ -133,6 +135,10 @@ export class PokerRoom extends DurableObject<Env> {
       if (bucket) {
         this.ctx.waitUntil(countRoomHands(this.env, bucket, next.handIndex - before.handIndex))
       }
+    }
+    // A hand just finished: into everybody's games, and their rating's inbox.
+    if (handJustFinished(before ?? null, next)) {
+      this.ctx.waitUntil(recordRoomHand(this.env, next, Date.now()))
     }
     if (next.kind === 'slow') await this.index(next, leaving)
     if (next.listed) this.ctx.waitUntil(this.list(before ?? null, next))

@@ -85,8 +85,9 @@ Expert (2000), Master (2400). None reuses a Roll title from `config/ranks.ts`.
 ## What counts
 
 Every Hold'em hand dealt through `store/game.ts`: the ladder, the Rail, the Daily, the freeroll,
-Hold'em side tables and quick games that deal through the store. Not other variants (the pricing
-is two-card equity), not drills, not multiplayer rooms (yet). `ratedDecisionsOf`
+Hold'em side tables and quick games that deal through the store, and **every multiplayer game**:
+private rooms, open tables and slow games (Will, 2026-11-27: "slow games don't seem to affect
+rating... it should"). Not other variants (the pricing is two-card equity), not drills. `ratedDecisionsOf`
 (`src/lib/rating/hand.ts`) turns a finished hand into its rated decisions, and both the store and
 `pnpm rating-calibrate` call it, so the calibration measures exactly what the table rates.
 
@@ -121,6 +122,17 @@ Two families of decision (Will, 2026-11-05: "measure more factors too, like rais
 **Only what the player could see.** The cost comes from the `HeroDecision` snapshot, taken
 when the player acted, and the hero's own hole cards. A format that hides a card from the
 player (Mystery Card) must leave it out of the snapshot or mark the venue `unrated`.
+
+### Multiplayer: rated by the room server
+
+A room hand is never priced on a device. When it finishes, the room server builds each
+person's copy from what their seat saw (`lib/multiplayer/games.ts`), runs the same
+`ratedDecisionsOf`, and writes the decisions to `public.rating_inbox` (service role only,
+`record_room_hands`). `submit-rating` counts the inbox with every submission, and on a read
+with an empty queue (`decideSubmission`'s `served`): first, outside the client's rate and
+timing checks, because the server saw them dealt and they finish at their own pace beside the
+device's hands. They still go through the shape checks and the 60-point limit. The device asks
+again about 20 seconds after a room deals (`readRatingSoon`), and adopts what comes back.
 
 ## Storage
 

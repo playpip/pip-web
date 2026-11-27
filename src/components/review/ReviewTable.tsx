@@ -59,10 +59,20 @@ import { cn } from '@/lib/utils'
 export function ReviewTable({
   session,
   shared = false,
+  plain = false,
+  onBack,
 }: {
   session: ReviewSession
   /** One hand out of a `/hand` link, reviewed in public. See the header. */
   shared?: boolean
+  /**
+   * A game played back without the review (docs/games.md): the cards, the
+   * moves and the pot, with no odds, no ratings and no session numbers. What
+   * somebody without the membership gets when they open a game.
+   */
+  plain?: boolean
+  /** Where back goes. Without it, the menu the session came from. */
+  onBack?: () => void
 }) {
   const router = useRouter()
   const [copied, copy] = useCopied()
@@ -122,14 +132,17 @@ export function ReviewTable({
   )
 
   const odds = useMemo(() => {
-    if (!frame || !record || !everyLiveHandKnown(frame.hand, record)) return null
+    if (plain || !frame || !record || !everyLiveHandKnown(frame.hand, record)) return null
     const live = liveHands(frame.hand)
     return live.length > 1 ? solve(live, frame.hand.community) : null
-  }, [frame, record, solve])
+  }, [plain, frame, record, solve])
 
   const commentary = useMemo(
-    () => (reviewHand && frame ? commentaryAt(reviewHand, frame, money, solve) : null),
-    [reviewHand, frame, money, solve],
+    () =>
+      reviewHand && frame
+        ? commentaryAt(reviewHand, frame, money, solve, Boolean(session.owner))
+        : null,
+    [reviewHand, frame, money, solve, session.owner],
   )
 
   // The link carries the whole table, so whoever opens it gets this screen for
@@ -360,10 +373,10 @@ export function ReviewTable({
           nothing read as a step where the feature had failed. "Fine" is a
           verdict too: it means the chips did not care either way. */}
       <p className="flex items-center gap-2 text-sm font-medium">
-        {commentary.move && <MoveChip verdict={commentary.move.verdict} />}
+        {!plain && commentary.move && <MoveChip verdict={commentary.move.verdict} />}
         <span className="truncate">{commentary.said}</span>
       </p>
-      {commentary.verdict && (
+      {!plain && commentary.verdict && (
         <p
           className={cn(
             'mt-0.5 line-clamp-2 text-2xs leading-snug sm:text-xs',
@@ -392,7 +405,7 @@ export function ReviewTable({
           leading={shared ? 'none' : 'back'}
           chrome={false}
           showWordmark={false}
-          onBack={() => router.push(session.room ? '/game/multiplayer' : '/game')}
+          onBack={onBack ?? (() => router.push(session.room ? '/game/multiplayer' : '/game'))}
           title={
             <>
               <span className="text-sm font-medium text-muted-foreground">{session.venueName}</span>
@@ -417,7 +430,7 @@ export function ReviewTable({
               >
                 Play free
               </Link>
-            ) : (
+            ) : plain ? undefined : (
               <button
                 type="button"
                 onClick={shareHand}
@@ -548,6 +561,7 @@ export function ReviewTable({
             filter={filter}
             onFilter={setFilter}
             onPick={goHand}
+            plain={plain}
           />
         )}
       </div>

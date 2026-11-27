@@ -175,6 +175,8 @@ export function gradeMove(
   ) => ShowdownOdds = showdownOdds,
   /** How the player has chosen to see chips. */
   money: (n: number) => string = (n) => n.toLocaleString(),
+  /** Somebody else's game (docs/games.md): its hero is a name, not "you". */
+  watching = false,
 ): MoveGrade | null {
   const event = record.events[eventIndex]
   if (!event || event.kind !== 'action' || event.type === 'draw') return null
@@ -192,7 +194,7 @@ export function gradeMove(
   const pot = before.pot
   if (pot === null) return null
   const bb = record.bigBlind || 1
-  const mine = actor.id === HERO_ID
+  const mine = !watching && actor.id === HERO_ID
 
   const odds = solve(
     [{ id: actor.id, hole: actor.hole }, ...others.map((p) => ({ id: p.id, hole: p.hole }))],

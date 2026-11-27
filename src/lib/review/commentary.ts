@@ -42,6 +42,11 @@ export function commentaryAt(
   money: (n: number) => string,
   /** Memoised equity, shared with the seat badges. See `gradeMove`. */
   solve?: Parameters<typeof gradeMove>[2],
+  /**
+   * Somebody else's game (docs/games.md): the hero is called by their name,
+   * and the price's second opinion, which talks to "you", is left out.
+   */
+  watching = false,
 ): Commentary {
   const { record } = hand
   const event = frame.lastEvent
@@ -72,14 +77,14 @@ export function commentaryAt(
               ? ['draws', 'draw']
               : [`raises to ${money(event.amount ?? 0)}`, `raise to ${money(event.amount ?? 0)}`]
 
-  const mine = event.playerId === HERO_ID
+  const mine = !watching && event.playerId === HERO_ID
   const said = mine ? `You ${verb[1]}.` : `${event.playerName} ${verb[0]}.`
   const tail = frame.done && record.summary ? record.summary : null
 
   // **Everybody's move is graded, not only yours** — seeing where the table
   // went wrong is most of what makes a replay worth stepping through, and the
   // arithmetic does not care whose turn it was (lib/review/moveGrade).
-  const move = gradeMove(record, frame.lastIndex, solve, money)
+  const move = gradeMove(record, frame.lastIndex, solve, money, watching)
   if (!move) {
     // A hand from before the review kept what a rating needs shows nothing at
     // all otherwise, which reads as the feature being broken rather than as the
@@ -90,7 +95,7 @@ export function commentaryAt(
 
   return {
     said,
-    verdict: `${move.line}${priceNote(hand, frame.lastIndex, move.bb)}`,
+    verdict: `${move.line}${watching ? '' : priceNote(hand, frame.lastIndex, move.bb)}`,
     tone:
       move.verdict === 'mistake' || move.verdict === 'blunder'
         ? 'bad'

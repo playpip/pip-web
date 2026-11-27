@@ -22,7 +22,7 @@
 import type { Card } from '@/lib/poker/cards'
 import type { HandState, Player, Street } from '@/lib/poker/engine'
 import type { AvatarSpec } from '@/lib/avatar'
-import type { HandRecord } from '@/store/game'
+import type { HandRecord } from '@/lib/handRecord'
 
 export const HERO_ID = 'hero'
 

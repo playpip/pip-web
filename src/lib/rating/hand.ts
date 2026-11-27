@@ -3,7 +3,7 @@
 // calibration measures exactly what the table rates.
 
 import type { GradedDecision } from '@/lib/review/grade'
-import type { HandRecord } from '@/store/game'
+import type { HandRecord } from '@/lib/handRecord'
 import { MAX_DECISIONS_PER_HAND, ratedLoss, ratedStake, ratingKindOf } from './index'
 import type { RatedDecision } from './local'
 import { gradeFirstIn } from './preflop'

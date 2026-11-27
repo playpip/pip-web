@@ -57,7 +57,7 @@
  * and this comment is the honest record of that.
  */
 
-import type { HandRecord } from '@/store/game'
+import type { HandRecord } from '@/lib/handRecord'
 import type { Card, Rng } from '@/lib/poker/cards'
 import { mulberry32 } from '@/lib/poker/cards'
 import { estimateEquity } from '@/lib/poker/equity'

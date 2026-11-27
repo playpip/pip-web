@@ -9,6 +9,7 @@
 // Removing, blocking and reporting wait behind "…", as they should.
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Ban, Check, Flag, Loader2, MoreHorizontal, UserMinus, X } from 'lucide-react'
@@ -34,6 +35,7 @@ import { cn } from '@/lib/utils'
 import { useSocial } from '@/store/social'
 import { BadgeChips, challengeHref, Face, RowButton, shownTiles } from './parts'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
+import { GameList, gamesHref } from '@/components/games/GameList'
 
 /** Each rank's table, climbing the ladder as the ranks do. */
 const RANK_VENUE: Record<string, string> = {
@@ -265,6 +267,22 @@ function Card({
         <p className="border-t border-foreground/[0.08] px-6 py-5 text-center text-sm text-muted-foreground">
           {self ? 'You’re not showing anything yet.' : 'Nothing shown.'}
         </p>
+      )}
+
+      {(self || player.shown.includes('games')) && (
+        <section className="flex flex-col gap-3 border-t border-foreground/[0.08] px-4 py-5 sm:px-6">
+          <div className="flex items-baseline justify-between px-1">
+            <h2 className="text-base font-semibold tracking-tight">Games</h2>
+            <Link
+              href={gamesHref(player.handle)}
+              onClick={() => sound.play('tap')}
+              className="text-sm text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"
+            >
+              All games
+            </Link>
+          </div>
+          <GameList handle={player.handle} limit={5} empty="No games yet." />
+        </section>
       )}
 
       <Sheet open={more} onOpenChange={setMore}>

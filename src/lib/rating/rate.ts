@@ -30,6 +30,16 @@ export function rateHand(decisions: readonly RatedDecision[]): void {
   if (!timer) timer = setTimeout(() => void sendRating(), SEND_AFTER_MS)
 }
 
+/**
+ * A multiplayer hand finished: the room server has rated it into the inbox
+ * `submit-rating` counts, so ask for the number a little later. One request
+ * for a run of hands, as with the solo queue.
+ */
+export function readRatingSoon(): void {
+  if (!ratingEnabled() || useSync.getState().status !== 'signed-in') return
+  if (!timer) timer = setTimeout(() => void sendRating(), SEND_AFTER_MS)
+}
+
 /** Send what is queued (or read the row back) and show the server's number. */
 export async function sendRating(): Promise<void> {
   timer = null

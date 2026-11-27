@@ -2,7 +2,8 @@
 //
 // POST { hands: SubmittedHand[], name, avatar, hidden? } with the player's
 // access token → { rating, peak, ratedDecisions, core, hidden }.
-// POST { hands: [] } reads the stored row back without changing anything.
+// POST { hands: [] } reads the stored row back without changing anything,
+// unless the room server has left hands in `rating_inbox`: those are counted.
 //
 // **The client's number is never taken.** The function replays the decisions
 // it is sent through the shared arithmetic (`_shared/rating.ts`) from its own
@@ -20,6 +21,7 @@ import {
   type PublicNumbers,
   RETRYABLE,
   type ServerState,
+  validateServed,
 } from '../_shared/rating.ts'
 
 const CORS = {
@@ -63,10 +65,33 @@ Deno.serve(async (req) => {
     return json({ error: 'bad-request' }, 400)
   }
 
-  const [{ data: stateRow }, { data: publicRow }] = await Promise.all([
+  const [{ data: stateRow }, { data: publicRow }, { data: inbox }] = await Promise.all([
     admin.from('rating_state').select('*').eq('user_id', userId).maybeSingle(),
     admin.from('ratings').select('*').eq('user_id', userId).maybeSingle(),
+    // Hands the room server dealt this player (docs/rating.md → multiplayer).
+    admin
+      .from('rating_inbox')
+      .select('id, at, decisions')
+      .eq('user_id', userId)
+      .order('id')
+      .limit(200),
   ])
+  const inboxRows = (inbox ?? []) as { id: number; at: number | string; decisions: unknown }[]
+  const served = validateServed(
+    inboxRows.map((r) => ({ at: Number(r.at), decisions: r.decisions })),
+    Date.now(),
+  )
+  /** Every inbox row read, counted or past use, once a submission has gone through. */
+  const clearInbox = async () => {
+    if (inboxRows.length === 0) return
+    const last = inboxRows[inboxRows.length - 1].id
+    const { error } = await admin
+      .from('rating_inbox')
+      .delete()
+      .eq('user_id', userId)
+      .lte('id', last)
+    if (error) console.error(`submit-rating: inbox for ${userId} not cleared:`, error)
+  }
 
   const stored: ServerState | null = stateRow
     ? {
@@ -91,7 +116,8 @@ Deno.serve(async (req) => {
   const hidden = typeof body.hidden === 'boolean' ? body.hidden : (publicRow?.hidden ?? false)
 
   // Nothing to count: read back, and apply a change to "hide me" if one came.
-  if (Array.isArray(body.hands) && body.hands.length === 0) {
+  if (Array.isArray(body.hands) && body.hands.length === 0 && served.length === 0) {
+    await clearInbox()
     if (publicRow && hidden !== publicRow.hidden) {
       await admin.from('ratings').update({ hidden }).eq('user_id', userId)
     }
@@ -105,7 +131,7 @@ Deno.serve(async (req) => {
   }
 
   const now = Date.now()
-  const result = decideSubmission(body.hands, stored, row, now)
+  const result = decideSubmission(body.hands, stored, row, now, served)
   const toRow = (s: ServerState) => ({
     user_id: userId,
     core: s.core,
@@ -146,6 +172,7 @@ Deno.serve(async (req) => {
     console.error(`submit-rating: row for ${userId} failed:`, rowError)
     return json({ error: 'unavailable', retry: true }, 503)
   }
+  await clearInbox()
   // Whoever this climbed past hears about it (the room server sends it).
   // Never allowed to fail the submission.
   if (!hidden && !numbers.flagged && row && numbers.rating > row.rating) {

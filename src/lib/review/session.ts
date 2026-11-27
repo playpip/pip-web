@@ -1,7 +1,8 @@
 /**
  * The session you just played, kept so it can be reviewed.
  *
- * **One session, and the next one replaces it** (Will, 2026-09-20). Not a
+ * **On the device, one session, and the next one replaces it** (Will,
+ * 2026-09-20); the account keeps every game (docs/games.md). Not a
  * library, not an inbox, nothing with a date on it you could fall behind on —
  * `lib/recap.ts` made the same call about runs and the reasoning is the same:
  * a history is the thing that turns a report into pressure. What this adds over
@@ -20,7 +21,7 @@
  * not the table and never mounts the game store — can read it.
  */
 
-import type { HandRecord } from '@/store/game'
+import type { HandRecord } from '@/lib/handRecord'
 import type { Scored } from '@/lib/coach'
 import { type GradedDecision, gradeDecision, isMistake } from './grade'
 
@@ -38,37 +39,8 @@ const REVIEW_KEY = 'pip.review'
  */
 export const MAX_REVIEW_HANDS = 300
 
-export interface ReviewHand {
-  record: HandRecord
-  /** Every priced decision in the hand, graded. Empty is normal and common. */
-  decisions: GradedDecision[]
-}
-
-export type SessionOutcome =
-  | { kind: 'stood-up'; rollDelta: number }
-  | { kind: 'busted'; place: number | null; seats: number }
-  | { kind: 'won'; seats: number }
-
-export interface ReviewSession {
-  venueId: string
-  venueName: string
-  /** The venue's accent, carried so the screen need not resolve the venue. */
-  accent: string
-  /** Tournament or cash table — they finish in different ways. */
-  cash: boolean
-  startedAt: number
-  /** Null while the session is still being played. */
-  endedAt: number | null
-  outcome: SessionOutcome | null
-  hands: ReviewHand[]
-  /** Hands played beyond `MAX_REVIEW_HANDS`, dropped from the front. */
-  dropped: number
-  /**
-   * Set when this is a multiplayer game (lib/multiplayer/review), whose other
-   * seats' cards are only known where a showdown turned them over.
-   */
-  room?: { code: string; kind: 'private' | 'quick' | 'slow' }
-}
+export type { ReviewHand, ReviewSession, SessionOutcome } from './types'
+import type { ReviewHand, ReviewSession, SessionOutcome } from './types'
 
 // --- storage ---------------------------------------------------------------
 

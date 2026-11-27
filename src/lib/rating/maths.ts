@@ -364,6 +364,20 @@ export function validateHands(
   return { ok: true, hands }
 }
 
+/**
+ * The room server's hands from `rating_inbox`, oldest first, with anything
+ * malformed or past `MAX_HAND_AGE_MS` left out rather than refused: nobody can
+ * send these again, so one bad row must not hold up the rest.
+ */
+export function validateServed(input: readonly unknown[], now: number): SubmittedHand[] {
+  const out: SubmittedHand[] = []
+  for (const raw of input) {
+    const checked = validateHands([raw], 0, now)
+    if (checked.ok) out.push(checked.hands[0])
+  }
+  return out.sort((a, b) => a.at - b.at)
+}
+
 /** Rated decisions in a validated submission. */
 export function decisionCount(hands: readonly SubmittedHand[]): number {
   return hands.reduce((n, h) => n + h.decisions.length, 0)
@@ -484,29 +498,45 @@ export const RETRYABLE: readonly Rejection[] = ['too-soon', 'hourly-limit']
  * every hand (`validateHands`), then the replay (`applySubmission`, which
  * holds an established rating to `MAX_CHANGE_PER_SUBMIT`). A record better
  * than anybody measured is flagged off the board, never sent back down.
+ *
+ * `served` is the hands the room server dealt (`rating_inbox`, already through
+ * `validateServed`). They are counted first and skip the client's rate and
+ * timing checks: the server saw them played, and they finish at their own
+ * pace beside whatever the device is sending. An empty client list with served
+ * hands waiting counts just those.
  */
 export function decideSubmission(
   input: unknown,
   stored: ServerState | null,
   row: PublicNumbers | null,
   now: number,
+  served: readonly SubmittedHand[] = [],
 ):
   | { ok: false; reason: Rejection; state: ServerState }
   | { ok: true; state: ServerState; numbers: PublicNumbers; clamped: boolean } {
   const state = stored ?? freshState()
-  if (state.lastSubmitAt !== null && now - state.lastSubmitAt < MIN_SUBMIT_GAP_MS)
+  const fromClient = !(Array.isArray(input) && input.length === 0 && served.length > 0)
+  if (fromClient && state.lastSubmitAt !== null && now - state.lastSubmitAt < MIN_SUBMIT_GAP_MS)
     return { ok: false, reason: 'too-soon', state }
 
-  const checked = validateHands(input, state.lastHandAt, now)
-  if (!checked.ok) {
-    return { ok: false, reason: checked.reason, state: { ...state, rejected: state.rejected + 1 } }
+  let sent: SubmittedHand[] = []
+  if (fromClient) {
+    const checked = validateHands(input, state.lastHandAt, now)
+    if (!checked.ok) {
+      return {
+        ok: false,
+        reason: checked.reason,
+        state: { ...state, rejected: state.rejected + 1 },
+      }
+    }
+    sent = checked.hands
   }
 
   const inHour = state.hourStart !== null && now - state.hourStart < HOUR
-  const hourDecisions = (inHour ? state.hourDecisions : 0) + decisionCount(checked.hands)
+  const hourDecisions = (inHour ? state.hourDecisions : 0) + decisionCount(sent)
   if (hourDecisions > MAX_DECISIONS_PER_HOUR) return { ok: false, reason: 'hourly-limit', state }
 
-  const { core, rating, clamped } = applySubmission(state.core, checked.hands)
+  const { core, rating, clamped } = applySubmission(state.core, [...served, ...sent])
   const week = weekStartOf(now)
   const before = row?.rating ?? ratingOf(state.core)
   const numbers: PublicNumbers = {
@@ -525,8 +555,8 @@ export function decideSubmission(
     numbers,
     state: {
       core,
-      lastHandAt: checked.hands[checked.hands.length - 1].at,
-      lastSubmitAt: now,
+      lastHandAt: sent.length > 0 ? sent[sent.length - 1].at : state.lastHandAt,
+      lastSubmitAt: fromClient ? now : state.lastSubmitAt,
       hourStart: inHour ? state.hourStart : now,
       hourDecisions,
       rejected: state.rejected,

@@ -117,5 +117,5 @@ test('somebody not dealt in counts nothing', (t) => {
 
 test('the room store counts what arrives', (t) => {
   const store = readFileSync(new URL('../src/store/room.ts', import.meta.url), 'utf-8')
-  t.regex(store, /if \(roomHandToCount\(prev, view\)\) notePlayedThisWeek\(\)/)
+  t.regex(store, /if \(roomHandToCount\(prev, view\)\) \{\s*notePlayedThisWeek\(\)/)
 })

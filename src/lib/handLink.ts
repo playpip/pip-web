@@ -14,7 +14,7 @@
 // nothing extra to carry, so links out in the world and the report's evidence
 // tokens (synced with the profile, where size matters) keep decoding anywhere.
 
-import type { HandEvent, HandRecord } from '@/store/game'
+import type { HandEvent, HandRecord } from '@/lib/handRecord'
 import type { GradedDecision, Grade } from '@/lib/review/grade'
 import { verdictOf } from '@/lib/review/grade'
 import type { PricedStreet } from '@/lib/coach'

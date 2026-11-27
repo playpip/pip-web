@@ -19,12 +19,17 @@ export const SHOWABLE = [
   { key: 'wins', label: 'Tournaments won' },
   { key: 'streak', label: 'Best streak' },
   { key: 'awards', label: 'Awards' },
+  // Not a number: the list of games on the profile, each one open to replay (docs/games.md).
+  { key: 'games', label: 'Games' },
 ] as const
 
 export type ShowKey = (typeof SHOWABLE)[number]['key']
 
-/** A new profile shows the rating, which is public on the leaderboard already, and nothing else. */
-export const DEFAULT_SHOWN: readonly ShowKey[] = ['rating']
+/**
+ * A new profile shows the rating, which is public on the leaderboard already,
+ * and its games (Will, 2026-11-27: "everything, like the session review").
+ */
+export const DEFAULT_SHOWN: readonly ShowKey[] = ['rating', 'games']
 
 export interface Card {
   rank?: string

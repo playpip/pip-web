@@ -203,7 +203,11 @@ export function PublicFields({ draft }: { draft: PublicDraft }) {
                 <span className="min-w-0 flex-1 hyphens-auto break-words">
                   <span className="block text-sm font-medium">{s.label}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {v ? `${v.value}${v.detail ? ` ${v.detail}` : ''}` : 'Not enough hands yet'}
+                    {s.key === 'games'
+                      ? 'Every game you play, to replay'
+                      : v
+                        ? `${v.value}${v.detail ? ` ${v.detail}` : ''}`
+                        : 'Not enough hands yet'}
                   </span>
                 </span>
                 <Switch

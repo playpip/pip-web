@@ -20,7 +20,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import Link from 'next/link'
 import { PlayingCard } from '@/components/PlayingCard'
+import { membershipFor } from '@/config/membership'
 import { GRADE_DOTS } from './GradeChip'
 import { isMistake } from '@/lib/review/grade'
 import { handGrade, tallySession, type ReviewHand, type ReviewSession } from '@/lib/review/session'
@@ -52,6 +54,7 @@ export function HandPicker({
   filter,
   onFilter,
   onPick,
+  plain = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -60,6 +63,8 @@ export function HandPicker({
   filter: HandFilter
   onFilter: (filter: HandFilter) => void
   onPick: (index: number) => void
+  /** The replay without the review: chips only, no grades (`ReviewTable`'s `plain`). */
+  plain?: boolean
 }) {
   const money = useMoney()
   const hands = session.hands
@@ -82,20 +87,36 @@ export function HandPicker({
         {/* The session's numbers live here rather than on the felt: the felt is
             the hand, and a scoreboard over it is a second screen fighting the
             first. */}
-        <div className="grid grid-cols-3 gap-2">
-          <Tile label="Chips" value={`${tally.chips > 0 ? '+' : ''}${money(tally.chips)}`} />
-          <Tile
-            label="Calls right"
-            value={tally.priced > 0 ? `${tally.right} of ${tally.right + tally.wrong}` : '—'}
-          />
-          <Tile
-            label="Given up"
-            value={tally.bbGivenUp > 0 ? tally.bbGivenUp.toFixed(1) : '—'}
-            sub={tally.bbGivenUp > 0 ? 'big blinds' : undefined}
-          />
-        </div>
+        {plain ? (
+          <div className="flex flex-col gap-2">
+            <Tile label="Chips" value={`${tally.chips > 0 ? '+' : ''}${money(tally.chips)}`} />
+            <p className="text-xs text-muted-foreground">
+              Odds, move ratings and the session's numbers come with the{' '}
+              <Link
+                href={membershipFor('review')}
+                className="underline underline-offset-2 hover:text-foreground"
+              >
+                membership
+              </Link>
+              .
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            <Tile label="Chips" value={`${tally.chips > 0 ? '+' : ''}${money(tally.chips)}`} />
+            <Tile
+              label="Calls right"
+              value={tally.priced > 0 ? `${tally.right} of ${tally.right + tally.wrong}` : '—'}
+            />
+            <Tile
+              label="Given up"
+              value={tally.bbGivenUp > 0 ? tally.bbGivenUp.toFixed(1) : '—'}
+              sub={tally.bbGivenUp > 0 ? 'big blinds' : undefined}
+            />
+          </div>
+        )}
 
-        {highlights.length > 0 && (
+        {!plain && highlights.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {highlights.map((h) => (
               <button
@@ -115,7 +136,7 @@ export function HandPicker({
         )}
 
         <div className="flex gap-1">
-          {FILTERS.map((f) => (
+          {FILTERS.filter((f) => !plain || f.id !== 'mistakes').map((f) => (
             <button
               key={f.id}
               type="button"
@@ -174,7 +195,7 @@ export function HandPicker({
                   {money(delta)}
                 </span>
                 <span className="flex w-2 shrink-0 justify-center">
-                  {grade && (
+                  {!plain && grade && (
                     <span className={cn('size-1.5 rounded-full', GRADE_DOTS[grade.grade])} />
                   )}
                 </span>
@@ -210,7 +231,9 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 function outcomeLine(session: ReviewSession, money: (n: number) => string): string {
   const outcome = session.outcome
   if (!outcome) return 'Still at the table'
-  if (outcome.kind === 'won') return 'You took it down'
+  if (outcome.kind === 'won') {
+    return session.owner ? `${session.owner.name} took it down` : 'You took it down'
+  }
   if (outcome.kind === 'busted') {
     return outcome.place
       ? `Knocked out ${ordinal(outcome.place)} of ${outcome.seats}`

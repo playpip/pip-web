@@ -17,10 +17,11 @@ bio and picks what their profile shows.
   comes from the name (`will_l`, then `will_l_2`), or `player_<n>` when the name won't do.
   Anyone can change it in Your profile.
 - **A profile shows only what its owner switched on.** A new profile shows the Pip Rating,
-  which is already public on the leaderboard, and nothing else. A player hidden from the
+  which is already public on the leaderboard, and its Games (since 2026-11-27), and nothing else. A player hidden from the
   leaderboard starts hidden here too: out of search and showing nothing. **The Roll and its rank are
   private unless the player chooses to show them here** (this overrides the old rule, for
-  profiles only; nobody at a table sees them). Only the shown values leave the device
+  profiles only; nobody at a table sees them). **Games** is on the same list: the profile's
+list of games, each one open to go through (docs/games.md). On by default. Only the shown values leave the device
   (`cardOf` in `src/lib/social/card.ts`). The rating is read from `ratings`, so it is the one
   number nobody can make up. The others come from the player's own device, like the rest of
   their profile.
