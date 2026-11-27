@@ -44,7 +44,8 @@ export function comparisonRows(): CompareRow[] {
       member: 'Whenever you like',
       ids: ['coaching'],
     },
-    { thing: 'Session review', free: false, member: 'Every session', ids: ['review'] },
+    { thing: 'Your games, hand by hand', free: 'With an account', member: true, ids: [] },
+    { thing: 'Session review', free: false, member: 'Every game', ids: ['review'] },
     {
       thing: 'Drills',
       free: `${freeDrills} of ${drills}`,
