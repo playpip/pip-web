@@ -7,9 +7,9 @@ import { HelpCircle, History } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
 import { ActionBar } from './ActionBar'
-import { useTableKeyboard, useTableKeys } from './keys'
+import { TableKeysDialog, useTableKeyboard, useTableKeys } from './keys'
 import { KeyBadge } from '@/components/KeyBadge'
-import { nextHandKeyFor, type KeyTarget } from '@/lib/tableKeys'
+import { handoverKeyFor, type KeyTarget } from '@/lib/tableKeys'
 import { ActionRow } from './ActionRow'
 import { nextUp } from '@/lib/nextUp'
 import { deviceId } from '@/lib/sync/client'
@@ -163,12 +163,17 @@ export function Table() {
   // the save step, and "Continue" did not say that saving came next.
   const signedOut = useSync((s) => s.ready && s.status === 'signed-out')
 
-  // Space deals the next hand while its button is up (lib/tableKeys).
+  // Space deals the next hand while its button is up, and `?` lists the keys,
+  // since the action bar that answers `?` mid-hand is gone (lib/tableKeys).
   const keyboard = useTableKeyboard()
+  const [keysOpen, setKeysOpen] = useState(false)
   useTableKeys(keyboard && status === 'handover', (e) => {
-    if (!nextHandKeyFor(e, e.target as KeyTarget | null, document)) return
+    const intent = handoverKeyFor(e, e.target as KeyTarget | null, document)
+    if (!intent) return
     e.preventDefault()
-    nextHand()
+    if (intent === 'deal') return nextHand()
+    sound.play('tap')
+    setKeysOpen(true)
   })
 
   if (!hand || !venue) return <div className="min-h-dvh" />
@@ -364,6 +369,7 @@ export function Table() {
           <KeyBadge className="bg-primary-foreground/10 text-primary-foreground/60">Space</KeyBadge>
         )}
       </button>
+      <TableKeysDialog open={keysOpen} onOpenChange={setKeysOpen} />
     </motion.div>
   ) : (
     <ActionBar hand={hand} marked={marked} onDrawn={() => setMarked([])} />

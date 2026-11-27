@@ -72,16 +72,19 @@ export function intentFor(e: KeyPress, legal: LegalActions | null): TableIntent 
 }
 
 /**
- * Between hands, while the Next hand button is up: Space deals. Held down it
- * deals once, never a run of hands; on the focused button it is the button's.
+ * Between hands, while the Next hand button is up: Space deals, and `?` opens
+ * the list, as it does mid-hand. Held down Space deals once, never a run of
+ * hands; on the focused button it is the button's.
  */
-export function nextHandKeyFor(
+export function handoverKeyFor(
   e: KeyPress,
   target: KeyTarget | null,
   doc?: { querySelector: (selector: string) => unknown },
-): boolean {
-  if (ignored(e) || e.shiftKey || e.key !== ' ') return false
-  return keysReachTable(e, target, doc)
+): 'deal' | 'help' | null {
+  if (ignored(e) || !keysReachTable(e, target, doc)) return null
+  // `?` needs Shift on most layouts.
+  if (e.key === '?') return 'help'
+  return !e.shiftKey && e.key === ' ' ? 'deal' : null
 }
 
 /** Inside the open sizer: a preset (0–3, in `SIZER_PRESET_KEYS` order), or confirm. */
