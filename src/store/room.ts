@@ -27,6 +27,7 @@ import { legalActions, type HandState } from '@/lib/poker/engine'
 import { type Cue, sound } from '@/lib/sound'
 import { DEFAULT_QUIET, type PreKind, type Quiet } from '@/lib/multiplayer/slow'
 import { captureRoomView } from '@/lib/multiplayer/review'
+import { noteHandThisWeek } from '@/lib/lastWeek'
 import { notePlayedThisWeek, roomHandToCount } from '@/lib/returning'
 import { readRatingSoon } from '@/lib/rating/rate'
 import { useProfile } from './profile'
@@ -189,6 +190,8 @@ export const useRoom = create<RoomStore>((set, get) => {
       // The room server rates the hand (rooms/src/games.ts); read the number back soon.
       readRatingSoon()
     }
+    // ...and so does the line on Home that says last week's hands (lib/lastWeek).
+    if (roomHandToCount(prev, view)) noteHandThisWeek()
     // Finished hands, kept for the session review (lib/multiplayer/review).
     // After this frame, because it deals each new hand again and prices your
     // calls, and the table's sounds and redraw should not wait on that.
