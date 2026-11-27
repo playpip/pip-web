@@ -156,6 +156,13 @@ const DEFINERS_WITH_ARGUMENTS: Record<string, string> = {
   social_target: 'helper, revoked from every client role',
   social_notify: 'helper, revoked from every client role',
   social_relation: 'helper, revoked from every client role',
+  // Game history (20261127120000_games.sql, docs/games.md).
+  games_put: 'helper, revoked from every client role',
+  games_visible: 'helper, revoked from every client role',
+  save_game: 'writes only the caller’s own games, solo kinds only',
+  record_room_hands: 'the room server’s, granted to the service role alone',
+  player_games: 'reads a player’s games only where they show them, null across a block',
+  get_game: 'reads one game only where its owner shows them, null across a block',
 }
 
 test('a security definer function takes no arguments', (t) => {
