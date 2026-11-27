@@ -44,11 +44,10 @@ export default function PrivacyPage() {
           sign back in, and{' '}
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
           was already on your device. Nothing else, unless you take a membership, turn on email,
-          play a slow game or allow notifications (all below). An account also has a profile other
-          signed-in players can see, which is below too. No hand histories beyond what your profile
-          already holds, and no IP-based profiling. The data sits with{' '}
-          <A href="https://supabase.com">Supabase</A> on our behalf, and email goes out through{' '}
-          <A href="https://resend.com">Resend</A>.
+          play a slow game or allow notifications (all below). An account also keeps the games you
+          play and has a profile other signed-in players can see, both below too. No IP-based
+          profiling. The data sits with <A href="https://supabase.com">Supabase</A> on our behalf,
+          and email goes out through <A href="https://resend.com">Resend</A>.
         </p>
         <p>
           If you sign in with Google or Apple instead of a password, they send us your email address
@@ -94,11 +93,12 @@ export default function PrivacyPage() {
       {ratingEnabled() && (
         <Section title="The Pip Rating and the leaderboard">
           <p>
-            Your Pip Rating is worked out on your device from the calls and folds you make at a
-            Hold’em table. With an account, the game sends our server, for each hand, when it
-            finished and what each of those decisions cost, and nothing else about the hand: no
-            cards, no Roll. The server keeps the arithmetic behind your rating and when you last
-            sent one, so the same hand is never counted twice.
+            Your Pip Rating comes from the calls and folds you make at a Hold’em table. With an
+            account, it is counted from when each hand finished and what each of those decisions
+            cost, never from your cards or your Roll. Your device sends that for the hands you play
+            alone, and our room server for the hands you play with other people. The server keeps
+            the arithmetic behind your rating and when you last sent one, so the same hand is never
+            counted twice.
           </p>
           <p>
             <strong className="font-medium text-foreground">The leaderboard is public.</strong>{' '}
@@ -119,9 +119,25 @@ export default function PrivacyPage() {
             </strong>{' '}
             It holds a handle, the name and avatar your account already syncs, a bio if you write
             one, and only what you choose to show. A new profile shows your Pip Rating, which the
-            leaderboard already shows, and nothing else. If you hid yourself from the leaderboard,
-            your profile starts hidden too. What you switch on in Your profile is copied there as
-            you play; nothing else about your play leaves your device for it.
+            leaderboard already shows, and your games (below), and nothing else. If you hid yourself
+            from the leaderboard, your profile starts hidden too. What you switch on in Your profile
+            is copied there as you play.
+          </p>
+          <p>
+            <strong className="font-medium text-foreground">
+              With an account, the games you play are kept on it,
+            </strong>{' '}
+            so you can go back through them: each hand, what everyone at the table did, the names at
+            the table and the result. Your device sends the games you play alone, with the computer
+            players’ cards face up as the review shows them. Our room server writes the games you
+            play with other people, and each player’s copy holds only their own cards and any a
+            showdown turned over, never anyone’s folded hand. We keep your newest 300 games.
+          </p>
+          <p>
+            Signed-in players can go through your games from your profile, unless you switch off
+            Games in Your profile. It started on for every profile that appears in search, and off
+            for any that does not. Someone you blocked, or who blocked you, cannot see them, and
+            nobody sees a hidden profile’s. Deleting your account deletes your games with it.
           </p>
           <p>
             Signed-in players can find you by handle or name, unless you switch off “Appear in

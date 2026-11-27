@@ -80,7 +80,7 @@ No App Tracking Transparency prompt is needed.
 | Data type (Apple's name) | Collected? | Linked to the user? | Used for tracking? | Purpose | Where it comes from |
 |---|---|---|---|---|---|
 | Contact Info › Email Address | Yes, only with an account | Yes | No | App Functionality | Supabase Auth sign-in, password reset, and the opt-in Daily/weekly emails (sent via Resend) |
-| User Content › Gameplay Content | Yes, only with an account | Yes | No | App Functionality | The synced profile: chosen name, avatar, Roll, stats, drill ratings, cosmetics |
+| User Content › Gameplay Content | Yes, only with an account | Yes | No | App Functionality | The synced profile: chosen name, avatar, Roll, stats, drill ratings, cosmetics. Since 2026-11-27 also every game played (hands, actions, results, the names at the table), shown on the player's profile to signed-in players unless switched off. Same category, nothing new to declare. |
 | Identifiers › User ID | Yes, only with an account | Yes | No | App Functionality | Supabase user id |
 | Identifiers › Device ID | Yes, only with an account | Yes | No | App Functionality | The random `device_id` stored with the synced row for the conflict prompt. It is app-generated, not the IDFA. Declaring it is the safe reading. |
 | Purchases › Purchase History | Yes, members only | Yes | No | App Functionality | The `memberships` row (status, renewal date). In-app purchases themselves are processed by Apple. |
