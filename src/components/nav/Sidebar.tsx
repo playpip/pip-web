@@ -37,6 +37,7 @@ import {
 import { DialogOverlay, DialogPortal } from '@/components/ui/dialog'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
+import { useOpenOwnProfile } from '@/components/social/useOpenOwnProfile'
 import { ShopDialog } from '@/components/menu/ShopDialog'
 import { AccountDialog } from '@/components/settings/AccountDialog'
 import { StyleDialog } from '@/components/settings/StyleDialog'
@@ -63,7 +64,7 @@ interface Item {
   badge?: number
 }
 
-/** Your face, name, rank and rating. Tapping it opens Edit player. */
+/** Your face, name, rank and rating. Tapping it opens your profile (`useOpenOwnProfile`). */
 function Who({ onOpen, roomRight }: { onOpen: () => void; roomRight?: boolean }) {
   const { name, avatar, peakRoll, avatarRing, rating } = useProfile()
   const handle = useSocial((s) => s.me?.handle)
@@ -170,6 +171,7 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
   const member = useEntitlement()
   const signedOut = useSync((s) => s.ready && s.status === 'signed-out') && syncConfigured()
   const [profileOpen, setProfileOpen] = useState(false)
+  const openOwn = useOpenOwnProfile(() => setProfileOpen(true))
   const [styleOpen, setStyleOpen] = useState(false)
   const [shopOpen, setShopOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -207,7 +209,13 @@ function SidebarBody({ onGo }: { onGo?: () => void }) {
     // In the phone drawer the whole list scrolls as one, so nothing hides under
     // a pinned footer; on a desktop the footer stays put and the places scroll.
     <div className="-mx-1 flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-1 lg:mx-0 lg:overflow-visible lg:px-0">
-      <Who onOpen={() => setProfileOpen(true)} roomRight={Boolean(onGo)} />
+      <Who
+        onOpen={() => {
+          openOwn()
+          onGo?.()
+        }}
+        roomRight={Boolean(onGo)}
+      />
       {signedOut && (
         <button
           type="button"

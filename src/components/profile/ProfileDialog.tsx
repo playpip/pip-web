@@ -101,22 +101,26 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
           <PublicFields draft={draft} />
         </div>
       )}
-      <button
-        type="button"
-        onClick={() => {
-          sound.play('tap')
-          setChipsOpen(true)
-        }}
-        className="mt-4 w-full rounded-2xl bg-foreground/[0.06] py-3 font-medium transition hover:bg-foreground/[0.12]"
-      >
-        Chips · {earnedCount}/{AWARDS.length}
-      </button>
+      {/* With a profile page your chips are on it, beside your games; this
+          is the editor. Without one, this is still where they live. */}
+      {!social && (
+        <button
+          type="button"
+          onClick={() => {
+            sound.play('tap')
+            setChipsOpen(true)
+          }}
+          className="mt-4 w-full rounded-2xl bg-foreground/[0.06] py-3 font-medium transition hover:bg-foreground/[0.12]"
+        >
+          Chips · {earnedCount}/{AWARDS.length}
+        </button>
+      )}
       {problem && <p className="mt-3 text-sm text-destructive">{problem}</p>}
       <button
         type="button"
         onClick={() => void save()}
         disabled={!name.trim() || saving || (social && draft.blocked)}
-        className="mt-2.5 w-full rounded-2xl bg-primary py-3 font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 enabled:active:scale-[0.98] disabled:opacity-30"
+        className="mt-4 w-full rounded-2xl bg-primary py-3 font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 enabled:active:scale-[0.98] disabled:opacity-30"
       >
         {saving ? 'Saving…' : 'Save'}
       </button>

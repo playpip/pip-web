@@ -11,6 +11,7 @@ import { StyleDialog } from '@/components/settings/StyleDialog'
 import { SocialBell } from '@/components/social/SocialBell'
 import { SidebarDrawer } from '@/components/nav/Sidebar'
 import { useProfile } from '@/store/profile'
+import { useOpenOwnProfile } from '@/components/social/useOpenOwnProfile'
 import { avatarRingById } from '@/config/cosmetics'
 import { rankFor } from '@/config/ranks'
 import { sound } from '@/lib/sound'
@@ -80,6 +81,7 @@ export function AppBar({
   // the app belongs to somebody in the cast and wears nothing.
   const ring = avatarRingById(avatarRing)
   const [profileOpen, setProfileOpen] = useState(false)
+  const openOwn = useOpenOwnProfile(() => setProfileOpen(true))
   const [styleOpen, setStyleOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -133,10 +135,10 @@ export function AppBar({
           <button
             onClick={() => {
               sound.play('tap')
-              setProfileOpen(true)
+              openOwn()
             }}
             className="flex items-center gap-3 justify-self-start rounded-full py-1 pl-1 pr-3 transition hover:bg-foreground/5 active:scale-[0.98]"
-            aria-label="Edit player"
+            aria-label="Your profile"
           >
             {avatar && <PlayerAvatar spec={avatar} size={40} ring={ring} />}
             <div className="text-left leading-tight">

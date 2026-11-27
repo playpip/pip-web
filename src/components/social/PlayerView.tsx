@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Ban, Check, Flag, Loader2, MoreHorizontal, UserMinus, X } from 'lucide-react'
+import { Ban, Check, ChevronRight, Flag, Loader2, MoreHorizontal, UserMinus, X } from 'lucide-react'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -35,6 +35,10 @@ import { cn } from '@/lib/utils'
 import { useSocial } from '@/store/social'
 import { BadgeChips, challengeHref, Face, RowButton, shownTiles } from './parts'
 import { ProfileDialog } from '@/components/profile/ProfileDialog'
+import { ChipsDialog } from '@/components/profile/ChipsDialog'
+import { AwardChip } from '@/components/AwardChip'
+import { AWARDS } from '@/lib/awards'
+import { useProfile } from '@/store/profile'
 import { GameList, gamesHref } from '@/components/games/GameList'
 
 /** Each rank's table, climbing the ladder as the ranks do. */
@@ -268,6 +272,8 @@ function Card({
           {self ? 'You’re not showing anything yet.' : 'Nothing shown.'}
         </p>
       )}
+
+      {self && <OwnChips />}
 
       {(self || player.shown.includes('games')) && (
         <section className="flex flex-col gap-3 border-t border-foreground/[0.08] px-4 py-5 sm:px-6">
@@ -539,5 +545,38 @@ function ReportBody({ player, onClose }: { player: Player; onClose: () => void }
         </RowButton>
       </div>
     </div>
+  )
+}
+
+/** Your own chips, on your own profile: the shelf opens from here. */
+function OwnChips() {
+  const awards = useProfile((s) => s.awards)
+  const [open, setOpen] = useState(false)
+  const earned = AWARDS.filter((a) => awards[a.id] !== undefined)
+  return (
+    <section className="border-t border-foreground/[0.08] px-4 py-5 sm:px-6">
+      <button
+        type="button"
+        onClick={() => {
+          sound.play('tap')
+          setOpen(true)
+        }}
+        className="flex w-full items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-4 py-3 text-left transition hover:bg-foreground/[0.06]"
+      >
+        <span className="flex -space-x-2">
+          {earned.slice(-4).map((a) => (
+            <AwardChip key={a.id} award={a} earned size={28} />
+          ))}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium">Chips</span>
+          <span className="block text-xs text-muted-foreground tabular-nums">
+            {earned.length} of {AWARDS.length}
+          </span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
+      </button>
+      <ChipsDialog open={open} onOpenChange={setOpen} />
+    </section>
   )
 }
