@@ -49,7 +49,18 @@ import { noticeCopy, type SlowCard } from '@/lib/multiplayer/slowCard'
 import { MAX_SLOW_GAMES } from '@/lib/multiplayer/slow'
 import { FREE_SLOW_GAMES, freeSpent, utcDay, type FreeLeft } from '@/lib/multiplayer/freeRoom'
 import { json, type Env } from './env'
-import { emailOf, gameUrl, offLink, profileStateOf, pushAll, sendEmail, turnEmail } from './notify'
+import { accountCheckDue } from '@/lib/multiplayer/accountGone'
+import { lobbyStub } from './lobby'
+import {
+  accountGone,
+  emailOf,
+  gameUrl,
+  offLink,
+  profileStateOf,
+  pushAll,
+  sendEmail,
+  turnEmail,
+} from './notify'
 
 /** The daily free tables, and where the day each was last spent is kept. */
 export type FreeDaily = 'room' | 'quick'
@@ -360,6 +371,11 @@ export class Player extends DurableObject<Env> {
 
   async alarm(): Promise<void> {
     try {
+      if (await this.forgetIfGone()) return
+    } catch (e) {
+      console.error('account check failed', { error: String(e) })
+    }
+    try {
       await this.deliverNudges()
     } catch (e) {
       console.error('nudges failed', { error: String(e) })
@@ -369,6 +385,32 @@ export class Player extends DurableObject<Env> {
     } catch (e) {
       console.error('notices failed', { error: String(e) })
     }
+  }
+
+  /**
+   * An account deleted by hand never called `/forget`, so at most once a day a
+   * waking index asks whether its account still exists, and if Supabase says
+   * it does not, forgets everything the way `/forget` does
+   * (`lib/multiplayer/accountGone`). True when it forgot.
+   */
+  private async forgetIfGone(): Promise<boolean> {
+    const now = Date.now()
+    if (!accountCheckDue(await this.get<number | null>('accountCheckedAt', null), now)) return false
+    const userId = await this.get<string>('user', '')
+    if (!userId) return false
+    await this.ctx.storage.put('accountCheckedAt', now)
+    if (!(await accountGone(this.env, userId))) return false
+    // Off the open tables announcements too, as `/notify/forget` does.
+    await lobbyStub(this.env)
+      .fetch('https://lobby/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ userId, on: false }),
+      })
+      .catch((e: unknown) => console.error('open tables switch not cleared', String(e)))
+    await this.ctx.storage.deleteAlarm()
+    await this.ctx.storage.deleteAll()
+    console.log('account deleted elsewhere: player forgotten')
+    return true
   }
 
   /** Pushes to every device, and returns the ones still there. */
