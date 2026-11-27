@@ -1,5 +1,13 @@
 import type { Metadata } from 'next'
-import { LegalPage, Section, List, Item, A, Src } from '@/components/marketing/LegalPage'
+import {
+  LegalPage,
+  Section,
+  List,
+  Item,
+  A,
+  Src,
+  Correction,
+} from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 
 const post = BLOG_POSTS.find((p) => p.slug === 'two-devices-two-chip-counts')!
@@ -13,6 +21,15 @@ export default function TwoDevicesTwoChipCountsPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="27 November 2026">
+        <p>
+          Since 27 November an account holds more than the two things below: it also keeps your
+          games, solo sessions and multiplayer games hand by hand, so you can go back through them.
+          Your profile lists them unless you switch Games off. “No hand histories” is no longer true
+          of an account.
+        </p>
+      </Correction>
+
       <Section title="The short version">
         <p>
           Pip now has an account. It is optional, it is off unless you turn it on, and it does one
