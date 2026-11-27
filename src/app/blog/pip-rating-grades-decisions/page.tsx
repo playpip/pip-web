@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, Section, Src } from '@/components/marketing/LegalPage'
+import { Correction, LegalPage, Section, Src } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate, postMetadata } from '@/config/blog'
 import { membershipFor } from '@/config/membership'
 import {
@@ -43,6 +43,14 @@ export default function PipRatingPost() {
       subtitle={formatPostDate(post.date)}
       back={{ href: '/blog', label: 'All posts' }}
     >
+      <Correction date="27 November 2026">
+        <p>
+          Since 27 November multiplayer Hold’em counts too: rooms with friends, open tables and slow
+          games. Our server grades each hand from the cards your seat saw, by the same rules as the
+          rest of this post. The line below saying rooms do not count was true when it went up.
+        </p>
+      </Correction>
+
       <Section title="The problem with counting wins">
         <p>
           Poker results are mostly the cards. You can play a hand perfectly and lose it, and play it
