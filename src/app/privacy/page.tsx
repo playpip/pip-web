@@ -44,10 +44,10 @@ export default function PrivacyPage() {
           sign back in, and{' '}
           <strong className="font-medium text-foreground">a copy of the same profile</strong> that
           was already on your device. Nothing else, unless you take a membership, turn on email,
-          play a slow game or allow notifications (all below). No hand histories beyond what your
-          profile already holds, and no IP-based profiling. The data sits with{' '}
-          <A href="https://supabase.com">Supabase</A> on our behalf, and email goes out through{' '}
-          <A href="https://resend.com">Resend</A>.
+          play a slow game or allow notifications (all below). An account also keeps the games you
+          play and has a profile other signed-in players can see, both below too. No IP-based
+          profiling. The data sits with <A href="https://supabase.com">Supabase</A> on our behalf,
+          and email goes out through <A href="https://resend.com">Resend</A>.
         </p>
         <p>
           If you sign in with Google or Apple instead of a password, they send us your email address
@@ -93,11 +93,12 @@ export default function PrivacyPage() {
       {ratingEnabled() && (
         <Section title="The Pip Rating and the leaderboard">
           <p>
-            Your Pip Rating is worked out on your device from the calls and folds you make at a
-            Hold’em table. With an account, the game sends our server, for each hand, when it
-            finished and what each of those decisions cost, and nothing else about the hand: no
-            cards, no Roll. The server keeps the arithmetic behind your rating and when you last
-            sent one, so the same hand is never counted twice.
+            Your Pip Rating comes from the calls and folds you make at a Hold’em table. With an
+            account, it is counted from when each hand finished and what each of those decisions
+            cost, never from your cards or your Roll. Your device sends that for the hands you play
+            alone, and our room server for the hands you play with other people. The server keeps
+            the arithmetic behind your rating and when you last sent one, so the same hand is never
+            counted twice.
           </p>
           <p>
             <strong className="font-medium text-foreground">The leaderboard is public.</strong>{' '}
@@ -105,6 +106,52 @@ export default function PrivacyPage() {
             account already syncs. Your Roll is never on it. “Hide me from the leaderboard” in your
             rating takes you off it straight away, and deleting your account deletes your rating
             with it. Without an account your rating stays on your device and is never sent.
+          </p>
+        </Section>
+      )}
+
+      {/* Friends and profiles (2026-11-22). Only said in a build that has them. */}
+      {process.env.NEXT_PUBLIC_SOCIAL === '1' && (
+        <Section title="Your profile and friends">
+          <p>
+            <strong className="font-medium text-foreground">
+              Every account has a profile that other signed-in players can see.
+            </strong>{' '}
+            It holds a handle, the name and avatar your account already syncs, a bio if you write
+            one, and only what you choose to show. A new profile shows your Pip Rating, which the
+            leaderboard already shows, and your games (below), and nothing else. If you hid yourself
+            from the leaderboard, your profile starts hidden too. What you switch on in Your profile
+            is copied there as you play.
+          </p>
+          <p>
+            <strong className="font-medium text-foreground">
+              With an account, the games you play are kept on it,
+            </strong>{' '}
+            so you can go back through them: each hand, what everyone at the table did, the names at
+            the table and the result. Your device sends the games you play alone, with the computer
+            players’ cards face up as the review shows them. Our room server writes the games you
+            play with other people, and each player’s copy holds only their own cards and any a
+            showdown turned over, never anyone’s folded hand. We keep your newest 300 games.
+          </p>
+          <p>
+            Signed-in players can go through your games from your profile, unless you switch off
+            Games in Your profile. It started on for every profile that appears in search, and off
+            for any that does not. Someone you blocked, or who blocked you, cannot see them, and
+            nobody sees a hidden profile’s. Deleting your account deletes your games with it.
+          </p>
+          <p>
+            Signed-in players can find you by handle or name, unless you switch off “Appear in
+            search” in Your profile. Your friends always can. Without an account nobody sees a
+            profile. While you have a live membership, a Member badge shows beside your name to
+            signed-in players; you can switch it off in Your profile.
+          </p>
+          <p>
+            We keep who your friends are, the requests you have sent and had, and an inbox of
+            requests, challenges and invites. There is no messaging. You can block or report anyone
+            from their profile. A report is stored with both accounts and an optional note for us to
+            read, and a profile three different people report in a week is hidden until we have
+            looked. Deleting your account deletes your profile, your friendships and your inbox with
+            it.
           </p>
         </Section>
       )}
@@ -150,8 +197,8 @@ export default function PrivacyPage() {
         <List>
           <Item>
             <strong className="font-medium text-foreground">No account needed.</strong> You can play
-            everything without one. There’s an optional account for moving your progress between
-            devices (above), and that’s the only thing it does.
+            everything without one. There’s an optional account (above), for moving your progress
+            between devices, holding a membership and playing with friends.
           </Item>
           <Item>
             <strong className="font-medium text-foreground">No personal data.</strong> The counts we
@@ -251,9 +298,14 @@ export default function PrivacyPage() {
             hours.
           </p>
           <p>
+            A host can open their table to anyone. Until the cards are dealt it sits on the open
+            tables list, where any signed-in player sees the host’s name and avatar, the stakes and
+            how many seats are taken.
+          </p>
+          <p>
             Your camera and microphone are off until you turn them on at a table with friends, and
-            they are never available at a quick-match table. When they are on, the picture and sound
-            go directly from your device to the other players’, encrypted, and are not recorded by
+            they are never available at an open table. When they are on, the picture and sound go
+            directly from your device to the other players’, encrypted, and are not recorded by
             anyone. On networks that block a direct connection they pass through Cloudflare’s relay,
             still encrypted, so the relay cannot see or hear them. Nothing of either is stored on
             our server.
@@ -267,17 +319,18 @@ export default function PrivacyPage() {
         <Section title="Notifications">
           <p>
             Pip only sends a notification to a device you allowed, after your phone or browser asks
-            you. Settings → Notifications has a switch for each kind: your move in a slow game,
-            someone passing you on the Pip Rating board, and your streak about to end. Nothing is
-            sent in your quiet hours.
+            you. Settings → Notifications has a switch for each kind: your friends (a request, a
+            challenge, an invite or a table they open), any table opened to anyone (off until you
+            turn it on), your move in a slow game, someone passing you on the Pip Rating board, and
+            your streak about to end. Nothing is sent in your quiet hours.
           </p>
           <p>
             To do that our room server keeps, with your account’s id: the address of each device you
-            allowed, your switches, your quiet hours and time zone, and your slow games. The address
-            is made by your phone or browser and only works for sending to it. The notification
-            itself goes through the push service your phone or browser maker runs, and through
-            Expo’s for the Pip app. To check your streak, the server reads it once a day from the
-            profile your account already syncs.
+            allowed, your switches, your quiet hours and time zone, your slow games, and whether you
+            asked to hear about open tables. The address is made by your phone or browser and only
+            works for sending to it. The notification itself goes through the push service your
+            phone or browser maker runs, and through Expo’s for the Pip app. To check your streak,
+            the server reads it once a day from the profile your account already syncs.
           </p>
           <p>
             A slow game can also email you when a move has waited a while, at most one email every

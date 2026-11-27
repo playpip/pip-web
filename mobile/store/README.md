@@ -80,7 +80,7 @@ No App Tracking Transparency prompt is needed.
 | Data type (Apple's name) | Collected? | Linked to the user? | Used for tracking? | Purpose | Where it comes from |
 |---|---|---|---|---|---|
 | Contact Info › Email Address | Yes, only with an account | Yes | No | App Functionality | Supabase Auth sign-in, password reset, and the opt-in Daily/weekly emails (sent via Resend) |
-| User Content › Gameplay Content | Yes, only with an account | Yes | No | App Functionality | The synced profile: chosen name, avatar, Roll, stats, drill ratings, cosmetics |
+| User Content › Gameplay Content | Yes, only with an account | Yes | No | App Functionality | The synced profile: chosen name, avatar, Roll, stats, drill ratings, cosmetics. Since 2026-11-27 also every game played (hands, actions, results, the names at the table), shown on the player's profile to signed-in players unless switched off. Same category, nothing new to declare. |
 | Identifiers › User ID | Yes, only with an account | Yes | No | App Functionality | Supabase user id |
 | Identifiers › Device ID | Yes, only with an account | Yes | No | App Functionality | The random `device_id` stored with the synced row for the conflict prompt. It is app-generated, not the IDFA. Declaring it is the safe reading. |
 | Purchases › Purchase History | Yes, members only | Yes | No | App Functionality | The `memberships` row (status, renewal date). In-app purchases themselves are processed by Apple. |
@@ -114,7 +114,7 @@ thorough, declare it under User Content › Photos or Videos.
 | Contests | None | No prizes. The ladder and the Daily are single-player. |
 | Unrestricted Web Access | No | The web view only loads playpip.io. Every other link opens in Safari (`onShouldStartLoadWithRequest` in `App.tsx`). |
 | Messaging and Chat | **Yes** | Multiplayer private rooms carry voice (and camera) between the players at one table. Invitation only, no text chat, nothing with strangers. |
-| User-Generated Content | **Yes** | The same: a player's camera is shown to the friends at their table. Answered yes to be safe; it is live and never stored. |
+| User-Generated Content | **Yes** | A player's camera is shown to the friends at their table (live, never stored), and every account has a profile with a name and an optional bio that other signed-in players can see. |
 | Advertising | No | No ads. |
 | Loot boxes | No | The Chip Shop sells fixed cosmetics for play chips, with no random rewards. |
 | Everything else (violence, sexual content, horror, medical, profanity, mature themes, weapons) | None | — |
@@ -153,8 +153,10 @@ landed. In order of how likely they are:
    Apple first, which Apple asks for.
 
 7. **Multiplayer and guideline 1.2 (user-generated content).** Built for it (2026-10-11):
-   rooms are invitation only, there is no public lobby or text chat, and quick match has no
-   camera or voice. Tapping any player opens a sheet with **Mute** and **Hide their camera**
+   rooms are invitation only unless the host opens the table to anyone (no camera or voice at
+   an open table), and there is no text chat. Since 2026-11-22 every account also has a
+   searchable profile with an optional bio: names, handles and bios pass a word filter, and
+   every profile has Block and Report. Tapping any player opens a sheet with **Mute** and **Hide their camera**
    (yours only), **Report** (four reasons, stored on our side with both accounts and the room),
    and **Block** (no camera or voice between you from then on, and they cannot join rooms you
    open). The host can also remove anyone. The review notes describe all of it.

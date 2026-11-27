@@ -706,7 +706,7 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
             </p>
             <p>
               Camera and mic are only ever on in a room a member opened for their friends, never at
-              a quick-match table.
+              an open table.
             </p>
           </Question>
         )}
