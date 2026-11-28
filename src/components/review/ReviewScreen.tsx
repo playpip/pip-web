@@ -22,7 +22,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Lock } from 'lucide-react'
 import { SectionScreen } from '@/components/menu/SectionScreen'
 import { useRequireProfile } from '@/components/menu/useRequireProfile'
@@ -41,10 +41,12 @@ import { type OpenedGame, openGame } from '@/lib/games/api'
 export function ReviewScreen() {
   const ready = useRequireProfile()
   // `?game=ID` is a game from the account (docs/games.md): yours or a player's.
-  const game = useMemo(
-    () => (ready ? new URLSearchParams(window.location.search).get('game') : null),
-    [ready],
-  )
+  // Read through `useSearchParams`, not `window.location`: on a client-side
+  // navigation (a row on somebody's profile) the address bar is only updated
+  // after the new page first renders, so `window.location` still held the
+  // previous page's query and every game opened as your last session.
+  const params = useSearchParams()
+  const game = ready ? params.get('game') : null
   if (ready && game) return <GameReview id={game} />
   return <SessionReview ready={ready} />
 }
@@ -58,12 +60,9 @@ function SessionReview({ ready }: { ready: boolean }) {
   // not been created — so it can take seconds.
   const settled = useMembership((state) => state.checked)
   // `?room=CODE` is a multiplayer game's review (lib/multiplayer/review);
-  // without it, the last solo session. A query string, read off `location`
-  // rather than `useSearchParams`, so the page needs no Suspense boundary.
-  const room = useMemo(
-    () => (ready ? new URLSearchParams(window.location.search).get('room') : null),
-    [ready],
-  )
+  // without it, the last solo session.
+  const params = useSearchParams()
+  const room = ready ? params.get('room') : null
   // A slow game you are in can still have hands this device never kept (a
   // game opened only now and then). Its room still holds the last few, so
   // the review sits down at it, as opening the table would, to fetch them.
